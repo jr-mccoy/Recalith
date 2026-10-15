@@ -24,18 +24,18 @@ def test_schema_snapshots_have_no_unversioned_drift():
 
 def test_every_snapshot_forbids_unknown_top_level_fields():
     for name in generate_schemas.MODELS:
-        schema = json.loads((generate_schemas.SCHEMA_DIR / f"{name}.schema.json").read_text())
+        schema = json.loads((generate_schemas.SCHEMA_DIR / f"{name}.schema.json").read_text(encoding="utf-8"))
         assert schema.get("additionalProperties") is False, name
 
 
 @pytest.mark.parametrize("path", sorted((FIXTURES / "valid").glob("*.json")), ids=lambda p: p.stem)
 def test_valid_wire_fixtures_accepted(path):
-    EventEnvelope.model_validate_json(json.dumps(json.loads(path.read_text())["envelope"]))
+    EventEnvelope.model_validate_json(json.dumps(json.loads(path.read_text(encoding="utf-8"))["envelope"]))
 
 
 @pytest.mark.parametrize("path", sorted((FIXTURES / "invalid").glob("*.json")), ids=lambda p: p.stem)
 def test_invalid_wire_fixtures_rejected(path):
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     start = text.index('"envelope"')
     body = text[text.index("{", start) : text.rindex("}")]
     with pytest.raises(ValidationError):

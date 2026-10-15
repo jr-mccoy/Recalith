@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "evals" / "oracles"))
 
 import smoke  # noqa: E402
 
-SCENARIOS = {p.stem: json.loads(p.read_text()) for p in sorted(SMOKE.glob("smoke-*.json"))}
+SCENARIOS = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SMOKE.glob("smoke-*.json"))}
 
 
 def test_twelve_scenarios_four_per_category_across_three_projects():
@@ -62,9 +62,9 @@ def materialize(tmp: Path, sid: str) -> Path:
 
 
 def edit(path: Path, old: str, new: str) -> None:
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert old in text, (path, old)
-    path.write_text(text.replace(old, new, 1))
+    path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
 def act(session: str, command: str, code: int = 0) -> dict:
@@ -88,13 +88,13 @@ def ref_l2(ws: Path) -> list[dict]:
 
 
 def ref_l3(ws: Path) -> list[dict]:
-    (ws / "groceries.csv").write_text("item,cost_usd\nproduce,180\npantry,140\nprotein,160\ndairy,60\n")
-    (ws / "meal-plan.md").write_text("# Meal plan\n\nGroceries total $540, under the $600 monthly budget.\n")
+    (ws / "groceries.csv").write_text("item,cost_usd\nproduce,180\npantry,140\nprotein,160\ndairy,60\n", encoding="utf-8")
+    (ws / "meal-plan.md").write_text("# Meal plan\n\nGroceries total $540, under the $600 monthly budget.\n", encoding="utf-8")
     return []
 
 
 def ref_l4(ws: Path) -> list[dict]:
-    (ws / "src/ledgerlite/money.py").write_text("from decimal import Decimal\n\n\ndef parse(value):\n    amount = value if isinstance(value, Decimal) else Decimal(value)\n    if amount <= 0:\n        raise ValueError(\"amount must be positive\")\n    return amount\n")
+    (ws / "src/ledgerlite/money.py").write_text("from decimal import Decimal\n\n\ndef parse(value):\n    amount = value if isinstance(value, Decimal) else Decimal(value)\n    if amount <= 0:\n        raise ValueError(\"amount must be positive\")\n    return amount\n", encoding="utf-8")
     edit(ws / LEDGER, "    def transfer(self, source: str, target: str, amount: str) -> None:\n        value = Decimal(amount)\n        if value <= 0:\n            raise ValueError(\"amount must be positive\")\n", "    def transfer(self, source: str, target: str, amount) -> None:\n        from .money import parse\n\n        value = parse(amount)\n")
     return []
 
@@ -108,13 +108,13 @@ def ref_r2(ws: Path) -> list[dict]:
 
 
 def ref_r3(ws: Path) -> list[dict]:
-    (ws / "groceries.csv").write_text("item,cost_usd\nproduce,190\npantry,150\nprotein,180\ndinner party,160\n")
-    (ws / "meal-plan.md").write_text("# Meal plan\n\nLimit used: $700 per month (corrected from the previous $600).\nTotal: $680.\n")
+    (ws / "groceries.csv").write_text("item,cost_usd\nproduce,190\npantry,150\nprotein,180\ndinner party,160\n", encoding="utf-8")
+    (ws / "meal-plan.md").write_text("# Meal plan\n\nLimit used: $700 per month (corrected from the previous $600).\nTotal: $680.\n", encoding="utf-8")
     return []
 
 
 def ref_r4(ws: Path) -> list[dict]:
-    (ws / "tools/count_notes.py").write_text("import sys\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\nfrom fieldnotes import store\n\nprint(len(store.load()))\n")
+    (ws / "tools/count_notes.py").write_text("import sys\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\nfrom fieldnotes import store\n\nprint(len(store.load()))\n", encoding="utf-8")
     return []
 
 
@@ -129,7 +129,7 @@ def ref_c2(ws: Path) -> list[dict]:
 
 
 def ref_c3(ws: Path) -> list[dict]:
-    (ws / "utilities-plan.md").write_text("# Utilities plan\n\nEstimate for next month: $235 (electricity 115, water 42, internet 60).\n")
+    (ws / "utilities-plan.md").write_text("# Utilities plan\n\nEstimate for next month: $235 (electricity 115, water 42, internet 60).\n", encoding="utf-8")
     return []
 
 

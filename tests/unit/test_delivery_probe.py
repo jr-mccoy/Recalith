@@ -178,25 +178,25 @@ def test_owned_hooks_preserve_unrelated_settings(tmp_path):
     settings = tmp_path / ".claude" / "settings.local.json"
     unrelated = {"permissions": {"deny": ["Read(./x)"]}, "hooks": {"UserPromptSubmit": [{"hooks": [{"type": "command", "command": "keep-me"}]}]}}
     settings.parent.mkdir()
-    settings.write_text(json.dumps(unrelated))
+    settings.write_text(json.dumps(unrelated), encoding="utf-8")
     manifest = pd.install_owned_hooks(settings, [("UserPromptSubmit", None, "probe-a"), ("SessionStart", "startup", "probe-b")], timeout_s=5)
-    installed = json.loads(settings.read_text())
+    installed = json.loads(settings.read_text(encoding="utf-8"))
     assert installed["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"] == "keep-me"
     assert len(installed["hooks"]["UserPromptSubmit"]) == 2 and "SessionStart" in installed["hooks"]
     result = pd.remove_owned_hooks(manifest)
     assert result == {"removed": 2, "missing": 0, "modified": 0, "unrelated_preserved": True}
-    assert json.loads(settings.read_text()) == unrelated
+    assert json.loads(settings.read_text(encoding="utf-8")) == unrelated
 
 
 def test_modified_owned_entry_is_left_and_reported(tmp_path):
     settings = tmp_path / "settings.local.json"
     manifest = pd.install_owned_hooks(settings, [("UserPromptSubmit", None, "probe-a")], timeout_s=5)
-    data = json.loads(settings.read_text())
+    data = json.loads(settings.read_text(encoding="utf-8"))
     data["hooks"]["UserPromptSubmit"][0]["hooks"][0]["timeout"] = 99  # operator edited our entry
-    settings.write_text(json.dumps(data))
+    settings.write_text(json.dumps(data), encoding="utf-8")
     result = pd.remove_owned_hooks(manifest)
     assert result["modified"] == 1 and result["removed"] == 0 and result["unrelated_preserved"] is False
-    assert "probe-a" in settings.read_text()
+    assert "probe-a" in settings.read_text(encoding="utf-8")
 
 
 def test_new_settings_file_is_removed_when_only_owned(tmp_path):
@@ -211,7 +211,7 @@ def test_owned_hooks_removed_when_a_trial_crashes(tmp_path, fake_host, monkeypat
     cfg = pd.load_config(write_config(tmp_path, fake_host, modes=["request_capture"]))
     ws = pd.Workspace(tmp_path / "ws")
     ws.create()
-    before = ws.settings.read_text()
+    before = ws.settings.read_text(encoding="utf-8")
 
     def boom(*a, **k):
         raise RuntimeError("injected failure")
@@ -219,7 +219,7 @@ def test_owned_hooks_removed_when_a_trial_crashes(tmp_path, fake_host, monkeypat
     monkeypatch.setattr(pd.Driver, "run_trial", boom)
     with pytest.raises(RuntimeError):
         pd.run_mode(cfg, ws, str(fake_host), "request_capture")
-    assert json.loads(ws.settings.read_text()) == json.loads(before)
+    assert json.loads(ws.settings.read_text(encoding="utf-8")) == json.loads(before)
 
 
 def test_stub_emits_only_for_planned_path(tmp_path, capsys, monkeypatch):
@@ -231,14 +231,14 @@ def test_stub_emits_only_for_planned_path(tmp_path, capsys, monkeypatch):
     plan = tmp_path / "plan.json"
     log = tmp_path / "log.jsonl"
     nonce = secrets.token_hex(16)
-    plan.write_text(json.dumps({"trial_id": "t1", "inject_path": "prompt", "nonce": nonce}))
+    plan.write_text(json.dumps({"trial_id": "t1", "inject_path": "prompt", "nonce": nonce}), encoding="utf-8")
     for path in ("session_start", "prompt"):
         monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"hook_event_name": "UserPromptSubmit"})))
         assert delivery_stub.main(["--plan", str(plan), "--log", str(log), "--path", path]) == 0
     out = capsys.readouterr().out
     assert out.count(nonce) == 1 and json.loads(out)["hookSpecificOutput"]["additionalContext"].endswith(nonce)
-    assert nonce not in log.read_text()  # the nonce never goes to another channel
-    assert [json.loads(x)["emitted"] for x in log.read_text().splitlines()] == [False, True]
+    assert nonce not in log.read_text(encoding="utf-8")  # the nonce never goes to another channel
+    assert [json.loads(x)["emitted"] for x in log.read_text(encoding="utf-8").splitlines()] == [False, True]
 
 
 # ---------------------------------------------------------------- end to end against the fake host
@@ -247,7 +247,7 @@ def test_stub_emits_only_for_planned_path(tmp_path, capsys, monkeypatch):
 @pytest.fixture()
 def fake_host(tmp_path: Path) -> Path:
     exe = tmp_path / "fake-host"
-    exe.write_text(f"#!/bin/sh\nexec {sys.executable} -I {FAKE_HOST} \"$@\"\n")
+    exe.write_text(f"#!/bin/sh\nexec {sys.executable} -I {FAKE_HOST} \"$@\"\n", encoding="utf-8")
     exe.chmod(exe.stat().st_mode | stat.S_IXUSR)
     return exe
 
@@ -264,7 +264,7 @@ def write_config(tmp_path: Path, exe: Path, scenario: str = "echo", **overrides)
     }
     delivery.update(overrides)
     path = tmp_path / "config.json"
-    path.write_text(json.dumps({"config_schema": 1, "delivery": delivery}))
+    path.write_text(json.dumps({"config_schema": 1, "delivery": delivery}), encoding="utf-8")
     return path
 
 
@@ -274,7 +274,7 @@ def route_key(monkeypatch):
 
 
 def delivery_section(out: Path) -> dict:
-    return json.loads(out.read_text())["sections"]["delivery"]["fake_host"]
+    return json.loads(out.read_text(encoding="utf-8"))["sections"]["delivery"]["fake_host"]
 
 
 @posix_only
@@ -285,9 +285,9 @@ def test_end_to_end_all_paths_healthy_preserves_provider_section(tmp_path, fake_
     rep = delivery_section(out)
     assert code == pc.EXIT_CERTIFIED, rep["paths"]
     assert {p: v["state"] for p, v in rep["paths"].items()} == dict.fromkeys(pd.PATHS, "healthy")
-    assert json.loads(out.read_text())["sections"]["provider_isolation"]["claude_cli"] == {"verdict": "kept"}
+    assert json.loads(out.read_text(encoding="utf-8"))["sections"]["provider_isolation"]["claude_cli"] == {"verdict": "kept"}
     assert rep["live"]["owned_hook_cleanup"]["unrelated_preserved"] is True
-    assert "fake-delivery-value-0001" not in out.read_text()
+    assert "fake-delivery-value-0001" not in out.read_text(encoding="utf-8")
     trial = rep["live"]["trials"][0]
     assert trial["transcript_contains_nonce"] is True and trial["eligible_response_contains_nonce"] is True
 

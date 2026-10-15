@@ -210,18 +210,25 @@ def environment_key_report(
     }
 
 
-def observed_process_environment_keys(pid: int) -> list[str] | None:
-    """Key names of a live child's initial environment (Linux /proc only)."""
+def observed_process_environment_keys(pid: int, *, attempts: int = 20, interval_s: float = 0.01) -> list[str] | None:
+    """Key names of a live child's initial environment (Linux /proc only).
+
+    While a launcher shim ``exec``s the real CLI, /proc can briefly report an
+    empty environment. A launched child always carries at least its role
+    marker, so an empty read is re-sampled and, if it persists, reported as
+    unobservable (None) rather than as an observed empty environment.
+    """
     path = Path(f"/proc/{pid}/environ")
-    try:
-        raw = path.read_bytes()
-    except OSError:
-        return None
-    keys = []
-    for item in raw.split(b"\0"):
-        if b"=" in item:
-            keys.append(item.split(b"=", 1)[0].decode("utf-8", "replace"))
-    return sorted(set(keys))
+    for _ in range(attempts):
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            return None
+        keys = sorted({item.split(b"=", 1)[0].decode("utf-8", "replace") for item in raw.split(b"\0") if b"=" in item})
+        if keys:
+            return keys
+        time.sleep(interval_s)
+    return None
 
 
 # --------------------------------------------------------------------------

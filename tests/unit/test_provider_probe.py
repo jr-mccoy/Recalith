@@ -29,7 +29,7 @@ pytestmark = pytest.mark.skipif(os.name == "nt", reason="fake CLI wrapper uses a
 @pytest.fixture()
 def fake_exe(tmp_path: Path) -> Path:
     exe = tmp_path / "fake-claude"
-    exe.write_text(f"#!/bin/sh\nexec {sys.executable} -I {FAKE} \"$@\"\n")
+    exe.write_text(f"#!/bin/sh\nexec {sys.executable} -I {FAKE} \"$@\"\n", encoding="utf-8")
     exe.chmod(exe.stat().st_mode | stat.S_IXUSR)
     return exe
 
@@ -48,12 +48,12 @@ def write_config(tmp_path: Path, exe: Path, **overrides) -> Path:
     }
     cfg.update(overrides)
     path = tmp_path / "config.json"
-    path.write_text(json.dumps({"config_schema": 1, "provider": cfg}))
+    path.write_text(json.dumps({"config_schema": 1, "provider": cfg}), encoding="utf-8")
     return path
 
 
 def section(report_path: Path, provider: str = "fake_cli") -> dict:
-    return json.loads(report_path.read_text())["sections"]["provider_isolation"][provider]
+    return json.loads(report_path.read_text(encoding="utf-8"))["sections"]["provider_isolation"][provider]
 
 
 # ---------------------------------------------------------------- environment
@@ -131,7 +131,7 @@ def test_isolated_fake_passes_isolation_but_is_not_certified(tmp_path, fake_exe)
     dims = {k: v["verdict"] for k, v in rep["dimensions"].items()}
     assert dims["tool_inventory"] == "pass"
     assert dims["customization_absence"] == "pass", rep["dimensions"]["customization_absence"]
-    assert dims["environment_isolation"] == "pass"
+    assert dims["environment_isolation"] == "pass", [r["environment"] for r in rep["request_capture"]["isolated_runs"]]
     assert dims["bounds_and_cancellation"] == "pass", rep["request_capture"]["bounds"]
     assert dims["auth_route"] == "not_run" and dims["operator_attestation"] == "not_run"
     assert rep["certified"] is False and rep["usable_route"] is None
@@ -218,9 +218,9 @@ def test_complete_fake_route_exercises_certified_path(tmp_path, fake_exe, monkey
     att = {"background_use": "checked_eligible", "basis": "unit test", "checked_on": "2026-10-15"}
     code = pp.probe_provider(write_config(tmp_path, fake_exe, modes=["request_capture", "live"], auth_route=route, operator_attestation=att), out)
     rep = section(out)
-    assert code == pc.EXIT_CERTIFIED, rep["blocking_dimensions"]
+    assert code == pc.EXIT_CERTIFIED, (rep["blocking_dimensions"], rep["dimensions"])
     assert rep["certified"] is True
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     assert "fake-route-value-0001" not in text  # credential values never reach the report
     live_env = rep["live"]["isolated_runs"][0]["environment"]
     assert "FAKE_PROBE_ROUTE_KEY" in live_env["child_keys"]
@@ -244,7 +244,7 @@ def test_report_merge_preserves_other_sections(tmp_path):
     pc.merge_report_section(out, "delivery", "claude_code", {"verdict": "x"})
     pc.merge_report_section(out, "provider_isolation", "claude_cli", {"verdict": "y"})
     pc.merge_report_section(out, "provider_isolation", "other", {"verdict": "z"})
-    data = json.loads(out.read_text())
+    data = json.loads(out.read_text(encoding="utf-8"))
     assert data["sections"]["delivery"]["claude_code"] == {"verdict": "x"}
     assert set(data["sections"]["provider_isolation"]) == {"claude_cli", "other"}
 
@@ -282,3 +282,11 @@ def test_env_check_tolerates_only_launcher_shell_keys(tmp_path, fake_exe):
     assert "observed_env_differs_from_constructed" in check(sorted(child) + ["EXTRA"])["failures"]
     assert "observed_env_differs_from_constructed" in check(sorted(child)[1:])["failures"]
     assert "host_marker_present" in check(sorted(child) + ["CLAUDECODE"])["failures"]
+
+
+def test_empty_proc_environ_is_resampled_not_observed(monkeypatch):
+    reads = iter([b"", b"", b"PATH=/bin\0RECALITH_CURATOR_INSTALLATION=x\0"])
+    monkeypatch.setattr(pc.Path, "read_bytes", lambda self: next(reads))
+    assert pc.observed_process_environment_keys(1, interval_s=0) == ["PATH", "RECALITH_CURATOR_INSTALLATION"]
+    monkeypatch.setattr(pc.Path, "read_bytes", lambda self: b"")
+    assert pc.observed_process_environment_keys(1, attempts=3, interval_s=0) is None

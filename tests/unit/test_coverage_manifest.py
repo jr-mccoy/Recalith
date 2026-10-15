@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = json.loads((ROOT / "tests" / "coverage_manifest.json").read_text())
+MANIFEST = json.loads((ROOT / "tests" / "coverage_manifest.json").read_text(encoding="utf-8"))
 PREVIEW_EXCLUDED = {"A38", "A39", "A42", "A46", "A55", "A71"}
 PARTIAL = {"A02", "A03", "A04", "A27", "A35", "A40", "A45", "A47", "A53", "A58", "A61", "A65"}
 TASKS = {"0", "0b", "1", "2", "3", "3b", "4", "5", "6", "7", "8", "9", "10", "11", "12a", "12b", "13", "14", "15", "16", "17", "18"}
@@ -25,7 +25,7 @@ def test_manifest_covers_A01_through_A73_by_profile():
 
 
 def test_ids_match_acceptance_document():
-    doc = (ROOT / "docs" / "ACCEPTANCE_TESTS.md").read_text()
+    doc = (ROOT / "docs" / "ACCEPTANCE_TESTS.md").read_text(encoding="utf-8")
     documented = set(re.findall(r"^\| (A\d\d) \|", doc, re.M))
     assert documented == set(cases())
 
