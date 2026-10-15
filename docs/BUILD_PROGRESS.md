@@ -29,7 +29,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 |---|---|---|---|---|
 | 0 | Certify one inference route with a standalone probe | One explicitly configured, certified inference route | Additional optional providers need their own certification | blocked (harness complete; live certification needs route) |
 | 0b | Probe real host delivery before engine construction | Four path reports; required start/prompt controls | Repeat per additional supported host | blocked (harness complete; live echo needs route) |
-| 1 | Establish the repository and executable contracts | Contracts, lock/CI, all-case manifest, smoke fixtures/oracles | Core behavior retained; no separate deferred slice listed | complete (local; first GitHub CI run to be confirmed) |
+| 1 | Establish the repository and executable contracts | Contracts, lock/CI, all-case manifest, smoke fixtures/oracles | Core behavior retained; no separate deferred slice listed | complete (CI run 3 green) |
 | 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | not started |
 | 3 | Durable event capture and source cursors | Durable capture, source registration, cursor/idempotency rules | Core behavior retained; no separate deferred slice listed | not started |
 | 3b | Capture-only real Claude adapter and fast-path boundary | Real sanitized Claude capture fixtures and fast boundary | Core behavior retained; no separate deferred slice listed | not started |
@@ -80,7 +80,12 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
 - `uv run --locked python tools/generate_schemas.py --check` → exit 0. `.venv/bin/python -m pytest -q` (Python 3.13) → exit 0, 144 passed. Contract/schema/manifest/scenario suites also pass on Python 3.12 and 3.14 (90 passed each; probe suites are stdlib and ran on 3.13).
 - Coverage manifest: 73 IDs, 67 in preview, 57 blocking; partial variants exactly ACCEPTANCE_TESTS §2.1; A28/A30/A61/A67 marked `in_progress` with harness tests only; nothing marked passed.
 - Smoke fixtures: 4 learning / 4 revision / 4 control across two coding projects and one planning workspace; every oracle fails the untouched seed and passes a reference solution. Authored by the coding agent (not independent); held-out directory intentionally empty.
-- Remaining: confirm the first GitHub Actions run (Linux 3.12–3.14, macOS/Windows 3.13). The fast-path primitive validator that must agree with `tests/fixtures/contracts/envelopes/` is Task 3b.
+- The fast-path primitive validator that must agree with `tests/fixtures/contracts/envelopes/` is Task 3b.
+
+### 2026-10-15 — First CI runs (commits e62c2fe, 03c632d)
+
+- GitHub Actions run 1 failed and exposed three real defects, each reproduced and fixed with a regression test: (1) Linux: `/proc/<pid>/environ` can read empty while a launcher shim execs the CLI (3/150 local runs under CPU load; 0/150 after re-sampling, empty reads now reported as unobservable); (2) Windows: tests read UTF-8 fixtures with the cp1252 default, fixed with explicit UTF-8 and LF-pinning `.gitattributes`; (3) macOS: temp paths resolve through `/private`, so native-memory/prior-session sentinels keyed by the unresolved path were never found; the probe now plants both (symlinked-tempdir test fails before, passes after).
+- Run 3 (03c632d): all five jobs green — Linux Python 3.12, 3.13, 3.14; macOS and Windows on 3.13 (probe end-to-end suites skip on Windows; native Windows host probes remain to be run). Local: 146 passed on 3.12, 3.13 and 3.14.
 
 Add each later checkpoint with:
 
