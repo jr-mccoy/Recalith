@@ -1,0 +1,57 @@
+{
+  "$id": "recalith:contracts/DependencyChange",
+  "additionalProperties": false,
+  "properties": {
+    "key": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Key",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "file",
+        "config",
+        "environment",
+        "claim"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "new_fingerprint": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "New Fingerprint"
+    },
+    "old_fingerprint": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Old Fingerprint"
+    },
+    "supporting_event_id": {
+      "title": "Supporting Event Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "key",
+    "old_fingerprint",
+    "new_fingerprint",
+    "supporting_event_id"
+  ],
+  "title": "DependencyChange",
+  "type": "object"
+}

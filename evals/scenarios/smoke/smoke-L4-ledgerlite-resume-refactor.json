@@ -1,0 +1,56 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-L4-ledgerlite-resume-refactor",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "ledgerlite",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "We will refactor ledgerlite in three steps: (1) add src/ledgerlite/money.py with `parse(value) -> Decimal` accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py. Do step 1 only, then stop and tell me what the next step is."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Continue the refactor where we left off. Do only the next step, then run the tests."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "l4",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "Step 1 (money.parse) was completed in session A; steps 2 and 3 were pending."
+    ],
+    "supported_lessons": [],
+    "task_state": {
+      "objective": "Three-step money refactor",
+      "next_action": "Step 2: make Ledger.transfer use money.parse"
+    },
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "session_start",
+        "must_include": "money.parse"
+      }
+    ],
+    "quiet": false
+  }
+}

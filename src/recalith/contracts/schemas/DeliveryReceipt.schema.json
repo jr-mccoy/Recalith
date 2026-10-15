@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "EmittedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_digest": {
+          "title": "Condition Digest",
+          "type": "string"
+        },
+        "record_id": {
+          "title": "Record Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "record_id",
+        "revision",
+        "condition_digest"
+      ],
+      "title": "EmittedItem",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/DeliveryReceipt",
+  "additionalProperties": false,
+  "properties": {
+    "attempt_id": {
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "delivery_id": {
+      "title": "Delivery Id",
+      "type": "string"
+    },
+    "emitted_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Emitted At"
+    },
+    "estimated_tokens": {
+      "minimum": 0,
+      "title": "Estimated Tokens",
+      "type": "integer"
+    },
+    "fence_store_revision": {
+      "minimum": 0,
+      "title": "Fence Store Revision",
+      "type": "integer"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "guidance_epoch": {
+      "minimum": 0,
+      "title": "Guidance Epoch",
+      "type": "integer"
+    },
+    "host_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Host Id",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/EmittedItem"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "packet_digest": {
+      "title": "Packet Digest",
+      "type": "string"
+    },
+    "policy_revision": {
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "pre_action_substitution_tokens": {
+      "maximum": 400,
+      "minimum": 0,
+      "title": "Pre Action Substitution Tokens",
+      "type": "integer"
+    },
+    "purpose": {
+      "enum": [
+        "session_start",
+        "prompt",
+        "pre_action",
+        "compact_restore",
+        "manual"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "emitted",
+        "uncertain"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Task Id"
+    },
+    "tombstone_epoch": {
+      "minimum": 0,
+      "title": "Tombstone Epoch",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "delivery_id",
+    "attempt_id",
+    "host_id",
+    "session_id",
+    "task_id",
+    "packet_digest",
+    "items",
+    "purpose",
+    "fence_store_revision",
+    "guidance_epoch",
+    "policy_revision",
+    "tombstone_epoch",
+    "generated_at",
+    "emitted_at",
+    "estimated_tokens",
+    "pre_action_substitution_tokens",
+    "state"
+  ],
+  "title": "DeliveryReceipt",
+  "type": "object"
+}

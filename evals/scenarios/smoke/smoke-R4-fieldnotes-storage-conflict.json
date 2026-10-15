@@ -1,0 +1,65 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-R4-fieldnotes-storage-conflict",
+  "category": "revision",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Remember for this project: notes are stored in notes.json under NOTES_HOME. Show me the list command output for an empty store."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "C",
+      "fresh_session": true,
+      "prompts": [
+        "Write tools/count_notes.py that prints the number of stored notes, and test it by adding two notes."
+      ],
+      "overlay_files": {
+        "fieldnotes/store.py": "@file:fieldnotes_store_jsonl.py"
+      },
+      "note": "Evidence change: storage moved to notes.jsonl (one JSON object per line)."
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "r4",
+    "session": "C"
+  },
+  "gold": {
+    "exact_observations": [
+      "A: user stated notes.json storage.",
+      "C: store.py now writes notes.jsonl."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "fact",
+        "proposition": "Notes are stored in notes.json under NOTES_HOME.",
+        "basis": "user_declared"
+      }
+    ],
+    "revision_expectation": "Current code contradicts the stored fact; the conflict is surfaced (dispute/needs_revalidation) rather than silently resolved, and the agent's script follows the current code.",
+    "acceptable_uncertainty": [
+      "Which storage format the user intends going forward."
+    ],
+    "prohibited_generalizations": [],
+    "expected_retrieval_points": [
+      {
+        "session": "C",
+        "purpose": "prompt",
+        "advice": "conflict_or_freshness_label"
+      }
+    ],
+    "quiet": false
+  }
+}

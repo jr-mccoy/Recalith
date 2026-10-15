@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "ExportRecordSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_fields": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Allowed Fields",
+          "type": "array"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        }
+      },
+      "required": [
+        "ref",
+        "allowed_fields"
+      ],
+      "title": "ExportRecordSelection",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ExportSelection",
+  "additionalProperties": false,
+  "properties": {
+    "include_capsules": {
+      "default": false,
+      "title": "Include Capsules",
+      "type": "boolean"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/ExportRecordSelection"
+      },
+      "minItems": 1,
+      "title": "Records",
+      "type": "array"
+    },
+    "visibility": {
+      "default": "private",
+      "enum": [
+        "private",
+        "shareable"
+      ],
+      "title": "Visibility",
+      "type": "string"
+    }
+  },
+  "required": [
+    "records"
+  ],
+  "title": "ExportSelection",
+  "type": "object"
+}

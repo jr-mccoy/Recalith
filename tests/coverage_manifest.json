@@ -1,0 +1,2417 @@
+{
+  "manifest_schema": 1,
+  "source": "docs/ACCEPTANCE_TESTS.md revision 1.3",
+  "status_values": [
+    "pending",
+    "in_progress",
+    "passed",
+    "failed",
+    "unavailable"
+  ],
+  "rules": [
+    "A deferred or unavailable variant is never a pass.",
+    "Preview includes 67 IDs: every ID except A38, A39, A42, A46, A55 and A71; partial variants are exactly ACCEPTANCE_TESTS section 2.1.",
+    "Harness/mock evidence cannot mark a live-host variant passed.",
+    "CI fails if a required case loses its mapping."
+  ],
+  "cases": [
+    {
+      "id": "A01",
+      "scenario": "Two installations have identical record titles, paths, and opposite build commands",
+      "required_behavior": "Query A never returns B's record ID, text, evidence, or vector candidate; repeat in reverse",
+      "blocking": true,
+      "owning_tasks": [
+        "2",
+        "11"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "scenario": "Independent pinned build/schema fixtures and recovery of A leave B untouched",
+      "required_behavior": "Live side-by-side upgrade and in-place preview-to-full transition",
+      "blocking": true,
+      "owning_tasks": [
+        "2",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Independent pinned build/schema fixtures and recovery of A leave B untouched",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Live side-by-side upgrade and in-place preview-to-full transition",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "scenario": "Directory relocation/rebinding and independent clone",
+      "required_behavior": "Explicit workspace attachment/project fork",
+      "blocking": true,
+      "owning_tasks": [
+        "2",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Directory relocation/rebinding and independent clone",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Explicit workspace attachment/project fork",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "scenario": "Reject foreign IDs in ordinary events/operations",
+      "required_behavior": "Explicit import-origin remapping",
+      "blocking": true,
+      "owning_tasks": [
+        "2"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Reject foreign IDs in ordinary events/operations",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Explicit import-origin remapping",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A05",
+      "scenario": "Crash after segment publication but before cursor write",
+      "required_behavior": "Recovery ingests exactly one event and advances the cursor without duplicate support",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "capture",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A06",
+      "scenario": "Crash after DB ingestion but before segment deletion",
+      "required_behavior": "Replay creates no duplicate event/job; segment is eventually removed",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "capture",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A07",
+      "scenario": "Disk full or permissions failure before durable publication",
+      "required_behavior": "Receipt is `not_captured`, cursor does not advance, host continues, health reports a gap",
+      "blocking": true,
+      "owning_tasks": [
+        "3",
+        "3b"
+      ],
+      "capability": "capture",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A08",
+      "scenario": "Transcript truncation, file replacement, partial last line, late result",
+      "required_behavior": "No invented event; full later line is read once; result joins the correct call; gaps are explicit",
+      "blocking": true,
+      "owning_tasks": [
+        "3",
+        "3b",
+        "13",
+        "14"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A09",
+      "scenario": "Overlapping producer segments and duplicate host event IDs",
+      "required_behavior": "Same content is deduplicated; changed content is retained separately in `source_conflicts`, with the original event unchanged and dependent caution suspended",
+      "blocking": true,
+      "owning_tasks": [
+        "3",
+        "3b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "scenario": "Two tasks progress concurrently in the same project",
+      "required_behavior": "Each objective, next action, and pending result stays with its task",
+      "blocking": false,
+      "owning_tasks": [
+        "6"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A11",
+      "scenario": "A task is idle, a test passes, or a commit appears",
+      "required_behavior": "No unsupported completion; idle becomes paused; task closes only with relevant completion evidence",
+      "blocking": false,
+      "owning_tasks": [
+        "6"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "scenario": "A failing command is fixed across chunk/compaction boundaries",
+      "required_behavior": "One connected episode contains the original failure, change, later result, and uncertainty",
+      "blocking": false,
+      "owning_tasks": [
+        "6"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "scenario": "Expected red test, denied tool, interruption, and ordinary search miss",
+      "required_behavior": "No generic failed-approach lesson is automatically created from the exit status alone",
+      "blocking": false,
+      "owning_tasks": [
+        "6"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A14",
+      "scenario": "Model cites a nonexistent event or altered quote",
+      "required_behavior": "The affected operation group is rejected; unrelated valid groups can apply",
+      "blocking": false,
+      "owning_tasks": [
+        "5",
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A15",
+      "scenario": "Real event is cited for an unsupported causal explanation",
+      "required_behavior": "It cannot enter as `observed`; inferred admission requires review and scoped wording",
+      "blocking": false,
+      "owning_tasks": [
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "scenario": "Agent repeats a memory; three subagents repeat the same source",
+      "required_behavior": "`last_supported_at` and independent-root count do not advance",
+      "blocking": true,
+      "owning_tasks": [
+        "8",
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A17",
+      "scenario": "A new test confirms a memory after it was retrieved",
+      "required_behavior": "A genuinely new observation class may add support; an unchanged rerun stays in its existing class; retrieval itself adds none",
+      "blocking": false,
+      "owning_tasks": [
+        "8",
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A18",
+      "scenario": "Same proposition under different branches or dependency versions",
+      "required_behavior": "Both may remain active in their own scope; no false global contradiction",
+      "blocking": false,
+      "owning_tasks": [
+        "8",
+        "10",
+        "11"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A19",
+      "scenario": "Guarded correction and separately reviewed decision replacement",
+      "required_behavior": "Correct invalidates the expected target and creates a replacement candidate in one transaction without a model call; zero budget still suppresses old guidance. The replacement stays candidate until its own required review passes; stale revisions fail atomically",
+      "blocking": true,
+      "owning_tasks": [
+        "5",
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A20",
+      "scenario": "Relevant source file changes while curation is running",
+      "required_behavior": "Read-set check refuses stale application and queues bounded re-evaluation",
+      "blocking": true,
+      "owning_tasks": [
+        "5",
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A21",
+      "scenario": "Old worker finishes after its lease expires",
+      "required_behavior": "Fencing prevents its result from applying; newer completion applies once",
+      "blocking": true,
+      "owning_tasks": [
+        "4",
+        "5",
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A22",
+      "scenario": "Controller sees its own generated record on the next sweep",
+      "required_behavior": "No unbounded extraction/review loop and no new independent support",
+      "blocking": true,
+      "owning_tasks": [
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A23",
+      "scenario": "High-overlap claim has unknown applicability",
+      "required_behavior": "It may be labeled context but cannot produce condition-specific caution",
+      "blocking": false,
+      "owning_tasks": [
+        "8",
+        "11"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A24",
+      "scenario": "Retired/quarantined records or a linked task placeholder rank highly",
+      "required_behavior": "Exclude from current guidance before limits. Linked current head has no pending_actions or next_action and supplies no tentative actionable context; use the nonlinked target binding. Explicit history remains clearly historical",
+      "blocking": true,
+      "owning_tasks": [
+        "11",
+        "12b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A25",
+      "scenario": "Packet cache predates an invalidation/forget at the final delivery fence",
+      "required_behavior": "A change committed before the fence excludes old guidance; stdlib fallback or degraded output occurs. A change after the fence is recorded as an in-flight race, not claimed retractable",
+      "blocking": true,
+      "owning_tasks": [
+        "11",
+        "12b",
+        "16"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A26",
+      "scenario": "Warning suppression and missing pre-action fallback",
+      "required_behavior": "Unchanged delivery is suppressed; changed condition/revision may resurface. Eligible substituted cautions share one ≤400 allowance per ordinary prompt, ≤1,400 total; no bonus without a caution or per-item multiplier. All tokens count against session limits; restoration stays ≤2,000 including cautions",
+      "blocking": false,
+      "owning_tasks": [
+        "12b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A27",
+      "scenario": "Fresh agent starts and compacts under each configured host",
+      "required_behavior": "Start and prompt must pass real nonce certification for readiness. Pre-action and compaction injection are probed/reported independently; missing optional paths use specified prompt fallback and do not fail core readiness. Unknown required paths do",
+      "blocking": false,
+      "owning_tasks": [
+        "12b",
+        "13",
+        "14"
+      ],
+      "capability": "start_delivery+prompt_delivery",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Same certification for Codex",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        }
+      ]
+    },
+    {
+      "id": "A28",
+      "scenario": "Curator inherits host markers or triggers host customizations",
+      "required_behavior": "Clean and host-marked parent fixtures produce the same certified isolated launch with registered host markers removed and fresh curator marker set. No extra auth route/customizations/tools are inherited. Recursive source capture stays suppressed, public CLI is never sanitized into operator authority, and failed effective isolation makes backend unavailable",
+      "blocking": true,
+      "owning_tasks": [
+        "0",
+        "7",
+        "13"
+      ],
+      "capability": "inference",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_provider_probe.py"
+          ],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true,
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13."
+        }
+      ]
+    },
+    {
+      "id": "A29",
+      "scenario": "Provider auth route changes, CLI missing, account limited, or malformed output",
+      "required_behavior": "No cross-provider fallback; capture remains live; jobs queue/back off; health names capability loss",
+      "blocking": true,
+      "owning_tasks": [
+        "7",
+        "13",
+        "17"
+      ],
+      "capability": "inference",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A30",
+      "scenario": "Provider hangs, floods output, or returns a normal large episode",
+      "required_behavior": "Bound process tree, 256 KiB raw stdout and 64 KiB stderr; validate the decoded original JSON body separately. Accept a valid 15 KB episode within its 24,000-byte allowance despite a larger host envelope; reject either cap overflow without clipping and charge failures",
+      "blocking": true,
+      "owning_tasks": [
+        "4",
+        "7"
+      ],
+      "capability": "inference",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_provider_probe.py",
+            "tests/unit/test_contracts.py::test_model_body_cap_precedes_parsing_and_15kb_episode_fits"
+          ],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false,
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7."
+        }
+      ]
+    },
+    {
+      "id": "A31",
+      "scenario": "Daily invocation or estimated-token budget is exhausted",
+      "required_behavior": "No additional model invocation starts; ordinary capture and deterministic retrieval still work",
+      "blocking": true,
+      "owning_tasks": [
+        "4"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A32",
+      "scenario": "External issue text or repo file says to override policy",
+      "required_behavior": "It remains data; cannot change permissions/provider/config or acquire user authority via paraphrase",
+      "blocking": true,
+      "owning_tasks": [
+        "8",
+        "12a",
+        "14"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A33",
+      "scenario": "Paths contain traversal, symlink/junction swap, case variation, Unicode, or spaces",
+      "required_behavior": "Authorized equivalent paths work; boundary escapes are refused without reading target content",
+      "blocking": true,
+      "owning_tasks": [
+        "2",
+        "13"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A34",
+      "scenario": "Secret appears in command arguments, tool output, or model proposal",
+      "required_behavior": "Stored/transmitted normalized text is scrubbed or operation refused; error logs do not repeat the secret",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A35",
+      "scenario": "Live-reference pins and unreferenced expiry at day 181; explicit loss/forget handling",
+      "required_behavior": "Exact capsule compaction/redirects, retaining pins on insufficient preservation",
+      "blocking": false,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Live-reference pins and unreferenced expiry at day 181; explicit loss/forget handling",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Exact capsule compaction/redirects, retaining pins on insufficient preservation",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A36",
+      "scenario": "Operator forgets a task whose text appears in claims, episodes, revisions, and caches",
+      "required_behavior": "Covered derivative bodies are purged or content-free quarantined in the transaction; reconstruction is later reviewed work. Known source replay cannot resurrect them; all external logical cleanup is tracked before delivery resumes",
+      "blocking": true,
+      "owning_tasks": [
+        "16"
+      ],
+      "capability": "forget",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A37",
+      "scenario": "Restore backup created before a forget request",
+      "required_behavior": "Current tombstones apply before serving; forgotten text does not reappear; affected backups follow policy",
+      "blocking": true,
+      "owning_tasks": [
+        "16"
+      ],
+      "capability": "forget",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A38",
+      "scenario": "Import same knowledge twice from the same origin",
+      "required_behavior": "Import is idempotent; repeated imports do not increase corroboration",
+      "blocking": true,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "import",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A39",
+      "scenario": "Import contradictory knowledge from a different project",
+      "required_behavior": "Explicit import is required; origin retained; destination policy handles dispute; no identity adoption",
+      "blocking": true,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "import",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A40",
+      "scenario": "Corrupt backup rejected; unsupported schema writes refused; current live store preserved",
+      "required_behavior": "Interrupted upgrade/profile-transition rollback with current tombstones",
+      "blocking": true,
+      "owning_tasks": [
+        "15",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Corrupt backup rejected; unsupported schema writes refused; current live store preserved",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Interrupted upgrade/profile-transition rollback with current tombstones",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A41",
+      "scenario": "Worker and CLI write concurrently during projection build",
+      "required_behavior": "Transactions preserve revisions and guidance epochs; guidance changes invalidate packets, receipt-only revisions do not; served items still belong to a consistent eligible snapshot",
+      "blocking": true,
+      "owning_tasks": [
+        "5",
+        "12b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A42",
+      "scenario": "Source assertion and generated summary are changed by manual export editing",
+      "required_behavior": "Import requires original revision/digest; modified text becomes a new assertion, never original evidence",
+      "blocking": true,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "import",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A43",
+      "scenario": "An admitted failure is followed by a certified matching success",
+      "required_behavior": "Before any model invocation, ingestion atomically records the counter-observation as context, sets needs_revalidation, advances guidance epoch, and queues revalidation. Test zero budget, cross-session same family, no dependencies, known older replay, unknown order, unknown family/working directory, identical argv in different package directories, and different conditions. No automatic assertion that historical failure is false; dependency-free failure never earns caution via empty conditions",
+      "blocking": false,
+      "owning_tasks": [
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A44",
+      "scenario": "An unresolved user-intent conflict persists",
+      "required_behavior": "One relevant question is surfaced without blocking; no invented resolution or repeated prompt spam",
+      "blocking": false,
+      "owning_tasks": [
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A45",
+      "scenario": "Hook-started persistent worker lifecycle/environment, polling/restart/suspend and budgets",
+      "required_behavior": "Session worker and IPC-wake variants",
+      "blocking": false,
+      "owning_tasks": [
+        "4",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Hook-started persistent worker lifecycle/environment, polling/restart/suspend and budgets",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Session worker and IPC-wake variants",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        }
+      ]
+    },
+    {
+      "id": "A46",
+      "scenario": "Only MCP is installed and the agent never calls it",
+      "required_behavior": "Health does not claim automatic capture/delivery or `autonomous_ready`",
+      "blocking": true,
+      "owning_tasks": [
+        "14",
+        "17"
+      ],
+      "capability": "mcp",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A47",
+      "scenario": "Unknown host version or unsupported transcript field",
+      "required_behavior": "Conservative capability state, explicit coverage gaps, no fabricated normal parsing",
+      "blocking": true,
+      "owning_tasks": [
+        "7",
+        "13",
+        "14",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Same certification for Codex",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A48",
+      "scenario": "Normal deletion versus logical forgetting",
+      "required_behavior": "Archive preserves history; forget removes covered content and carries content-free suppression metadata",
+      "blocking": false,
+      "owning_tasks": [
+        "16"
+      ],
+      "capability": "forget",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A49",
+      "scenario": "Two distinct payloads claim the same source event key",
+      "required_behavior": "Original event remains immutable; each distinct conflicting digest has one separate conflict row and health entry; replay is idempotent",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A50",
+      "scenario": "Reservations, bounded review batches and declaration priority",
+      "required_behavior": "Preserve ordinary/protected pool rules, separate wire/body limits, fitting five-candidate two-call example, all expansion charges, and the 48-call full-reservation arithmetic. With ordinary and declaration/correction reviews queued, code-assigned high-priority review wins next eligible launch without killing an in-flight call; mixed batch gets its highest applicable priority. Exhaustion still blocks all new calls; unextracted text is not treated as a ready declaration",
+      "blocking": true,
+      "owning_tasks": [
+        "4",
+        "7",
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A51",
+      "scenario": "Stable declaration, file/config/environment dependency, failure lesson, and cyclic claim dependency",
+      "required_behavior": "Dependency-free declared decision/preference is stable; all listed dependent/failure/unknown cases are volatile; due times match 180/30 days",
+      "blocking": true,
+      "owning_tasks": [
+        "10"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A52",
+      "scenario": "Certified assertion/runtime sources and executable upgrades",
+      "required_behavior": "Only registered parsers satisfy observed mappings. Runtime values require declared config or certified observed result tied to workspace/executable; never recalith Python. A version observed before a registered executable fingerprint change, or bound to a different fingerprint, is stale and evaluates unknown until refreshed. Unknown binding and untrusted assertions cannot certify a value; hooks never launch probes",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A53",
+      "scenario": "No-runtime clone, local install/remove, unrelated configuration preserved",
+      "required_behavior": "Shared tracked configuration",
+      "blocking": true,
+      "owning_tasks": [
+        "2",
+        "3b",
+        "13",
+        "14"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "No-runtime clone, local install/remove, unrelated configuration preserved",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Shared tracked configuration",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A54",
+      "scenario": "Environment contains secrets, absolute paths, unregistered keys",
+      "required_behavior": "Values are dropped before spool/provider transmission; only registered normalized scalars remain; missing predicates are unknown",
+      "blocking": true,
+      "owning_tasks": [
+        "3"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A55",
+      "scenario": "Retained quote begins at offset 900 with Unicode after source expiration",
+      "required_behavior": "Capsule returns the exact original substring by origin locator/digest; link redirection and expiry are atomic; old offsets are not applied to capsule text",
+      "blocking": true,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "capsules",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A56",
+      "scenario": "Unchanged test reruns, forwarded subagents, new experiments, or partial dependencies",
+      "required_behavior": "Count canonical classes, not event IDs; unchanged/forwarded/unknown evidence cannot manufacture corroboration; contradictory reruns remain instability",
+      "blocking": true,
+      "owning_tasks": [
+        "8"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A57",
+      "scenario": "Task boundaries, resumed sessions, and delayed tool results",
+      "required_behavior": "Versioned binding preserves immutable events and call/result pairs. At zero model budget exactly one eligible prior task plus three compatible path actions yields a reversible provisional link; two candidates/pivot/reset do not. Linked placeholder is not a second active task. Coding src/tests/docs transitions do not propose a disjoint boundary; five truly disjoint actions may",
+      "blocking": true,
+      "owning_tasks": [
+        "6"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A58",
+      "scenario": "Preview deadline, polling/no-IPC, WAL/SHM and fallback paths",
+      "required_behavior": "Additional IPC deadline/host variants",
+      "blocking": true,
+      "owning_tasks": [
+        "3b",
+        "13",
+        "14"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Preview deadline, polling/no-IPC, WAL/SHM and fallback paths",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Additional IPC deadline/host variants",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A59",
+      "scenario": "Two hooks race before worker ingests receipts or failures",
+      "required_behavior": "Session lock preserves reservations/outcomes; suppression sees emitted pairs; the next matching pre-action sees the typed failure; crash uncertainty never counts as confirmed emission",
+      "blocking": true,
+      "owning_tasks": [
+        "12b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A60",
+      "scenario": "Declarations, reviewer rationale and bounded objections",
+      "required_behavior": "Every durable declaration route requires review; pasted content gains no authority. Strip proposal reasons/rationales while preserving exact evidence. Missing/duplicate/stale verdicts cannot activate candidates. If actionable revise objections cannot fit, return reject/review_capacity, keep candidate unadmitted, and never truncate a revise, infer falsity, or create an unbounded retry loop",
+      "blocking": true,
+      "owning_tasks": [
+        "9",
+        "12a"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A61",
+      "scenario": "Early stub and production four-path nonce probes",
+      "required_behavior": "Task 0b before Task 1 tests harness mechanics and real installed-host start/prompt/pre-action/compact feasibility without an engine. Each available path requires 3/3 positive and 3/3 negative controls, exact response evidence, no contamination or stdout-only pass. Required start/prompt failure blocks that host route; optional gaps are explicit. Task 13/14 must repeat with the real engine; a stub pass is not product certification",
+      "blocking": true,
+      "owning_tasks": [
+        "0b",
+        "13",
+        "14"
+      ],
+      "capability": "start_delivery+prompt_delivery",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_delivery_probe.py"
+          ],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true,
+          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1)."
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Same certification for Codex",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        }
+      ]
+    },
+    {
+      "id": "A62",
+      "scenario": "Feature branch merges unchanged dependencies; same branch later changes them",
+      "required_behavior": "First lesson remains applicable across branches; changed/missing dependencies suppress caution regardless of branch name; explicit branch constraints still apply",
+      "blocking": true,
+      "owning_tasks": [
+        "8",
+        "10",
+        "11"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A63",
+      "scenario": "Forget removes one of several support roots while model budget is unavailable",
+      "required_behavior": "Old derivative body is purged to quarantined placeholder before commit; it stays unserved until a new reviewed revision from surviving roots exists",
+      "blocking": true,
+      "owning_tasks": [
+        "16"
+      ],
+      "capability": "forget",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A64",
+      "scenario": "Fresh post-forget backup succeeds or fails",
+      "required_behavior": "On success verify it before deleting affected old backups; on failure still delete affected backups, retain purged live state/ledger, and report recovery degradation",
+      "blocking": true,
+      "owning_tasks": [
+        "16"
+      ],
+      "capability": "forget",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A65",
+      "scenario": "Private-path probe/coverage report; revision chain explicitly unavailable",
+      "required_behavior": "Installed private paths and incremental/full chain/row verification",
+      "blocking": true,
+      "owning_tasks": [
+        "5",
+        "13",
+        "14",
+        "17"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "preview",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Private-path probe/coverage report; revision chain explicitly unavailable",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        },
+        {
+          "variant": "full_only",
+          "profiles": [
+            "full"
+          ],
+          "description": "Installed private paths and incremental/full chain/row verification",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A66",
+      "scenario": "Failure/success debounce, unknown families and expected-red intent",
+      "required_behavior": "Same task/action family success before six relevant events or ten minutes resolves despite changed dependencies. Null family only becomes due by count/time and never matches success. Normalized expected_red=true is invalid in v1; untrusted raw hints normalize false with coverage, and semantic A13 still rejects general lessons from exit status alone",
+      "blocking": true,
+      "owning_tasks": [
+        "9"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A67",
+      "scenario": "Inherited environment, configuration and auth affect curator launch",
+      "required_behavior": "Test clean and host-marked parent through hook→worker→curator. Actual child environments contain only registered platform/selected-auth/config keys and the correct fresh worker/curator marker. Host/nested-session markers and unrelated credentials are absent; auth route unchanged. Effective hooks/plugins/native memory/managed MCP still fail isolation if present; marker removal alone never proves no tools",
+      "blocking": true,
+      "owning_tasks": [
+        "0",
+        "7",
+        "13"
+      ],
+      "capability": "inference",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_provider_probe.py"
+          ],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true,
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13."
+        }
+      ]
+    },
+    {
+      "id": "A68",
+      "scenario": "Very long tool output has its failing assertion at the end",
+      "required_behavior": "Both bounded head/tail and certified error signature survive with offsets/coverage; total event cap and Unicode validity remain enforced",
+      "blocking": true,
+      "owning_tasks": [
+        "3",
+        "3b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A69",
+      "scenario": "Every strength/freshness/evidence/status combination reaches the compiler",
+      "required_behavior": "Automatic context follows SYSTEM_SPEC §8.2 table; expired/redacted inadequate support is omitted; tentative/conflict labels are preserved",
+      "blocking": true,
+      "owning_tasks": [
+        "11"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A70",
+      "scenario": "PowerShell/cmd/POSIX parsing ambiguity or a host argument array",
+      "required_behavior": "Certified arrays are used verbatim after registered normalization; ambiguity yields unknown, never guessed executable/action semantics",
+      "blocking": true,
+      "owning_tasks": [
+        "3b",
+        "8"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A71",
+      "scenario": "Same origin is imported into different fresh installation IDs",
+      "required_behavior": "Imported stub IDs and origin/root classes remain stable; local ownership stays separate; reimport cannot increment independent support",
+      "blocking": true,
+      "owning_tasks": [
+        "15"
+      ],
+      "capability": "import",
+      "in_preview": false,
+      "variants": [
+        {
+          "variant": "full",
+          "profiles": [
+            "full"
+          ],
+          "description": "Complete case (transfer/capsule/MCP component)",
+          "status": "pending",
+          "tests": [],
+          "preview_status": "unavailable",
+          "unavailable_reason": "deferred_full_release",
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A72",
+      "scenario": "Machine consumers inspect reasons, unavailable capability, or failed capture",
+      "required_behavior": "First `why` item is a registered reason code; `observe` returns 7 for `not_captured`, partial capability returns 8; host hooks still return nonblocking success",
+      "blocking": true,
+      "owning_tasks": [
+        "12a",
+        "12b"
+      ],
+      "capability": "deterministic_core",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": false
+        }
+      ]
+    },
+    {
+      "id": "A73",
+      "scenario": "Administrative guard, pre-init tokens and internal startup",
+      "required_behavior": "Marked host/worker/curator processes get exit 6 for all guarded forms, including token commands and profile flags, even with TTY+token. No requested admin effect; content-free audit when store available. Unmarked TTY can create a standalone token before init; noninteractive init with that provisioned file succeeds once and never overwrites existing state. Missing/invalid/revoked supplied token is 6, not 2; noninteractive minting refuses. Registered hook startup succeeds without operator CLI. Marked IDE error explains the external-terminal route; pre-init refusal creates no store",
+      "blocking": true,
+      "owning_tasks": [
+        "12a"
+      ],
+      "capability": "operator_guard",
+      "in_preview": true,
+      "variants": [
+        {
+          "variant": "complete",
+          "profiles": [
+            "claude_preview",
+            "full"
+          ],
+          "description": "Applies in full to both profiles",
+          "status": "pending",
+          "tests": [],
+          "platforms": [
+            "linux",
+            "macos",
+            "windows"
+          ],
+          "requires_live_host": true
+        }
+      ]
+    }
+  ]
+}

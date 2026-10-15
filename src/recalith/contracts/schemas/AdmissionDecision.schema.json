@@ -1,0 +1,46 @@
+{
+  "$id": "recalith:contracts/AdmissionDecision",
+  "additionalProperties": false,
+  "properties": {
+    "local_ref": {
+      "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+      "title": "Local Ref",
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "apply",
+        "review_required",
+        "candidate_only",
+        "reject",
+        "requeue"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "reason_code": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "resolved_operation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resolved Operation Id"
+    }
+  },
+  "required": [
+    "local_ref",
+    "outcome",
+    "reason_code",
+    "resolved_operation_id"
+  ],
+  "title": "AdmissionDecision",
+  "type": "object"
+}

@@ -1,0 +1,56 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-C1-ledgerlite-routine-typo",
+  "category": "control",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "ledgerlite",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Fix the typo 'ledgr' in README.md."
+      ],
+      "overlay_files": {
+        "README.md": "@file:ledgerlite_readme_typo.md"
+      }
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Add a one-line docstring to Ledger.total and run the tests."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "c1",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "A typo was fixed in README.md."
+    ],
+    "supported_lessons": [],
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "Any durable lesson about README editing."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "max_caution_items": 0
+      }
+    ],
+    "quiet": true
+  }
+}

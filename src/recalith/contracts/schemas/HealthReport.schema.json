@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "CapabilityState": {
+      "additionalProperties": false,
+      "properties": {
+        "certified_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certified At"
+        },
+        "certified_version": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certified Version"
+        },
+        "coverage": {
+          "additionalProperties": true,
+          "title": "Coverage",
+          "type": "object"
+        },
+        "reason_codes": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "healthy",
+            "degraded",
+            "unavailable"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "required"
+      ],
+      "title": "CapabilityState",
+      "type": "object"
+    },
+    "RetentionSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "deferred_compaction_count": {
+          "minimum": 0,
+          "title": "Deferred Compaction Count",
+          "type": "integer"
+        },
+        "free_disk_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Free Disk Bytes"
+        },
+        "live_owner_count": {
+          "minimum": 0,
+          "title": "Live Owner Count",
+          "type": "integer"
+        },
+        "pinned_payload_bytes": {
+          "minimum": 0,
+          "title": "Pinned Payload Bytes",
+          "type": "integer"
+        },
+        "unpinned_payload_bytes": {
+          "minimum": 0,
+          "title": "Unpinned Payload Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pinned_payload_bytes",
+        "unpinned_payload_bytes",
+        "live_owner_count",
+        "free_disk_bytes",
+        "deferred_compaction_count"
+      ],
+      "title": "RetentionSummary",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/HealthReport",
+  "additionalProperties": false,
+  "properties": {
+    "autonomous_ready": {
+      "title": "Autonomous Ready",
+      "type": "boolean"
+    },
+    "budget_summary": {
+      "additionalProperties": true,
+      "title": "Budget Summary",
+      "type": "object"
+    },
+    "capabilities": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CapabilityState"
+      },
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "coverage_gaps": {
+      "items": {
+        "maxLength": 256,
+        "type": "string"
+      },
+      "title": "Coverage Gaps",
+      "type": "array"
+    },
+    "job_summary": {
+      "additionalProperties": true,
+      "title": "Job Summary",
+      "type": "object"
+    },
+    "release_profile": {
+      "enum": [
+        "claude_preview",
+        "full"
+      ],
+      "title": "Release Profile",
+      "type": "string"
+    },
+    "retention_summary": {
+      "$ref": "#/$defs/RetentionSummary"
+    },
+    "worker_state": {
+      "enum": [
+        "running",
+        "idle",
+        "stopped",
+        "degraded",
+        "budget_paused",
+        "migration_required"
+      ],
+      "title": "Worker State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "release_profile",
+    "capabilities",
+    "worker_state",
+    "retention_summary",
+    "autonomous_ready"
+  ],
+  "title": "HealthReport",
+  "type": "object"
+}

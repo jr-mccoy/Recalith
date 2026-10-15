@@ -6,13 +6,13 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 
 | Item | Initial value |
 |---|---|
-| Implementation | Task 0/0b probe harnesses implemented and tested; engine (Task 1+) not started |
-| Engine version | Not assigned |
+| Implementation | Task 0/0b probe harnesses; Task 1 contracts, schemas, coverage manifest, smoke fixtures/oracles |
+| Engine version | `0.1.0.dev0` (development; no release built) |
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (all isolation dimensions pass); live route + operator attestation not configured |
 | Live host delivery certification | **Not established.** All four paths request-visible on Claude Code 2.1.301; live nonce echo not run (no route) |
 | Product tests / benchmarks | Not run (only probe-harness unit tests exist) |
-| Next task | Task 1 contracts (deterministic work proceeds while live certification is blocked) |
+| Next task | Task 2 independent installation and transactional store |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -29,7 +29,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 |---|---|---|---|---|
 | 0 | Certify one inference route with a standalone probe | One explicitly configured, certified inference route | Additional optional providers need their own certification | blocked (harness complete; live certification needs route) |
 | 0b | Probe real host delivery before engine construction | Four path reports; required start/prompt controls | Repeat per additional supported host | blocked (harness complete; live echo needs route) |
-| 1 | Establish the repository and executable contracts | Contracts, lock/CI, all-case manifest, smoke fixtures/oracles | Core behavior retained; no separate deferred slice listed | not started |
+| 1 | Establish the repository and executable contracts | Contracts, lock/CI, all-case manifest, smoke fixtures/oracles | Core behavior retained; no separate deferred slice listed | complete (local; first GitHub CI run to be confirmed) |
 | 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | not started |
 | 3 | Durable event capture and source cursors | Durable capture, source registration, cursor/idempotency rules | Core behavior retained; no separate deferred slice listed | not started |
 | 3b | Capture-only real Claude adapter and fast-path boundary | Real sanitized Claude capture fixtures and fast boundary | Core behavior retained; no separate deferred slice listed | not started |
@@ -73,6 +73,15 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
 - `python tools/probe_delivery.py --config probe-private/local-config.json --output docs/host-compatibility.json` → exit 4 (`required_path_unavailable`: live not run). Request-capture mode on Claude Code 2.1.301: session start, prompt, pre-action and post-compaction injections each reached the outbound model request in 3/3 positives with 3/3 clean negatives; owned hooks removed with unrelated settings preserved. This is feasibility evidence only, not an echo pass.
 - Acceptance: A61 harness mechanics; A27/A61 live certification pending.
 
+### 2026-10-15 — Task 1 contracts and evaluation fixtures
+
+- Files: `pyproject.toml`, `uv.lock` (pydantic 2.14.1, pydantic-core 2.50.1, packaging 26.3, pytest 9.1.1), `src/recalith/{__init__,errors}.py`, `src/recalith/contracts/{common,config,events,memory,operations,context,jobs,privacy,transfers,health}.py`, `src/recalith/contracts/schemas/` (44 snapshots + index), `tools/generate_schemas.py`, `tests/{conftest,factories}.py`, `tests/unit/test_{contracts,schemas,coverage_manifest,smoke_scenarios}.py`, `tests/fixtures/contracts/envelopes/`, `tests/coverage_manifest.json`, `evals/projects/{ledgerlite,fieldnotes,household}/`, `evals/scenarios/smoke/` (12 scenarios + overlays), `evals/oracles/smoke.py`, `.github/workflows/ci.yml`.
+- Contract choices within DATA_CONTRACTS: timestamps are canonical `…ffffffZ` strings so canonical JSON/digests match the stdlib fast path; IDs are a registered prefix plus UUIDv4 or SHA-256; every operation kind has an enumerated payload model (identity, strength, status, authority and installation fields cannot be proposed); the model returns only `ModelProposalBody` and adapter code adds usage/provenance into `ModelResponse`; `ProviderConfig` refuses `--json-schema` (decision 0002); health computes `autonomous_ready` exactly from the eight required capabilities and requires preview to report all 16 deferred capabilities unavailable.
+- `uv run --locked python tools/generate_schemas.py --check` → exit 0. `.venv/bin/python -m pytest -q` (Python 3.13) → exit 0, 144 passed. Contract/schema/manifest/scenario suites also pass on Python 3.12 and 3.14 (90 passed each; probe suites are stdlib and ran on 3.13).
+- Coverage manifest: 73 IDs, 67 in preview, 57 blocking; partial variants exactly ACCEPTANCE_TESTS §2.1; A28/A30/A61/A67 marked `in_progress` with harness tests only; nothing marked passed.
+- Smoke fixtures: 4 learning / 4 revision / 4 control across two coding projects and one planning workspace; every oracle fails the untouched seed and passes a reference solution. Authored by the coding agent (not independent); held-out directory intentionally empty.
+- Remaining: confirm the first GitHub Actions run (Linux 3.12–3.14, macOS/Windows 3.13). The fast-path primitive validator that must agree with `tests/fixtures/contracts/envelopes/` is Task 3b.
+
 Add each later checkpoint with:
 
 - Date and commit when available; completed task slice and changed files.
@@ -96,4 +105,4 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 
 ## Next-session handoff
 
-Next action: Task 1 — create `pyproject.toml`/`uv.lock`, `src/recalith/contracts/` DTOs from DATA_CONTRACTS, schema snapshots, CI for Python 3.12–3.14, `tests/coverage_manifest.json` (A01–A73 with preview variants) and the 12 non-held-out smoke fixtures/oracles. In parallel, when an operator supplies B1's route, rerun both probes and record the live results here.
+Next action: Task 2 — `bootstrap.py`, `src/recalith/core/{identity,paths}.py`, `src/recalith/storage/{db,repository}.py`, migration `0001.sql`, and `tests/integration/test_installations.py` / `tests/platform/test_paths.py` (A01–A04, A33). When an operator supplies B1's route, rerun both probes and record the live results here.

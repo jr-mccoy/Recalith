@@ -1,0 +1,61 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-R3-household-budget-correction",
+  "category": "revision",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "household",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Keep the grocery budget under $600 per month for my planning."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "C",
+      "fresh_session": true,
+      "prompts": [
+        "Correction: the grocery budget is now $700 per month, not $600. Draft groceries.csv (item,cost_usd) for a month that includes a dinner party, using the budget, and note the limit you used in meal-plan.md."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "r3",
+    "session": "C"
+  },
+  "gold": {
+    "exact_observations": [
+      "A: budget under $600.",
+      "C: explicit correction to $700."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "preference",
+        "proposition": "Grocery budget is $700 per month.",
+        "basis": "user_declared",
+        "supersedes": "Grocery budget under $600 per month."
+      }
+    ],
+    "revision_expectation": "The $600 preference is superseded/invalidated as current guidance; history retains it.",
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [],
+    "expected_retrieval_points": [
+      {
+        "session": "C",
+        "purpose": "prompt",
+        "must_not_include": "$600 as current"
+      }
+    ],
+    "quiet": false
+  }
+}

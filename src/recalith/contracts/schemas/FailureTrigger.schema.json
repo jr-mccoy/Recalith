@@ -1,0 +1,58 @@
+{
+  "$id": "recalith:contracts/FailureTrigger",
+  "additionalProperties": false,
+  "properties": {
+    "action_family_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Action Family Digest"
+    },
+    "due_at": {
+      "title": "Due At",
+      "type": "string"
+    },
+    "failure_event_id": {
+      "title": "Failure Event Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "pending",
+        "resolved",
+        "due"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "subsequent_event_count": {
+      "minimum": 0,
+      "title": "Subsequent Event Count",
+      "type": "integer"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "trigger_id": {
+      "title": "Trigger Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trigger_id",
+    "task_id",
+    "failure_event_id",
+    "action_family_digest",
+    "subsequent_event_count",
+    "due_at",
+    "state"
+  ],
+  "title": "FailureTrigger",
+  "type": "object"
+}

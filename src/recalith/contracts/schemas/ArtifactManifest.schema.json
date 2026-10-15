@@ -1,0 +1,75 @@
+{
+  "$id": "recalith:contracts/ArtifactManifest",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "artifact_type": {
+      "enum": [
+        "backup",
+        "export"
+      ],
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "engine_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "file_digests": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "maxLength": 256,
+        "minLength": 1
+      },
+      "title": "File Digests",
+      "type": "object"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "schemas": {
+      "patternProperties": {
+        "^[a-z_]{1,32}$": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "title": "Schemas",
+      "type": "object"
+    },
+    "tombstone_epoch": {
+      "minimum": 0,
+      "title": "Tombstone Epoch",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "artifact_type",
+    "schemas",
+    "project_id",
+    "installation_id",
+    "engine_version",
+    "created_at",
+    "file_digests",
+    "tombstone_epoch"
+  ],
+  "title": "ArtifactManifest",
+  "type": "object"
+}

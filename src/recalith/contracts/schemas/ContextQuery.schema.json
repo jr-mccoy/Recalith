@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "ActionDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "action_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "test",
+                "build",
+                "publish",
+                "version_control",
+                "other",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Kind"
+        },
+        "argv": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Argv"
+        },
+        "cwd_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cwd Path"
+        },
+        "executable": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable"
+        },
+        "parse_status": {
+          "enum": [
+            "exact",
+            "conservative",
+            "unknown"
+          ],
+          "title": "Parse Status",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "raw_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Digest"
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shell"
+        },
+        "tool": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "parse_status"
+      ],
+      "title": "ActionDescriptor",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ContextQuery",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionDescriptor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "environment": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Environment",
+      "type": "object"
+    },
+    "max_estimated_tokens": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Estimated Tokens"
+    },
+    "purpose": {
+      "enum": [
+        "session_start",
+        "prompt",
+        "pre_action",
+        "compact_restore",
+        "manual"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Task Id"
+    },
+    "text": {
+      "maxLength": 16384,
+      "title": "Text",
+      "type": "string"
+    },
+    "workspace_id": {
+      "title": "Workspace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "task_id",
+    "workspace_id",
+    "purpose",
+    "text"
+  ],
+  "title": "ContextQuery",
+  "type": "object"
+}

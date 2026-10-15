@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "AdmissionDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "local_ref": {
+          "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+          "title": "Local Ref",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "apply",
+            "review_required",
+            "candidate_only",
+            "reject",
+            "requeue"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "resolved_operation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Operation Id"
+        }
+      },
+      "required": [
+        "local_ref",
+        "outcome",
+        "reason_code",
+        "resolved_operation_id"
+      ],
+      "title": "AdmissionDecision",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ApplyResult",
+  "additionalProperties": false,
+  "properties": {
+    "changed_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Changed Refs",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/AdmissionDecision"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "operation_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Operation Ids",
+      "type": "array"
+    },
+    "requeued_job_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Requeued Job Ids",
+      "type": "array"
+    },
+    "store_revision": {
+      "minimum": 0,
+      "title": "Store Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "operation_ids",
+    "changed_refs",
+    "decisions",
+    "store_revision"
+  ],
+  "title": "ApplyResult",
+  "type": "object"
+}

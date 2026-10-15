@@ -1,0 +1,67 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-R1-fieldnotes-check-env-fixed",
+  "category": "revision",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Run the project checks with `python tools/check.py` and get them passing. Tell me what was needed."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "C",
+      "fresh_session": true,
+      "prompts": [
+        "Run `python tools/check.py` exactly as written (no extra environment variables) and report whether it passes."
+      ],
+      "overlay_files": {
+        "tools/check.py": "@file:fieldnotes_check_default_home.py"
+      },
+      "note": "Evidence change: check.py now defaults NOTES_HOME to a temporary directory."
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "r1",
+    "session": "C"
+  },
+  "gold": {
+    "exact_observations": [
+      "In A, check.py failed with KeyError: 'NOTES_HOME' unless NOTES_HOME was set.",
+      "Before C, tools/check.py changed to default NOTES_HOME."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "failure_lesson",
+        "proposition": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+        "basis": "observed",
+        "dependency": "file tools/check.py",
+        "retry_condition": "Retry without NOTES_HOME if tools/check.py changes."
+      }
+    ],
+    "revision_expectation": "After the check.py change the lesson is needs_revalidation (no caution); a plain run in C is a legitimate retry and succeeds.",
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "NOTES_HOME must always be set for every command."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "C",
+        "purpose": "prompt",
+        "must_not_include_caution": "NOTES_HOME"
+      }
+    ],
+    "quiet": false
+  }
+}

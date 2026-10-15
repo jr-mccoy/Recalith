@@ -1,0 +1,391 @@
+{
+  "$defs": {
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "missing_context": {
+          "title": "Missing Context",
+          "type": "boolean"
+        },
+        "parser_complete": {
+          "title": "Parser Complete",
+          "type": "boolean"
+        },
+        "redacted": {
+          "title": "Redacted",
+          "type": "boolean"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "truncated",
+        "redacted",
+        "missing_context",
+        "parser_complete"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "CursorProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "additionalProperties": true,
+          "title": "Cursor",
+          "type": "object"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "cursor"
+      ],
+      "title": "CursorProposal",
+      "type": "object"
+    },
+    "EventEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "adapter_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "untrusted",
+            "observed_tool",
+            "explicit_user",
+            "derived"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "user",
+            "assistant",
+            "tool",
+            "external",
+            "memory"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "derived_from": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "extensions": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_.\\-]{0,63}$": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "session_started",
+            "user_message",
+            "assistant_message",
+            "tool_started",
+            "tool_finished",
+            "artifact_changed",
+            "compaction",
+            "session_stopped",
+            "session_ended",
+            "memory_delivered",
+            "operator_declaration",
+            "operator_correction",
+            "operator_forget",
+            "agent_attempted_operator_command",
+            "generic_observation"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Occurred At"
+        },
+        "origin": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "payload_digest": {
+          "title": "Payload Digest",
+          "type": "string"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_sequence": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Sequence"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Task Id"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "project_id",
+        "installation_id",
+        "workspace_id",
+        "adapter_id",
+        "adapter_version",
+        "source_event_key",
+        "session_id",
+        "host_session_id",
+        "task_id",
+        "source_sequence",
+        "occurred_at",
+        "recorded_at",
+        "kind",
+        "channel",
+        "origin",
+        "authority",
+        "payload",
+        "payload_digest",
+        "coverage"
+      ],
+      "title": "EventEnvelope",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locator"
+        },
+        "origin_kind": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Origin Kind",
+          "type": "string"
+        },
+        "source_digest": {
+          "title": "Source Digest",
+          "type": "string"
+        },
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter_id",
+        "source_event_key",
+        "host_session_id",
+        "origin_kind",
+        "source_digest"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/Segment",
+  "additionalProperties": false,
+  "properties": {
+    "content_digest": {
+      "title": "Content Digest",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "cursor_proposals": {
+      "items": {
+        "$ref": "#/$defs/CursorProposal"
+      },
+      "title": "Cursor Proposals",
+      "type": "array"
+    },
+    "envelopes": {
+      "items": {
+        "$ref": "#/$defs/EventEnvelope"
+      },
+      "minItems": 1,
+      "title": "Envelopes",
+      "type": "array"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "segment_id": {
+      "title": "Segment Id",
+      "type": "string"
+    },
+    "segment_schema": {
+      "const": 1,
+      "title": "Segment Schema",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "segment_schema",
+    "segment_id",
+    "project_id",
+    "installation_id",
+    "envelopes",
+    "created_at",
+    "content_digest"
+  ],
+  "title": "Segment",
+  "type": "object"
+}

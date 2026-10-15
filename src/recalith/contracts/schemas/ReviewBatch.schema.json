@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpanLocator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "enum": [
+                "tool.exit_code",
+                "tool.reported_result",
+                "config.exact_value"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapping"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "relation": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "context"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "relation"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "ReadSet": {
+      "additionalProperties": false,
+      "description": "What a proposal consulted; rechecked before application (DATA_CONTRACTS §7.1).",
+      "properties": {
+        "entity_revisions": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Entity Revisions",
+          "type": "array"
+        },
+        "fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "maxLength": 512,
+            "minLength": 1
+          },
+          "title": "Fingerprints",
+          "type": "object"
+        },
+        "policy_revision": {
+          "minimum": 1,
+          "title": "Policy Revision",
+          "type": "integer"
+        },
+        "tombstone_epoch": {
+          "minimum": 0,
+          "title": "Tombstone Epoch",
+          "type": "integer"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "policy_revision",
+        "tombstone_epoch"
+      ],
+      "title": "ReadSet",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "ReviewEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "link": {
+          "$ref": "#/$defs/EvidenceLink"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "link"
+      ],
+      "title": "ReviewEvidence",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ReviewBatch",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "candidate_digests": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Candidate Digests",
+      "type": "object"
+    },
+    "candidate_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Candidate Refs",
+      "type": "array"
+    },
+    "evidence_digest": {
+      "title": "Evidence Digest",
+      "type": "string"
+    },
+    "evidence_index": {
+      "items": {
+        "$ref": "#/$defs/ReviewEvidence"
+      },
+      "title": "Evidence Index",
+      "type": "array"
+    },
+    "origin_job_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Origin Job Id"
+    },
+    "prompt_digest": {
+      "title": "Prompt Digest",
+      "type": "string"
+    },
+    "read_set": {
+      "$ref": "#/$defs/ReadSet"
+    },
+    "review_job_id": {
+      "title": "Review Job Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "origin_job_id",
+    "review_job_id",
+    "candidate_refs",
+    "candidate_digests",
+    "evidence_digest",
+    "prompt_digest",
+    "read_set"
+  ],
+  "title": "ReviewBatch",
+  "type": "object"
+}

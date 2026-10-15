@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ImportResult",
+  "additionalProperties": false,
+  "properties": {
+    "created": {
+      "minimum": 0,
+      "title": "Created",
+      "type": "integer"
+    },
+    "disputed": {
+      "minimum": 0,
+      "title": "Disputed",
+      "type": "integer"
+    },
+    "duplicate": {
+      "minimum": 0,
+      "title": "Duplicate",
+      "type": "integer"
+    },
+    "rejected": {
+      "minimum": 0,
+      "title": "Rejected",
+      "type": "integer"
+    },
+    "resulting_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Resulting Refs",
+      "type": "array"
+    },
+    "updated": {
+      "minimum": 0,
+      "title": "Updated",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "created",
+    "updated",
+    "duplicate",
+    "disputed",
+    "rejected"
+  ],
+  "title": "ImportResult",
+  "type": "object"
+}

@@ -1,0 +1,59 @@
+{
+  "$id": "recalith:contracts/CaptureReceipt",
+  "additionalProperties": false,
+  "properties": {
+    "coverage": {
+      "additionalProperties": true,
+      "title": "Coverage",
+      "type": "object"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error Code"
+    },
+    "event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Event Ids",
+      "type": "array"
+    },
+    "segment_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Segment Id"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "duplicate",
+        "not_captured"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "segment_id",
+    "event_ids",
+    "coverage",
+    "error_code"
+  ],
+  "title": "CaptureReceipt",
+  "type": "object"
+}

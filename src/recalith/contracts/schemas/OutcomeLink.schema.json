@@ -1,0 +1,36 @@
+{
+  "$id": "recalith:contracts/OutcomeLink",
+  "additionalProperties": false,
+  "properties": {
+    "delivery_id": {
+      "title": "Delivery Id",
+      "type": "string"
+    },
+    "label": {
+      "enum": [
+        "unknown",
+        "acknowledged",
+        "challenged",
+        "action_changed",
+        "task_succeeded",
+        "task_failed"
+      ],
+      "title": "Label",
+      "type": "string"
+    },
+    "observed_event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Observed Event Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "delivery_id",
+    "observed_event_ids",
+    "label"
+  ],
+  "title": "OutcomeLink",
+  "type": "object"
+}

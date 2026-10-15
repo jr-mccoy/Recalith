@@ -1,0 +1,359 @@
+{
+  "$defs": {
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpanLocator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "enum": [
+                "tool.exit_code",
+                "tool.reported_result",
+                "config.exact_value"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapping"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "relation": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "context"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "relation"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "ProposedOperation": {
+      "additionalProperties": false,
+      "properties": {
+        "depends_on": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "update_task",
+            "resolve_task_binding",
+            "create_episode",
+            "revise_episode",
+            "propose_claim",
+            "assess_claim",
+            "attach_evidence",
+            "revise_claim",
+            "change_claim_status",
+            "request_evidence",
+            "no_op"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "local_ref": {
+          "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+          "title": "Local Ref",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "reason": {
+          "maxLength": 1024,
+          "title": "Reason",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "local_ref",
+        "kind",
+        "payload",
+        "reason"
+      ],
+      "title": "ProposedOperation",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "ResponseProvenance": {
+      "additionalProperties": false,
+      "description": "Appended by adapter code after the call; never parsed from model text.",
+      "properties": {
+        "adapter_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "configured_model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Configured Model",
+          "type": "string"
+        },
+        "provider_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "resolved_model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Model"
+        }
+      },
+      "required": [
+        "provider_id",
+        "configured_model",
+        "resolved_model",
+        "adapter_version"
+      ],
+      "title": "ResponseProvenance",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    },
+    "UsageReport": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "estimated_input_tokens": {
+          "minimum": 0,
+          "title": "Estimated Input Tokens",
+          "type": "integer"
+        },
+        "estimated_output_tokens": {
+          "minimum": 0,
+          "title": "Estimated Output Tokens",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Tokens"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Tokens"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Request Id"
+        }
+      },
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "estimated_input_tokens",
+        "estimated_output_tokens",
+        "provider_request_id",
+        "duration_ms"
+      ],
+      "title": "UsageReport",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ModelResponse",
+  "additionalProperties": false,
+  "properties": {
+    "no_op_reason": {
+      "anyOf": [
+        {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "No Op Reason"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/ProposedOperation"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResponseProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "response_schema": {
+      "const": 1,
+      "title": "Response Schema",
+      "type": "integer"
+    },
+    "usage": {
+      "$ref": "#/$defs/UsageReport"
+    }
+  },
+  "required": [
+    "response_schema",
+    "operations",
+    "no_op_reason",
+    "usage"
+  ],
+  "title": "ModelResponse",
+  "type": "object"
+}

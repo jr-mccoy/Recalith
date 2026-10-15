@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "LocalUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "input_estimate": {
+          "minimum": 0,
+          "title": "Input Estimate",
+          "type": "integer"
+        },
+        "output_estimate": {
+          "minimum": 0,
+          "title": "Output Estimate",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_estimate",
+        "output_estimate"
+      ],
+      "title": "LocalUsage",
+      "type": "object"
+    },
+    "PoolAllocation": {
+      "additionalProperties": false,
+      "properties": {
+        "input_estimate": {
+          "minimum": 0,
+          "title": "Input Estimate",
+          "type": "integer"
+        },
+        "invocations": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Invocations",
+          "type": "integer"
+        },
+        "output_estimate": {
+          "minimum": 0,
+          "title": "Output Estimate",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "invocations",
+        "input_estimate",
+        "output_estimate"
+      ],
+      "title": "PoolAllocation",
+      "type": "object"
+    },
+    "UsageReport": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "estimated_input_tokens": {
+          "minimum": 0,
+          "title": "Estimated Input Tokens",
+          "type": "integer"
+        },
+        "estimated_output_tokens": {
+          "minimum": 0,
+          "title": "Estimated Output Tokens",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Tokens"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Tokens"
+        },
+        "provider_request_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provider Request Id"
+        }
+      },
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "estimated_input_tokens",
+        "estimated_output_tokens",
+        "provider_request_id",
+        "duration_ms"
+      ],
+      "title": "UsageReport",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/BudgetReservation",
+  "additionalProperties": false,
+  "properties": {
+    "estimated_input_limit": {
+      "exclusiveMinimum": 0,
+      "title": "Estimated Input Limit",
+      "type": "integer"
+    },
+    "estimated_output_limit": {
+      "exclusiveMinimum": 0,
+      "title": "Estimated Output Limit",
+      "type": "integer"
+    },
+    "invocation_id": {
+      "title": "Invocation Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "local_estimated_usage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LocalUsage"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "max_response_body_bytes": {
+      "exclusiveMinimum": 0,
+      "title": "Max Response Body Bytes",
+      "type": "integer"
+    },
+    "max_stderr_bytes": {
+      "const": 65536,
+      "default": 65536,
+      "title": "Max Stderr Bytes",
+      "type": "integer"
+    },
+    "max_wire_stdout_bytes": {
+      "const": 262144,
+      "default": 262144,
+      "title": "Max Wire Stdout Bytes",
+      "type": "integer"
+    },
+    "ordinary": {
+      "$ref": "#/$defs/PoolAllocation"
+    },
+    "protected": {
+      "$ref": "#/$defs/PoolAllocation"
+    },
+    "purpose": {
+      "enum": [
+        "update_task",
+        "build_episode",
+        "extract_claims",
+        "review_claims",
+        "revalidate"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "reported_usage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UsageReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reservation_id": {
+      "title": "Reservation Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "reserved",
+        "charged",
+        "released"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "utc_day": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "title": "Utc Day",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reservation_id",
+    "job_id",
+    "invocation_id",
+    "utc_day",
+    "purpose",
+    "ordinary",
+    "protected",
+    "estimated_input_limit",
+    "estimated_output_limit",
+    "max_response_body_bytes",
+    "state"
+  ],
+  "title": "BudgetReservation",
+  "type": "object"
+}

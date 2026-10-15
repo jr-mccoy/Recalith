@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "OriginEventKey": {
+      "additionalProperties": false,
+      "properties": {
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_namespace": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Namespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_namespace",
+        "source_event_key"
+      ],
+      "title": "OriginEventKey",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/RootClass",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_origin": {
+      "$ref": "#/$defs/OriginEventKey"
+    },
+    "equivalence_reasons": {
+      "items": {
+        "enum": [
+          "origin_identity",
+          "provenance",
+          "artifact_snapshot",
+          "experiment_signature",
+          "same_authority",
+          "unknown_dependencies"
+        ],
+        "type": "string"
+      },
+      "title": "Equivalence Reasons",
+      "type": "array"
+    },
+    "member_origin_keys": {
+      "items": {
+        "$ref": "#/$defs/OriginEventKey"
+      },
+      "minItems": 1,
+      "title": "Member Origin Keys",
+      "type": "array"
+    },
+    "root_class_id": {
+      "title": "Root Class Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "root_class_id",
+    "canonical_origin",
+    "member_origin_keys"
+  ],
+  "title": "RootClass",
+  "type": "object"
+}

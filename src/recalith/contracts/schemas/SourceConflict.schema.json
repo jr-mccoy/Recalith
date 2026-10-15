@@ -1,0 +1,66 @@
+{
+  "$id": "recalith:contracts/SourceConflict",
+  "additionalProperties": false,
+  "properties": {
+    "adapter_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Adapter Id",
+      "type": "string"
+    },
+    "conflict_id": {
+      "title": "Conflict Id",
+      "type": "string"
+    },
+    "coverage": {
+      "additionalProperties": true,
+      "title": "Coverage",
+      "type": "object"
+    },
+    "first_seen_at": {
+      "title": "First Seen At",
+      "type": "string"
+    },
+    "original_event_id": {
+      "title": "Original Event Id",
+      "type": "string"
+    },
+    "payload_digest": {
+      "title": "Payload Digest",
+      "type": "string"
+    },
+    "scrubbed_payload": {
+      "additionalProperties": true,
+      "title": "Scrubbed Payload",
+      "type": "object"
+    },
+    "source_event_key": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Event Key",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "unresolved",
+        "resolved",
+        "forgotten"
+      ],
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "conflict_id",
+    "original_event_id",
+    "adapter_id",
+    "source_event_key",
+    "payload_digest",
+    "scrubbed_payload",
+    "coverage",
+    "first_seen_at",
+    "state"
+  ],
+  "title": "SourceConflict",
+  "type": "object"
+}

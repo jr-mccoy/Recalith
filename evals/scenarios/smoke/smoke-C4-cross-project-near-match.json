@@ -1,0 +1,62 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-C4-cross-project-near-match",
+  "category": "control",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "fieldnotes",
+  "second_project": {
+    "project": "ledgerlite",
+    "sessions": [
+      "A"
+    ],
+    "isolation": "separate installation; never shares memory"
+  },
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Run the ledgerlite unit tests and tell me the command that works."
+      ],
+      "overlay_files": {},
+      "note": "Runs in the separate ledgerlite installation."
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Run this project's tests and tell me whether they pass."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "c4",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+    ],
+    "supported_lessons": [],
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "ledgerlite's test command applies to fieldnotes."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "session_start",
+        "must_not_include": "PYTHONPATH=src"
+      }
+    ],
+    "quiet": true
+  }
+}

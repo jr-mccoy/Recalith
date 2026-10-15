@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "OriginEventKey": {
+      "additionalProperties": false,
+      "properties": {
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_namespace": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Namespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_namespace",
+        "source_event_key"
+      ],
+      "title": "OriginEventKey",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locator"
+        },
+        "origin_kind": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Origin Kind",
+          "type": "string"
+        },
+        "source_digest": {
+          "title": "Source Digest",
+          "type": "string"
+        },
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter_id",
+        "source_event_key",
+        "host_session_id",
+        "origin_kind",
+        "source_digest"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ResolvedEvidence",
+  "additionalProperties": false,
+  "properties": {
+    "availability": {
+      "enum": [
+        "available",
+        "capsule_only",
+        "expired",
+        "redacted"
+      ],
+      "title": "Availability",
+      "type": "string"
+    },
+    "integrity": {
+      "enum": [
+        "ok",
+        "mismatch"
+      ],
+      "title": "Integrity",
+      "type": "string"
+    },
+    "origin_event_key": {
+      "$ref": "#/$defs/OriginEventKey"
+    },
+    "original_locator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SpanLocator"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "root_class_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Root Class Ids",
+      "type": "array"
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Text"
+    },
+    "typed_observation": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Typed Observation"
+    }
+  },
+  "required": [
+    "source_ref",
+    "origin_event_key",
+    "text",
+    "typed_observation",
+    "original_locator",
+    "availability",
+    "root_class_ids",
+    "integrity"
+  ],
+  "title": "ResolvedEvidence",
+  "type": "object"
+}

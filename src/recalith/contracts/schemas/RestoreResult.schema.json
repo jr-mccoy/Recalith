@@ -1,0 +1,34 @@
+{
+  "$id": "recalith:contracts/RestoreResult",
+  "additionalProperties": false,
+  "properties": {
+    "applied_schema": {
+      "minimum": 1,
+      "title": "Applied Schema",
+      "type": "integer"
+    },
+    "preserved_tombstone_epoch": {
+      "minimum": 0,
+      "title": "Preserved Tombstone Epoch",
+      "type": "integer"
+    },
+    "restored_revision": {
+      "minimum": 0,
+      "title": "Restored Revision",
+      "type": "integer"
+    },
+    "suppressed_record_count": {
+      "minimum": 0,
+      "title": "Suppressed Record Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "applied_schema",
+    "restored_revision",
+    "preserved_tombstone_epoch",
+    "suppressed_record_count"
+  ],
+  "title": "RestoreResult",
+  "type": "object"
+}

@@ -1,0 +1,70 @@
+{
+  "$id": "recalith:contracts/TaskBindingRevision",
+  "additionalProperties": false,
+  "properties": {
+    "assigned_by_operation": {
+      "title": "Assigned By Operation",
+      "type": "string"
+    },
+    "binding": {
+      "enum": [
+        "provisional",
+        "confirmed"
+      ],
+      "title": "Binding",
+      "type": "string"
+    },
+    "binding_id": {
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "boundary_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Boundary Id"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "previous_revision": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Previous Revision"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "binding_id",
+    "event_id",
+    "revision",
+    "task_id",
+    "binding",
+    "boundary_id",
+    "assigned_by_operation",
+    "previous_revision"
+  ],
+  "title": "TaskBindingRevision",
+  "type": "object"
+}

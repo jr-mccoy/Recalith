@@ -1,0 +1,381 @@
+{
+  "$defs": {
+    "EpisodeStep": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "causal_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "failure",
+            "interrupted",
+            "not_run",
+            "unknown"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "ordinal",
+        "action",
+        "outcome"
+      ],
+      "title": "EpisodeStep",
+      "type": "object"
+    },
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpanLocator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "enum": [
+                "tool.exit_code",
+                "tool.reported_result",
+                "config.exact_value"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapping"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "relation": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "context"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "relation"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "description": "Empty eligibility lists mean unrestricted within this installation.\n\n``branch_refs`` are recall/origin annotations only, never eligibility.",
+      "properties": {
+        "branch_refs": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Branch Refs",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "task_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Task Ids",
+          "type": "array"
+        },
+        "workspace_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Workspace Ids",
+          "type": "array"
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    },
+    "SupportedText": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "observed",
+            "user_declared",
+            "inferred"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "basis"
+      ],
+      "title": "SupportedText",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/Episode",
+  "additionalProperties": false,
+  "properties": {
+    "coverage": {
+      "additionalProperties": true,
+      "title": "Coverage",
+      "type": "object"
+    },
+    "ended_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ended At"
+    },
+    "episode_id": {
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "objective": {
+      "$ref": "#/$defs/SupportedText"
+    },
+    "outcome": {
+      "$ref": "#/$defs/SupportedText"
+    },
+    "preconditions": {
+      "items": {
+        "$ref": "#/$defs/SupportedText"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "related_episode_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Episode Ids",
+      "type": "array"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "source_event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Source Event Ids",
+      "type": "array"
+    },
+    "started_at": {
+      "title": "Started At",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "open",
+        "settled",
+        "archived"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/EpisodeStep"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "unresolved": {
+      "items": {
+        "$ref": "#/$defs/SupportedText"
+      },
+      "title": "Unresolved",
+      "type": "array"
+    }
+  },
+  "required": [
+    "episode_id",
+    "project_id",
+    "installation_id",
+    "revision",
+    "task_id",
+    "title",
+    "started_at",
+    "ended_at",
+    "state",
+    "objective",
+    "steps",
+    "outcome",
+    "source_event_ids"
+  ],
+  "title": "Episode",
+  "type": "object"
+}

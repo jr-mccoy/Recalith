@@ -1,0 +1,49 @@
+{
+  "$id": "recalith:contracts/Tombstone",
+  "additionalProperties": false,
+  "description": "Content-free suppression record: identifiers and digests only.",
+  "properties": {
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "deletion_scope": {
+      "enum": [
+        "record",
+        "task",
+        "source_range",
+        "saved_query"
+      ],
+      "title": "Deletion Scope",
+      "type": "string"
+    },
+    "epoch": {
+      "minimum": 1,
+      "title": "Epoch",
+      "type": "integer"
+    },
+    "source_digests": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Digests",
+      "type": "array"
+    },
+    "target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "target_ids",
+    "created_at",
+    "epoch",
+    "deletion_scope"
+  ],
+  "title": "Tombstone",
+  "type": "object"
+}

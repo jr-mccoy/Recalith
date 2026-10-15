@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "ProviderCertification": {
+      "additionalProperties": false,
+      "properties": {
+        "certified": {
+          "title": "Certified",
+          "type": "boolean"
+        },
+        "certified_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Certified At"
+        },
+        "executable_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable Sha256"
+        },
+        "host_version": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host Version"
+        },
+        "report_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Digest"
+        }
+      },
+      "required": [
+        "certified"
+      ],
+      "title": "ProviderCertification",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ProviderConfig",
+  "additionalProperties": false,
+  "description": "Explicit backend/model/auth reference; never chosen because a CLI is on PATH.",
+  "properties": {
+    "auth_env_keys": {
+      "items": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+        "type": "string"
+      },
+      "title": "Auth Env Keys",
+      "type": "array"
+    },
+    "auth_route": {
+      "enum": [
+        "env_api_key",
+        "env_oauth_token",
+        "env_cloud",
+        "api_key_helper"
+      ],
+      "title": "Auth Route",
+      "type": "string"
+    },
+    "backend": {
+      "enum": [
+        "claude_cli",
+        "json_process"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "certification": {
+      "$ref": "#/$defs/ProviderCertification"
+    },
+    "configured_model": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Configured Model",
+      "type": "string"
+    },
+    "executable": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "title": "Executable",
+      "type": "string"
+    },
+    "invocation_args": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Invocation Args",
+      "type": "array"
+    },
+    "max_stderr_bytes": {
+      "default": 65536,
+      "exclusiveMinimum": 0,
+      "title": "Max Stderr Bytes",
+      "type": "integer"
+    },
+    "max_wire_stdout_bytes": {
+      "default": 262144,
+      "exclusiveMinimum": 0,
+      "title": "Max Wire Stdout Bytes",
+      "type": "integer"
+    },
+    "provider_id": {
+      "pattern": "^[a-z][a-z0-9_]{1,63}$",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "default": 120,
+      "exclusiveMinimum": 0,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "provider_id",
+    "backend",
+    "executable",
+    "configured_model",
+    "auth_route",
+    "auth_env_keys",
+    "invocation_args",
+    "certification"
+  ],
+  "title": "ProviderConfig",
+  "type": "object"
+}

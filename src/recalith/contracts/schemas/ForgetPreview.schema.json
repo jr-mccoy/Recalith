@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ForgetPreview",
+  "additionalProperties": false,
+  "properties": {
+    "affected_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Affected Refs",
+      "type": "array"
+    },
+    "backup_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Backup Ids",
+      "type": "array"
+    },
+    "derivative_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Derivative Refs",
+      "type": "array"
+    },
+    "export_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Export Ids",
+      "type": "array"
+    },
+    "preview_digest": {
+      "title": "Preview Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "affected_refs",
+    "derivative_refs",
+    "backup_ids",
+    "export_ids",
+    "preview_digest"
+  ],
+  "title": "ForgetPreview",
+  "type": "object"
+}

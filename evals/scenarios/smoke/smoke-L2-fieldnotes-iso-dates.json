@@ -1,0 +1,61 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-L2-fieldnotes-iso-dates",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Decision for this project: every date fieldnotes prints must be ISO-8601 (YYYY-MM-DD...). Never use locale formats like 'Jan 2' or '02/01/2026'. Please look at how `list` prints dates and confirm it follows this."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Add an `export` command to fieldnotes that prints one line per note as `DATE: TEXT`, with a unit test. Run the project checks."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "l2",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "The user declared ISO-8601 dates for all printed output."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "decision",
+        "proposition": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+        "basis": "user_declared",
+        "scope": "this project"
+      }
+    ],
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "Every project must use ISO-8601 dates."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "ISO-8601"
+      }
+    ],
+    "quiet": false
+  }
+}
