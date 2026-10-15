@@ -76,7 +76,9 @@ STDERR_CAP = 64 * 1024
 _SECRETISH = re.compile(
     r"(sk-[A-Za-z0-9_\-]{8,}|gh[pousr]_[A-Za-z0-9]{16,}|"
     r"(?i:api[_-]?key|token|secret|password)\s*[=:]\s*\S+|"
-    r"\b(?![0-9a-f]{40,}\b)(?=[A-Za-z0-9+/_\-]*[0-9])(?=[A-Za-z0-9+/_\-]*[a-z])[A-Za-z0-9+/_\-]{40,}={0,2})",
+    # Generic opaque tokens: 40+ chars mixing upper case, lower case and digits
+    # (hex digests, identifiers and env-var names do not match).
+    r"\b(?=[A-Za-z0-9+/_\-]*[0-9])(?=[A-Za-z0-9+/_\-]*[a-z])(?=[A-Za-z0-9+/_\-]*[A-Z])[A-Za-z0-9+/_\-]{40,}={0,2})",
 )
 
 
@@ -436,9 +438,10 @@ def run_bounded(
 class RecordingEndpoint:
     """Loopback Anthropic-Messages-compatible server that records requests.
 
-    ``responder(body) -> (behavior, text)`` chooses the reply. Behaviors:
-    ``text`` (normal reply with ``text``), ``hang`` (never answer), and
-    ``error`` (HTTP 500). Credentials in headers are never recorded.
+    ``responder(body) -> (behavior, payload)`` chooses the reply. Behaviors:
+    ``text`` (normal reply; payload is the text), ``tool_use`` (payload is
+    ``{"name": ..., "input": {...}}``), ``hang`` (never answer), and ``error``
+    (HTTP 500). Credentials in headers are never recorded.
     """
 
     def __init__(self, responder: Callable[[dict], tuple[str, str]]) -> None:
@@ -446,6 +449,7 @@ class RecordingEndpoint:
         self._lock = threading.Lock()
         self._responder = responder
         self._release = threading.Event()
+        self._tool_seq = 0
         endpoint = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -493,8 +497,17 @@ class RecordingEndpoint:
                     self._send_json({"type": "error", "error": {"type": "api_error", "message": "probe"}}, status=500)
                     return
                 model = body.get("model") if isinstance(body, dict) else None
+                if behavior == "tool_use":
+                    with endpoint._lock:
+                        endpoint._tool_seq += 1
+                        tool_id = f"toolu_probe_{endpoint._tool_seq:04d}"
+                    block = {"type": "tool_use", "id": tool_id, "name": text["name"], "input": text["input"]}
+                    stop = "tool_use"
+                else:
+                    block = {"type": "text", "text": text}
+                    stop = "end_turn"
                 if isinstance(body, dict) and body.get("stream"):
-                    self._send_stream(model, text)
+                    self._send_stream(model, block, stop)
                 else:
                     self._send_json(
                         {
@@ -502,8 +515,8 @@ class RecordingEndpoint:
                             "type": "message",
                             "role": "assistant",
                             "model": model,
-                            "content": [{"type": "text", "text": text}],
-                            "stop_reason": "end_turn",
+                            "content": [block],
+                            "stop_reason": stop,
                             "stop_sequence": None,
                             "usage": {"input_tokens": 1, "output_tokens": 1},
                         }
@@ -517,13 +530,19 @@ class RecordingEndpoint:
                 self.end_headers()
                 self.wfile.write(data)
 
-            def _send_stream(self, model: Any, text: str) -> None:
+            def _send_stream(self, model: Any, block: dict, stop: str) -> None:
+                if block["type"] == "tool_use":
+                    start = {"type": "tool_use", "id": block["id"], "name": block["name"], "input": {}}
+                    delta = {"type": "input_json_delta", "partial_json": json.dumps(block["input"])}
+                else:
+                    start = {"type": "text", "text": ""}
+                    delta = {"type": "text_delta", "text": block["text"]}
                 events = [
                     ("message_start", {"type": "message_start", "message": {"id": "msg_probe", "type": "message", "role": "assistant", "model": model, "content": [], "stop_reason": None, "stop_sequence": None, "usage": {"input_tokens": 1, "output_tokens": 1}}}),
-                    ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}),
-                    ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": text}}),
+                    ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": start}),
+                    ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": delta}),
                     ("content_block_stop", {"type": "content_block_stop", "index": 0}),
-                    ("message_delta", {"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": 1}}),
+                    ("message_delta", {"type": "message_delta", "delta": {"stop_reason": stop, "stop_sequence": None}, "usage": {"output_tokens": 1}}),
                     ("message_stop", {"type": "message_stop"}),
                 ]
                 payload = b"".join(f"event: {name}\ndata: {json.dumps(data)}\n\n".encode() for name, data in events)

@@ -253,6 +253,10 @@ def test_sanitizer_keeps_digests_and_scrubs_secrets():
     s = pc.Sanitizer({"/tmp/fixture": "<fixture>"}, secrets=["hunter2-secret"])
     digest = "a" * 64
     assert s.text(f"{digest} /tmp/fixture/x hunter2-secret sk-ant-api03-abcdefghijkl") == f"{digest} <fixture>/x <redacted> <redacted>"
+    ident = "request_capture-session_start-positive-1"
+    assert s.text(ident) == ident and s.text("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC") == "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"
+    assert s.text("token: abc") == "<redacted>"
+    assert s.text("Zm9vYmFyQmF6UXV4MTIzNDU2Nzg5MEFCQ0RFRkdISUpLTE1O") == "<redacted>"
 
 
 def test_example_config_is_valid_and_secret_free():
