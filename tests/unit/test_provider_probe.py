@@ -290,3 +290,17 @@ def test_empty_proc_environ_is_resampled_not_observed(monkeypatch):
     assert pc.observed_process_environment_keys(1, interval_s=0) == ["PATH", "RECALITH_CURATOR_INSTALLATION"]
     monkeypatch.setattr(pc.Path, "read_bytes", lambda self: b"")
     assert pc.observed_process_environment_keys(1, attempts=3, interval_s=0) is None
+
+
+def test_detectors_validate_when_fixture_path_is_a_symlink(tmp_path, fake_exe, monkeypatch):
+    """macOS temp dirs resolve through /private; per-project sentinels must still be found."""
+    real = tmp_path / "real-tmp"
+    real.mkdir()
+    link = tmp_path / "linked-tmp"
+    link.symlink_to(real, target_is_directory=True)
+    monkeypatch.setattr(pp.tempfile, "tempdir", str(link))
+    out = tmp_path / "report.json"
+    pp.probe_provider(write_config(tmp_path, fake_exe), out)
+    rep = section(out)
+    assert rep["request_capture"]["detector_validation"]["unvalidated_detectors"] == []
+    assert rep["dimensions"]["customization_absence"]["verdict"] == "pass"

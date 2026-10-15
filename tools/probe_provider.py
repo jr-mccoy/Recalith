@@ -294,7 +294,9 @@ class Fixture:
             self.home / ".claude" / "agents" / "recalith-sentinel-agent.md",
             f"---\nname: recalith-sentinel-agent\ndescription: {t['user_agent']}\n---\nInert.\n",
         )
-        for where in (self.cwd, self.project):
+        # Hosts may key per-project state by the given or the resolved path
+        # (macOS temp dirs resolve through /private), so plant both.
+        for where in sorted({self.cwd, self.project, self.cwd.resolve(), self.project.resolve()}, key=str):
             mem = self.home / ".claude" / "projects" / _slug(where) / "memory" / "MEMORY.md"
             write(mem, f"- Remember {t['native_memory']}\n")
             session = self.home / ".claude" / "projects" / _slug(where) / f"{self.prior_session_id}.jsonl"
