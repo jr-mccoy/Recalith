@@ -205,7 +205,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Preview implements all transaction/revision/undo rules; reserve but do not populate revision-chain schema. `storage/integrity.py`, chain computation, and full/incremental integrity tests are full-only.
 
-**Files:** Create `controller/{apply,admission}.py`, `core/policy.py`, `storage/integrity.py`, `tests/integration/test_operations.py`, `tests/integration/test_integrity.py`.
+**Files:** Create `controller/{apply,admission}.py`, `core/policy.py`, `storage/integrity.py`, `tests/integration/test_operations.py`, `tests/integration/test_integrity.py`. The preview slice also added `storage/records.py` (revision/head/link writers), `storage/migrations/0002.sql` (schema 2), the test builders `tests/integration/operation_scenarios.py` (real captured events, seeded records, the kill/restart scenario), and `ModelResponse.malformed`/`UndoPreview` contracts (decision 0007). `storage/integrity.py` is full-only and not created in preview; `test_integrity.py` marks its full-only tests unavailable.
 
 **Interfaces:** Produce `evaluate_operation(ctx, operation: ProposedOperation, read_set: ReadSet) -> AdmissionDecision` and `apply_proposal(ctx, job: Job, response: ModelResponse) -> ApplyResult`. Initial admission handles schema/identity/revisions; semantic evidence rules arrive in Task 9.
 

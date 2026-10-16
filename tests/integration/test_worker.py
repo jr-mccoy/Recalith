@@ -21,12 +21,13 @@ from pathlib import Path
 
 import pytest
 
+import operation_scenarios as osc
 import worker_scenarios as ws
 from recalith.capture import pipeline
 from recalith.contracts.common import RecordRef, digest_of, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, BudgetConfig, ProjectConfig
 from recalith.contracts.jobs import MODEL_JOB_KINDS, BudgetReservation
-from recalith.controller import budgets, jobs, worker
+from recalith.controller import apply, budgets, jobs, worker
 from recalith.errors import RecalithError
 from recalith.storage import db, failpoints, spool
 
@@ -88,6 +89,7 @@ def test_expired_lease_is_fenced(root):
     """An expired lease is superseded; the old owner's result never applies; the newer one applies once."""
     job_id = ws.enqueue_model_job(root, "extract_claims")
     ctx = ws.context(root)
+    response, read_set = _response(), ws.read_set(ctx)
     with db.open_store(ctx) as store:
         a = jobs.lease_next(ctx, owner="worker-a", now=ws.START, kinds=MODEL, store=store)
         assert a is not None and a.job_id == job_id and a.lease_generation == 1
@@ -97,14 +99,15 @@ def test_expired_lease_is_fenced(root):
         assert b is not None and b.job_id == job_id and b.lease_generation == 2
         for when in (ws.START, later):  # superseded generation: fenced whatever the old owner's clock says
             with pytest.raises(RecalithError, match="lease fenced"):
-                with jobs.fenced(store, a, now=when) as txn:
-                    ws.applier(txn, a, _response())
-        with jobs.fenced(store, b, now=later) as txn:
-            ws.applier(txn, b, _response())
-            jobs.complete(txn, b)
-        with pytest.raises(RecalithError, match="lease fenced"):  # a completed job takes no second result
-            with jobs.fenced(store, b, now=later) as txn:
-                ws.applier(txn, b, _response())
+                apply.persist_proposal(store, a, response, read_set, now=when)
+            with pytest.raises(RecalithError, match="lease fenced"):
+                apply.apply_proposal(ctx, a, response, store=store, now=when)
+        apply.persist_proposal(store, b, response, read_set, now=later)
+        first = apply.apply_proposal(ctx, b, response, store=store, now=later)
+        with pytest.raises(RecalithError, match="lease fenced"):  # a completed job takes no second, different result
+            apply.apply_proposal(ctx, b, _response("something else"), store=store, now=later)
+        assert apply.apply_proposal(ctx, b, response, store=store, now=later) == first  # a duplicate returns the original
+        assert apply.apply_proposal(ctx, a, response, store=store, now=later) == first  # whoever asks, once committed
     state = ws.state(root)
     assert state["effects"] == {job_id: 1} and job_row(root, job_id).state == "completed"
 
@@ -119,19 +122,19 @@ def test_same_owner_release_is_fenced_by_generation(root):
         second = jobs.lease_next(ctx, owner="worker-a", now=later, kinds=MODEL, store=store)
         assert (second.lease_owner, second.lease_generation) == (first.lease_owner, first.lease_generation + 1)
         with pytest.raises(RecalithError, match="lease fenced"):
-            with jobs.fenced(store, first, now=later) as txn:
-                ws.applier(txn, first, _response())
-        with jobs.fenced(store, second, now=later) as txn:
-            ws.applier(txn, second, _response())
-            jobs.complete(txn, second)
+            apply.persist_proposal(store, first, _response(), ws.read_set(ctx), now=later)
+        apply.persist_proposal(store, second, _response(), ws.read_set(ctx), now=later)
+        with pytest.raises(RecalithError, match="lease fenced"):
+            apply.apply_proposal(ctx, first, _response(), store=store, now=later)
+        apply.apply_proposal(ctx, second, _response(), store=store, now=later)
     assert ws.state(root)["effects"] == {job_id: 1}
 
 
-def _response():
+def _response(reason: str = "nothing new"):
     from recalith.contracts.operations import ModelProposalBody, ModelResponse, UsageReport
 
     usage = UsageReport(input_tokens=1, output_tokens=1, estimated_input_tokens=1, estimated_output_tokens=1, provider_request_id=None, duration_ms=1)
-    return ModelResponse.from_body(ModelProposalBody.model_validate({"operations": [], "no_op_reason": "nothing new"}), usage, None)
+    return ModelResponse.from_body(ModelProposalBody.model_validate({"operations": [], "no_op_reason": reason}), usage, None)
 
 
 def test_late_model_result_after_takeover_is_discarded(root):
@@ -389,7 +392,7 @@ def test_15kb_episode_body_with_host_envelope_fits(root):
     assert res.max_response_body_bytes == 24_000 and res.state == "charged" and res.reported_usage.output_tokens == 10
     # The same through a real child process and the bounded launcher.
     second = ws.enqueue_model_job(root, "build_episode", key="process")
-    w2 = worker.Worker(ws.context(root), clock=ws.FakeClock(), model=worker.ModelRuntime(backend=ws.process_backend(root, "episode", "15000", "100000"), prepare=lambda s, j, r: ws.request_for(s, j, r), apply=ws.applier))
+    w2 = worker.Worker(ws.context(root), clock=ws.FakeClock(), model=worker.ModelRuntime(backend=ws.process_backend(root, "episode", "15000", "100000"), prepare=lambda s, j, r: ws.request_for(s, j, r)))
     assert w2.lane.step()
     assert job_row(root, second).state == "completed"
 
@@ -399,7 +402,8 @@ def test_body_and_wire_caps_are_separate(root):
     cases = {
         "body_over_cap": (lambda p, i: outcome(ws.episode_body(25_000)), "response_body_oversized"),
         "envelope_over_wire": (lambda p, i: outcome(ws.NO_OP_BODY, padding=270_000), "wire_stdout_oversized"),
-        "malformed_body": (lambda p, i: outcome(b'{"operations": [{"kind": "shell"}]}'), "response_invalid"),
+        # The enclosing body is strict; a malformed *operation* fails only its group (test_operations).
+        "malformed_body": (lambda p, i: outcome(b'{"operations": [], "no_op_reason": "x", "verdict": "approve"}'), "response_invalid"),
         "not_an_envelope": (lambda p, i: worker.LaunchOutcome(stdout=b"plain text"), "envelope_invalid"),
     }
     for name, (script, code) in cases.items():
@@ -426,7 +430,7 @@ def test_process_backend_bounds_hang_flood_and_tree(root, tmp_path):
     for mode, args, code in (("hang", (), "provider_timeout"), ("flood", (), "wire_stdout_oversized"), ("grandchild", (str(pidfile),), "provider_timeout"), ("stderr_flood", (), None)):
         job_id = ws.enqueue_model_job(root, "revalidate", key=mode)
         backend = ws.process_backend(root, mode, *args)
-        w = worker.Worker(ws.context(root), clock=clock, config=config, model=worker.ModelRuntime(backend=backend, prepare=lambda s, j, r: ws.request_for(s, j, r), apply=ws.applier))
+        w = worker.Worker(ws.context(root), clock=clock, config=config, model=worker.ModelRuntime(backend=backend, prepare=lambda s, j, r: ws.request_for(s, j, r)))
         started = time.monotonic()
         assert w.lane.step(), mode
         assert time.monotonic() - started < 15, mode
@@ -468,7 +472,7 @@ def test_curator_child_environment_from_worker(root, tmp_path):
     record = tmp_path / "env.json"
     job_id = ws.enqueue_model_job(root, "update_task")
     backend = ws.process_backend(root, "env", str(record), inherited=worker_env, route_keys=["FAKE_ROUTE_KEY"])
-    w = worker.Worker(ctx, clock=ws.FakeClock(), environment=worker_env, model=worker.ModelRuntime(backend=backend, prepare=lambda s, j, r: ws.request_for(s, j, r), apply=ws.applier))
+    w = worker.Worker(ctx, clock=ws.FakeClock(), environment=worker_env, model=worker.ModelRuntime(backend=backend, prepare=lambda s, j, r: ws.request_for(s, j, r)))
     assert w.lane.step() and job_row(root, job_id).state == "completed"
     seen = json.loads(record.read_text(encoding="utf-8"))
     assert seen["curator_marker"] == ctx.installation_id and seen["worker_marker"] is None
@@ -670,13 +674,6 @@ def test_session_mode_is_unavailable_in_preview(root):
 # Kill/restart at lease and commit boundaries (ACCEPTANCE_TESTS §4)
 
 
-def _crash_project(tmp: Path, name: str) -> Path:
-    root = ws.init_project(tmp, name)
-    for i, kind in enumerate(("extract_claims", "review_claims", "build_episode", "update_task")):
-        ws.enqueue_model_job(root, kind, key=f"{name}-{i}")
-    return root
-
-
 def _driver(root: Path, log: Path, failpoint: str | None = None, skip: int = 0) -> subprocess.CompletedProcess:
     args = [sys.executable, str(HERE / "worker_scenarios.py"), str(root), str(log)]
     if failpoint:
@@ -684,21 +681,29 @@ def _driver(root: Path, log: Path, failpoint: str | None = None, skip: int = 0) 
     return subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
 
 
-def _outcome(root: Path) -> dict:
-    state = ws.state(root)
-    return {"jobs": sorted((k, s) for _, k, s in state["jobs"]), "effects": sorted(state["effects"].values())}
+REFERENCE_APPLICATIONS = ["build_episode", "extract_claims", "review_claims", "service", "update_task"]
 
 
 @pytest.mark.parametrize("failpoint", list(failpoints.WORKER))
 def test_worker_crash_at_job_boundaries_matches_reference(tmp_path, failpoint):
-    """Killed at a lease/reservation/proposal/commit boundary and restarted: every job applies exactly once."""
-    reference_root = _crash_project(tmp_path, "reference")
+    """Killed at a lease/reservation/proposal/application/commit boundary and restarted: one effect per job.
+
+    The project holds real captured Claude 2.1.301 events; the jobs propose real
+    operations (an independent claim, an atomic replacement + supersession, a
+    group citing a never-captured event, a malformed operation and its
+    dependent, an episode and a task update). The reopened store must equal a
+    reference run: the same jobs, applications, operation rows, decisions,
+    claim/task/episode heads and revision counts, relations, links, and the
+    same guidance epoch.
+    """
+    reference_root = osc.crash_project(tmp_path, "reference")
     assert _driver(reference_root, tmp_path / "reference.calls").returncode == 0
-    reference = _outcome(reference_root)
-    assert reference["effects"] == [1, 1, 1, 1]
+    reference = osc.normalized(reference_root)
+    assert reference["applications"] == REFERENCE_APPLICATIONS
+    assert [k for k, _ref, _kind in reference["operations"]].count("extract_claims") == 3
     crashed = 0
     for rep in range(REPS):
-        root = _crash_project(tmp_path, f"crash-{rep}")
+        root = osc.crash_project(tmp_path, f"crash-{rep}")
         log = tmp_path / f"crash-{rep}.calls"
         result = _driver(root, log, failpoint, skip=rep % 3)
         if result.returncode == failpoints.KILL_STATUS:
@@ -707,11 +712,11 @@ def test_worker_crash_at_job_boundaries_matches_reference(tmp_path, failpoint):
             assert restart.returncode == 0, restart.stderr
         else:
             assert result.returncode == 0, result.stderr
-        assert _outcome(root) == reference, (failpoint, rep)
+        assert osc.normalized(root) == reference, (failpoint, rep)
         state = ws.state(root)
         calls = log.read_text(encoding="utf-8").split() if log.exists() else []
         launches_per_job = {j: calls.count(j) for j in set(calls)}
-        if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
+        if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.APPLY_AFTER_GROUP, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
             assert set(launches_per_job.values()) <= {1}, "a persisted proposal was re-requested from the model"
         assert {s for _, s in state["usage"]} == {"charged"}  # no reservation is left dangling
         assert len(state["usage"]) == len(calls) + (1 if failpoint == failpoints.JOB_AFTER_RESERVE and result.returncode == failpoints.KILL_STATUS else 0)

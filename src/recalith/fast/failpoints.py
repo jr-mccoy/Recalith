@@ -34,13 +34,21 @@ JOB_AFTER_RESERVE = "job.after_reserve"
 JOB_AFTER_PROPOSAL = "job.after_proposal"
 JOB_BEFORE_COMPLETE_COMMIT = "job.before_complete_commit"
 JOB_AFTER_COMPLETE = "job.after_complete"
+# Mutation application (Task 5): inside the proposal-persistence transaction
+# before its commit; inside the application transaction after the first atomic
+# group's savepoint is released (later groups and job completion still pending);
+# inside a service writer's (or undo's) transaction before its commit.
+PROPOSAL_BEFORE_COMMIT = "proposal.before_commit"
+APPLY_AFTER_GROUP = "apply.after_group"
+SERVICE_BEFORE_COMMIT = "service.before_commit"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
 )
-WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, JOB_AFTER_PROPOSAL, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
-ALL = CAPTURE + WORKER
+WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, PROPOSAL_BEFORE_COMMIT, JOB_AFTER_PROPOSAL, APPLY_AFTER_GROUP, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
+SERVICE = (SERVICE_BEFORE_COMMIT,)
+ALL = CAPTURE + WORKER + SERVICE
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

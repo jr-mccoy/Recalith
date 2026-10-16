@@ -130,13 +130,8 @@ def sized_preparer(target_bytes: int) -> Callable:
     return prepare
 
 
-def applier(txn, job, response) -> None:
-    """Record exactly one effect per application (an ``operations`` row)."""
-    txn.execute(
-        "INSERT INTO operations (operation_id, job_id, actor, kind, inputs, changed, reason, store_revision, created_at) VALUES (?, ?, ?, 'test_apply', ?, '[]', NULL, ?, ?)",
-        (new_id("op"), job.job_id, canonical_json(ACTOR).decode(), json.dumps({"ops": len(response.operations)}), txn.next_store_revision, START),
-    )
-    txn.mutated(serving_relevant=True)
+def read_set(ctx) -> ReadSet:
+    return ReadSet(workspace_id=ctx.workspace_id, policy_revision=1, tombstone_epoch=0)
 
 
 NO_OP_BODY = json.dumps({"operations": [], "no_op_reason": "nothing new"}).encode()
@@ -213,7 +208,7 @@ class FakeBackend:
 
 
 def runtime(backend, prepare=None) -> worker.ModelRuntime:
-    return worker.ModelRuntime(backend=backend, prepare=prepare or (lambda store, job, rounds: request_for(store, job, rounds)), apply=applier)
+    return worker.ModelRuntime(backend=backend, prepare=prepare or (lambda store, job, rounds: request_for(store, job, rounds)))
 
 
 def process_backend(root: Path, mode: str, *args: str, inherited=None, route_keys=()) -> worker.ProcessBackend:
@@ -235,7 +230,7 @@ def state(root: Path) -> dict[str, Any]:
     ctx = context(root)
     with db.open_store(ctx, readonly=True) as store, store.read() as view:
         rows = view.execute("SELECT job_id, kind, state FROM jobs WHERE kind != 'maintenance' ORDER BY job_id").fetchall()
-        effects = view.execute("SELECT job_id, COUNT(*) FROM operations WHERE kind = 'test_apply' GROUP BY job_id").fetchall()
+        effects = view.execute("SELECT job_id, COUNT(*) FROM operations WHERE kind = 'apply_proposal' GROUP BY job_id").fetchall()
         usage = view.execute("SELECT job_id, state FROM provider_usage ORDER BY rowid").fetchall()
         proposals = view.execute("SELECT job_id, COUNT(*) FROM proposals GROUP BY job_id").fetchall()
     return {"jobs": rows, "effects": dict(effects), "usage": usage, "proposals": dict(proposals)}
@@ -250,8 +245,15 @@ def main(argv: list[str]) -> int:
     if len(argv) > 3:
         failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
     ctx = context(root)
-    backend = FakeBackend(log=calls_log)
-    w = worker.Worker(ctx, model=runtime(backend), owner=f"driver:{new_id('act')[4:12]}")
+    import operation_scenarios as scenarios
+
+    bodies = scenarios.scenario_bodies(root)
+    if bodies is None:
+        backend, prepare = FakeBackend(log=calls_log), None
+    else:  # real operations over real captured events (Task 5)
+        backend = FakeBackend(lambda purpose, i: worker.LaunchOutcome(stdout=envelope(bodies[purpose], usage={"input_tokens": 50, "output_tokens": 10})), log=calls_log)
+        prepare = scenarios.scenario_prepare
+    w = worker.Worker(ctx, model=runtime(backend, prepare), owner=f"driver:{new_id('act')[4:12]}")
     lock = process_env.InstallationLock(root)
     assert lock.try_acquire(), "another worker holds the installation"
     try:

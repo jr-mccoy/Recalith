@@ -518,14 +518,21 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_operations.py::test_unrelated_group_can_survive_rejection",
+            "tests/integration/test_operations.py::test_malformed_operation_from_the_provider_fails_only_its_group",
+            "tests/integration/test_operations.py::test_replacement_and_retirement_commit_together",
+            "tests/integration/test_operations.py::test_evaluate_operation_alone_writes_nothing",
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Structural slice (Task 5): operations citing a never-captured or another installation's event, a re-rooted link or an altered quote (span digest over the stored field), and malformed operations recorded by the partitioned parser, fail exactly their dependency group inside real transactions; independent groups apply. Real captured Claude 2.1.301 events. Semantic mapping/entailment checks are Task 9."
         }
       ]
     },
@@ -668,14 +675,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_operations.py::test_correction_invalidates_and_creates_candidate_in_one_transaction",
+            "tests/integration/test_operations.py::test_replacement_and_retirement_commit_together",
+            "tests/integration/test_operations.py::test_undo_preview_and_apply_append_compensation"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Mechanics slice (Task 5): an operator-actor service write invalidates the expected target and creates a candidate replacement in one transaction with today's budget exhausted and no model call; guidance epoch advances; a stale expected revision fails atomically; agents cannot apply. The guarded `correct` transport is Task 12a; the replacement's separate review is Tasks 9/10; delivery suppression is 12b."
         }
       ]
     },
@@ -698,14 +710,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_operations.py::test_changed_read_set_requeues",
+            "tests/integration/test_operations.py::test_changed_consulted_record_requeues_but_unrelated_change_does_not",
+            "tests/integration/test_operations.py::test_reevaluation_is_bounded",
+            "tests/integration/test_operations.py::test_stale_target_revision_never_overwrites"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 5: a changed `file:` fingerprint, consulted record or stale target applies nothing and queues one coalesced re-evaluation job (bounded at 3 per chain, then `reevaluation_limit`); an unrelated change does not invalidate. Task 10 revalidation remains."
         }
       ]
     },
@@ -734,7 +752,9 @@
             "tests/integration/test_worker.py::test_expired_lease_is_fenced",
             "tests/integration/test_worker.py::test_same_owner_release_is_fenced_by_generation",
             "tests/integration/test_worker.py::test_late_model_result_after_takeover_is_discarded",
-            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
+            "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
+            "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect"
           ],
           "platforms": [
             "linux",
@@ -742,7 +762,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Worker slice (Task 4): lease generations fence proposal persistence and the application+completion transaction; a superseded or expired attempt applies nothing; kill/restart at lease, reservation, proposal and commit boundaries applies each job exactly once without re-requesting a persisted proposal. Fake applier; Task 5 apply_proposal and Task 10 revision paths remain."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain."
         }
       ]
     },
@@ -1415,14 +1435,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_operations.py::test_worker_and_service_writer_keep_consistent_revisions",
+            "tests/integration/test_operations.py::test_bookkeeping_does_not_advance_guidance_epoch",
+            "tests/integration/test_operations.py::test_concurrent_writer_on_the_consulted_claim_requeues_the_worker",
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 5 slice: worker applications, a service writer and a snapshot reader run concurrently; store revisions stay gapless and unique, guidance epoch advances exactly once per serving-relevant commit, bookkeeping-only commits leave it unchanged, every snapshot is internally consistent, and a concurrent write to a consulted claim requeues the worker. Packet invalidation and served-item consistency belong to Task 12b."
         }
       ]
     },
@@ -2278,14 +2304,17 @@
             "full"
           ],
           "description": "Private-path probe/coverage report; revision chain explicitly unavailable",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_integrity.py::test_preview_revision_chain_is_reserved_and_unpopulated"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17."
         },
         {
           "variant": "full_only",
@@ -2294,7 +2323,13 @@
           ],
           "description": "Installed private paths and incremental/full chain/row verification",
           "status": "pending",
-          "tests": [],
+          "tests": [
+            "tests/integration/test_integrity.py::test_unlogged_row_mutation_is_detected",
+            "tests/integration/test_integrity.py::test_authorized_purge_extends_chain",
+            "tests/integration/test_integrity.py::test_incremental_verification_reports_range_and_coverage",
+            "tests/integration/test_integrity.py::test_full_integrity_checks_every_current_row",
+            "tests/integration/test_integrity.py::test_preview_store_gets_an_honest_baseline_when_chain_activates"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -2302,7 +2337,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Full-only: these tests exist and are skipped as unavailable in claude_preview; never passed."
         }
       ]
     },

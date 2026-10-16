@@ -53,11 +53,11 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from recalith.capture import pipeline
-from recalith.contracts.common import Actor, InstallationContext, canonical_json, derived_id, digest_of, format_utc, new_id, parse_utc, utc_now
+from recalith.contracts.common import Actor, InstallationContext, canonical_json, new_id, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_tokens
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job, LocalUsage
 from recalith.contracts.operations import ModelRequest, ModelResponse, ResponseProvenance, UsageReport
-from recalith.controller import budgets, jobs, launch
+from recalith.controller import apply, budgets, jobs, launch
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
 from recalith.storage import spool
@@ -72,7 +72,6 @@ WAIT_SLICE_SECONDS = 0.25
 CLOCK_JUMP_SECONDS = 60.0
 DETERMINISTIC_BATCH = 50
 SOURCE_BATCH = 32
-PROPOSAL_RETENTION_DAYS = 7
 DETACHED_METHODS = frozenset({"posix_session", "windows_breakaway"})
 
 
@@ -174,11 +173,14 @@ class ProcessBackend:
 
 @dataclass
 class ModelRuntime:
-    """Everything the model lane needs; Tasks 5–9 supply the real preparer/applier."""
+    """Everything the model lane needs; Tasks 6–9 supply the real request preparers.
+
+    Application is not pluggable: every persisted proposal goes through
+    ``controller.apply.apply_proposal`` (Task 5).
+    """
 
     backend: Backend
     prepare: Callable[[Store, Job, list[ModelResponse]], ModelRequest]
-    apply: Callable[[Txn, Job, ModelResponse], None]
     adapter_version: str = "1"
 
 
@@ -647,7 +649,8 @@ class ModelLane:
         self.busy = True
         try:
             if job.proposal_ref is not None:
-                response = load_proposal(self.store, job.proposal_ref)  # recovery: no new model call
+                with self.store.read() as view:  # recovery: the persisted proposal, no new model call
+                    response = apply.load_proposal(view, job.proposal_ref)[0]
             else:
                 response = self._call(job)
                 if response is None:
@@ -751,39 +754,27 @@ class ModelLane:
                     duration_ms=max(0, int(outcome.duration_ms)),
                 )
                 try:
-                    proposal = budgets.decode_body(body, reservation)
+                    operations, no_op_reason, malformed = budgets.decode_body(body, reservation)
                 except budgets.OutputRejected as exc:
                     code = exc.code
                 else:
                     provenance = ResponseProvenance(provider_id=backend.provider_id[:64], configured_model=backend.configured_model[:128], resolved_model=None, adapter_version=self.runtime.adapter_version)
-                    response = ModelResponse.from_body(proposal, reported, provenance)
+                    response = ModelResponse(response_schema=1, operations=operations, no_op_reason=no_op_reason, usage=reported, provenance=provenance, malformed=malformed)
         with self.store.transaction() as txn:  # charged whatever happened, fenced or not
             budgets.charge(txn, reservation.reservation_id, reported=reported, local=local, provider_id=backend.provider_id[:64], model=backend.configured_model[:128])
         return code, response
 
     def _persist(self, job: Job, request: ModelRequest, response: ModelResponse) -> None:
-        proposal_id = derived_id("prop", [job.job_id, job.lease_generation, digest_of(response.model_dump(mode="json"))])
-        now = self.now()
-        with jobs.fenced(self.store, job, now=now) as txn:
-            txn.execute(
-                "INSERT OR IGNORE INTO proposals (proposal_id, job_id, input_digest, read_set_digest, body, retention_after) VALUES (?, ?, ?, ?, ?, ?)",
-                (proposal_id, job.job_id, job.input_digest, digest_of(request.read_set.model_dump(mode="json")), response.model_dump_json(), format_utc(parse_utc(now) + _days(PROPOSAL_RETENTION_DAYS))),
-            )
-            jobs.set_proposal(txn, job, proposal_id)
-        failpoints.hit(failpoints.JOB_AFTER_PROPOSAL)
+        apply.persist_proposal(self.store, job, response, request.read_set, now=self.now())
 
     def _apply(self, job: Job, response: ModelResponse) -> None:
+        """Apply the persisted proposal and complete the job in one fenced transaction."""
         try:
-            with jobs.fenced(self.store, job, now=self.now()) as txn:
-                self.runtime.apply(txn, job, response)
-                jobs.complete(txn, job)
-                failpoints.hit(failpoints.JOB_BEFORE_COMPLETE_COMMIT)
+            apply.apply_proposal(self.worker.ctx, job, response, store=self.store, now=self.now())
         except RecalithError as exc:
             if exc.code == "revision_conflict" and "lease fenced" in exc.message:
                 raise
             self._fail(job, exc.code)
-            return
-        failpoints.hit(failpoints.JOB_AFTER_COMPLETE)
 
 
 def _project_config(ctx: InstallationContext) -> ProjectConfig:
@@ -792,25 +783,8 @@ def _project_config(ctx: InstallationContext) -> ProjectConfig:
     return load_project_config(Layout(Path(ctx.root)))
 
 
-def _days(n: int):
-    import datetime as _dt
-
-    return _dt.timedelta(days=n)
-
-
 def _count(value: Any) -> int | None:
     return value if type(value) is int and value >= 0 else None
-
-
-def load_proposal(view: Any, proposal_id: str) -> ModelResponse:
-    if isinstance(view, Store):
-        with view.read() as reader:
-            row = reader.execute("SELECT body FROM proposals WHERE proposal_id = ?", (proposal_id,)).fetchone()
-    else:
-        row = view.execute("SELECT body FROM proposals WHERE proposal_id = ?", (proposal_id,)).fetchone()
-    if row is None or row[0] is None:
-        raise RecalithError("revision_conflict", "persisted proposal is missing")
-    return ModelResponse.model_validate_json(row[0])
 
 
 # --------------------------------------------------------------------------

@@ -58,6 +58,49 @@
       "title": "EvidenceLink",
       "type": "object"
     },
+    "MalformedOperation": {
+      "additionalProperties": false,
+      "description": "Adapter-recorded: one proposed operation that failed strict validation.\n\nIt fails exactly its atomic dependency group (DATA_CONTRACTS §7.1); its\nraw text is not retained. ``local_ref``/``depends_on`` are kept only when\nthey were themselves valid, so dependents can be grouped with it.",
+      "properties": {
+        "depends_on": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "local_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_\\-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Local Ref"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Reason Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "local_ref",
+        "reason_code"
+      ],
+      "title": "MalformedOperation",
+      "type": "object"
+    },
     "ProposedOperation": {
       "additionalProperties": false,
       "properties": {
@@ -309,6 +352,13 @@
   "$id": "recalith:contracts/ModelResponse",
   "additionalProperties": false,
   "properties": {
+    "malformed": {
+      "items": {
+        "$ref": "#/$defs/MalformedOperation"
+      },
+      "title": "Malformed",
+      "type": "array"
+    },
     "no_op_reason": {
       "anyOf": [
         {
