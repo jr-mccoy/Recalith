@@ -6,13 +6,13 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 
 | Item | Initial value |
 |---|---|
-| Implementation | Task 0/0b probe harnesses; Task 1 contracts, schemas, coverage manifest, smoke fixtures/oracles |
+| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap) |
 | Engine version | `0.1.0.dev0` (development; no release built) |
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (all isolation dimensions pass); live route + operator attestation not configured |
 | Live host delivery certification | **Not established.** All four paths request-visible on Claude Code 2.1.301; live nonce echo not run (no route) |
 | Product tests / benchmarks | Not run (only probe-harness unit tests exist) |
-| Next task | Task 2 independent installation and transactional store |
+| Next task | Task 3 durable event capture and source cursors |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -30,7 +30,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 0 | Certify one inference route with a standalone probe | One explicitly configured, certified inference route | Additional optional providers need their own certification | blocked (harness complete; live certification needs route) |
 | 0b | Probe real host delivery before engine construction | Four path reports; required start/prompt controls | Repeat per additional supported host | blocked (harness complete; live echo needs route) |
 | 1 | Establish the repository and executable contracts | Contracts, lock/CI, all-case manifest, smoke fixtures/oracles | Core behavior retained; no separate deferred slice listed | complete (CI run 3 green) |
-| 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | not started |
+| 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | preview slice complete (full-only attach/fork/shared pending) |
 | 3 | Durable event capture and source cursors | Durable capture, source registration, cursor/idempotency rules | Core behavior retained; no separate deferred slice listed | not started |
 | 3b | Capture-only real Claude adapter and fast-path boundary | Real sanitized Claude capture fixtures and fast boundary | Core behavior retained; no separate deferred slice listed | not started |
 | 4 | Queue, budgets, and project worker | Persistent worker, polling, budgets, leases, role environments | Session worker and IPC wake | not started |
@@ -87,6 +87,14 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
 - GitHub Actions run 1 failed and exposed three real defects, each reproduced and fixed with a regression test: (1) Linux: `/proc/<pid>/environ` can read empty while a launcher shim execs the CLI (3/150 local runs under CPU load; 0/150 after re-sampling, empty reads now reported as unobservable); (2) Windows: tests read UTF-8 fixtures with the cp1252 default, fixed with explicit UTF-8 and LF-pinning `.gitattributes`; (3) macOS: temp paths resolve through `/private`, so native-memory/prior-session sentinels keyed by the unresolved path were never found; the probe now plants both (symlinked-tempdir test fails before, passes after).
 - Run 3 (03c632d): all five jobs green — Linux Python 3.12, 3.13, 3.14; macOS and Windows on 3.13 (probe end-to-end suites skip on Windows; native Windows host probes remain to be run). Local: 146 passed on 3.12, 3.13 and 3.14.
 
+### 2026-10-16 — Task 2 preview slice: installations, store, bootstrap
+
+- Files: `src/recalith/core/{identity,paths}.py`, `src/recalith/storage/{db,repository}.py`, `src/recalith/storage/migrations/0001.sql`, `src/recalith/__main__.py` (interim: every command `capability_unavailable`), `bootstrap.py`, `requirements.lock`, `tests/integration/test_installations.py`, `tests/platform/test_paths.py`, `docs/decisions/0003-installation-identity-and-provisioning.md`; DATA_CONTRACTS §12 and IMPLEMENTATION_PLAN Task 1 gain the `installation_relocated` code and the operator `workspace rebind|discard-copy` forms; CI gains a requirements-lock sync check and an offline provisioning step.
+- Behavior: `initialize_installation` creates the layout with private permissions, a self-contained `.recalith/.gitignore` (tracks only `project.toml`, `engine.lock`, `bin/`), POSIX/Windows launchers, and a fresh store built on a temp file and renamed into place, then writes `local.toml` last. It refuses an existing store, completes an interrupted init, and refuses known network filesystems on Linux. `resolve_installation` takes exactly the given root and classifies it as same, moved or copied by file identity. A clone keeps the project ID and gets a new installation; a move needs an operator rebind; a copy is refused and can only be discarded. The store uses WAL, `synchronous=FULL`, foreign keys, a 250 ms busy timeout and STRICT tables. Writes check identity, schema, policy and tombstone epochs and expected revisions. A newer schema is neither written nor read. The repository persists events exactly once (duplicate vs `source_conflicts`) and rejects foreign installations and workspaces.
+- `.venv/bin/python -m pytest -q -rs` → exit 0, 172 passed, 3 skipped (opt-in provisioning; Linux case-insensitive variant; Windows junction). Integration and platform suites also pass on Python 3.12 (SQLite 3.45.1) and 3.14 (SQLite 3.53.1).
+- Real provisioning: built the wheel (`uv build`), downloaded the hash-locked wheelhouse, then ran `bootstrap.py install`. A bad digest exits 2; install exits 0 in about 4 s; a re-run reports `already_provisioned`; the launcher exits 4 with `capability_unavailable` before provisioning and runs the pinned runtime after. The opt-in test passed with `RECALITH_TEST_WHEEL`/`RECALITH_TEST_WHEELHOUSE` set.
+- Acceptance: A01, A02 (schema), A03, A04 (store paths), A33 and A53 (launcher) are `in_progress` with tests listed; none is passed, since later owning tasks remain. Coverage gaps: no casefold filesystem could be mounted in this container (`mount -t tmpfs -o casefold` fails), so case-insensitive coverage relies on the macOS/Windows CI runners; junction coverage is Windows-only.
+
 Add each later checkpoint with:
 
 - Date and commit when available; completed task slice and changed files.
@@ -110,4 +118,4 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 
 ## Next-session handoff
 
-Next action: Task 2 — `bootstrap.py`, `src/recalith/core/{identity,paths}.py`, `src/recalith/storage/{db,repository}.py`, migration `0001.sql`, and `tests/integration/test_installations.py` / `tests/platform/test_paths.py` (A01–A04, A33). When an operator supplies B1's route, rerun both probes and record the live results here.
+Next action: Task 3 — `storage/spool.py`, `capture/{normalize,redact,sources}.py`, `capture()`/`ingest_ready()` with failpoint tests `test_publish_before_cursor_replays_once`, `test_commit_before_unlink_replays_once`, `test_disk_full_does_not_acknowledge`, `test_secret_never_reaches_spool` (A05–A09, A34, A49, A52, A54, A68). When an operator supplies B1's route, rerun both probes and record the live results here.

@@ -34,14 +34,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_two_installations_have_separate_ids_and_databases"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Storage-level isolation; retrieval-level A01 is Task 11."
         }
       ]
     },
@@ -64,14 +67,17 @@
             "full"
           ],
           "description": "Independent pinned build/schema fixtures and recovery of A leave B untouched",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_unknown_schema_cannot_write"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Independent schema fixtures leave B writable; recovery of A arrives with Tasks 3/15/17."
         },
         {
           "variant": "full_only",
@@ -111,14 +117,19 @@
             "full"
           ],
           "description": "Directory relocation/rebinding and independent clone",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_clone_keeps_project_id_and_gets_new_installation",
+            "tests/integration/test_installations.py::test_copy_never_starts_a_second_writer",
+            "tests/integration/test_installations.py::test_move_requires_operator_rebind"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Service-level; CLI transport for rebind/discard-copy is Task 12a."
         },
         {
           "variant": "full_only",
@@ -157,14 +168,17 @@
             "full"
           ],
           "description": "Reject foreign IDs in ordinary events/operations",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_foreign_installation_is_rejected"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Store/repository paths; capture/operation/import paths are Tasks 3, 5 and 15."
         },
         {
           "variant": "full_only",
@@ -1067,14 +1081,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_path_escape_is_refused",
+            "tests/platform/test_paths.py"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Linux: case-insensitive variant skipped (no casefold filesystem); macOS/Windows CI exercise it. Host integration paths are Task 13."
         }
       ]
     },
@@ -1731,14 +1749,18 @@
             "full"
           ],
           "description": "No-runtime clone, local install/remove, unrelated configuration preserved",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_installations.py::test_missing_runtime_launcher_is_explicit_and_downloads_nothing",
+            "tests/integration/test_installations.py::test_tracked_files_are_exactly_the_portable_ones"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Launcher/no-download behavior; hook launcher (3b) and local integration install/remove (13) pending."
         },
         {
           "variant": "full_only",

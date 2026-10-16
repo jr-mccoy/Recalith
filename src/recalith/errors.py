@@ -19,6 +19,8 @@ ERROR_CODES = frozenset(
         "capability_degraded",
         "event_identity_conflict",
         "backup_unavailable_after_forget",
+        # Added in Task 2 (decision 0003): a moved or copied checkout needs operator action.
+        "installation_relocated",
     }
 )
 
@@ -27,6 +29,7 @@ EXIT_CODES = {
     "invalid_schema": 2,
     "revision_conflict": 3,
     "capability_unavailable": 4,
+    "installation_relocated": 4,
     "storage_failure": 5,
     "policy_refused": 6,
     "not_captured": 7,

@@ -395,7 +395,7 @@ Auxiliary DTOs: `IngestResult` has accepted/duplicate/conflict counts, last stor
 
 ## 12. CLI and adapter wire contracts
 
-All machine commands support `--json`; JSON stdout contains one object and no progress text. Human diagnostics go to stderr without source bodies. Ordinary exit codes: 0 success, 2 invalid input, 3 revision conflict, 4 unavailable capability, 5 storage failure, 6 policy refusal, 7 `not_captured` (durability acknowledgment was not obtained), 8 `capability_degraded` (partial requested capability). `observe` returns 7 for rejected durability even when input was valid. A successful partial receipt identifies accepted event IDs explicitly; never retry them under new identities. Hook adapters always convert operational failures into the host's nonblocking response and expose the reason through health.
+All machine commands support `--json`; JSON stdout contains one object and no progress text. Human diagnostics go to stderr without source bodies. Ordinary exit codes: 0 success, 2 invalid input, 3 revision conflict, 4 unavailable capability, 5 storage failure, 6 policy refusal, 7 `not_captured` (durability acknowledgment was not obtained), 8 `capability_degraded` (partial requested capability). `installation_relocated` (a moved or copied checkout awaiting operator rebind/discard; decision 0003) also exits 4. `observe` returns 7 for rejected durability even when input was valid. A successful partial receipt identifies accepted event IDs explicitly; never retry them under new identities. Hook adapters always convert operational failures into the host's nonblocking response and expose the reason through health.
 
 Global `--project PATH` selects the installation explicitly when the project launcher does not supply it. Administrative forms accept global `--operator-token-file PATH` for the permitted noninteractive workflows below; pass only the file path, never a literal secret argument. First init supports this option. Token create/revoke still require the unmarked controlling TTY and cannot use a token as its substitute.
 
@@ -427,12 +427,14 @@ recalith import PATH --expected-digest DIGEST
 recalith import breadcrumbs --source PATH
 recalith upgrade --wheel PATH --expected-digest DIGEST [--release-profile full]
 recalith workspace attach PATH
+recalith workspace rebind
+recalith workspace discard-copy
 recalith project fork
 recalith operator-token create --output PATH  # also before init; no installation lookup
 recalith operator-token revoke TOKEN_ID
 ```
 
-**Agent-refusable command forms (exit 6 `policy_refused`):** `init` including `--release-profile`; `declare`; `correct`; `undo --apply`; `forget --apply`; all `import`/`restore`/`upgrade`/`integrate` forms, including upgrade `--release-profile full`; `workspace attach`; `project fork`; `worker start|stop|run`; `jobs retry`; `backup`; `export`; `operator-token create|revoke`; and `doctor --probe-host|--probe-provider` because probes launch external processes. Inspection, status, search, context, show, list, `doctor` without probes, and undo/forget previews remain read-only. `observe` stays an agent assertion on agent transports, never an administrative declaration. No command accepts `--actor operator`.
+**Agent-refusable command forms (exit 6 `policy_refused`):** `init` including `--release-profile`; `declare`; `correct`; `undo --apply`; `forget --apply`; all `import`/`restore`/`upgrade`/`integrate` forms, including upgrade `--release-profile full`; `workspace attach|rebind|discard-copy`; `project fork`; `worker start|stop|run`; `jobs retry`; `backup`; `export`; `operator-token create|revoke`; and `doctor --probe-host|--probe-provider` because probes launch external processes. Inspection, status, search, context, show, list, `doctor` without probes, and undo/forget previews remain read-only. `observe` stays an agent assertion on agent transports, never an administrative declaration. No command accepts `--actor operator`.
 
 Apply marker refusal before feature dispatch or child-environment construction. Deferred administrative forms are still refused from an agent channel; unmarked deferred forms return 4 after their guard. Do not clear the caller's markers to pass a guard. Missing, unreadable, malformed, mismatched or locally revoked token files are exit **6 `policy_refused`**, not 2; invalid option syntax remains 2. A supplied bad token never falls back to TTY authorization.
 
