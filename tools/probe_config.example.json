@@ -1,0 +1,76 @@
+{
+  "$comment": "Copy to probe-private/local-config.json (git-ignored) and edit. Names only: credential VALUES come from the invoking terminal's environment and are never written here or into reports. Schema: docs/probes/LOCAL_CONFIG.md.",
+  "config_schema": 1,
+  "provider": {
+    "provider_id": "claude_cli",
+    "executable": "/absolute/path/to/claude",
+    "expected_version": "2.1.301",
+    "model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "invocation_args": [
+      "-p",
+      "--bare",
+      "--tools",
+      "",
+      "--strict-mcp-config",
+      "--setting-sources",
+      "",
+      "--disable-slash-commands",
+      "--no-session-persistence",
+      "--model",
+      "{model}",
+      "--system-prompt",
+      "{system_prompt}",
+      "--output-format",
+      "stream-json",
+      "--verbose"
+    ],
+    "nonsecret_env": {
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+      "DISABLE_AUTOUPDATER": "1"
+    },
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "env_api_key",
+      "billing": "api",
+      "env_keys": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "expected_api_key_source": "ANTHROPIC_API_KEY",
+      "description": "Dedicated API key for this project's background curation."
+    },
+    "operator_attestation": {
+      "background_use": "unchecked",
+      "basis": "State the account terms / policy page you checked; no secrets.",
+      "checked_on": null,
+      "managed_policy": "Describe any managed settings or organization policy that applies."
+    }
+  },
+  "delivery": {
+    "$comment": "Task 0b. The probe session uses a disposable workspace and a private HOME per trial; credentials come from the named env keys.",
+    "host_id": "claude_code",
+    "executable": "/absolute/path/to/claude",
+    "expected_version": "2.1.301",
+    "model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "nonsecret_env": {
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+      "DISABLE_AUTOUPDATER": "1"
+    },
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "env_api_key",
+      "billing": "api",
+      "env_keys": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "description": "Account route the working agent normally uses."
+    }
+  }
+}

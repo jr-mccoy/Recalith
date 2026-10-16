@@ -1,0 +1,356 @@
+{
+  "$defs": {
+    "BudgetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "concurrent_requests": {
+          "const": 1,
+          "default": 1,
+          "title": "Concurrent Requests",
+          "type": "integer"
+        },
+        "daily_input_estimate": {
+          "default": 900000,
+          "exclusiveMinimum": 0,
+          "title": "Daily Input Estimate",
+          "type": "integer"
+        },
+        "daily_invocations": {
+          "default": 90,
+          "exclusiveMinimum": 0,
+          "title": "Daily Invocations",
+          "type": "integer"
+        },
+        "daily_output_estimate": {
+          "default": 180000,
+          "exclusiveMinimum": 0,
+          "title": "Daily Output Estimate",
+          "type": "integer"
+        },
+        "episode_target_input_estimate": {
+          "default": 8000,
+          "exclusiveMinimum": 0,
+          "title": "Episode Target Input Estimate",
+          "type": "integer"
+        },
+        "evidence_expansion_rounds": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Evidence Expansion Rounds",
+          "type": "integer"
+        },
+        "protected_input_estimate": {
+          "default": 300000,
+          "exclusiveMinimum": 0,
+          "title": "Protected Input Estimate",
+          "type": "integer"
+        },
+        "protected_invocations": {
+          "default": 30,
+          "exclusiveMinimum": 0,
+          "title": "Protected Invocations",
+          "type": "integer"
+        },
+        "protected_output_estimate": {
+          "default": 60000,
+          "exclusiveMinimum": 0,
+          "title": "Protected Output Estimate",
+          "type": "integer"
+        },
+        "retry_backoff_seconds": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "title": "Retry Backoff Seconds",
+          "type": "array"
+        },
+        "timeout_seconds": {
+          "default": 120,
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetConfig",
+      "type": "object"
+    },
+    "ContextBudgetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "compaction_restore": {
+          "default": 2000,
+          "exclusiveMinimum": 0,
+          "title": "Compaction Restore",
+          "type": "integer"
+        },
+        "pre_action": {
+          "default": 400,
+          "exclusiveMinimum": 0,
+          "title": "Pre Action",
+          "type": "integer"
+        },
+        "pre_action_substitution": {
+          "default": 400,
+          "exclusiveMinimum": 0,
+          "title": "Pre Action Substitution",
+          "type": "integer"
+        },
+        "prompt": {
+          "default": 1000,
+          "exclusiveMinimum": 0,
+          "title": "Prompt",
+          "type": "integer"
+        },
+        "session_start": {
+          "default": 2000,
+          "exclusiveMinimum": 0,
+          "title": "Session Start",
+          "type": "integer"
+        },
+        "unchanged_session_total": {
+          "default": 4000,
+          "exclusiveMinimum": 0,
+          "title": "Unchanged Session Total",
+          "type": "integer"
+        }
+      },
+      "title": "ContextBudgetConfig",
+      "type": "object"
+    },
+    "RetentionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "closed_task_history": {
+          "$ref": "#/$defs/RetentionValue"
+        },
+        "delivery_metadata": {
+          "$ref": "#/$defs/RetentionValue"
+        },
+        "episode_after_closure": {
+          "$ref": "#/$defs/RetentionValue"
+        },
+        "private_backups": {
+          "$ref": "#/$defs/RetentionValue"
+        },
+        "proposal_diagnostics": {
+          "$ref": "#/$defs/RetentionValue"
+        },
+        "unpinned_event_payload": {
+          "$ref": "#/$defs/RetentionValue"
+        }
+      },
+      "title": "RetentionConfig",
+      "type": "object"
+    },
+    "RetentionValue": {
+      "additionalProperties": false,
+      "properties": {
+        "days": {
+          "exclusiveMinimum": 0,
+          "title": "Days",
+          "type": "integer"
+        },
+        "source": {
+          "default": "profile_default",
+          "enum": [
+            "profile_default",
+            "operator_override"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "days"
+      ],
+      "title": "RetentionValue",
+      "type": "object"
+    },
+    "SegmentationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "cluster_mappings": {
+          "additionalProperties": {
+            "pattern": "^@[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Cluster Mappings",
+          "type": "object"
+        },
+        "continuity_path_actions": {
+          "default": 3,
+          "exclusiveMinimum": 0,
+          "title": "Continuity Path Actions",
+          "type": "integer"
+        },
+        "continuity_pause_hours": {
+          "default": 24,
+          "exclusiveMinimum": 0,
+          "title": "Continuity Pause Hours",
+          "type": "integer"
+        },
+        "disjoint_action_count": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "title": "Disjoint Action Count",
+          "type": "integer"
+        },
+        "idle_boundary_minutes": {
+          "default": 30,
+          "exclusiveMinimum": 0,
+          "title": "Idle Boundary Minutes",
+          "type": "integer"
+        },
+        "pivot_prefixes": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Pivot Prefixes",
+          "type": "array"
+        }
+      },
+      "title": "SegmentationConfig",
+      "type": "object"
+    },
+    "WorkerConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "active_poll_seconds": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Active Poll Seconds",
+          "type": "integer"
+        },
+        "consolidation_episode_count": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "title": "Consolidation Episode Count",
+          "type": "integer"
+        },
+        "consolidation_hours": {
+          "default": 24,
+          "exclusiveMinimum": 0,
+          "title": "Consolidation Hours",
+          "type": "integer"
+        },
+        "idle_poll_seconds": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "title": "Idle Poll Seconds",
+          "type": "integer"
+        },
+        "mode": {
+          "default": "persistent",
+          "enum": [
+            "persistent",
+            "session"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "paused_task_hours": {
+          "default": 24,
+          "exclusiveMinimum": 0,
+          "title": "Paused Task Hours",
+          "type": "integer"
+        },
+        "session_idle_exit_minutes": {
+          "default": 10,
+          "exclusiveMinimum": 0,
+          "title": "Session Idle Exit Minutes",
+          "type": "integer"
+        },
+        "stable_review_days": {
+          "default": 180,
+          "exclusiveMinimum": 0,
+          "title": "Stable Review Days",
+          "type": "integer"
+        },
+        "volatile_review_days": {
+          "default": 30,
+          "exclusiveMinimum": 0,
+          "title": "Volatile Review Days",
+          "type": "integer"
+        }
+      },
+      "title": "WorkerConfig",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ProjectConfig",
+  "additionalProperties": false,
+  "properties": {
+    "budgets": {
+      "$ref": "#/$defs/BudgetConfig"
+    },
+    "config_schema": {
+      "const": 1,
+      "default": 1,
+      "title": "Config Schema",
+      "type": "integer"
+    },
+    "context": {
+      "$ref": "#/$defs/ContextBudgetConfig"
+    },
+    "domain_profile": {
+      "default": "coding",
+      "enum": [
+        "coding",
+        "general"
+      ],
+      "title": "Domain Profile",
+      "type": "string"
+    },
+    "policy_revision": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "release_profile": {
+      "default": "claude_preview",
+      "enum": [
+        "claude_preview",
+        "full"
+      ],
+      "title": "Release Profile",
+      "type": "string"
+    },
+    "retention": {
+      "$ref": "#/$defs/RetentionConfig"
+    },
+    "runtime_versions": {
+      "additionalProperties": {
+        "maxLength": 64,
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": [
+          "python_version",
+          "node_version"
+        ]
+      },
+      "title": "Runtime Versions",
+      "type": "object"
+    },
+    "segmentation": {
+      "$ref": "#/$defs/SegmentationConfig"
+    },
+    "worker": {
+      "$ref": "#/$defs/WorkerConfig"
+    }
+  },
+  "required": [
+    "project_id"
+  ],
+  "title": "ProjectConfig",
+  "type": "object"
+}

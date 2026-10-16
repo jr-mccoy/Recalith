@@ -1,0 +1,65 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-R2-ledgerlite-import-fixed",
+  "category": "revision",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "ledgerlite",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Run the tests with `python -m unittest discover -s tests -t .` and make them pass without changing the test command if possible; otherwise tell me what command works."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "C",
+      "fresh_session": true,
+      "prompts": [
+        "The test setup changed. Run `python -m unittest discover -s tests -t .` without PYTHONPATH and tell me whether it now passes."
+      ],
+      "overlay_files": {
+        "tests/__init__.py": "@file:ledgerlite_tests_init.py"
+      },
+      "note": "Evidence change: tests/__init__.py now adds src to sys.path."
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "r2",
+    "session": "C"
+  },
+  "gold": {
+    "exact_observations": [
+      "In A plain discovery failed with ModuleNotFoundError.",
+      "Before C, tests/__init__.py was added."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "failure_lesson",
+        "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+        "basis": "observed",
+        "dependency": "file tests/__init__.py (absent in A)",
+        "retry_condition": "Retry if the test package changes import setup."
+      }
+    ],
+    "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [],
+    "expected_retrieval_points": [
+      {
+        "session": "C",
+        "purpose": "prompt",
+        "must_not_include_caution": "PYTHONPATH"
+      }
+    ],
+    "quiet": false
+  }
+}

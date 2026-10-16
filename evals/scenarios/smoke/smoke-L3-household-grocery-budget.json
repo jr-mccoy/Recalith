@@ -1,0 +1,61 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-L3-household-grocery-budget",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "household",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "For my household planning: keep the grocery budget under $600 per month, and flag anything that would push it over. Please add a groceries row to budget.csv to reflect that."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Draft next month's grocery list in groceries.csv with columns item,cost_usd, and summarize it in meal-plan.md."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "l3",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "The user stated a grocery budget under $600 per month."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "preference",
+        "proposition": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+        "basis": "user_declared",
+        "scope": "this workspace"
+      }
+    ],
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "All budget categories are capped at $600."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "600"
+      }
+    ],
+    "quiet": false
+  }
+}

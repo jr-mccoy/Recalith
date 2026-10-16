@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/EnvironmentObservation",
+  "additionalProperties": false,
+  "properties": {
+    "config_revision": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Config Revision"
+    },
+    "executable_fingerprint": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Executable Fingerprint"
+    },
+    "executable_id": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Executable Id"
+    },
+    "fingerprint": {
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "freshness": {
+      "enum": [
+        "current",
+        "stale",
+        "unknown"
+      ],
+      "title": "Freshness",
+      "type": "string"
+    },
+    "key": {
+      "enum": [
+        "os",
+        "arch",
+        "python_version",
+        "node_version",
+        "ci"
+      ],
+      "title": "Key",
+      "type": "string"
+    },
+    "observed_at": {
+      "title": "Observed At",
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "operator_config",
+        "certified_tool",
+        "adapter_platform"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecordRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "value": {
+      "maxLength": 64,
+      "title": "Value",
+      "type": "string"
+    },
+    "workspace_id": {
+      "title": "Workspace Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "value",
+    "workspace_id",
+    "executable_id",
+    "source_kind",
+    "source_ref",
+    "config_revision",
+    "observed_at",
+    "fingerprint",
+    "executable_fingerprint",
+    "freshness"
+  ],
+  "title": "EnvironmentObservation",
+  "type": "object"
+}

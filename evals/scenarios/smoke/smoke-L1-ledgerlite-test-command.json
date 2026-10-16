@@ -1,0 +1,72 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-L1-ledgerlite-test-command",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "ledgerlite",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Run the ledgerlite unit tests and get them running correctly. Tell me the exact command that works."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Add a Ledger.close(name) method that refuses to close an account whose balance is not zero (raise ValueError), add a unit test for it, and make sure the whole test suite passes."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "l1",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "`python -m unittest` from the project root ran 0 tests (exit 5).",
+      "`python -m unittest discover -s tests` failed with ModuleNotFoundError: No module named 'ledgerlite'.",
+      "`PYTHONPATH=src python -m unittest discover -s tests` ran the suite successfully."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "procedure",
+        "proposition": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+        "basis": "observed",
+        "scope": "this project"
+      },
+      {
+        "kind": "failure_lesson",
+        "proposition": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+        "basis": "inferred",
+        "retry_condition": "Retry plain discovery if the package becomes installed or tests add src to sys.path."
+      }
+    ],
+    "acceptable_uncertainty": [
+      "Whether installing the package in editable mode would also work was not tested."
+    ],
+    "prohibited_generalizations": [
+      "All Python projects need PYTHONPATH=src.",
+      "unittest discovery is broken."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "session_start",
+        "must_include": "PYTHONPATH=src"
+      }
+    ],
+    "quiet": false
+  }
+}

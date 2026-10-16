@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/FailureRecheck",
+  "additionalProperties": false,
+  "properties": {
+    "action_family_digest": {
+      "title": "Action Family Digest",
+      "type": "string"
+    },
+    "claim_ref": {
+      "$ref": "#/$defs/RecordRef"
+    },
+    "reason": {
+      "enum": [
+        "later_success",
+        "order_unknown"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "success_event_id": {
+      "title": "Success Event Id",
+      "type": "string"
+    },
+    "supporting_failure_event_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Supporting Failure Event Id"
+    }
+  },
+  "required": [
+    "claim_ref",
+    "success_event_id",
+    "supporting_failure_event_id",
+    "reason",
+    "action_family_digest"
+  ],
+  "title": "FailureRecheck",
+  "type": "object"
+}

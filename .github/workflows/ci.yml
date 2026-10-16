@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: core (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.13"
+          - os: windows-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Install locked dependencies
+        run: uv sync --locked --python ${{ matrix.python }}
+      - name: Schema snapshots have no unversioned drift
+        run: uv run --locked python tools/generate_schemas.py --check
+      - name: requirements.lock matches uv.lock
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          { head -3 requirements.lock; uv export --locked --no-dev --no-emit-project --format requirements-txt -q | grep -v '^#'; } > /tmp/requirements.check
+          diff -u requirements.lock /tmp/requirements.check
+      - name: Tests
+        run: uv run --locked python -m pytest -q -rs
+      - name: Offline runtime provisioning from a hash-locked wheelhouse
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        shell: bash
+        run: |
+          uv build --wheel -o dist
+          uv run --locked --with pip python -m pip download --only-binary :all: --require-hashes --no-deps -r requirements.lock -d wheelhouse
+          RECALITH_TEST_WHEEL=$(ls dist/recalith-*.whl) RECALITH_TEST_WHEELHOUSE=wheelhouse uv run --locked python -m pytest -q -rs tests/integration/test_installations.py -k provisions

@@ -1,0 +1,41 @@
+{
+  "$id": "recalith:contracts/IngestResult",
+  "additionalProperties": false,
+  "properties": {
+    "accepted": {
+      "minimum": 0,
+      "title": "Accepted",
+      "type": "integer"
+    },
+    "conflict": {
+      "minimum": 0,
+      "title": "Conflict",
+      "type": "integer"
+    },
+    "created_job_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Created Job Ids",
+      "type": "array"
+    },
+    "duplicate": {
+      "minimum": 0,
+      "title": "Duplicate",
+      "type": "integer"
+    },
+    "last_store_revision": {
+      "minimum": 0,
+      "title": "Last Store Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "accepted",
+    "duplicate",
+    "conflict",
+    "last_store_revision"
+  ],
+  "title": "IngestResult",
+  "type": "object"
+}

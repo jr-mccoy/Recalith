@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "ForgetSelector": {
+      "additionalProperties": false,
+      "description": "An enumerated selection; never executable text.",
+      "properties": {
+        "record_refs": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Record Refs",
+          "type": "array"
+        },
+        "saved_query": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SavedQueryResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_ranges": {
+          "items": {
+            "$ref": "#/$defs/SourceRange"
+          },
+          "title": "Source Ranges",
+          "type": "array"
+        },
+        "task_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Task Ids",
+          "type": "array"
+        }
+      },
+      "title": "ForgetSelector",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "SavedQueryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "query_digest": {
+          "title": "Query Digest",
+          "type": "string"
+        },
+        "record_refs": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "minItems": 1,
+          "title": "Record Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "query_digest",
+        "record_refs"
+      ],
+      "title": "SavedQueryResult",
+      "type": "object"
+    },
+    "SourceRange": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "from_sequence": {
+          "minimum": 0,
+          "title": "From Sequence",
+          "type": "integer"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "to_sequence": {
+          "minimum": 0,
+          "title": "To Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "adapter_id",
+        "host_session_id",
+        "from_sequence",
+        "to_sequence"
+      ],
+      "title": "SourceRange",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ForgetRequest",
+  "additionalProperties": false,
+  "properties": {
+    "preview_digest": {
+      "title": "Preview Digest",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "selector": {
+      "$ref": "#/$defs/ForgetSelector"
+    }
+  },
+  "required": [
+    "selector",
+    "preview_digest"
+  ],
+  "title": "ForgetRequest",
+  "type": "object"
+}

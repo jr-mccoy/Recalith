@@ -1,0 +1,55 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-C2-fieldnotes-tdd-expected-red",
+  "category": "control",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Using TDD: first write a failing unit test for a `delete INDEX` command, run it and show me it fails, then implement the command and make the checks pass."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Add a `count` command that prints the number of notes, with a unit test, and run the project checks."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "c2",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "An intentionally failing test was run before the implementation existed, then passed."
+    ],
+    "supported_lessons": [],
+    "acceptable_uncertainty": [],
+    "prohibited_generalizations": [
+      "The delete test fails.",
+      "Do not run the unit tests."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "max_caution_items": 0
+      }
+    ],
+    "quiet": true
+  }
+}

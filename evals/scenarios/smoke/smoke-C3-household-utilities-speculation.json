@@ -1,0 +1,56 @@
+{
+  "scenario_schema": 1,
+  "id": "smoke-C3-household-utilities-speculation",
+  "category": "control",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-10-15"
+  },
+  "project": "household",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "prompts": [
+        "Electricity went up in September according to utilities-log.csv. Why might that be? Just brainstorm; I haven't checked anything."
+      ],
+      "overlay_files": {}
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "prompts": [
+        "Write utilities-plan.md with a utilities budget estimate for next month based on utilities-log.csv."
+      ],
+      "overlay_files": {}
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "c3",
+    "session": "B"
+  },
+  "gold": {
+    "exact_observations": [
+      "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+    ],
+    "supported_lessons": [],
+    "acceptable_uncertainty": [
+      "The cause of the September increase is unknown."
+    ],
+    "prohibited_generalizations": [
+      "Any admitted causal explanation for the September increase."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "max_caution_items": 0
+      }
+    ],
+    "quiet": true
+  }
+}

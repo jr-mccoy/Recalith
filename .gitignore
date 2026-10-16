@@ -1,0 +1,28 @@
+# Python source-repository artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+/coverage.xml
+/build/
+/dist/
+
+# Local credentials and private probe inputs/output. Commit only sanitized fixtures.
+.env
+.env.*
+!.env.example
+/probe-private/
+/.claude/settings.local.json
+
+# This checkout's Recalith installation: track only the portable configuration,
+# exact engine lock, and launchers listed in SYSTEM_SPEC section 2.2.
+/.recalith/*
+!/.recalith/project.toml
+!/.recalith/engine.lock
+!/.recalith/bin/

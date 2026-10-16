@@ -1,0 +1,331 @@
+{
+  "$defs": {
+    "ActionDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "action_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "test",
+                "build",
+                "publish",
+                "version_control",
+                "other",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Kind"
+        },
+        "argv": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Argv"
+        },
+        "cwd_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cwd Path"
+        },
+        "executable": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable"
+        },
+        "parse_status": {
+          "enum": [
+            "exact",
+            "conservative",
+            "unknown"
+          ],
+          "title": "Parse Status",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "raw_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Digest"
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shell"
+        },
+        "tool": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "parse_status"
+      ],
+      "title": "ActionDescriptor",
+      "type": "object"
+    },
+    "EmittedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_digest": {
+          "title": "Condition Digest",
+          "type": "string"
+        },
+        "record_id": {
+          "title": "Record Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "record_id",
+        "revision",
+        "condition_digest"
+      ],
+      "title": "EmittedItem",
+      "type": "object"
+    },
+    "ScratchEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "estimated_tokens": {
+          "minimum": 0,
+          "title": "Estimated Tokens",
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/EmittedItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "packet_digest": {
+          "title": "Packet Digest",
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "session_start",
+            "prompt",
+            "pre_action",
+            "compact_restore",
+            "manual"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "reserved",
+            "emitted",
+            "uncertain"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "time": {
+          "title": "Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "packet_digest",
+        "items",
+        "state",
+        "purpose",
+        "estimated_tokens",
+        "time"
+      ],
+      "title": "ScratchEntry",
+      "type": "object"
+    },
+    "ScratchOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ActionDescriptor"
+        },
+        "changed_paths": {
+          "items": {
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "title": "Changed Paths",
+          "type": "array"
+        },
+        "coverage": {
+          "additionalProperties": true,
+          "title": "Coverage",
+          "type": "object"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "failure",
+            "interrupted",
+            "not_run",
+            "unknown"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "action",
+        "outcome"
+      ],
+      "title": "ScratchOutcome",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/SessionScratch",
+  "additionalProperties": false,
+  "properties": {
+    "emitted_tokens": {
+      "minimum": 0,
+      "title": "Emitted Tokens",
+      "type": "integer"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/ScratchEntry"
+      },
+      "maxItems": 256,
+      "title": "Entries",
+      "type": "array"
+    },
+    "guidance_epoch": {
+      "minimum": 0,
+      "title": "Guidance Epoch",
+      "type": "integer"
+    },
+    "outcomes": {
+      "items": {
+        "$ref": "#/$defs/ScratchOutcome"
+      },
+      "maxItems": 32,
+      "title": "Outcomes",
+      "type": "array"
+    },
+    "policy_revision": {
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "reserved_tokens": {
+      "minimum": 0,
+      "title": "Reserved Tokens",
+      "type": "integer"
+    },
+    "scratch_schema": {
+      "const": 1,
+      "title": "Scratch Schema",
+      "type": "integer"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "state_revision": {
+      "minimum": 0,
+      "title": "State Revision",
+      "type": "integer"
+    },
+    "store_revision": {
+      "minimum": 0,
+      "title": "Store Revision",
+      "type": "integer"
+    },
+    "tombstone_epoch": {
+      "minimum": 0,
+      "title": "Tombstone Epoch",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "scratch_schema",
+    "session_id",
+    "state_revision",
+    "store_revision",
+    "guidance_epoch",
+    "policy_revision",
+    "tombstone_epoch",
+    "reserved_tokens",
+    "emitted_tokens"
+  ],
+  "title": "SessionScratch",
+  "type": "object"
+}

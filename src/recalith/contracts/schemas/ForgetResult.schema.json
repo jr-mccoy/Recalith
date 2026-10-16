@@ -1,0 +1,94 @@
+{
+  "$id": "recalith:contracts/ForgetResult",
+  "additionalProperties": false,
+  "properties": {
+    "backup_state": {
+      "enum": [
+        "verified",
+        "unavailable",
+        "pending"
+      ],
+      "title": "Backup State",
+      "type": "string"
+    },
+    "deleted_backup_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Deleted Backup Ids",
+      "type": "array"
+    },
+    "error_codes": {
+      "items": {
+        "maxLength": 64,
+        "type": "string"
+      },
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "external_copy_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "External Copy Ids",
+      "type": "array"
+    },
+    "new_backup_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "New Backup Id"
+    },
+    "operation_id": {
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "purge_state": {
+      "enum": [
+        "completed",
+        "cleanup_pending"
+      ],
+      "title": "Purge State",
+      "type": "string"
+    },
+    "purged_count": {
+      "minimum": 0,
+      "title": "Purged Count",
+      "type": "integer"
+    },
+    "quarantined_count": {
+      "minimum": 0,
+      "title": "Quarantined Count",
+      "type": "integer"
+    },
+    "replay_suppression_coverage": {
+      "additionalProperties": true,
+      "title": "Replay Suppression Coverage",
+      "type": "object"
+    },
+    "tombstone_epoch": {
+      "minimum": 1,
+      "title": "Tombstone Epoch",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "operation_id",
+    "purge_state",
+    "purged_count",
+    "quarantined_count",
+    "tombstone_epoch",
+    "backup_state",
+    "new_backup_id",
+    "deleted_backup_ids",
+    "external_copy_ids",
+    "replay_suppression_coverage"
+  ],
+  "title": "ForgetResult",
+  "type": "object"
+}

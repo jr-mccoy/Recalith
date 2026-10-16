@@ -1,0 +1,225 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/Job",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "minimum": 0,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "budget_pool": {
+      "enum": [
+        "ordinary",
+        "protected",
+        "none"
+      ],
+      "title": "Budget Pool",
+      "type": "string"
+    },
+    "due_at": {
+      "title": "Due At",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "input_digest": {
+      "title": "Input Digest",
+      "type": "string"
+    },
+    "input_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Input Refs",
+      "type": "array"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "ingest",
+        "update_task",
+        "build_episode",
+        "extract_claims",
+        "review_claims",
+        "revalidate",
+        "compile_context",
+        "maintenance",
+        "export"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "last_error_code": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Error Code"
+    },
+    "lease_generation": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Lease Generation",
+      "type": "integer"
+    },
+    "lease_owner": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lease Owner"
+    },
+    "lease_until": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lease Until"
+    },
+    "policy_revision": {
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "priority": {
+      "title": "Priority",
+      "type": "integer"
+    },
+    "prompt_version": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Prompt Version"
+    },
+    "proposal_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Proposal Ref"
+    },
+    "review_priority": {
+      "anyOf": [
+        {
+          "enum": [
+            "correction_or_declaration",
+            "ordinary"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Priority"
+    },
+    "state": {
+      "enum": [
+        "pending",
+        "leased",
+        "waiting_review",
+        "waiting_budget",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "trigger_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trigger Ref"
+    }
+  },
+  "required": [
+    "job_id",
+    "kind",
+    "state",
+    "input_digest",
+    "policy_revision",
+    "prompt_version",
+    "idempotency_key",
+    "priority",
+    "due_at",
+    "attempt",
+    "budget_pool"
+  ],
+  "title": "Job",
+  "type": "object"
+}

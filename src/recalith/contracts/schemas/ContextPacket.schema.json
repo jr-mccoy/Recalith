@@ -1,0 +1,289 @@
+{
+  "$defs": {
+    "ContextItem": {
+      "additionalProperties": false,
+      "properties": {
+        "advice": {
+          "enum": [
+            "context",
+            "caution",
+            "conflict"
+          ],
+          "title": "Advice",
+          "type": "string"
+        },
+        "applicability": {
+          "enum": [
+            "true",
+            "false",
+            "unknown"
+          ],
+          "title": "Applicability",
+          "type": "string"
+        },
+        "basis": {
+          "enum": [
+            "observed",
+            "user_declared",
+            "inferred"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "conditions_text": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions Text"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "freshness": {
+          "enum": [
+            "current",
+            "needs_revalidation",
+            "unknown"
+          ],
+          "title": "Freshness",
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "retry_text": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry Text"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "text": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "why": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Why",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "text",
+        "advice",
+        "basis",
+        "applicability",
+        "freshness",
+        "why"
+      ],
+      "title": "ContextItem",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "description": "Empty eligibility lists mean unrestricted within this installation.\n\n``branch_refs`` are recall/origin annotations only, never eligibility.",
+      "properties": {
+        "branch_refs": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Branch Refs",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "task_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Task Ids",
+          "type": "array"
+        },
+        "workspace_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Workspace Ids",
+          "type": "array"
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ContextPacket",
+  "additionalProperties": false,
+  "properties": {
+    "degraded_reasons": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]{0,63}$",
+        "type": "string"
+      },
+      "title": "Degraded Reasons",
+      "type": "array"
+    },
+    "estimated_tokens": {
+      "minimum": 0,
+      "title": "Estimated Tokens",
+      "type": "integer"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "guidance_epoch": {
+      "minimum": 0,
+      "title": "Guidance Epoch",
+      "type": "integer"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ContextItem"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "omitted_count": {
+      "minimum": 0,
+      "title": "Omitted Count",
+      "type": "integer"
+    },
+    "packet_schema": {
+      "const": 1,
+      "title": "Packet Schema",
+      "type": "integer"
+    },
+    "policy_revision": {
+      "minimum": 1,
+      "title": "Policy Revision",
+      "type": "integer"
+    },
+    "pre_action_substitution_tokens": {
+      "maximum": 400,
+      "minimum": 0,
+      "title": "Pre Action Substitution Tokens",
+      "type": "integer"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "session_start",
+        "prompt",
+        "pre_action",
+        "compact_restore",
+        "manual"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "store_revision": {
+      "minimum": 0,
+      "title": "Store Revision",
+      "type": "integer"
+    },
+    "tombstone_epoch": {
+      "minimum": 0,
+      "title": "Tombstone Epoch",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "packet_schema",
+    "project_id",
+    "installation_id",
+    "store_revision",
+    "guidance_epoch",
+    "policy_revision",
+    "tombstone_epoch",
+    "generated_at",
+    "purpose",
+    "items",
+    "omitted_count",
+    "estimated_tokens",
+    "pre_action_substitution_tokens"
+  ],
+  "title": "ContextPacket",
+  "type": "object"
+}

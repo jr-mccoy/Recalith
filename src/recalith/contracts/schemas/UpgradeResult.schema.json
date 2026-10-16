@@ -1,0 +1,101 @@
+{
+  "$id": "recalith:contracts/UpgradeResult",
+  "additionalProperties": false,
+  "properties": {
+    "baseline_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Baseline Digest"
+    },
+    "error_codes": {
+      "items": {
+        "maxLength": 64,
+        "type": "string"
+      },
+      "title": "Error Codes",
+      "type": "array"
+    },
+    "operation_id": {
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "preserved_installation_id": {
+      "title": "Preserved Installation Id",
+      "type": "string"
+    },
+    "retained_pin_count": {
+      "minimum": 0,
+      "title": "Retained Pin Count",
+      "type": "integer"
+    },
+    "source_engine": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Source Engine",
+      "type": "string"
+    },
+    "source_profile": {
+      "enum": [
+        "claude_preview",
+        "full"
+      ],
+      "title": "Source Profile",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "not_activated",
+        "activated",
+        "rolled_back",
+        "recovery_required"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "target_engine": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Target Engine",
+      "type": "string"
+    },
+    "target_profile": {
+      "enum": [
+        "claude_preview",
+        "full"
+      ],
+      "title": "Target Profile",
+      "type": "string"
+    },
+    "verified_backup_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Verified Backup Id"
+    }
+  },
+  "required": [
+    "operation_id",
+    "source_profile",
+    "target_profile",
+    "source_engine",
+    "target_engine",
+    "state",
+    "preserved_installation_id",
+    "verified_backup_id",
+    "baseline_digest",
+    "retained_pin_count"
+  ],
+  "title": "UpgradeResult",
+  "type": "object"
+}

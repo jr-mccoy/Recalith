@@ -1,0 +1,78 @@
+{
+  "description": "Payload digest does not match canonical payload",
+  "envelope": {
+    "schema_version": 1,
+    "event_id": "evt_c172c15b0ff8aafccd4129b082418099ae96187500fe188ecee94c4173f67561",
+    "project_id": "proj_11111111-1111-4111-8111-111111111111",
+    "installation_id": "inst_22222222-2222-4222-8222-222222222222",
+    "workspace_id": "ws_33333333-3333-4333-8333-333333333333",
+    "adapter_id": "claude_code",
+    "adapter_version": "2.1.301",
+    "source_event_key": "tool_finished-1",
+    "session_id": "sess_44444444-4444-4444-8444-444444444444",
+    "host_session_id": "host-session-1",
+    "task_id": null,
+    "source_sequence": 1,
+    "occurred_at": "2026-10-15T12:00:00.000000Z",
+    "recorded_at": "2026-10-15T12:00:00.000000Z",
+    "kind": "tool_finished",
+    "channel": "tool",
+    "origin": {
+      "adapter_id": "claude_code",
+      "source_event_key": "tool_finished-1",
+      "host_session_id": "host-session-1",
+      "origin_kind": "hook",
+      "source_digest": "afc389ce21d5bff55a4707ba20ef81d39f06787f516c8d36b4c3838385508682",
+      "locator": null
+    },
+    "authority": "observed_tool",
+    "derived_from": [],
+    "root_event_ids": [],
+    "payload": {
+      "tool_call_id": "call-1",
+      "tool_name": "Bash",
+      "arguments": {
+        "command": "python -m unittest"
+      },
+      "result_received": true,
+      "outcome": "failure",
+      "exit_code": 1,
+      "result_text": "FAILED (errors=1)",
+      "assertions": [
+        {
+          "kind": "exit_status",
+          "identity": "exit",
+          "value": "1",
+          "passed": null
+        }
+      ],
+      "action": {
+        "cwd_path": ".",
+        "tool": "Bash",
+        "action_kind": "test",
+        "executable": "python",
+        "argv": [
+          "python",
+          "-m",
+          "unittest"
+        ],
+        "paths": [],
+        "raw_digest": null,
+        "parse_status": "exact",
+        "shell": "bash"
+      },
+      "observation": null,
+      "text_chunks": [],
+      "error_signature": "ModuleNotFoundError: No module named 'ledgerlite'",
+      "expected_red": false
+    },
+    "payload_digest": "d121be3103007b41edf96f8262925f8c7d61894afe9a041843b631f69445bc57",
+    "coverage": {
+      "truncated": false,
+      "redacted": false,
+      "missing_context": false,
+      "parser_complete": true
+    },
+    "extensions": {}
+  }
+}

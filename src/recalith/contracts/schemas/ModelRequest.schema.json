@@ -1,0 +1,1853 @@
+{
+  "$defs": {
+    "ClaimRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "observed",
+            "user_declared",
+            "inferred"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "claim_id": {
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "contradicts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Contradicts",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/DependencyRef"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
+        },
+        "effective_until": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Until"
+        },
+        "evidence_availability": {
+          "enum": [
+            "available",
+            "capsule_only",
+            "expired",
+            "redacted"
+          ],
+          "title": "Evidence Availability",
+          "type": "string"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureBody"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "freshness": {
+          "enum": [
+            "current",
+            "needs_revalidation",
+            "unknown"
+          ],
+          "title": "Freshness",
+          "type": "string"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fact",
+            "decision",
+            "preference",
+            "failure_lesson",
+            "procedure"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "last_supported_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Supported At"
+        },
+        "model_provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImportOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "procedure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProcedureBody"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "proposition": {
+          "maxLength": 4096,
+          "title": "Proposition",
+          "type": "string"
+        },
+        "proposition_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PropositionKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "review_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "review_class": {
+          "enum": [
+            "volatile",
+            "stable"
+          ],
+          "title": "Review Class",
+          "type": "string"
+        },
+        "review_due_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Due At"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "status": {
+          "enum": [
+            "candidate",
+            "active",
+            "disputed",
+            "superseded",
+            "invalidated",
+            "archived",
+            "quarantined",
+            "forgotten"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "strength": {
+          "enum": [
+            "weak",
+            "supported",
+            "corroborated"
+          ],
+          "title": "Strength",
+          "type": "string"
+        },
+        "superseded_by": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Superseded By",
+          "type": "array"
+        },
+        "supersedes": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Supersedes",
+          "type": "array"
+        },
+        "supports": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Supports",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim_id",
+        "project_id",
+        "installation_id",
+        "revision",
+        "kind",
+        "proposition",
+        "proposition_key",
+        "basis",
+        "strength",
+        "status",
+        "freshness",
+        "evidence_availability",
+        "recorded_at",
+        "review_class"
+      ],
+      "title": "ClaimRevision",
+      "type": "object"
+    },
+    "Condition": {
+      "additionalProperties": false,
+      "description": "Constrained, non-executable applicability predicate (SYSTEM_SPEC §7.4).",
+      "properties": {
+        "exclude": {
+          "default": false,
+          "title": "Exclude",
+          "type": "boolean"
+        },
+        "key": {
+          "maxLength": 256,
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "action_kind",
+            "tool",
+            "path",
+            "environment_equals",
+            "version_range",
+            "branch_ref"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper"
+        },
+        "value": {
+          "maxLength": 512,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "key",
+        "value"
+      ],
+      "title": "Condition",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "missing_context": {
+          "title": "Missing Context",
+          "type": "boolean"
+        },
+        "parser_complete": {
+          "title": "Parser Complete",
+          "type": "boolean"
+        },
+        "redacted": {
+          "title": "Redacted",
+          "type": "boolean"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "truncated",
+        "redacted",
+        "missing_context",
+        "parser_complete"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "DependencyRef": {
+      "additionalProperties": false,
+      "description": "A registered dependency; a null fingerprint never matches a current value.",
+      "properties": {
+        "fingerprint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fingerprint"
+        },
+        "key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "config",
+            "environment",
+            "claim"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "key"
+      ],
+      "title": "DependencyRef",
+      "type": "object"
+    },
+    "Episode": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "additionalProperties": true,
+          "title": "Coverage",
+          "type": "object"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ended At"
+        },
+        "episode_id": {
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "objective": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "outcome": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "preconditions": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "related_episode_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Episode Ids",
+          "type": "array"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "source_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Event Ids",
+          "type": "array"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "open",
+            "settled",
+            "archived"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/EpisodeStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "unresolved": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Unresolved",
+          "type": "array"
+        }
+      },
+      "required": [
+        "episode_id",
+        "project_id",
+        "installation_id",
+        "revision",
+        "task_id",
+        "title",
+        "started_at",
+        "ended_at",
+        "state",
+        "objective",
+        "steps",
+        "outcome",
+        "source_event_ids"
+      ],
+      "title": "Episode",
+      "type": "object"
+    },
+    "EpisodeStep": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "causal_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "failure",
+            "interrupted",
+            "not_run",
+            "unknown"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "ordinal",
+        "action",
+        "outcome"
+      ],
+      "title": "EpisodeStep",
+      "type": "object"
+    },
+    "EventEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "adapter_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "untrusted",
+            "observed_tool",
+            "explicit_user",
+            "derived"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "user",
+            "assistant",
+            "tool",
+            "external",
+            "memory"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "derived_from": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Derived From",
+          "type": "array"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "extensions": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_.\\-]{0,63}$": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "session_started",
+            "user_message",
+            "assistant_message",
+            "tool_started",
+            "tool_finished",
+            "artifact_changed",
+            "compaction",
+            "session_stopped",
+            "session_ended",
+            "memory_delivered",
+            "operator_declaration",
+            "operator_correction",
+            "operator_forget",
+            "agent_attempted_operator_command",
+            "generic_observation"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Occurred At"
+        },
+        "origin": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "payload_digest": {
+          "title": "Payload Digest",
+          "type": "string"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_sequence": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Sequence"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Task Id"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "event_id",
+        "project_id",
+        "installation_id",
+        "workspace_id",
+        "adapter_id",
+        "adapter_version",
+        "source_event_key",
+        "session_id",
+        "host_session_id",
+        "task_id",
+        "source_sequence",
+        "occurred_at",
+        "recorded_at",
+        "kind",
+        "channel",
+        "origin",
+        "authority",
+        "payload",
+        "payload_digest",
+        "coverage"
+      ],
+      "title": "EventEnvelope",
+      "type": "object"
+    },
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpanLocator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "enum": [
+                "tool.exit_code",
+                "tool.reported_result",
+                "config.exact_value"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapping"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "relation": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "context"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "relation"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "FailureBody": {
+      "additionalProperties": false,
+      "properties": {
+        "action_family_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Action Family Digest"
+        },
+        "alternative": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "consequence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_supporting_failure_event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Supporting Failure Event Id"
+        },
+        "observed_failure": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "retry_conditions": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Retry Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action_family_digest",
+        "last_supporting_failure_event_id",
+        "observed_failure"
+      ],
+      "title": "FailureBody",
+      "type": "object"
+    },
+    "ImportOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "export_digest": {
+          "title": "Export Digest",
+          "type": "string"
+        },
+        "source_installation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Installation Id"
+        },
+        "source_project_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Project Id"
+        },
+        "source_record_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Record Id",
+          "type": "string"
+        },
+        "source_revision": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_project_id",
+        "source_installation_id",
+        "source_record_id",
+        "source_revision",
+        "export_digest"
+      ],
+      "title": "ImportOrigin",
+      "type": "object"
+    },
+    "ModelProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "configured_model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Configured Model",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "prompt_digest": {
+          "title": "Prompt Digest",
+          "type": "string"
+        },
+        "prompt_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Prompt Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "resolved_model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Model"
+        }
+      },
+      "required": [
+        "provider_id",
+        "configured_model",
+        "resolved_model",
+        "adapter_version",
+        "prompt_id",
+        "prompt_digest",
+        "job_id"
+      ],
+      "title": "ModelProvenance",
+      "type": "object"
+    },
+    "PendingAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "title": "Action Id",
+          "type": "string"
+        },
+        "description": {
+          "$ref": "#/$defs/SupportedText"
+        },
+        "state": {
+          "enum": [
+            "proposed",
+            "running",
+            "awaiting_result",
+            "finished",
+            "cancelled"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "tool_call_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Call Id"
+        }
+      },
+      "required": [
+        "action_id",
+        "description",
+        "state"
+      ],
+      "title": "PendingAction",
+      "type": "object"
+    },
+    "ProcedureBody": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_outcomes": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Expected Outcomes",
+          "type": "array"
+        },
+        "preconditions": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        },
+        "stop_conditions": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Stop Conditions",
+          "type": "array"
+        },
+        "successful_episode_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Successful Episode Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps"
+      ],
+      "title": "ProcedureBody",
+      "type": "object"
+    },
+    "PropositionKey": {
+      "additionalProperties": false,
+      "properties": {
+        "predicate": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Predicate",
+          "type": "string"
+        },
+        "subject": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject",
+        "predicate"
+      ],
+      "title": "PropositionKey",
+      "type": "object"
+    },
+    "ReadSet": {
+      "additionalProperties": false,
+      "description": "What a proposal consulted; rechecked before application (DATA_CONTRACTS §7.1).",
+      "properties": {
+        "entity_revisions": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "title": "Entity Revisions",
+          "type": "array"
+        },
+        "fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "maxLength": 512,
+            "minLength": 1
+          },
+          "title": "Fingerprints",
+          "type": "object"
+        },
+        "policy_revision": {
+          "minimum": 1,
+          "title": "Policy Revision",
+          "type": "integer"
+        },
+        "tombstone_epoch": {
+          "minimum": 0,
+          "title": "Tombstone Epoch",
+          "type": "integer"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "policy_revision",
+        "tombstone_epoch"
+      ],
+      "title": "ReadSet",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "RequestLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_body_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Max Body Bytes",
+          "type": "integer"
+        },
+        "max_input_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 98304,
+          "title": "Max Input Bytes",
+          "type": "integer"
+        },
+        "max_stderr_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Max Stderr Bytes",
+          "type": "integer"
+        },
+        "max_wire_stdout_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Max Wire Stdout Bytes",
+          "type": "integer"
+        },
+        "reserved_output_estimate": {
+          "exclusiveMinimum": 0,
+          "title": "Reserved Output Estimate",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_input_bytes",
+        "reserved_output_estimate",
+        "max_body_bytes",
+        "max_wire_stdout_bytes",
+        "max_stderr_bytes",
+        "timeout_seconds"
+      ],
+      "title": "RequestLimits",
+      "type": "object"
+    },
+    "ReviewAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_id": {
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "evidence_digest": {
+          "title": "Evidence Digest",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "objections": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Objections",
+          "type": "array"
+        },
+        "prompt_digest": {
+          "title": "Prompt Digest",
+          "type": "string"
+        },
+        "proposal_digest": {
+          "title": "Proposal Digest",
+          "type": "string"
+        },
+        "review_job_id": {
+          "title": "Review Job Id",
+          "type": "string"
+        },
+        "reviewed_at": {
+          "title": "Reviewed At",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "supported",
+            "revise",
+            "reject"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "review_job_id",
+        "batch_id",
+        "candidate_ref",
+        "proposal_digest",
+        "evidence_digest",
+        "prompt_digest",
+        "verdict",
+        "objections",
+        "reviewed_at"
+      ],
+      "title": "ReviewAssessment",
+      "type": "object"
+    },
+    "ReviewBatch": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_id": {
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "candidate_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Candidate Digests",
+          "type": "object"
+        },
+        "candidate_refs": {
+          "items": {
+            "$ref": "#/$defs/RecordRef"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Candidate Refs",
+          "type": "array"
+        },
+        "evidence_digest": {
+          "title": "Evidence Digest",
+          "type": "string"
+        },
+        "evidence_index": {
+          "items": {
+            "$ref": "#/$defs/ReviewEvidence"
+          },
+          "title": "Evidence Index",
+          "type": "array"
+        },
+        "origin_job_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Origin Job Id"
+        },
+        "prompt_digest": {
+          "title": "Prompt Digest",
+          "type": "string"
+        },
+        "read_set": {
+          "$ref": "#/$defs/ReadSet"
+        },
+        "review_job_id": {
+          "title": "Review Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "batch_id",
+        "origin_job_id",
+        "review_job_id",
+        "candidate_refs",
+        "candidate_digests",
+        "evidence_digest",
+        "prompt_digest",
+        "read_set"
+      ],
+      "title": "ReviewBatch",
+      "type": "object"
+    },
+    "ReviewEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "link": {
+          "$ref": "#/$defs/EvidenceLink"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "link"
+      ],
+      "title": "ReviewEvidence",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "description": "Empty eligibility lists mean unrestricted within this installation.\n\n``branch_refs`` are recall/origin annotations only, never eligibility.",
+      "properties": {
+        "branch_refs": {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Branch Refs",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "task_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Task Ids",
+          "type": "array"
+        },
+        "workspace_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Workspace Ids",
+          "type": "array"
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locator"
+        },
+        "origin_kind": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Origin Kind",
+          "type": "string"
+        },
+        "source_digest": {
+          "title": "Source Digest",
+          "type": "string"
+        },
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter_id",
+        "source_event_key",
+        "host_session_id",
+        "origin_kind",
+        "source_digest"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    },
+    "SupportedText": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "enum": [
+            "observed",
+            "user_declared",
+            "inferred"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceLink"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "basis"
+      ],
+      "title": "SupportedText",
+      "type": "object"
+    },
+    "TaskState": {
+      "additionalProperties": false,
+      "properties": {
+        "blockers": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "child_task_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Child Task Ids",
+          "type": "array"
+        },
+        "completion_basis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constraints": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Constraints",
+          "type": "array"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "known_results": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Known Results",
+          "type": "array"
+        },
+        "last_activity_at": {
+          "title": "Last Activity At",
+          "type": "string"
+        },
+        "next_action": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "objective": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SupportedText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "open_questions": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "pending_actions": {
+          "items": {
+            "$ref": "#/$defs/PendingAction"
+          },
+          "title": "Pending Actions",
+          "type": "array"
+        },
+        "plan": {
+          "items": {
+            "$ref": "#/$defs/SupportedText"
+          },
+          "title": "Plan",
+          "type": "array"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "redirect_task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Redirect Task Id"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "session_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Session Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "paused",
+            "completed",
+            "abandoned",
+            "linked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "updated_at": {
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "project_id",
+        "installation_id",
+        "revision",
+        "status",
+        "title",
+        "objective",
+        "updated_at",
+        "last_activity_at"
+      ],
+      "title": "TaskState",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ModelRequest",
+  "additionalProperties": false,
+  "properties": {
+    "allowed_evidence_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Allowed Evidence Refs",
+      "type": "array"
+    },
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/ClaimRevision"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "episodes": {
+      "items": {
+        "$ref": "#/$defs/Episode"
+      },
+      "title": "Episodes",
+      "type": "array"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/EventEnvelope"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "instruction_text": {
+      "minLength": 1,
+      "title": "Instruction Text",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "limits": {
+      "$ref": "#/$defs/RequestLimits"
+    },
+    "output_schema": {
+      "additionalProperties": true,
+      "title": "Output Schema",
+      "type": "object"
+    },
+    "prompt_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Prompt Version",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "update_task",
+        "build_episode",
+        "extract_claims",
+        "review_claims",
+        "revalidate"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "read_set": {
+      "$ref": "#/$defs/ReadSet"
+    },
+    "request_schema": {
+      "const": 1,
+      "title": "Request Schema",
+      "type": "integer"
+    },
+    "review_batch": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReviewBatch"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "request_schema",
+    "job_id",
+    "purpose",
+    "prompt_version",
+    "instruction_text",
+    "read_set",
+    "output_schema",
+    "limits"
+  ],
+  "title": "ModelRequest",
+  "type": "object"
+}
