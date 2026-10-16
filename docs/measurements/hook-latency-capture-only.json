@@ -1,0 +1,170 @@
+{
+  "environment": {
+    "antivirus_indexer": "none observed (Linux container)",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "filesystem": "ext4",
+    "logical_cpus": 4,
+    "machine": "x86_64",
+    "os_page_cache": "not dropped (no privilege in this environment); warm OS cache throughout",
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "power_mode": "unknown (cloud container)",
+    "python": "3.13.16",
+    "python_build": "main Oct  1 2026 15:40:24"
+  },
+  "first_launch": {
+    "max_ms": 95.97,
+    "mean_ms": 55.9,
+    "n": 50,
+    "p50_ms": 54.15,
+    "p95_ms": 70.21,
+    "p99_ms": 87.78,
+    "payload_class": "prompt"
+  },
+  "host_fixture_version": "2.1.301",
+  "measured_at": "2026-10-16T15:56:22Z",
+  "measurement": "capture-only hook latency (fresh interpreter per trial, spawn to exit)",
+  "payload_classes": {
+    "post_tool_30k_stdout": {
+      "cold_bytecode": {
+        "max_ms": 295.31,
+        "mean_ms": 217.73,
+        "n": 100,
+        "p50_ms": 211.63,
+        "p95_ms": 262.8,
+        "p99_ms": 270.23
+      },
+      "deadline_overruns": {
+        "cold_bytecode": 0,
+        "warm": 0
+      },
+      "event": "PostToolUse",
+      "receipt_status": {
+        "accepted": 500
+      },
+      "stdin_bytes": 37102,
+      "warm": {
+        "max_ms": 113.89,
+        "mean_ms": 74.59,
+        "n": 500,
+        "p50_ms": 71.67,
+        "p95_ms": 91.86,
+        "p99_ms": 101.81
+      }
+    },
+    "post_tool_failure_host_truncated": {
+      "cold_bytecode": {
+        "max_ms": 323.95,
+        "mean_ms": 210.98,
+        "n": 100,
+        "p50_ms": 204.11,
+        "p95_ms": 254.76,
+        "p99_ms": 265.32
+      },
+      "deadline_overruns": {
+        "cold_bytecode": 0,
+        "warm": 0
+      },
+      "event": "PostToolUseFailure",
+      "receipt_status": {
+        "accepted": 500
+      },
+      "stdin_bytes": 10849,
+      "warm": {
+        "max_ms": 102.68,
+        "mean_ms": 63.95,
+        "n": 500,
+        "p50_ms": 62.45,
+        "p95_ms": 77.38,
+        "p99_ms": 87.26
+      }
+    },
+    "post_tool_small": {
+      "cold_bytecode": {
+        "max_ms": 274.74,
+        "mean_ms": 202.13,
+        "n": 100,
+        "p50_ms": 199.48,
+        "p95_ms": 241.54,
+        "p99_ms": 264.13
+      },
+      "deadline_overruns": {
+        "cold_bytecode": 0,
+        "warm": 0
+      },
+      "event": "PostToolUse",
+      "receipt_status": {
+        "accepted": 500
+      },
+      "stdin_bytes": 680,
+      "warm": {
+        "max_ms": 170.07,
+        "mean_ms": 59.04,
+        "n": 500,
+        "p50_ms": 56.91,
+        "p95_ms": 72.32,
+        "p99_ms": 79.39
+      }
+    },
+    "pre_tool": {
+      "cold_bytecode": {
+        "max_ms": 260.9,
+        "mean_ms": 198.06,
+        "n": 100,
+        "p50_ms": 193.69,
+        "p95_ms": 240.7,
+        "p99_ms": 251.42
+      },
+      "deadline_overruns": {
+        "cold_bytecode": 0,
+        "warm": 0
+      },
+      "event": "PreToolUse",
+      "receipt_status": {
+        "accepted": 500
+      },
+      "stdin_bytes": 533,
+      "warm": {
+        "max_ms": 184.15,
+        "mean_ms": 56.32,
+        "n": 500,
+        "p50_ms": 54.84,
+        "p95_ms": 67.88,
+        "p99_ms": 72.75
+      }
+    },
+    "prompt": {
+      "cold_bytecode": {
+        "max_ms": 310.19,
+        "mean_ms": 212.28,
+        "n": 100,
+        "p50_ms": 208.62,
+        "p95_ms": 248.05,
+        "p99_ms": 284.77
+      },
+      "deadline_overruns": {
+        "cold_bytecode": 0,
+        "warm": 0
+      },
+      "event": "UserPromptSubmit",
+      "receipt_status": {
+        "accepted": 500
+      },
+      "stdin_bytes": 427,
+      "warm": {
+        "max_ms": 70.24,
+        "mean_ms": 54.8,
+        "n": 500,
+        "p50_ms": 53.19,
+        "p95_ms": 66.15,
+        "p99_ms": 68.87
+      }
+    }
+  },
+  "regimes": {
+    "cold_bytecode": "-X pycache_prefix=<new empty dir> per trial: all modules compiled from source (pessimistic)",
+    "first_launch": "first hook in a newly initialized installation; bytecode present",
+    "warm": "repeated launches, bytecode and OS cache warm"
+  },
+  "scope": "Capture branch only; delivery is unavailable in this build, so no delivery latency is claimed. Soft deadline 250 ms from entry; the ACCEPTANCE_TESTS \u00a77 p95 300 ms / p99 750 ms targets apply to capture plus delivery and are evaluated at Task 18.",
+  "tool": "tools/measure_hook_latency.py"
+}

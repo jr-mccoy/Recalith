@@ -73,10 +73,11 @@ def all_bytes_under(path: Path) -> bytes:
     return blob
 
 
-def run_driver(root: Path, seed: int, start: int, failpoint: str | None = None, skip: int = 0) -> subprocess.CompletedProcess:
+def run_driver(root: Path, seed: int, start: int, failpoint: str | None = None, skip: int = 0, producer: str = "service") -> subprocess.CompletedProcess:
     args = [sys.executable, str(HERE / "capture_scenarios.py"), str(root), str(seed), str(start)]
     if failpoint:
         args += [failpoint, str(skip)]
+    args += ["--producer", producer]
     return subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
 
@@ -261,8 +262,10 @@ def _reference(tmp: Path, seed: int) -> dict:
 CRASH_POINTS = [fp for fp in failpoints.ALL]
 
 
+@pytest.mark.parametrize("producer", ["service", "fast"])
 @pytest.mark.parametrize("failpoint", CRASH_POINTS)
-def test_crash_failpoints_match_reference_run(tmp_path, failpoint):
+def test_crash_failpoints_match_reference_run(tmp_path, failpoint, producer):
+    """ACCEPTANCE_TESTS §4 for both producers; the reference run is service-produced (Task 3b)."""
     crashed = 0
     for rep in range(REPS):
         seed = 100 + rep
@@ -272,12 +275,12 @@ def test_crash_failpoints_match_reference_run(tmp_path, failpoint):
         steps = cs.build_scenario(seed)
         start = rep % len(steps)
         for index in range(start):  # earlier steps complete without failures
-            cs.run_step(root, steps, index, source_id)
-        result = run_driver(root, seed, start, failpoint, skip=rep % 2)
+            cs.run_step(root, steps, index, source_id, producer)
+        result = run_driver(root, seed, start, failpoint, skip=rep % 2, producer=producer)
         if result.returncode == failpoints.KILL_STATUS:
             crashed += 1
             crashed_step = int([ln for ln in result.stdout.splitlines() if ln.startswith("step ")][-1].split()[1])
-            restart = run_driver(root, seed, crashed_step)
+            restart = run_driver(root, seed, crashed_step, producer=producer)
             assert restart.returncode == 0, restart.stderr
         else:
             assert result.returncode == 0, result.stderr

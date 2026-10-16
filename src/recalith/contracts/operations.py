@@ -20,6 +20,7 @@ from .common import (
     Id,
     JsonObject,
     NonNegative,
+    One,
     PortablePath,
     ReadSet,
     RecordRef,
@@ -30,7 +31,12 @@ from .common import (
     bounded_text,
     canonical_json,
 )
-from .config import ASSESSMENT_OP_MAX_BYTES, MODEL_INPUT_CAP, OBJECTION_MAX_BYTES, ModelPurpose
+from .config import (
+    ASSESSMENT_OP_MAX_BYTES,
+    MODEL_INPUT_CAP,
+    OBJECTION_MAX_BYTES,
+    ModelPurpose,
+)
 from .events import EventEnvelope
 from .memory import (
     Basis,
@@ -346,7 +352,7 @@ class ResponseProvenance(StrictModel):
 
 
 class ModelResponse(StrictModel):
-    response_schema: Literal[1]
+    response_schema: One
     operations: list[ProposedOperation]
     no_op_reason: Annotated[str, Field(max_length=1024)] | None
     usage: UsageReport
@@ -373,7 +379,7 @@ class RequestLimits(StrictModel):
 
 
 class ModelRequest(StrictModel):
-    request_schema: Literal[1]
+    request_schema: One
     job_id: Id
     purpose: ModelPurpose
     prompt_version: Annotated[str, Field(min_length=1, max_length=64)]

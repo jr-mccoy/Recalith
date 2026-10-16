@@ -24,13 +24,14 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from pydantic import ValidationError
 
-from recalith.capture import provenance, redact, sources
+from recalith.capture import provenance, sources
 from recalith.capture.normalize import Notes, digest_of_text, sanitize_payload
 from recalith.contracts.common import InstallationContext, RecordRef, canonical_json, derived_id, digest_of, new_id, utc_now
 from recalith.contracts.config import HOOK_SOFT_DEADLINE_MS, SEGMENT_CAP
 from recalith.contracts.events import TOOL_KINDS, CaptureReceipt, EventEnvelope, Segment
 from recalith.contracts.jobs import IngestResult
 from recalith.errors import RecalithError
+from recalith.fast import redact
 from recalith.storage import failpoints, repository, spool
 from recalith.storage.db import open_store
 
@@ -212,6 +213,7 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                 spool.record_gap(dirs, code="segment_quarantined", reason="foreign_installation", event_count=len(segment.envelopes), at=utc_now())
                 continue
             counts = {"inserted": 0, "duplicate": 0, "conflict": 0}
+            registration_gaps: list[str] = []
             try:
                 with store.transaction() as txn:
                     failpoints.hit(failpoints.INGEST_BEGIN)
@@ -224,6 +226,10 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                             inserted.append(env)
                             provenance.observe_event(txn, ctx, env)
                             _session_lifecycle(txn, env)
+                    for registration in segment.source_registrations:
+                        refused = sources.register_proposal(txn, ctx, registration)
+                        if refused:
+                            registration_gaps.append(refused)
                     for proposal in segment.cursor_proposals:
                         sources.apply_cursor(txn, proposal.source_id, proposal.cursor)
                     job_id = None
@@ -239,6 +245,8 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                 spool.record_gap(dirs, code="segment_quarantined", reason=exc.code, event_count=len(segment.envelopes), at=utc_now())
                 continue
             failpoints.hit(failpoints.INGEST_AFTER_COMMIT)
+            for code in registration_gaps:
+                spool.record_gap(dirs, code="source_registration_refused", reason=code, event_count=0, at=utc_now())
             spool.remove_segment(dirs, path)
             failpoints.hit(failpoints.INGEST_AFTER_UNLINK)
             accepted += counts["inserted"]

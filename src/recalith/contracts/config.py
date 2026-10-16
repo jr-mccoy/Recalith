@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
-from .common import Digest, Id, PortablePath, Revision, StrictModel, UtcTime
+from .common import Digest, Id, One, PortablePath, Revision, StrictModel, UtcTime
 
 KIB = 1024
 ReleaseProfile = Literal["claude_preview", "full"]
@@ -85,7 +85,7 @@ class BudgetConfig(StrictModel):
     protected_invocations: PositiveInt = 30
     protected_input_estimate: PositiveInt = 300_000
     protected_output_estimate: PositiveInt = 60_000
-    concurrent_requests: Literal[1] = 1
+    concurrent_requests: One = 1
     timeout_seconds: PositiveInt = 120
     evidence_expansion_rounds: Annotated[int, Field(ge=0, le=2)] = 2
     retry_backoff_seconds: list[PositiveInt] = Field(default_factory=lambda: [60, 300, 1800])
@@ -154,7 +154,7 @@ class SegmentationConfig(StrictModel):
 
 
 class ProjectConfig(StrictModel):
-    config_schema: Literal[1] = 1
+    config_schema: One = 1
     project_id: Id
     domain_profile: DomainProfile = "coding"
     release_profile: ReleaseProfile = "claude_preview"

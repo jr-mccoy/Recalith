@@ -233,7 +233,7 @@ def test_tracked_files_are_exactly_the_portable_ones(tmp_path):
     subprocess.run([git, "init", "-q", str(a.root)], check=True)
     out = subprocess.run([git, "-C", str(a.root), "status", "--porcelain", "--untracked-files=all"], capture_output=True, text=True, check=True).stdout
     listed = sorted(line[3:] for line in out.splitlines())
-    assert listed == [".recalith/.gitignore", ".recalith/bin/recalith", ".recalith/bin/recalith.cmd", ".recalith/engine.lock", ".recalith/project.toml"]
+    assert listed == [".recalith/.gitignore", ".recalith/bin/recalith", ".recalith/bin/recalith-hook", ".recalith/bin/recalith-hook.cmd", ".recalith/bin/recalith.cmd", ".recalith/engine.lock", ".recalith/project.toml"]
 
 
 # ---------------------------------------------------------------- store behavior

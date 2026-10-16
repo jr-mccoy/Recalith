@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from recalith.capture import parsers
+from recalith.fast import parsers
 from recalith.contracts.common import DIGEST_RE, InstallationContext, RecordRef, derived_id, digest_of, utc_now
 from recalith.contracts.events import EnvironmentObservation, EventEnvelope
 from recalith.errors import RecalithError

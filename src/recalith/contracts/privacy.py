@@ -9,7 +9,16 @@ from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
-from .common import Digest, Id, JsonObject, NonNegative, RecordRef, StrictModel, UtcTime
+from .common import (
+    Digest,
+    Id,
+    JsonObject,
+    NonNegative,
+    One,
+    RecordRef,
+    StrictModel,
+    UtcTime,
+)
 
 OPERATOR_TOKEN_MAX_BYTES = 4096
 OPERATOR_TOKEN_MIN_ENTROPY_BYTES = 32
@@ -108,7 +117,7 @@ def _decode_secret(secret: str) -> bytes:
 
 
 class OperatorTokenFile(StrictModel):
-    schema_: Literal[1] = Field(alias="schema")
+    schema_: One = Field(alias="schema")
     token_id: Id
     secret: Annotated[str, Field(min_length=43, max_length=1024, repr=False)]
     created_at: UtcTime
