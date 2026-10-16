@@ -522,8 +522,10 @@ def test_typed_ingestion_runs_while_model_is_pending(tmp_path):
     try:
         assert backend.in_flight.wait(15), "the model call never started"
         _capture_lifecycle(replayer, tmp_path)
+        # Wait for the drained state, not the first completed job: the worker polls concurrently with capture, so an
+        # early poll can finish some ingest jobs while the last segments are still being published (CI run 26, macOS).
         deadline = time.monotonic() + 15
-        while time.monotonic() < deadline and _ingested(replayer.root)[1] == 0:
+        while time.monotonic() < deadline and (_ingested(replayer.root)[1] == 0 or spool.ready_segments(spool.SpoolDirs(replayer.root))):
             time.sleep(0.05)
         events, done = _ingested(replayer.root)
         assert events > 0 and done >= 1 and backend.in_flight.is_set(), "typed ingestion waited for the model"
