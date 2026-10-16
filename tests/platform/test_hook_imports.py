@@ -29,7 +29,8 @@ baseline = set(sys.modules)
 seen = []
 def audit(event, args):
     if event.startswith(tuple(json.loads(os.environ["RECALITH_TEST_AUDIT"]))):
-        seen.append([event, [str(a) for a in args[1]] if event == "subprocess.Popen" else None])
+        cmd = args[1] if event == "subprocess.Popen" else None
+        seen.append([event, (cmd if isinstance(cmd, str) else [str(a) for a in cmd]) if cmd is not None else None])
 sys.addaudithook(audit)
 import importlib
 mode = sys.argv[1]
@@ -129,8 +130,12 @@ def test_hook_worker_start_is_the_only_process_effect(tmp_path):
         launches = [args for event, args in report["audit"] if event == "subprocess.Popen"]
         assert len(launches) == 1, report["audit"]
         argv = launches[0]
-        assert argv[1:5] == ["-I", "-m", "recalith.controller.worker", "--project"] and argv[5] == str(replay.root)
-        assert "recalith" not in argv[1:4] and "worker" not in argv[4:]  # not `python -m recalith worker start`
+        if isinstance(argv, str):  # Windows audits the CreateProcess command line, one string
+            assert subprocess.list2cmdline(["-I", "-m", "recalith.controller.worker", "--project", str(replay.root)]) in argv, argv
+            assert " -m recalith " not in argv and " worker start" not in argv
+        else:
+            assert argv[1:5] == ["-I", "-m", "recalith.controller.worker", "--project"] and argv[5] == str(replay.root)
+            assert "recalith" not in argv[1:4] and "worker" not in argv[4:]  # not `python -m recalith worker start`
         assert wh.wait_running(replay.root), "the started worker never came up"
     finally:
         wh.stop_worker(replay.root)

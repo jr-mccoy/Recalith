@@ -22,9 +22,9 @@ attempts, spawns the worker detached (new POSIX session; on Windows a detached
 process in a new process group that breaks away from the host's Job Object
 where the job permits it) with standard handles on the null device and no
 other inherited handles, and returns at once. It never waits for the worker to
-start or ingest, and it uses only the remaining soft deadline: below
-:data:`START_MIN_REMAINING` the start is shed before anything else could
-delay the hook. ``subprocess`` is imported only when a start is actually due.
+start or ingest, and it uses only the remaining soft deadline: the
+non-blocking lock probe runs whenever any time remains, and below
+:data:`START_MIN_REMAINING` the spawn itself is shed (the next hook retries). ``subprocess`` is imported only when a start is actually due.
 """
 
 from __future__ import annotations
@@ -324,14 +324,14 @@ def ensure_worker(ctx: dict, *, deadline: float, inherited=None, executable: str
     """
     if not ctx.get("worker_autostart"):
         return "worker_autostart_disabled"
-    if deadline - time.monotonic() < START_MIN_REMAINING:
+    if deadline - time.monotonic() <= 0:
         return "deadline_worker_start_skipped"
     executable = sys.executable if executable is None else executable
     if not executable or not locking_supported():
         return "worker_start_unavailable"
     root = ctx["root"]
     try:
-        if worker_running(root):
+        if worker_running(root):  # a non-blocking lock probe: microseconds, so it runs whenever time remains
             return "worker_running"
         stamp = os.path.join(run_dir(root), START_STAMP)
         last = _read_stamp(stamp)

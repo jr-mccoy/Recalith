@@ -106,9 +106,27 @@ def kill_pid(pid: int) -> None:
         pass
 
 
+def _started_pid(root: Path) -> int | None:
+    try:
+        stamp = json.loads((Path(process_env.run_dir(root)) / process_env.START_STAMP).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return stamp.get("pid") if isinstance(stamp.get("pid"), int) else None
+
+
 def stop_worker(root: Path, timeout: float = 20) -> bool:
-    """Stop the installation's worker; True if it stopped on request, False if it had to be killed."""
+    """Stop the installation's worker; True if it stopped on request, False if it had to be killed.
+
+    A worker the hook started that has not taken the lock yet is waited for,
+    so a failing test cannot leave one coming up behind its back.
+    """
+    pid = _started_pid(root)
+    if not process_env.worker_running(root) and pid is not None and pid_alive(pid):
+        wait_for(lambda: process_env.worker_running(root) or not pid_alive(pid), 15)
     if not process_env.worker_running(root):
+        if pid is not None and pid_alive(pid):
+            kill_pid(pid)
+            return False
         return True
     worker.request_stop(root)
     if wait_for(lambda: not process_env.worker_running(root), timeout):
@@ -172,11 +190,44 @@ def run_host(tmp: Path, root: Path, data: bytes, *, env: dict[str, str], event: 
     spec = {"hook": cf.hook_command(root, event, reply), "stdin": str(stdin), "env": env, "ready": str(ready), "job": job}
     kwargs: dict[str, Any] = {"start_new_session": True} if os.name != "nt" else {}
     host = subprocess.Popen([sys.executable, "-I", "-c", HOST_SCRIPT, json.dumps(spec)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, **kwargs)
-    record = wait_for(lambda: ready.exists() and ready.read_text(encoding="utf-8") and json.loads(ready.read_text(encoding="utf-8")), 60)
+    record = wait_for(lambda: _ready(ready), 60)
     if not record:
         host.kill()
         raise AssertionError(f"host never ran its hook: {host.stderr.read().decode('utf-8', 'replace')[-2000:] if host.stderr else ''}")
     return host, record
+
+
+def _ready(path: Path):
+    try:
+        text = path.read_text(encoding="utf-8")
+        return json.loads(text) if text else None
+    except (OSError, ValueError):
+        return None
+
+
+def kill_host(host: subprocess.Popen) -> None:
+    """Teardown: make sure a simulated host never outlives its test."""
+    if host.poll() is None:
+        try:
+            terminate_host(host)
+        except (OSError, subprocess.TimeoutExpired):
+            host.kill()
+
+
+def start_via_hook(run, attempts: int = 5) -> list[str]:
+    """Run hooks until one starts the worker; returns every hook's worker status.
+
+    Under deadline pressure a hook legitimately sheds the start
+    (``deadline_worker_start_skipped``) and the next hook retries; anything
+    else is a failure the caller sees.
+    """
+    seen = []
+    for _ in range(attempts):
+        status = run()
+        seen.append(status)
+        if status != "deadline_worker_start_skipped":
+            break
+    return seen
 
 
 def terminate_host(host: subprocess.Popen) -> None:
