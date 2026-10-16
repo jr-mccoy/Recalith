@@ -33,4 +33,4 @@ jobs:
       - name: Kill/restart failpoints against reference runs
         env:
           RECALITH_CRASH_REPS: ${{ github.event.inputs.reps || '20' }}
-        run: uv run --locked python -m pytest -q -rs tests/integration/test_capture_recovery.py
+        run: uv run --locked python -m pytest -q -rs tests/integration/test_capture_recovery.py tests/integration/test_worker.py

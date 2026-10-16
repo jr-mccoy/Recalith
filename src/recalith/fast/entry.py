@@ -4,20 +4,26 @@
 
 The project's hook launcher (``.recalith/bin/recalith-hook``) runs this with
 the pinned interpreter. It imports only the standard library and
-``recalith.fast``; it never opens SQLite, calls a model, touches the network,
-launches a process or probes a runtime. It always exits 0 with empty stdout:
-the host's nonblocking empty success. Operational failures become content-free
-gap records in ``spool/gaps/`` for health, never a blocked or failed host step.
+``recalith.fast``; it never opens SQLite, calls a model, touches the network
+or probes a runtime. The one process it may launch is this installation's
+worker, through the registered internal start path
+(:func:`recalith.fast.process_env.ensure_worker`), after capture, only when
+the manifest enables autostart and no worker holds the installation lock, and
+without waiting for it. It always exits 0 with empty stdout: the host's
+nonblocking empty success. Operational failures become content-free gap
+records in ``spool/gaps/`` for health, never a blocked or failed host step.
 
 One monotonic soft deadline starts at entry + 250 ms and is shared by every
 substep. Durable capture has priority: once publication has begun it is never
 abandoned because time ran out, and the receipt then reports
 ``capture_deadline_overrun``. Python's clock cannot interrupt a blocked
 ``fsync``/rename; the deadline schedules optional work, it does not bound
-storage latency. After capture the only optional work in this build is the
-post-tool typed-outcome overlay (shed first under time pressure) and pruning
-abandoned scratch at session start. Delivery is advertised unavailable and no
-context is emitted (Task 12b adds delivery; Task 13 certifies it).
+storage latency. After capture the optional work in this build is, in
+priority order, the worker start (shed with ``deadline_worker_start_skipped``
+below 30 ms of remaining time), the post-tool typed-outcome overlay and
+pruning abandoned scratch at session start. Delivery is advertised
+unavailable and no context is emitted (Task 12b adds delivery; Task 13
+certifies it).
 """
 
 from __future__ import annotations
@@ -27,7 +33,7 @@ import os
 import sys
 import time
 
-from recalith.fast import claude_capture, failpoints, redact, session, spool
+from recalith.fast import claude_capture, failpoints, process_env, redact, session, spool
 from recalith.fast.normalize import normalize_raw
 from recalith.fast.wire import LIMITS, WireError, canonical_json, derived_id, digest_of, is_id, is_valid, new_id, utc_now, validate
 
@@ -36,7 +42,7 @@ SOFT_DEADLINE_SECONDS = LIMITS["HOOK_SOFT_DEADLINE_MS"] / 1000
 SEGMENT_CAP = LIMITS["SEGMENT_CAP"]
 SEGMENT_MARGIN = 4 * 1024
 MAX_HOOK_INPUT = 4 * 1024 * 1024
-CURATOR_MARKER = "RECALITH_CURATOR_INSTALLATION"
+CURATOR_MARKER = process_env.CURATOR_MARKER
 ADAPTERS = ("claude_code",)
 DELIVERY_UNAVAILABLE = {"state": "unavailable", "reason": "capture_only_build"}
 PRUNE_MIN_REMAINING = 0.100
@@ -44,6 +50,12 @@ PRUNE_MIN_REMAINING = 0.100
 
 # --------------------------------------------------------------------------
 # HookContextWire: read from the validated local manifest, never from input
+#
+# context_schema 2 adds ``worker = {autostart, route_keys}`` (decision 0006);
+# a schema-1 manifest still captures, with worker autostart off.
+
+MANIFEST_V1_KEYS = frozenset({"context_schema", "project_id", "installation_id", "workspace_id", "root", "workspace_root", "root_identity", "workspace_root_identity", "policy_revision", "adapters"})
+MANIFEST_V2_KEYS = MANIFEST_V1_KEYS | {"worker"}
 
 
 def _identity_of(path: str) -> str:
@@ -74,6 +86,7 @@ def load_context(root: str, adapter_id: str) -> dict:
     except OSError:
         raise WireError("installation_relocated", "the recorded installation root is unavailable") from None
     adapter = raw["adapters"][adapter_id]
+    worker = raw.get("worker") or {"autostart": False, "route_keys": []}
     return {
         "project_id": raw["project_id"],
         "installation_id": raw["installation_id"],
@@ -86,13 +99,19 @@ def load_context(root: str, adapter_id: str) -> dict:
         "adapter_id": adapter_id,
         "host_version": adapter["host_version"],
         "delivery_enabled": False,  # capture-only build: never enabled, whatever the manifest says
+        "worker_autostart": worker["autostart"],
+        "worker_route_keys": list(worker["route_keys"]),
     }
 
 
 def valid_context_manifest(raw) -> bool:
-    if not isinstance(raw, dict) or set(raw) != {"context_schema", "project_id", "installation_id", "workspace_id", "root", "workspace_root", "root_identity", "workspace_root_identity", "policy_revision", "adapters"}:
+    if not isinstance(raw, dict) or type(raw.get("context_schema")) is not int:
         return False
-    if raw["context_schema"] != 1 or type(raw["policy_revision"]) is not int or raw["policy_revision"] < 1:
+    if (raw["context_schema"], set(raw)) not in ((1, MANIFEST_V1_KEYS), (2, MANIFEST_V2_KEYS)):
+        return False
+    if type(raw["policy_revision"]) is not int or raw["policy_revision"] < 1:
+        return False
+    if raw["context_schema"] == 2 and not valid_worker_section(raw["worker"]):
         return False
     for key, prefix in (("project_id", "proj_"), ("installation_id", "inst_"), ("workspace_id", "ws_")):
         if not (isinstance(raw[key], str) and raw[key].startswith(prefix) and is_id(raw[key])):
@@ -112,6 +131,16 @@ def valid_context_manifest(raw) -> bool:
         if not (entry["host_version"] is None or (isinstance(entry["host_version"], str) and 1 <= len(entry["host_version"]) <= 64)) or entry["delivery_enabled"] is not False:
             return False
     return True
+
+
+def valid_worker_section(worker) -> bool:
+    """``{autostart: bool, route_keys: [names]}``; route keys may never name a marker."""
+    if not isinstance(worker, dict) or set(worker) != {"autostart", "route_keys"} or type(worker["autostart"]) is not bool:
+        return False
+    keys = worker["route_keys"]
+    if not isinstance(keys, list) or len(keys) > process_env.MAX_KEYS:
+        return False
+    return all(isinstance(k, str) and process_env._NAME.match(k) and not process_env._forbidden(k) for k in keys)
 
 
 # --------------------------------------------------------------------------
@@ -243,9 +272,27 @@ def normalize_request(ctx: dict, request: dict) -> dict:
     return request
 
 
-def handle_hook(ctx: dict, request: dict, *, deadline: float) -> dict:
-    """Capture branch of DATA_CONTRACTS §2.3 ``handle_hook``; returns ``HookReplyWire``."""
-    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": []}
+WORKER_DEGRADATIONS = frozenset({"worker_independence_degraded", "deadline_worker_start_skipped", "worker_start_unavailable", "worker_start_failed"})
+
+
+def _start_worker(ctx: dict, reply: dict, *, deadline: float, inherited) -> None:
+    """The registered internal worker start (never the ``recalith worker`` CLI)."""
+    try:
+        status = process_env.ensure_worker(ctx, deadline=deadline, inherited=inherited)
+    except Exception:  # noqa: BLE001 - starting the worker never fails the hook
+        status = "worker_start_failed"
+    reply["worker"] = status
+    if status in WORKER_DEGRADATIONS:
+        reply["degradations"].append(status)
+
+
+def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None) -> dict:
+    """Capture branch of DATA_CONTRACTS §2.3 ``handle_hook``; returns ``HookReplyWire``.
+
+    ``inherited`` is the hook's own environment, the source for the worker's
+    fresh allowlisted environment; it is never modified.
+    """
+    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": [], "worker": None}
     for gap in request.get("coverage_gaps", []):
         _gap(ctx, gap["code"], gap["reason"])
         if gap["code"] not in reply["degradations"]:
@@ -256,6 +303,10 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float) -> dict:
         receipt = hook_capture(ctx, request["events"], source_registrations=request.get("source_registrations", ()), deadline=deadline, scrubbed_in_process=scrubbed)
         reply["receipt"] = receipt
         reply["degradations"].extend(receipt["coverage"].get("degraded", []))
+    # Capture has finished (acknowledged or not): only now may the worker start.
+    _start_worker(ctx, reply, deadline=deadline, inherited=inherited)
+    if request.get("events"):
+        receipt = reply["receipt"]
         if receipt["status"] != "accepted":
             reply["degradations"].append("capture_not_acknowledged")
             return reply
@@ -280,7 +331,7 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float) -> dict:
 
 def run(root: str, adapter_id: str, data: bytes, *, registered_event: str | None, env, deadline: float) -> dict:
     """Everything after argument parsing; returns the ``HookReplyWire``."""
-    base = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": []}
+    base = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": [], "worker": None}
     if env.get(CURATOR_MARKER):
         base["degradations"].append("curator_session_ignored")  # SYSTEM_SPEC §5.3: never evidence
         return base
@@ -308,7 +359,7 @@ def run(root: str, adapter_id: str, data: bytes, *, registered_event: str | None
         _gap(ctx, "not_captured", exc.code)
         base["degradations"].append(exc.code)
         return base
-    return handle_hook(ctx, normalize_request(ctx, request), deadline=deadline)
+    return handle_hook(ctx, normalize_request(ctx, request), deadline=deadline, inherited=env)
 
 
 def _parse_args(argv: list) -> tuple:

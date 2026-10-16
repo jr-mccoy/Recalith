@@ -29,7 +29,7 @@ baseline = set(sys.modules)
 seen = []
 def audit(event, args):
     if event.startswith(tuple(json.loads(os.environ["RECALITH_TEST_AUDIT"]))):
-        seen.append(event)
+        seen.append([event, [str(a) for a in args[1]] if event == "subprocess.Popen" else None])
 sys.addaudithook(audit)
 import importlib
 mode = sys.argv[1]
@@ -56,19 +56,20 @@ def _run_probe(args: list[str], stdin: str = "") -> dict:
     return json.loads(proc.stdout.strip().splitlines()[-1])
 
 
-def _assert_clean(report: dict) -> None:
+def _assert_clean(report: dict, *, allowed: tuple = ()) -> None:
     stdlib = set(report["stdlib"])
     offenders = [m for m in report["new"] if m.split(".")[0] not in stdlib and m != "recalith" and not m.startswith("recalith.fast")]
     assert offenders == [], f"non-stdlib modules imported by the hook path: {offenders}"
-    forbidden = [m for m in report["new"] if any(m == f or m.startswith(f + ".") for f in FORBIDDEN_MODULES)]
+    forbidden = [m for m in report["new"] if any(m == f or m.startswith(f + ".") for f in FORBIDDEN_MODULES if f not in allowed)]
     assert forbidden == [], f"forbidden modules on the hook path: {forbidden}"
-    assert report["audit"] == [], f"forbidden runtime effects on the hook path: {report['audit']}"
+    effects = [e for e, _ in report["audit"] if e != "subprocess.Popen" or "subprocess" not in allowed]
+    assert effects == [], f"forbidden runtime effects on the hook path: {report['audit']}"
     # Interpreter/site start-up (e.g. a uv ``_virtualenv`` .pth hook) is outside the
     # entry's control, but must not pull in heavy packages either.
     assert not [m for m in report["baseline"] if m.split(".")[0] in ("pydantic", "packaging", "sqlite3")]
 
 
-@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.entry"])
+@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
 def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     report = _run_probe(["package", module])
     _assert_clean(report)
@@ -105,3 +106,31 @@ def test_hook_wire_tables_match_strict_contracts():
     """The generated validator tables have no drift and every strict rule has a stdlib twin."""
     proc = subprocess.run([sys.executable, str(ROOT / "tools" / "generate_hook_wire.py"), "--check"], capture_output=True, text=True, encoding="utf-8", timeout=120, check=False)
     assert proc.returncode == 0, proc.stderr
+
+
+def test_hook_worker_start_is_the_only_process_effect(tmp_path):
+    """With autostart enabled, the hook's one process effect is the registered worker start (A58, A73).
+
+    No SQLite, socket, exec or spawn other than one ``subprocess.Popen`` of
+    ``python -I -m recalith.controller.worker`` for this installation, never
+    the public ``recalith worker`` CLI; ``subprocess`` is imported only on
+    that path. Later hooks find the worker running and launch nothing.
+    """
+    import worker_hosts as wh
+
+    replay = cf.Replay(tmp_path)
+    wh.enable_autostart(replay)
+    try:
+        cases = []
+        for record in cf.records("lifecycle")[:4]:
+            cases.append({"argv": ["--project", str(replay.root), "claude_code", "--event", record["event"]], "stdin": replay.prepare(record).decode("utf-8"), "env": {"CLAUDECODE": "1"}})
+        report = _run_probe(["entry"], json.dumps(cases))
+        _assert_clean(report, allowed=("subprocess",))
+        launches = [args for event, args in report["audit"] if event == "subprocess.Popen"]
+        assert len(launches) == 1, report["audit"]
+        argv = launches[0]
+        assert argv[1:5] == ["-I", "-m", "recalith.controller.worker", "--project"] and argv[5] == str(replay.root)
+        assert "recalith" not in argv[1:4] and "worker" not in argv[4:]  # not `python -m recalith worker start`
+        assert wh.wait_running(replay.root), "the started worker never came up"
+    finally:
+        wh.stop_worker(replay.root)
