@@ -220,16 +220,47 @@ PARSERS: dict[str, Callable[[InstallationContext], Any]] = {claude_capture.TRANS
 class SpawnInfo:
     spawned_by: str = "direct"  # hook | direct
     method: str = "none"  # posix_session | windows_breakaway | windows_no_breakaway | none
+    in_job: bool | None = None  # Windows: observed by the worker itself (IsProcessInJob)
 
     def independence(self) -> dict[str, Any]:
-        degraded = ["job_breakaway_denied"] if self.method == "windows_no_breakaway" else []
-        if self.method in DETACHED_METHODS:
+        """What the worker can honestly claim about outliving its host.
+
+        A Windows breakaway flag is not evidence: a venv launcher between host
+        and hook runs the hook in a nested job, so breakaway can leave the
+        worker inside the host's job. Detachment is claimed on Windows only
+        when the worker observes itself in no Job Object at all.
+        """
+        degraded: list[str] = []
+        if self.method == "windows_no_breakaway":
+            degraded.append("job_breakaway_denied")
+        elif self.method == "windows_breakaway" and self.in_job is not False:
+            degraded.append("job_membership_unverified")
+        if self.method in DETACHED_METHODS and not degraded:
             state = "detached"
         elif degraded:
             state = "degraded"
         else:
             state = "not_detached"
-        return {"spawned_by": self.spawned_by, "method": self.method, "state": state, "degraded_reasons": degraded}
+        return {"spawned_by": self.spawned_by, "method": self.method, "state": state, "degraded_reasons": degraded, "in_job": self.in_job}
+
+
+def windows_in_job() -> bool | None:  # pragma: no cover - native Windows
+    """Whether this process is in any Job Object (None when it cannot be observed)."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        k32.IsProcessInJob.argtypes = [wintypes.HANDLE, wintypes.HANDLE, ctypes.POINTER(wintypes.BOOL)]
+        result = wintypes.BOOL()
+        if not k32.IsProcessInJob(k32.GetCurrentProcess(), None, ctypes.byref(result)):
+            return None
+        return bool(result.value)
+    except (OSError, AttributeError):
+        return None
 
 
 # --------------------------------------------------------------------------
@@ -840,7 +871,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ctx = resolve_installation(Path(args["project"]), actor=WORKER_ACTOR)
         if env.get(process_env.WORKER_MARKER) != ctx.installation_id:
             raise RecalithError("policy_refused", "the worker role marker does not name this installation")
-        spawn = SpawnInfo(spawned_by=args.get("spawned-by", "direct"), method=args.get("spawn-method", "none"))
+        spawn = SpawnInfo(spawned_by=args.get("spawned-by", "direct"), method=args.get("spawn-method", "none"), in_job=windows_in_job())
         stop = threading.Event()
         if os.name != "nt":
             import signal

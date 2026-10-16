@@ -236,8 +236,12 @@ def test_hook_started_worker_survives_host_termination(replay, tmp_path):
         status = wh.wait_running(replay.root)
         assert status, "the hook-started worker never came up"
         independence = status["spawn"]
-        if independence["state"] != "detached":
+        if os.name != "nt" and independence["state"] != "detached":
             pytest.skip(f"this platform/session prevented detachment ({independence['method']}: {independence['degraded_reasons']}); reported degraded, survival not claimed")
+        if os.name == "nt":
+            # The host job permits breakaway, so survival is supported here and is tested; the worker may
+            # still claim only degraded independence when it cannot verify that it left every job.
+            assert independence["method"] == "windows_breakaway" and (independence["state"] == "detached") == (independence["in_job"] is False)
         assert reply["worker"] == "worker_started"
         for h in hosts:
             wh.terminate_host(h)
@@ -268,7 +272,7 @@ def test_job_without_breakaway_reports_degraded_independence(replay, tmp_path): 
         assert status, "the hook-started worker never came up"
         claimed = status["spawn"]
         if reply["worker"] == "worker_independence_degraded":
-            assert claimed == {"spawned_by": "hook", "method": "windows_no_breakaway", "state": "degraded", "degraded_reasons": ["job_breakaway_denied"]}
+            assert claimed["method"] == "windows_no_breakaway" and claimed["state"] == "degraded" and "job_breakaway_denied" in claimed["degraded_reasons"]
         for h in hosts:
             wh.terminate_host(h)
         died = wh.wait_for(lambda: not process_env.worker_running(replay.root), 10)
@@ -437,7 +441,7 @@ def test_installed_host_starts_a_worker_that_outlives_the_session(tmp_path, star
     assert result["returncode"] == 0 and not result["timed_out"]
     status = wh.wait_running(ws, timeout=20)
     assert status, "no worker survived the host session"
-    assert status["spawn"] == {"spawned_by": "hook", "method": "posix_session", "state": "detached", "degraded_reasons": []}
+    assert status["spawn"] == {"spawned_by": "hook", "method": "posix_session", "state": "detached", "degraded_reasons": [], "in_job": None}
     assert status["environment"]["host_markers_present"] == [] and status["environment"]["role_marker"] == ctx.installation_id
     # The worker, not the test, ingests the live session's capture, including SessionEnd sent as the host exited.
     expected = {"session_started", "user_message", "tool_started", "tool_finished", "session_ended"}
