@@ -1919,7 +1919,87 @@
         "verdict": "required_path_unavailable",
         "certification_scope": "Stub feasibility for this host/model/config only; not product readiness."
       }
+    },
+    "capture": {
+      "claude_code": {
+        "adapter_id": "claude_code",
+        "adapter_module": "src/recalith/fast/claude_capture.py",
+        "capture_state": "capture_only",
+        "certified_capture_versions": [
+          "2.1.301"
+        ],
+        "observed_version": "2.1.301",
+        "transcript_parser": "claude_code_transcript@2.1.301",
+        "evidence_mode": "request_capture",
+        "evidence_note": "Real installed-host hook payloads and transcript structure; model turns came from a loopback scripted endpoint with a placeholder key. Not a live certification and not evidence of model-visible delivery.",
+        "fixtures": "tests/fixtures/hosts/claude/2.1.301",
+        "captured_at": "2026-10-16T15:35:29.770850Z",
+        "platform": {
+          "arch": "x86_64",
+          "os": "linux",
+          "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "event_roles": {
+          "PostCompact": "compaction",
+          "PostToolUse": "post_tool",
+          "PostToolUseFailure": "post_tool",
+          "PreCompact": "compaction",
+          "PreToolUse": "pre_tool",
+          "SessionEnd": "end",
+          "SessionStart": "session_start",
+          "Stop": "stop",
+          "SubagentStart": "subagent",
+          "SubagentStop": "subagent",
+          "UserPromptSubmit": "prompt"
+        },
+        "events_observed": [
+          "PermissionRequest",
+          "PostCompact",
+          "PostToolUse",
+          "PostToolUseFailure",
+          "PreCompact",
+          "PreToolUse",
+          "SessionEnd",
+          "SessionStart",
+          "Stop",
+          "SubagentStart",
+          "SubagentStop",
+          "UserPromptSubmit"
+        ],
+        "events_observed_unmapped": [
+          "PermissionRequest"
+        ],
+        "events_registered_not_observed": [
+          "ConfigChange",
+          "CwdChanged",
+          "Elicitation",
+          "ElicitationResult",
+          "FileChanged",
+          "InstructionsLoaded",
+          "Notification",
+          "PermissionDenied",
+          "StopFailure",
+          "TaskCompleted",
+          "TaskCreated"
+        ],
+        "unsupported_event_handling": "explicit content-free coverage gap (spool/gaps), no guessed mapping",
+        "unknown_version_handling": "capture-only conservative mode: no user/tool authority, no version-specific exit-code parsing, parser coverage incomplete",
+        "delivery": "unavailable in this build (Task 12b adds the branch; Task 13 certifies paths)",
+        "host_output_limits": {
+          "bash_stdout_head_cap_chars": 30000,
+          "bash_failure_error_chars": "about 10000, middle-truncated with '... [N characters truncated] ...'",
+          "flagged_as": "coverage.truncated + missing_context, warning host_output_truncated"
+        },
+        "latency": "docs/measurements/hook-latency-capture-only.json",
+        "owned_hook_cleanup": {
+          "missing": 0,
+          "modified": 0,
+          "removed": 23,
+          "unrelated_preserved": true
+        }
+      }
     }
   },
-  "updated_at": "2026-10-15T23:10:55.602769Z"
+  "updated_at": "2026-10-16T15:52:50.649760Z"
 }

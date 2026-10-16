@@ -14,6 +14,7 @@ from .common import (
     Id,
     JsonObject,
     NonNegative,
+    One,
     OriginEventKey,
     RecordRef,
     Revision,
@@ -24,7 +25,11 @@ from .common import (
     UtcTime,
     canonical_json,
 )
-from .config import SESSION_SCRATCH_CAP, SESSION_SCRATCH_ENTRIES, SESSION_SCRATCH_OUTCOMES
+from .config import (
+    SESSION_SCRATCH_CAP,
+    SESSION_SCRATCH_ENTRIES,
+    SESSION_SCRATCH_OUTCOMES,
+)
 from .events import ActionDescriptor, Outcome
 
 Purpose = Literal["session_start", "prompt", "pre_action", "compact_restore", "manual"]
@@ -69,7 +74,7 @@ class ContextItem(StrictModel):
 
 
 class ContextPacket(StrictModel):
-    packet_schema: Literal[1]
+    packet_schema: One
     project_id: Id
     installation_id: Id
     store_revision: NonNegative
@@ -170,7 +175,7 @@ class ScratchOutcome(StrictModel):
 
 
 class SessionScratch(StrictModel):
-    scratch_schema: Literal[1]
+    scratch_schema: One
     session_id: Id
     state_revision: NonNegative
     store_revision: NonNegative

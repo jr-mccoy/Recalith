@@ -18,7 +18,14 @@ import uuid
 from pathlib import Path
 from typing import Annotated, Any, Literal, Mapping
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    model_validator,
+)
 
 # --------------------------------------------------------------------------
 # Base model
@@ -75,6 +82,23 @@ def _check_utc(value: str) -> str:
         raise ValueError("timestamp is not a valid calendar time") from exc
     return value
 
+
+def _exact_type(kind: type):
+    """Pydantic's literal validator accepts ``True``/``1.0`` for ``1`` and ``0`` for
+    ``False`` even in strict mode; this before-check keeps literals type-exact."""
+
+    def check(value: Any) -> Any:
+        if type(value) is not kind:
+            raise ValueError(f"expected exactly a JSON {'boolean' if kind is bool else 'integer'}")
+        return value
+
+    check.exact_type = kind.__name__  # type: ignore[attr-defined]  # read by tools/generate_hook_wire.py
+    return BeforeValidator(check)
+
+
+ExactInt = _exact_type(int)
+ExactBool = _exact_type(bool)
+One = Annotated[Literal[1], ExactInt]
 
 Id = Annotated[str, AfterValidator(_check_id)]
 Digest = Annotated[str, AfterValidator(_check_digest)]
@@ -169,6 +193,7 @@ def bounded_text(max_bytes: int):
             raise ValueError(f"text exceeds {max_bytes} UTF-8 bytes")
         return value
 
+    check.utf8_max = max_bytes  # type: ignore[attr-defined]  # read by tools/generate_hook_wire.py
     return AfterValidator(check)
 
 

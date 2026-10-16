@@ -9,7 +9,11 @@ in a fresh process, arms one failpoint to kill the process, and executes
 scenario steps from ``start``. ACCEPTANCE_TESTS §4: the parent restarts it,
 then compares the reopened store with a reference run.
 
-    python capture_scenarios.py ROOT SEED START [FAILPOINT SKIP]
+    python capture_scenarios.py ROOT SEED START [FAILPOINT SKIP] [--producer service|fast]
+
+``--producer fast`` sends the second producer's records through the stdlib
+hook path (``recalith.fast.normalize`` + ``recalith.fast.entry.hook_capture``)
+instead of the service ``capture``; the same failpoints apply to both.
 """
 
 from __future__ import annotations
@@ -31,6 +35,8 @@ from recalith.capture.normalize import RawEvent, normalize_event  # noqa: E402
 from recalith.contracts.common import Actor  # noqa: E402
 from recalith.contracts.config import ProjectConfig  # noqa: E402
 from recalith.core import identity  # noqa: E402
+from recalith.fast import entry as fast_entry  # noqa: E402
+from recalith.fast.normalize import normalize_raw  # noqa: E402
 from recalith.storage import db, failpoints, spool  # noqa: E402
 
 ADAPTER = "test_jsonl"
@@ -155,10 +161,20 @@ def ensure_appended(root: Path, steps: list[Step], upto: int) -> None:
         fh.write(expected[len(current) :])
 
 
-def run_step(root: Path, steps: list[Step], index: int, source_id: str) -> None:
+def wire_context(ctx) -> dict[str, Any]:
+    return {"root": str(ctx.root), "project_id": ctx.project_id, "installation_id": ctx.installation_id, "workspace_id": ctx.workspace_id}
+
+
+def run_step(root: Path, steps: list[Step], index: int, source_id: str, producer: str = "service") -> None:
     ensure_appended(root, steps, index)
     ctx = context(root)
-    if steps[index].hook_records:
+    if steps[index].hook_records and producer == "fast":
+        wire = wire_context(ctx)
+        envelopes = []
+        for record in steps[index].hook_records:
+            envelopes += normalize_raw(wire, raw_from_record(record, record["uuid"]))[0]
+        fast_entry.hook_capture(wire, envelopes)
+    elif steps[index].hook_records:
         envelopes = []
         for record in steps[index].hook_records:
             envelopes += normalize_event(ctx, raw_from_record(record, record["uuid"]))[0]
@@ -167,10 +183,10 @@ def run_step(root: Path, steps: list[Step], index: int, source_id: str) -> None:
     pipeline.ingest_ready(ctx)
 
 
-def run_steps(root: Path, seed: int, start: int, source_id: str) -> None:
+def run_steps(root: Path, seed: int, start: int, source_id: str, producer: str = "service") -> None:
     steps = build_scenario(seed)
     for index in range(start, len(steps)):
-        run_step(root, steps, index, source_id)
+        run_step(root, steps, index, source_id, producer)
 
 
 def settle(root: Path, source_id: str) -> None:
@@ -212,6 +228,11 @@ def authoritative_state(root: Path) -> dict[str, Any]:
 
 
 def main(argv: list[str]) -> int:
+    producer = "service"
+    if "--producer" in argv:
+        at = argv.index("--producer")
+        producer = argv[at + 1]
+        argv = argv[:at] + argv[at + 2 :]
     root, seed, start = Path(argv[1]), int(argv[2]), int(argv[3])
     if len(argv) > 4:
         failpoints.arm(argv[4], failpoints.kill, skip=int(argv[5]))
@@ -221,7 +242,7 @@ def main(argv: list[str]) -> int:
     steps = build_scenario(seed)
     for index in range(start, len(steps)):
         print(f"step {index}", flush=True)  # the parent restarts from the crashed step
-        run_step(root, steps, index, source_id)
+        run_step(root, steps, index, source_id, producer)
     return 0
 
 

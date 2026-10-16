@@ -30,6 +30,8 @@ jobs:
         run: uv sync --locked --python ${{ matrix.python }}
       - name: Schema snapshots have no unversioned drift
         run: uv run --locked python tools/generate_schemas.py --check
+      - name: Hook wire validators match the strict contracts
+        run: uv run --locked python tools/generate_hook_wire.py --check
       - name: requirements.lock matches uv.lock
         if: matrix.os == 'ubuntu-latest'
         shell: bash

@@ -39,6 +39,7 @@ from recalith.contracts.common import InstallationContext, canonical_json, deriv
 from recalith.contracts.events import EventEnvelope
 from recalith.core.paths import canonical
 from recalith.errors import RecalithError
+from recalith.fast.normalize import RecordGap
 from recalith.storage import spool
 from recalith.storage.db import Store, Txn
 
@@ -130,12 +131,49 @@ def register_source(store: Store, ctx: InstallationContext, *, adapter_id: str, 
     return SourceRegistration(source_id, adapter_id, session_id, source_kind, exact, identity)
 
 
+def register_proposal(txn: Txn, ctx: InstallationContext, proposal: Any) -> str | None:
+    """Ingestion: record a hook-observed transcript registration (decision 0005).
+
+    The hook proposes the exact path from the session payload; this re-derives
+    the canonical locator and source ID, refuses links and non-regular files,
+    and inserts idempotently. Returns a content-free gap code when refused.
+    """
+    if proposal.source_kind not in SOURCE_KINDS:
+        return "registration_kind_unsupported"
+    if not proposal.locator.endswith(".jsonl"):
+        return "registration_path_refused"
+    try:
+        exact = _exact_path(proposal.locator)
+    except RecalithError:
+        return "registration_path_refused"
+    locator = str(exact)
+    if locator != proposal.locator or source_id_for(ctx, proposal.adapter_id, locator) != proposal.source_id:
+        return "registration_identity_mismatch"
+    identity = None
+    try:
+        st = os.lstat(exact)
+    except FileNotFoundError:
+        pass  # a session's transcript may not exist yet when its first hook fires
+    except OSError:
+        return "registration_path_refused"
+    else:
+        if stat.S_ISLNK(st.st_mode) or not stat.S_ISREG(st.st_mode):
+            return "registration_path_refused"
+        identity = _identity(st)
+    ensure_session(txn, ctx, session_id=proposal.session_id, adapter_id=proposal.adapter_id, host_session_id=proposal.host_session_id)
+    txn.execute(
+        "INSERT OR IGNORE INTO capture_sources (source_id, adapter_id, session_id, source_kind, locator, coverage, registered_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (proposal.source_id, proposal.adapter_id, proposal.session_id, proposal.source_kind, locator, canonical_json({"registered_identity": identity, "parser": proposal.parser}).decode(), utc_now()),
+    )
+    return None
+
+
 def get_source(store: Store, source_id: str) -> SourceRegistration | None:
     with store.read() as view:
         row = view.execute("SELECT source_id, adapter_id, session_id, source_kind, locator, coverage FROM capture_sources WHERE source_id = ?", (source_id,)).fetchone()
     if row is None:
         return None
-    return SourceRegistration(row[0], row[1], row[2], row[3], Path(row[4]), json.loads(row[5]).get("registered_identity", ""))
+    return SourceRegistration(row[0], row[1], row[2], row[3], Path(row[4]), json.loads(row[5]).get("registered_identity") or "")
 
 
 def stored_cursors(store: Store, source_id: str) -> list[dict[str, Any]]:
@@ -260,7 +298,12 @@ def read_tail(ctx: InstallationContext, registration: SourceRegistration, cursor
                 result.gap("malformed_record")
                 continue
             line_ctx = LineContext(registration.source_id, generation, line_start, line_no)
-            for raw_event in parse_line(record, line_ctx):
+            try:
+                raw_events = parse_line(record, line_ctx)
+            except RecordGap as exc:
+                result.gap(exc.code)
+                continue
+            for raw_event in raw_events:
                 try:
                     envelopes, _notes = normalize_event(ctx, raw_event)
                 except RecalithError as exc:

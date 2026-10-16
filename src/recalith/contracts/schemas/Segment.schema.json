@@ -331,6 +331,60 @@
       ],
       "title": "SourceRef",
       "type": "object"
+    },
+    "SourceRegistrationProposal": {
+      "additionalProperties": false,
+      "description": "An exact transcript path observed in an actual session payload (decision 0005).\n\nHooks cannot write SQLite, so the fast path proposes the registration in\nthe segment and ingestion records it in ``capture_sources`` in the same\ntransaction as the session's events. ``locator`` is a local absolute path;\nit never enters an event payload.",
+      "properties": {
+        "adapter_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "host_session_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Host Session Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        },
+        "parser": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Parser",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "const": "transcript_jsonl",
+          "title": "Source Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "adapter_id",
+        "session_id",
+        "host_session_id",
+        "source_kind",
+        "locator",
+        "parser"
+      ],
+      "title": "SourceRegistrationProposal",
+      "type": "object"
     }
   },
   "$id": "recalith:contracts/Segment",
@@ -375,6 +429,14 @@
       "const": 1,
       "title": "Segment Schema",
       "type": "integer"
+    },
+    "source_registrations": {
+      "items": {
+        "$ref": "#/$defs/SourceRegistrationProposal"
+      },
+      "maxItems": 8,
+      "title": "Source Registrations",
+      "type": "array"
     }
   },
   "required": [

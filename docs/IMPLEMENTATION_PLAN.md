@@ -175,7 +175,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 3b: Capture-only real Claude adapter and fast-path boundary
 
-**Files:** Create `src/recalith/fast/{__init__,wire,spool,session,claude_capture,entry}.py`, `tools/generate_hook_wire.py`, `tests/platform/test_hook_imports.py`, `tests/platform/test_capture_only_claude.py`, and `tests/fixtures/hosts/claude/<version>/`.
+**Files:** Create `src/recalith/fast/{__init__,wire,spool,session,claude_capture,entry}.py`, `tools/generate_hook_wire.py`, `tests/platform/test_hook_imports.py`, `tests/platform/test_capture_only_claude.py`, and `tests/fixtures/hosts/claude/<version>/`. Task 3b also moved the stdlib `storage/{spool,failpoints}.py` and `capture/{redact,parsers}.py` into `fast/` (old names alias the same modules) and the normalization core into `fast/normalize.py`, and added the generated `fast/wire_generated.py`, `capture/hooks.py` (hook context manifest), the `.recalith/bin/recalith-hook` launchers, `tools/capture_claude_fixtures.py` with `tools/fixtures/hook_recorder.py`, `tools/measure_hook_latency.py` and `tests/platform/claude_fixtures.py` (decision 0005).
 
 **Interfaces:** Produce the primitive `hook_capture` and `handle_hook` capture branch from DATA_CONTRACTS §2.3. Reuse the same spool format and wire fixtures as Task 3. Full delivery is deferred to Tasks 11–13.
 

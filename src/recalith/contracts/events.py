@@ -12,12 +12,16 @@ from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
+from recalith.fast.spool import segment_body
+
 from .common import (
     DependencyRef,
     Digest,
+    ExactBool,
     Id,
     JsonObject,
     NonNegative,
+    One,
     OriginEventKey,
     PortablePath,
     RecordRef,
@@ -155,7 +159,7 @@ class ToolPayload(StrictModel):
     text_chunks: list[TextChunk] = Field(default_factory=list)
     error_signature: Annotated[str, bounded_text(ERROR_SIGNATURE_CAP)] | None = None
     # Reserved false in v1: no host or assistant-intent signal is certified to set it.
-    expected_red: Literal[False] = False
+    expected_red: Annotated[Literal[False], ExactBool] = False
 
     @model_validator(mode="after")
     def _result_consistency(self) -> "ToolPayload":
@@ -173,7 +177,7 @@ class AgentAttemptPayload(StrictModel):
 
 
 class EventEnvelope(StrictModel):
-    schema_version: Literal[1]
+    schema_version: One
     event_id: Id
     project_id: Id
     installation_id: Id
@@ -262,19 +266,45 @@ class CursorProposal(StrictModel):
     cursor: JsonObject
 
 
+SOURCE_REGISTRATIONS_MAX = 8
+
+
+class SourceRegistrationProposal(StrictModel):
+    """An exact transcript path observed in an actual session payload (decision 0005).
+
+    Hooks cannot write SQLite, so the fast path proposes the registration in
+    the segment and ingestion records it in ``capture_sources`` in the same
+    transaction as the session's events. ``locator`` is a local absolute path;
+    it never enters an event payload.
+    """
+
+    source_id: Id
+    adapter_id: SmallStr
+    session_id: Id
+    host_session_id: Annotated[str, Field(min_length=1, max_length=256)]
+    source_kind: Literal["transcript_jsonl"]
+    locator: Annotated[str, Field(min_length=1, max_length=1024)]
+    parser: Annotated[str, Field(min_length=1, max_length=64)]
+
+
 class Segment(StrictModel):
-    segment_schema: Literal[1]
+    segment_schema: One
     segment_id: Id
     project_id: Id
     installation_id: Id
     envelopes: Annotated[list[EventEnvelope], Field(min_length=1)]
     cursor_proposals: list[CursorProposal] = Field(default_factory=list)
+    source_registrations: Annotated[list[SourceRegistrationProposal], Field(max_length=SOURCE_REGISTRATIONS_MAX)] = Field(default_factory=list)
     created_at: UtcTime
     content_digest: Digest
 
     @model_validator(mode="after")
     def _bounded_and_owned(self) -> "Segment":
-        body = {"envelopes": [e.model_dump(mode="json") for e in self.envelopes], "cursor_proposals": [c.model_dump(mode="json") for c in self.cursor_proposals]}
+        body = segment_body(
+            [e.model_dump(mode="json") for e in self.envelopes],
+            [c.model_dump(mode="json") for c in self.cursor_proposals],
+            [r.model_dump(mode="json") for r in self.source_registrations],
+        )
         if len(canonical_json(body)) > SEGMENT_CAP:
             raise ValueError("segment exceeds 256 KiB")
         if digest_of(body) != self.content_digest:

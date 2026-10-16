@@ -156,7 +156,8 @@
       "required_behavior": "Explicit import-origin remapping",
       "blocking": true,
       "owning_tasks": [
-        "2"
+        "2",
+        "3b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -171,7 +172,8 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_capture_recovery.py::test_foreign_and_tampered_input_is_rejected",
-            "tests/integration/test_installations.py::test_foreign_installation_is_rejected"
+            "tests/integration/test_installations.py::test_foreign_installation_is_rejected",
+            "tests/platform/test_capture_only_claude.py::test_foreign_workspace_and_copied_checkout_capture_nothing"
           ],
           "platforms": [
             "linux",
@@ -179,7 +181,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Store/repository and capture paths reject foreign identity; operation/import paths are Tasks 5 and 15."
+          "notes": "Store/repository, capture and hook paths reject foreign identity, foreign workspaces and copied checkouts; operation/import paths are Tasks 5 and 15."
         },
         {
           "variant": "full_only",
@@ -289,7 +291,9 @@
           "tests": [
             "tests/integration/test_capture_recovery.py::test_disk_full_does_not_acknowledge",
             "tests/integration/test_capture_recovery.py::test_real_file_size_limit_is_not_acknowledged",
-            "tests/integration/test_capture_recovery.py::test_real_permission_failure_is_not_acknowledged"
+            "tests/integration/test_capture_recovery.py::test_real_permission_failure_is_not_acknowledged",
+            "tests/platform/test_capture_only_claude.py::test_hook_capture_failure_is_not_acknowledged",
+            "tests/platform/test_capture_only_claude.py::test_real_permission_failure_is_nonblocking"
           ],
           "platforms": [
             "linux",
@@ -297,7 +301,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Service capture path; host-continues behavior of the hook path and health integration are Tasks 3b/17. Real EACCES variant skips when run as root."
+          "notes": "Service and hook capture paths: not_captured, no acknowledgment, content-free gap, host exit 0 with empty output. Health composition is Task 17. Real EACCES variants skip when run as root."
         }
       ]
     },
@@ -327,7 +331,10 @@
             "tests/integration/test_capture_recovery.py::test_late_result_joins_its_call",
             "tests/integration/test_capture_recovery.py::test_partial_line_is_read_once_when_completed",
             "tests/integration/test_capture_recovery.py::test_swapped_symlink_at_registered_path_is_refused",
-            "tests/integration/test_capture_recovery.py::test_truncation_and_replacement_are_explicit_gaps"
+            "tests/integration/test_capture_recovery.py::test_truncation_and_replacement_are_explicit_gaps",
+            "tests/platform/test_capture_only_claude.py::test_capture_only_real_lifecycle",
+            "tests/platform/test_capture_only_claude.py::test_late_result_joins_its_own_call",
+            "tests/platform/test_capture_only_claude.py::test_transcript_supplement_recovers_assistant_text_once"
           ],
           "platforms": [
             "linux",
@@ -335,7 +342,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Test-only JSONL source; real Claude transcript parser and fixtures are Task 3b, host integration Tasks 13/14."
+          "notes": "Test-only JSONL source plus real Claude 2.1.301 hook payloads and sanitized transcript (request-capture fixtures). Worker-driven recovery is Task 4; host integration Tasks 13/14."
         }
       ]
     },
@@ -361,7 +368,9 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run",
-            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate"
+            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate",
+            "tests/platform/test_capture_only_claude.py::test_duplicate_and_changed_host_events",
+            "tests/platform/test_capture_only_claude.py::test_real_payload_kill_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -369,7 +378,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Dedup, conflict rows and guidance-epoch advance are done; claim-level caution suspension needs claims (Tasks 5/10)."
+          "notes": "Dedup and conflict rows on service and fast producers (crash matrix runs both); claim-level caution suspension needs claims (Tasks 5/10)."
         }
       ]
     },
@@ -1126,7 +1135,8 @@
       "required_behavior": "Stored/transmitted normalized text is scrubbed or operation refused; error logs do not repeat the secret",
       "blocking": true,
       "owning_tasks": [
-        "3"
+        "3",
+        "3b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -1142,6 +1152,9 @@
           "tests": [
             "tests/integration/test_capture_recovery.py::test_capture_rescrubs_envelopes_built_outside_normalize",
             "tests/integration/test_capture_recovery.py::test_secret_never_reaches_spool",
+            "tests/platform/test_capture_only_claude.py::test_hook_capture_refuses_unscrubbed_envelopes_from_other_callers",
+            "tests/platform/test_capture_only_claude.py::test_scratch_outcomes_are_scrubbed_bounded_and_locked",
+            "tests/platform/test_capture_only_claude.py::test_secret_prompt_is_scrubbed_before_any_byte_is_written",
             "tests/unit/test_normalize.py::test_secret_in_identity_field_is_refused_without_echo",
             "tests/unit/test_redaction.py"
           ],
@@ -1151,7 +1164,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Command arguments and tool output are covered; model-proposal scrubbing before provider transmission is Task 7/9."
+          "notes": "Command arguments, tool output, real hook prompts and scratch are covered; model-proposal scrubbing before provider transmission is Task 7/9."
         }
       ]
     },
@@ -1571,7 +1584,8 @@
         "7",
         "13",
         "14",
-        "17"
+        "17",
+        "3b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -1583,14 +1597,19 @@
             "full"
           ],
           "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/platform/test_capture_only_claude.py::test_capture_only_real_lifecycle",
+            "tests/platform/test_capture_only_claude.py::test_uncertified_host_version_is_conservative",
+            "tests/platform/test_capture_only_claude.py::test_unknown_transcript_records_and_host_fields_are_gaps"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17."
         },
         {
           "variant": "full_only",
@@ -1790,7 +1809,9 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_installations.py::test_missing_runtime_launcher_is_explicit_and_downloads_nothing",
-            "tests/integration/test_installations.py::test_tracked_files_are_exactly_the_portable_ones"
+            "tests/integration/test_installations.py::test_tracked_files_are_exactly_the_portable_ones",
+            "tests/platform/test_capture_only_claude.py::test_missing_runtime_is_nonblocking",
+            "tests/platform/test_capture_only_claude.py::test_provisioned_runtime_launcher_reaches_the_fast_entry"
           ],
           "platforms": [
             "linux",
@@ -1798,7 +1819,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Launcher/no-download behavior; hook launcher (3b) and local integration install/remove (13) pending."
+          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13."
         },
         {
           "variant": "full_only",
@@ -1961,14 +1982,20 @@
             "full"
           ],
           "description": "Preview deadline, polling/no-IPC, WAL/SHM and fallback paths",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/platform/test_capture_only_claude.py::test_deadline_overrun_is_reported_and_optional_work_is_shed",
+            "tests/platform/test_capture_only_claude.py::test_scratch_outcomes_are_scrubbed_bounded_and_locked",
+            "tests/platform/test_hook_imports.py::test_each_fast_module_and_package_initializer_is_stdlib_only",
+            "tests/platform/test_hook_imports.py::test_fast_entry_imports_only_stdlib_and_fast"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13)."
         },
         {
           "variant": "full_only",
@@ -2325,6 +2352,7 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
+            "tests/platform/test_capture_only_claude.py::test_head_tail_keeps_failure_line",
             "tests/unit/test_normalize.py::test_bound_text_never_splits_a_code_point",
             "tests/unit/test_normalize.py::test_head_tail_keeps_failure_line_with_original_offsets",
             "tests/unit/test_normalize.py::test_structured_fields_take_priority_over_diagnostic_text"
@@ -2335,7 +2363,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Service normalization; serialized real-host payloads are Task 3b."
+          "notes": "Service normalization plus real Claude 2.1.301 serialized events through the hook entry, spool and reopened store. The host itself discards the tail of failing Bash output above about 30,000 characters; such events are recorded as truncated/incomplete (decision 0005)."
         }
       ]
     },
@@ -2387,14 +2415,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/platform/test_capture_only_claude.py::test_ambiguous_and_unregistered_tools_never_guess",
+            "tests/platform/test_capture_only_claude.py::test_command_parse_is_exact_or_unknown"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Claude Bash commands: exact argv only for unambiguous POSIX words; pipelines, redirection, expansion, globs, escapes and compound commands are unknown; unregistered tools (e.g. PowerShell) conservative. Codex/generic adapters are Task 14."
         }
       ]
     },
