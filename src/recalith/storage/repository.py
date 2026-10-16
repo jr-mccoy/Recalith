@@ -10,10 +10,11 @@ visible (A01). Explicit import-origin remapping is a full-release feature.
 from __future__ import annotations
 
 import json
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
-from recalith.contracts.common import Actor, InstallationContext, canonical_json, derived_id, new_id, utc_now
+from recalith.contracts.common import Actor, InstallationContext, RecordRef, canonical_json, derived_id, digest_of, new_id, utc_now
 from recalith.contracts.events import EventEnvelope
+from recalith.contracts.jobs import Job
 from recalith.errors import RecalithError
 from recalith.storage.db import Store, Txn
 
@@ -70,6 +71,15 @@ def insert_event(txn: Txn, ctx: InstallationContext, envelope: EventEnvelope) ->
     return "inserted", envelope.event_id
 
 
+def event_from_row(row: tuple) -> EventEnvelope | None:
+    """Decode an ``(envelope, payload, payload_state)`` row; None if the payload is gone."""
+    if row[2] != "available" or row[1] is None:
+        return None
+    body = json.loads(row[0])
+    body["payload"] = json.loads(row[1])
+    return EventEnvelope.model_validate_json(json.dumps(body))
+
+
 def get_event(store: Store, event_id: str) -> EventEnvelope | None:
     with store.read() as view:
         row = view.execute("SELECT envelope, payload, payload_state FROM events WHERE event_id = ?", (event_id,)).fetchone()
@@ -77,13 +87,55 @@ def get_event(store: Store, event_id: str) -> EventEnvelope | None:
         return None
     if row[2] != "available" or row[1] is None:
         raise RecalithError("capability_unavailable", f"event payload is {row[2]}")
-    body = json.loads(row[0])
-    body["payload"] = json.loads(row[1])
-    return EventEnvelope.model_validate_json(json.dumps(body))
+    return event_from_row(row)
+
+
+def idempotency_key(kind: str, input_refs: Sequence[RecordRef], *, policy_revision: int, prompt_version: str | None, tombstone_epoch: int) -> str:
+    """DATA_CONTRACTS §8: kind + sorted exact input revisions + policy + prompt + tombstone epoch."""
+    revisions = sorted(f"{r.kind}:{r.id}@{r.revision}" for r in input_refs)
+    return digest_of([kind, revisions, policy_revision, prompt_version, tombstone_epoch])
+
+
+def enqueue_job(
+    txn: Txn,
+    *,
+    kind: str,
+    input_refs: Sequence[RecordRef],
+    prompt_version: str | None = None,
+    priority: int = 0,
+    budget_pool: str = "none",
+    due_at: str | None = None,
+) -> tuple[str, bool]:
+    """Create a pending job once per idempotency key; returns (job_id, created)."""
+    meta = txn.meta
+    key = idempotency_key(kind, input_refs, policy_revision=meta.policy_revision, prompt_version=prompt_version, tombstone_epoch=meta.tombstone_epoch)
+    existing = txn.one("SELECT job_id FROM jobs WHERE idempotency_key = ?", (key,))
+    if existing is not None:
+        return existing[0], False
+    job = Job(
+        job_id=new_id("job"),
+        kind=kind,
+        state="pending",
+        input_refs=list(input_refs),
+        input_digest=digest_of([r.model_dump(mode="json") for r in input_refs]),
+        policy_revision=meta.policy_revision,
+        prompt_version=prompt_version,
+        idempotency_key=key,
+        priority=priority,
+        due_at=due_at or utc_now(),
+        attempt=0,
+        budget_pool=budget_pool,
+    )
+    txn.execute(
+        "INSERT INTO jobs (job_id, kind, state, idempotency_key, priority, due_at, attempt, lease_generation, budget_pool, review_priority, body) VALUES (?, ?, 'pending', ?, ?, ?, 0, 0, ?, ?, ?)",
+        (job.job_id, job.kind, key, priority, job.due_at, budget_pool, job.review_priority, canonical_json(job).decode()),
+    )
+    txn.mutated(serving_relevant=False)  # queue bookkeeping
+    return job.job_id, True
 
 
 def count_rows(store: Store, table: str) -> int:
-    if table not in {"events", "source_conflicts", "workspaces", "operations"}:
+    if table not in {"events", "source_conflicts", "workspaces", "operations", "jobs", "environment_observations", "capture_sources", "sessions"}:
         raise ValueError("unsupported table")
     with store.read() as view:
         return view.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608 - allowlisted
