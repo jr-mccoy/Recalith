@@ -24,7 +24,7 @@ import pytest
 import operation_scenarios as osc
 import worker_scenarios as ws
 from recalith.capture import pipeline
-from recalith.contracts.common import RecordRef, digest_of, utc_now
+from recalith.contracts.common import RecordRef, digest_of, parse_utc, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, BudgetConfig, ProjectConfig
 from recalith.contracts.jobs import MODEL_JOB_KINDS, BudgetReservation
 from recalith.controller import apply, budgets, jobs, worker
@@ -551,7 +551,9 @@ def test_budget_exhaustion_blocks_launch_but_not_capture(tmp_path):
     backend = ws.FakeBackend()
     w = worker.Worker(ctx, clock=clock, config=ProjectConfig.defaults_for(cf.PROJECT_ID), model=ws.runtime(backend))
     _capture_lifecycle(replayer, tmp_path)
-    clock.advance(1)
+    # Ingest jobs are due at their real capture time; catch the fake clock up past it (a slow Windows runner
+    # takes more than a second for the six hook processes; CI run 27).
+    clock.advance(max(1.0, (parse_utc(utc_now()) - parse_utc(clock.now())).total_seconds() + 1))
     assert w.poll_once() is True
     assert w.lane.step() is False and backend.calls == []
     events, done = _ingested(replayer.root)
