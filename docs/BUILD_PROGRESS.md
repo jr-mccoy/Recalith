@@ -204,7 +204,12 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Fingerprints:** only `file:` keys can be rechecked. Branch/HEAD/config keys are rejected as unverifiable until a registered resolver exists.
   - **Schema:** a schema-1 development store is refused, never migrated (the migration path is Task 17).
   - **Crash protocol:** it models process death, not power loss.
-  - **CI:** the Task 5 tests have run only on Linux locally until CI reports.
+- CI (commits ebeb47b, ae796c0, 1a38e10, 417305f):
+  - **Run 25 (ebeb47b)** failed only on Windows, in the pre-existing Task 3b `test_scratch_outcomes_are_scrubbed_bounded_and_locked`: 51 overlay updates instead of 53. The test ran 40 hooks under the real 250 ms deadline and ignored the replies, while a loaded runner correctly sheds the optional overlay first (SYSTEM_SPEC §5.1.1). Those calls now get a generous deadline and must each report the overlay updated; shedding stays covered by its own test.
+  - **Run 26 (ae796c0)** failed only on macOS, in the pre-existing Task 4 `test_typed_ingestion_runs_while_model_is_pending`. The test stopped waiting at the first completed ingest job, while the worker (polling concurrently with capture) had not yet seen the last two segments. It now waits, bounded, for the drained spool. Reproduced locally by pausing capture across a worker poll.
+  - **Run 27 (1a38e10)** failed only on Windows, in the pre-existing Task 4 `test_budget_exhaustion_blocks_launch_but_not_capture`. Its fake clock advanced 1 s past a start taken before six real hook subprocesses, but ingest jobs are due at their real capture time. The clock now catches up past real time. Reproduced locally by delaying capture 2 s.
+  - None of the three was a Task 5 code defect, and none was rerun to pass: each was root-caused, reproduced where possible, and fixed in the test's own timing assumption.
+  - **Run 28 (417305f): all five jobs green.** Linux 3.12 and 3.14 passed 416 with 11 skips and 1 xfail; the runners are non-root, so the real `EACCES` variants ran. Linux 3.13 passed, along with the offline provisioning step. macOS 3.13 passed 416 with 11 skips and 1 xfail. Windows 3.13 passed 375 with 52 skips and 1 xfail, running the Task 5 operations tests, the real-operation crash matrix (3 reps per failpoint) and the concurrency test natively. Every job reported the 5 full-only integrity tests as skipped-unavailable.
 
 Add each later checkpoint with:
 
