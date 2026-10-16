@@ -6,13 +6,13 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 
 | Item | Initial value |
 |---|---|
-| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path |
+| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path; Task 4 preview slice (persistent worker, registered hook start, leases, budgets; fake provider backend) |
 | Engine version | `0.1.0.dev0` (development; no release built) |
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (all isolation dimensions pass); live route + operator attestation not configured |
 | Live host delivery certification | **Not established.** All four paths request-visible on Claude Code 2.1.301; live nonce echo not run (no route) |
-| Product tests / benchmarks | Deterministic unit/integration/platform suites (see the Task 3b checkpoint); capture-only hook latency measured; real-host capture fixtures are request-capture mode; no live-certified host or provider |
-| Next task | Task 4 queue, budgets and project worker |
+| Product tests / benchmarks | Deterministic unit/integration/platform suites (see the Task 4 checkpoint); capture-only hook latency and preview worker typed-state latency measured; real-host fixtures and the installed-host worker test are request-capture mode; no live-certified host or provider |
+| Next task | Task 5 mutation application and optimistic concurrency |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -33,7 +33,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | preview slice complete (full-only attach/fork/shared pending) |
 | 3 | Durable event capture and source cursors | Durable capture, source registration, cursor/idempotency rules | Core behavior retained; no separate deferred slice listed | complete (deterministic; real-host payloads are Task 3b) |
 | 3b | Capture-only real Claude adapter and fast-path boundary | Real sanitized Claude capture fixtures and fast boundary | Core behavior retained; no separate deferred slice listed | complete (capture-only; fixtures are request-capture mode; delivery is Tasks 12b/13) |
-| 4 | Queue, budgets, and project worker | Persistent worker, polling, budgets, leases, role environments | Session worker and IPC wake | not started |
+| 4 | Queue, budgets, and project worker | Persistent worker, polling, budgets, leases, role environments | Session worker and IPC wake | preview slice complete (fake provider backend; session mode, `fast/wake.py`, IPC wake and the 2 s target pending, full-only) |
 | 5 | Mutation application and optimistic concurrency | Atomic revisions, evidence/privacy fences, compensating undo | Revision chain and integrity scanner | not started |
 | 6 | Tasks, episodes, and cross-session continuity | Task binding, continuity, episodes | Core behavior retained; no separate deferred slice listed | not started |
 | 7 | Provider certification and isolated inference | Production isolation and certification for configured route | Core behavior retained; no separate deferred slice listed | not started |
