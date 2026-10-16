@@ -1,7 +1,8 @@
 """Deterministic failpoints for the failure-injection protocol (ACCEPTANCE_TESTS §4).
 
 Production code calls :func:`hit` at named points around spool temp write,
-flush, rename, cursor advance and database begin/commit. Nothing is armed
+flush, rename, cursor advance, database begin/commit, job lease, budget
+reservation, proposal persistence and job completion. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -25,11 +26,21 @@ INGEST_BEGIN = "ingest.begin"
 INGEST_BEFORE_COMMIT = "ingest.before_commit"
 INGEST_AFTER_COMMIT = "ingest.after_commit"  # committed, segment not yet removed
 INGEST_AFTER_UNLINK = "ingest.after_unlink"
+# Worker boundaries (Task 4): committed lease, committed reservation (before the
+# provider launch), committed proposal (before application), the fenced
+# completion transaction before and after commit.
+JOB_AFTER_LEASE = "job.after_lease"
+JOB_AFTER_RESERVE = "job.after_reserve"
+JOB_AFTER_PROPOSAL = "job.after_proposal"
+JOB_BEFORE_COMPLETE_COMMIT = "job.before_complete_commit"
+JOB_AFTER_COMPLETE = "job.after_complete"
 
-ALL = (
+CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
 )
+WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, JOB_AFTER_PROPOSAL, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
+ALL = CAPTURE + WORKER
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

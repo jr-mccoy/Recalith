@@ -332,6 +332,7 @@
             "tests/integration/test_capture_recovery.py::test_partial_line_is_read_once_when_completed",
             "tests/integration/test_capture_recovery.py::test_swapped_symlink_at_registered_path_is_refused",
             "tests/integration/test_capture_recovery.py::test_truncation_and_replacement_are_explicit_gaps",
+            "tests/integration/test_worker.py::test_worker_recovers_registered_transcripts_with_their_named_parser",
             "tests/platform/test_capture_only_claude.py::test_capture_only_real_lifecycle",
             "tests/platform/test_capture_only_claude.py::test_late_result_joins_its_own_call",
             "tests/platform/test_capture_only_claude.py::test_transcript_supplement_recovers_assistant_text_once"
@@ -728,14 +729,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_worker.py::test_expired_lease_is_fenced",
+            "tests/integration/test_worker.py::test_same_owner_release_is_fenced_by_generation",
+            "tests/integration/test_worker.py::test_late_model_result_after_takeover_is_discarded",
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Worker slice (Task 4): lease generations fence proposal persistence and the application+completion transaction; a superseded or expired attempt applies nothing; kill/restart at lease, reservation, proposal and commit boundaries applies each job exactly once without re-requesting a persisted proposal. Fake applier; Task 5 apply_proposal and Task 10 revision paths remain."
         }
       ]
     },
@@ -1022,8 +1029,11 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/unit/test_provider_probe.py",
-            "tests/unit/test_contracts.py::test_model_body_cap_precedes_parsing_and_15kb_episode_fits"
+            "tests/integration/test_worker.py::test_15kb_episode_body_with_host_envelope_fits",
+            "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
+            "tests/integration/test_worker.py::test_process_backend_bounds_hang_flood_and_tree",
+            "tests/unit/test_contracts.py::test_model_body_cap_precedes_parsing_and_15kb_episode_fits",
+            "tests/unit/test_provider_probe.py"
           ],
           "platforms": [
             "linux",
@@ -1031,7 +1041,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7."
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7."
         }
       ]
     },
@@ -1053,14 +1063,21 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_worker.py::test_budget_reservation_precedes_launch",
+            "tests/integration/test_worker.py::test_budget_exhaustion_blocks_launch_but_not_capture",
+            "tests/integration/test_worker.py::test_declaration_cannot_bypass_exhausted_budget",
+            "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
+            "tests/integration/test_worker.py::test_input_estimate_limits_and_model_input_cap"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 4: exhausted call/input/output pools start no invocation and leave a visible waiting reason; hook capture and deterministic ingestion continue. Deterministic retrieval does not exist until Task 11."
         }
       ]
     },
@@ -1516,14 +1533,26 @@
             "full"
           ],
           "description": "Hook-started persistent worker lifecycle/environment, polling/restart/suspend and budgets",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/platform/test_worker_lifecycle.py::test_hook_started_worker_survives_host_termination",
+            "tests/platform/test_worker_lifecycle.py::test_job_without_breakaway_reports_degraded_independence",
+            "tests/platform/test_worker_lifecycle.py::test_hook_worker_start_closes_inherited_handles",
+            "tests/platform/test_worker_lifecycle.py::test_worker_sets_its_own_role_marker",
+            "tests/platform/test_worker_lifecycle.py::test_killed_worker_is_restarted_by_the_next_hook",
+            "tests/platform/test_worker_lifecycle.py::test_idle_poll_state_available_within_five_seconds",
+            "tests/platform/test_worker_lifecycle.py::test_installed_host_starts_a_worker_that_outlives_the_session",
+            "tests/platform/test_worker_lifecycle.py::test_only_one_worker_per_installation",
+            "tests/integration/test_worker.py::test_resume_coalesces_overdue_jobs",
+            "tests/integration/test_worker.py::test_typed_ingestion_runs_while_model_is_pending"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": true
+          "requires_live_host": true,
+          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17."
         },
         {
           "variant": "full_only",
@@ -1711,14 +1740,25 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_worker.py::test_ordinary_cannot_spend_protected_pool",
+            "tests/integration/test_worker.py::test_review_can_borrow_remaining_ordinary_pool",
+            "tests/integration/test_worker.py::test_declaration_review_precedes_ordinary_review",
+            "tests/integration/test_worker.py::test_review_priority_is_code_assigned_and_batches_keep_their_origin",
+            "tests/integration/test_worker.py::test_declaration_cannot_bypass_exhausted_budget",
+            "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
+            "tests/integration/test_worker.py::test_evidence_expansion_rounds_are_charged",
+            "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
+            "tests/integration/test_worker.py::test_five_candidates_use_one_review_call"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9."
         }
       ]
     },
@@ -1987,7 +2027,9 @@
             "tests/platform/test_capture_only_claude.py::test_deadline_overrun_is_reported_and_optional_work_is_shed",
             "tests/platform/test_capture_only_claude.py::test_scratch_outcomes_are_scrubbed_bounded_and_locked",
             "tests/platform/test_hook_imports.py::test_each_fast_module_and_package_initializer_is_stdlib_only",
-            "tests/platform/test_hook_imports.py::test_fast_entry_imports_only_stdlib_and_fast"
+            "tests/platform/test_hook_imports.py::test_fast_entry_imports_only_stdlib_and_fast",
+            "tests/platform/test_hook_imports.py::test_hook_worker_start_is_the_only_process_effect",
+            "tests/platform/test_worker_lifecycle.py::test_worker_start_is_shed_under_deadline_pressure"
           ],
           "platforms": [
             "linux",
@@ -1995,7 +2037,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13)."
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only)."
         },
         {
           "variant": "full_only",
@@ -2319,6 +2361,9 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
+            "tests/integration/test_worker.py::test_curator_child_environment_from_worker",
+            "tests/platform/test_worker_lifecycle.py::test_hook_spawn_clears_host_markers",
+            "tests/platform/test_worker_lifecycle.py::test_worker_sets_its_own_role_marker",
             "tests/unit/test_provider_probe.py"
           ],
           "platforms": [
@@ -2327,7 +2372,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 0 harness plus the Task 4 hops: hook→worker from clean and host-marked parents (fresh allowlist, markers and inherited RECALITH_* removed, own worker marker, names-only diagnostics, Linux /proc cross-check) and worker→model child through spawn_environment(purpose=curator) with only the selected route key. Live provider route and effective isolation remain Tasks 7/13 (B1)."
         }
       ]
     },
@@ -2496,6 +2541,7 @@
       "required_behavior": "Marked host/worker/curator processes get exit 6 for all guarded forms, including token commands and profile flags, even with TTY+token. No requested admin effect; content-free audit when store available. Unmarked TTY can create a standalone token before init; noninteractive init with that provisioned file succeeds once and never overwrites existing state. Missing/invalid/revoked supplied token is 6, not 2; noninteractive minting refuses. Registered hook startup succeeds without operator CLI. Marked IDE error explains the external-terminal route; pre-init refusal creates no store",
       "blocking": true,
       "owning_tasks": [
+        "4",
         "12a"
       ],
       "capability": "operator_guard",
@@ -2508,14 +2554,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/platform/test_worker_lifecycle.py::test_registered_start_needs_no_operator_cli",
+            "tests/platform/test_hook_imports.py::test_hook_worker_start_is_the_only_process_effect",
+            "tests/platform/test_worker_lifecycle.py::test_internal_worker_entry_refuses_marked_or_foreign_callers"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": true
+          "requires_live_host": true,
+          "notes": "Task 4 permitted-start control only: a host-marked hook starts the worker through the registered internal path (audited single Popen of recalith.controller.worker, never the recalith CLI); the internal entry refuses marked or foreign callers. CLI refusal, tokens and audit diagnostics are Task 12a."
         }
       ]
     }

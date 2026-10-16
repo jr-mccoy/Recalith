@@ -259,7 +259,7 @@ def _reference(tmp: Path, seed: int) -> dict:
     return _REFERENCE_CACHE[seed]
 
 
-CRASH_POINTS = [fp for fp in failpoints.ALL]
+CRASH_POINTS = list(failpoints.CAPTURE)  # the worker family has its own matrix (tests/integration/test_worker.py)
 
 
 @pytest.mark.parametrize("producer", ["service", "fast"])

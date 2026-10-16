@@ -191,7 +191,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Preview implements persistent 1-second active/5-second idle polling and the 5-second p95 typed-state target. Session mode, `fast/wake.py`, IPC tests, and the 2-second healthy-wake target are full-only.
 
-**Files:** Create `controller/{jobs,budgets,worker}.py`, `fast/wake.py`, `tests/integration/test_worker.py`, `tests/platform/test_worker_lifecycle.py`, and the shared stdlib `fast/process_env.py`.
+**Files:** Create `controller/{jobs,budgets,worker}.py`, `fast/wake.py`, `tests/integration/test_worker.py`, `tests/platform/test_worker_lifecycle.py`, and the shared stdlib `fast/process_env.py`. The preview slice also added `controller/launch.py` (bounded model-child launch with process-tree containment), the test helpers `tests/integration/worker_scenarios.py` (fake clock/backends and the kill/restart driver) and `tests/platform/worker_hosts.py` (simulated hosts), `tests/fixtures/providers/fake_backend.py`, `tools/measure_worker_latency.py`, and hook-context `context_schema` 2 (decision 0006). `fast/wake.py` is full-only and not created in preview.
 
 **Interfaces:** Produce `lease_next(ctx, *, owner: str, now: UtcTime) -> Job|None` and `run_worker(ctx, *, mode: str) -> int`. Jobs use the exact state/idempotency contract.
 
