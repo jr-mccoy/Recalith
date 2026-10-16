@@ -355,11 +355,14 @@ def reply_session(reply, replay) -> str:
     return seg["envelopes"][0]["session_id"]
 
 
+OVERLAY_DEGRADATIONS = {"deadline_overlay_skipped", "scratch_lock_timeout", "scratch_lock_unsupported", "scratch_io_error"}
+
+
 def test_scratch_outcomes_are_scrubbed_bounded_and_locked(replay, tmp_path):
     lifecycle = cf.records("lifecycle")
     for record in lifecycle[: [r["event"] for r in lifecycle].index("Stop")]:
-        reply, _ = run_in_process(replay, record)
-        assert "scratch_lock_timeout" not in reply["degradations"]
+        reply, _ = run_in_process(replay, record, deadline=time.monotonic() + 5)
+        assert not set(reply["degradations"]) & OVERLAY_DEGRADATIONS, reply["degradations"]
     session_id = claude_capture.session_id_for(replay.ctx.installation_id, lifecycle[0]["payload"]["session_id"])
     scratch = session.read_scratch(replay.root, session_id)
     assert SessionScratch.model_validate(scratch)  # the strict model accepts the fast writer's file
@@ -367,11 +370,14 @@ def test_scratch_outcomes_are_scrubbed_bounded_and_locked(replay, tmp_path):
     assert len(scratch["outcomes"]) == len(finished) and scratch["state_revision"] == len(finished)
     assert [o["outcome"] for o in scratch["outcomes"]][:2] == ["success", "failure"]
     assert next(o for o in scratch["outcomes"] if o["action"]["tool"] == "Write")["changed_paths"] == ["new.txt"]
-    # Bounded: at most 32 outcomes, counters never reset.
+    # Bounded: at most 32 outcomes, counters never reset. This checks the bound and scrubbing, not latency: a
+    # slow runner may shed the optional overlay at the 250 ms deadline (SYSTEM_SPEC §5.1.1; CI run 25 on Windows
+    # shed 2 of 40), so these calls get a generous deadline and every reply must report the overlay updated.
     record = finished[0]
     for i in range(40):
         clone = dict(record, payload=dict(record["payload"], tool_use_id=f"toolu_bound_{i:03d}", tool_input={"command": f"echo password=hunter{i}-secret"}))
-        run_in_process(replay, clone)
+        reply, _ = run_in_process(replay, clone, deadline=time.monotonic() + 5)
+        assert reply["receipt"]["status"] == "accepted" and not set(reply["degradations"]) & OVERLAY_DEGRADATIONS, reply["degradations"]
     scratch = session.read_scratch(replay.root, session_id)
     assert len(scratch["outcomes"]) == 32 and scratch["state_revision"] == len(finished) + 40
     assert b"hunter" not in Path(session.scratch_path(replay.root, session_id)).read_bytes()  # scrubbed
