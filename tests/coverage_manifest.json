@@ -170,6 +170,7 @@
           "description": "Reject foreign IDs in ordinary events/operations",
           "status": "in_progress",
           "tests": [
+            "tests/integration/test_capture_recovery.py::test_foreign_and_tampered_input_is_rejected",
             "tests/integration/test_installations.py::test_foreign_installation_is_rejected"
           ],
           "platforms": [
@@ -178,7 +179,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Store/repository paths; capture/operation/import paths are Tasks 3, 5 and 15."
+          "notes": "Store/repository and capture paths reject foreign identity; operation/import paths are Tasks 5 and 15."
         },
         {
           "variant": "full_only",
@@ -217,14 +218,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run",
+            "tests/integration/test_capture_recovery.py::test_publish_before_cursor_replays_once"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Kill/restart at every spool/cursor/ingest failpoint vs a reference run (3 reps default, 20 nightly). Real Claude source payloads arrive in Task 3b."
         }
       ]
     },
@@ -246,14 +251,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_commit_before_unlink_replays_once",
+            "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Replay creates no event/job; segment removed. Fast-path producer is Task 3b."
         }
       ]
     },
@@ -276,14 +285,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_disk_full_does_not_acknowledge",
+            "tests/integration/test_capture_recovery.py::test_real_file_size_limit_is_not_acknowledged",
+            "tests/integration/test_capture_recovery.py::test_real_permission_failure_is_not_acknowledged"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Service capture path; host-continues behavior of the hook path and health integration are Tasks 3b/17. Real EACCES variant skips when run as root."
         }
       ]
     },
@@ -308,14 +322,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_late_result_joins_its_call",
+            "tests/integration/test_capture_recovery.py::test_partial_line_is_read_once_when_completed",
+            "tests/integration/test_capture_recovery.py::test_swapped_symlink_at_registered_path_is_refused",
+            "tests/integration/test_capture_recovery.py::test_truncation_and_replacement_are_explicit_gaps"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Test-only JSONL source; real Claude transcript parser and fixtures are Task 3b, host integration Tasks 13/14."
         }
       ]
     },
@@ -338,14 +358,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run",
+            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Dedup, conflict rows and guidance-epoch advance are done; claim-level caution suspension needs claims (Tasks 5/10)."
         }
       ]
     },
@@ -1114,14 +1138,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_capture_rescrubs_envelopes_built_outside_normalize",
+            "tests/integration/test_capture_recovery.py::test_secret_never_reaches_spool",
+            "tests/unit/test_normalize.py::test_secret_in_identity_field_is_refused_without_echo",
+            "tests/unit/test_redaction.py"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Command arguments and tool output are covered; model-proposal scrubbing before provider transmission is Task 7/9."
         }
       ]
     },
@@ -1628,14 +1658,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Conflict rows/health entry inputs via capture_health; HealthReport composition is Task 17."
         }
       ]
     },
@@ -1717,14 +1750,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_runtime_provenance.py",
+            "tests/unit/test_normalize.py::test_runtime_versions_only_from_certified_exact_invocations",
+            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Query-time use in applicability evaluation is Task 8/11; hooks reading persisted values is Task 3b/12b."
         }
       ]
     },
@@ -1799,14 +1837,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_capture_recovery.py::test_secret_never_reaches_spool",
+            "tests/integration/test_runtime_provenance.py::test_platform_facts_resolve_and_missing_keys_stay_unknown",
+            "tests/unit/test_normalize.py::test_platform_environment_keeps_only_registered_scalars"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Capture path; provider-transmission check is Task 7."
         }
       ]
     },
@@ -2212,14 +2255,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_normalize.py::test_strict_envelope_still_rejects_expected_red_true",
+            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 3 slice: expected_red normalization only. Debounce/trigger behavior is Task 9."
         }
       ]
     },
@@ -2276,14 +2323,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_normalize.py::test_bound_text_never_splits_a_code_point",
+            "tests/unit/test_normalize.py::test_head_tail_keeps_failure_line_with_original_offsets",
+            "tests/unit/test_normalize.py::test_structured_fields_take_priority_over_diagnostic_text"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Service normalization; serialized real-host payloads are Task 3b."
         }
       ]
     },

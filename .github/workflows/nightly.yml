@@ -1,0 +1,36 @@
+name: nightly-failure-injection
+
+# ACCEPTANCE_TESTS §4: at least 20 kill/restart interleavings per failpoint
+# family nightly; release candidates run 100 (set RECALITH_CRASH_REPS=100 via dispatch).
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      reps:
+        description: "Repetitions per failpoint"
+        default: "20"
+
+permissions:
+  contents: read
+
+jobs:
+  crash:
+    name: crash matrix (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Install locked dependencies
+        run: uv sync --locked --python 3.13
+      - name: Kill/restart failpoints against reference runs
+        env:
+          RECALITH_CRASH_REPS: ${{ github.event.inputs.reps || '20' }}
+        run: uv run --locked python -m pytest -q -rs tests/integration/test_capture_recovery.py

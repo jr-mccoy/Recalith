@@ -163,7 +163,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 3: Durable event capture and source cursors
 
-**Files:** Create `storage/spool.py`, `capture/{normalize,redact,sources}.py`, `tests/integration/test_capture_recovery.py`, `tests/unit/test_redaction.py` under their stated source/test roots.
+**Files:** Create `storage/spool.py`, `capture/{normalize,redact,sources}.py`, `tests/integration/test_capture_recovery.py`, `tests/unit/test_redaction.py` under their stated source/test roots. Task 3 also added `storage/failpoints.py`, `capture/{parsers,provenance,pipeline}.py` (certified parsers, runtime provenance, `capture`/`ingest_ready`), `tests/unit/test_normalize.py`, `tests/integration/test_runtime_provenance.py` and the test-only scenario/crash driver `tests/integration/capture_scenarios.py` (decision 0004).
 
 **Interfaces:** Consume `EventEnvelope` and `InstallationContext`. Produce `capture(ctx, events: Sequence[EventEnvelope]) -> CaptureReceipt` and `ingest_ready(ctx, *, limit: int = 100) -> IngestResult`.
 
