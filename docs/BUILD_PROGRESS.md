@@ -262,6 +262,7 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Evidence expansion:** `file_excerpt` and `dependency_diff` requests have no registered resolver yet (ignored).
   - **Real host for the hook chain:** the A67 chain ran with the simulated host running the real hook entry and the real installed curator; a live Claude host session starting the worker is the 2.1.301-pinned Task 4 test (skipped on 2.1.302) and Task 13.
   - **Crash protocol:** process death, not power loss.
+- CI (commit 68e8a47): **run 37: all five jobs green on the first run.** Linux 3.12, 3.13 and 3.14 passed (3.13 also passed the requirements-lock check and offline provisioning). macOS 3.13 passed 500 with 12 skips and 1 xfail; its only Task 7 skip is the installed-CLI test, and the fake-CLI isolation checks, the hook→worker→curator recheck and the provider-path matrix (3 reps per failpoint) ran natively. Windows 3.13 passed 457 with 55 skips and 1 xfail: the Task 7 platform tests ran natively except the installed-CLI test (timeout and process-tree termination through the kill-on-close Job Object, output floods, the 15 KB stream envelope, request isolation between two installations, the fake-CLI isolation and recursion-marker checks, and the hook-started worker's curator recheck), as did the provider-path crash matrix; the runner had no orphan processes to clean up.
 
 Add each later checkpoint with:
 
