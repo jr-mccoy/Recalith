@@ -7,7 +7,9 @@ the record its payload changes; every referenced record exists in *this*
 installation (a foreign or invented ID simply does not exist here); a target
 revision is the current head (otherwise the proposal is stale and is
 re-evaluated, never overwritten); cited evidence exists, is available, keeps
-its evidence-root identity, and every quoted span hashes to its digest; scope
+its evidence-root identity (an event link names only the event's own roots;
+a record link only roots its stored provenance reaches, ``core.lineage``),
+and every quoted span hashes to its digest; scope
 names registered workspaces and existing tasks; status transitions are in the
 policy table. Semantic evidence rules (mapping validators, independent roots,
 declaration review, strength) are Task 9: a proposed claim is therefore
@@ -45,7 +47,7 @@ from recalith.contracts.operations import (
     ReviseEpisodePayload,
     UpdateTaskPayload,
 )
-from recalith.core import policy
+from recalith.core import lineage, policy
 from recalith.core.paths import PathPolicy
 from recalith.errors import RecalithError
 from recalith.storage import records
@@ -219,6 +221,8 @@ def check_link(q: Any, link: EvidenceLink) -> str | None:
             return "evidence_unavailable"
         if not _quote_ok(source, link):
             return "quote_mismatch"
+        if roots_needed and not set(roots_needed) <= lineage.provenance_events(q, link):
+            return "root_mismatch"  # a record link may name only roots its own stored provenance reaches
     for root in roots_needed:
         if q.execute("SELECT 1 FROM events WHERE event_id = ?", (root,)).fetchone() is None:
             return "root_missing"

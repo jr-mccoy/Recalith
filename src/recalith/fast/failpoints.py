@@ -54,6 +54,10 @@ BINDING_AFTER_REBIND = "binding.after_rebind"
 # (the call is in flight, nothing is charged yet).
 REQUEST_AFTER_BATCH = "request.after_batch"
 PROVIDER_AFTER_SPAWN = "provider.after_spawn"
+# Evidence lineage (Task 8): inside the ingestion transaction after a root-class
+# merge has moved members, tokens and aliases to the surviving class, before
+# the affected claims' revalidation is enqueued and the segment commits.
+ROOTS_AFTER_MERGE = "roots.after_merge"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -63,7 +67,8 @@ WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, PROPOSAL_BEFORE_COMMIT, JOB_AFTER_
 SERVICE = (SERVICE_BEFORE_COMMIT,)
 REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
 PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER
+LINEAGE = (ROOTS_AFTER_MERGE,)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

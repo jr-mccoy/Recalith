@@ -23,7 +23,7 @@ Worker/service objects use strict Pydantic models and generated JSON Schema. Syn
 | `EvidenceLink` | `ref: RecordRef`, `relation: supports\|contradicts\|context`, `root_event_ids: list[Id]`, `locator: SpanLocator\|null`, `mapping: tool.exit_code\|tool.reported_result\|config.exact_value\|null` |
 | `SpanLocator` | `field: str`, `start: int`, `end: int`, `text_digest: Digest`; offsets are Unicode code points into the specified stored string |
 
-Paths in portable objects are normalized relative POSIX paths. Absolute workspace/transcript paths occur only in local source registrations and local configuration. `Scope` eligibility dimensions combine with AND; values within a dimension combine with OR. `branch_refs` are excluded from eligibility; an explicit `Condition(kind="branch_ref")` is required for a genuine branch restriction. Conditions combine with AND, including explicit exclusions. Missing environmental values return unknown. Path conditions use exact paths or directory prefixes ending in `/`; v1 does not accept model-authored glob/regex expressions. Version ranges initially support PEP 440 through a pinned `packaging` dependency; versions outside that grammar require exact-string comparison or remain unknown. No improvised lexicographic version ordering.
+Paths in portable objects are normalized relative POSIX paths. Absolute workspace/transcript paths occur only in local source registrations and local configuration. `Scope` eligibility dimensions combine with AND; values within a dimension combine with OR. `branch_refs` are excluded from eligibility; an explicit `Condition(kind="branch_ref")` is required for a genuine branch restriction. Conditions combine with AND, including explicit exclusions. Missing environmental values return unknown. Path conditions use exact paths or directory prefixes ending in `/`; v1 does not accept model-authored glob/regex expressions (a path condition containing `* ? [ ] { }` is refused at validation; a name equal only after case folding or Unicode normalization evaluates unknown). Version ranges initially support PEP 440 through a pinned `packaging` dependency: `value` is the inclusive lower bound and `upper` the inclusive upper bound (absent: unbounded above); `upper == value` specifies exact comparison. Versions outside that grammar require that exact-string comparison or remain unknown. No improvised lexicographic version ordering (decision 0010).
 
 `EnvironmentValues` is a string map validated against the installed adapter registry. Built-ins: `os` in `windows|linux|macos|other`, `arch` in `x86_64|aarch64|other`, bounded runtime-version strings for `python_version`/`node_version`, and `ci` in `true|false|unknown`. Values are at most 64 UTF-8 bytes; registered extensions need an explicit value grammar and sensitivity classification. Unknown keys and disallowed values are dropped before durable capture, with a key/count-only coverage warning. Provider-proposed unregistered conditions are rejected. Never populate this map from arbitrary `os.environ` values.
 
@@ -225,7 +225,7 @@ Normalize an executable by the adapter's registered executable identity and pres
 
 `RootClass = {root_class_id: Id, canonical_origin: OriginEventKey, member_origin_keys: list[OriginEventKey], equivalence_reasons: list[origin_identity|provenance|artifact_snapshot|experiment_signature|same_authority|unknown_dependencies]}`. Class IDs use `root_` + SHA-256 of the lexicographically least canonical origin key in the equivalence component. When newly discovered equivalence changes a representative, retain an alias and resolve it before counting; merges can reduce counts and trigger revalidation. Export/import preserves origin descriptors and aliases rather than generating new roots. Never use a destination installation ID, delivery count, or timestamp as an independence discriminator.
 
-`independent_roots(ctx, evidence, *, proposition_key)` resolves stored provenance, rejects cycles and ineligible roots, applies SYSTEM_SPEC §7.1.1 equivalence rules, and returns canonical class IDs. Missing descriptors may support a narrow observed report but cannot add an extra corroborating class. Same-user declarations about the given proposition collapse into one authority class; uncertain proposition equivalence cannot justify increased strength. Root classes are counted only for support links; contradictory outcomes remain attached and block corroboration until resolved.
+`independent_roots(ctx, evidence, *, proposition_key)` resolves stored provenance, rejects cycles and ineligible roots, applies SYSTEM_SPEC §7.1.1 equivalence rules, and returns canonical class IDs. Missing descriptors may support a narrow observed report but cannot add an extra corroborating class. Same-user declarations about the given proposition collapse into one authority class; uncertain proposition equivalence cannot justify increased strength. Root classes are counted only for support links; contradictory outcomes remain attached and block corroboration until resolved. Ingestion registers each eligible root event (an authenticated user statement or a certified tool result without `derived_from`) with its exact equivalence tokens in the event's own transaction, so classes are the store-wide transitive closure; a merge of counted classes advances guidance epoch and queues revalidation of the live claims citing them. Lineage code derives descriptors from stored envelopes when an adapter sets none, and never treats memory telemetry, assistant text, a call without its result, a self-reporting command (`echo`/`printf`) or forwarded subagent output as a root (decision 0010).
 
 ### 6.2 Review batch identity
 
@@ -298,7 +298,7 @@ The idempotency key hashes kind + sorted exact input revisions + policy revision
 
 ## 9. Context, retrieval, and feedback
 
-`ContextQuery = {session_id: Id, task_id: Id|null, workspace_id: Id, purpose: session_start|prompt|pre_action|compact_restore|manual, text: str, action: ActionDescriptor|null, environment: EnvironmentValues, max_estimated_tokens: int|null}`.
+`ContextQuery = {session_id: Id, task_id: Id|null, workspace_id: Id, purpose: session_start|prompt|pre_action|compact_restore|manual, text: str, action: ActionDescriptor|null, environment: EnvironmentValues, max_estimated_tokens: int|null, branch_ref: str|null}`. `branch_ref` is the current branch, consulted only by explicit `branch_ref` conditions; null is unknown (decision 0010).
 
 `ActionDescriptor = {cwd_path: str|null, tool: str, action_kind: str|null, executable: str|null, argv: list[str]|null, paths: list[str], raw_digest: Digest|null, parse_status: exact|conservative|unknown, shell: str|null}`. The initial adapter-assigned action vocabulary is `read|write|delete|test|build|publish|version_control|other|unknown`; a missing kind behaves as unknown. Parser uncertainty is retained; unparsed shell text is not executed by retrieval.
 
@@ -326,6 +326,7 @@ Implement ordered SQL migrations with explicit indexes. JSON fields use canonica
 | `capture_sources` | Source registration ID, exact path/identity, durable and ingested cursors, coverage |
 | `source_conflicts` | Conflict ID; unique adapter/source key/digest, original event ref, scrubbed conflicting payload, coverage, resolution state |
 | `root_classes`, `root_members`, `root_aliases` | Canonical origin identity, equivalence reasons, imported descriptors, and merged-class aliases |
+| `root_event_members`, `root_tokens` | Eligible root event → origin key, observation kind, authority actor, outcome, resolution; exact equivalence token → class (schema 4, decision 0010); identities and digests only |
 | `task_boundaries`, `task_binding_revisions`, `task_binding_heads` | Boundary candidates and versioned event-to-task assignments; heads carry the event's commit sequence and session (schema 3) |
 | `tool_calls` | Adapter + `tool_call_id` → first call and first result event (pair joins across splits and sessions) |
 | `working_cursor`, `working_sessions`, `working_tasks` | Typed reducer bookkeeping: last reduced commit sequence, per-session detection state, per-task observed clusters and open episode range; derived, never served |
@@ -379,6 +380,11 @@ resolve_task_binding(ctx: InstallationContext, proposal: TaskBindingProposal) ->
 reduce_task(ctx: InstallationContext, task_id: Id, events: Sequence[EventEnvelope]) -> TaskState
 independent_roots(ctx: InstallationContext, evidence: Sequence[EvidenceLink], *, proposition_key: JsonObject) -> set[Id]
     # Return canonical root-class IDs after resolving all aliases; never raw event IDs.
+    # Task 8 (decision 0010): core.lineage.resolve(view, evidence, proposition_key=) -> Lineage adds contradiction/unstable classes,
+    # unresolved and conflicted roots, cycles and corroboration_blocked; registration runs inside ingest_ready.
+evaluate_conditions(conditions: Sequence[Condition], query: ContextQuery) -> str
+    # Exactly "true" | "false" | "unknown"; core.conditions also provides scope_applicability, applicability, in_scope,
+    # dependency_applicability and advice_for (decision 0010).
 resolve_evidence(ctx: InstallationContext, link: EvidenceLink) -> ResolvedEvidence
 build_episode(ctx: InstallationContext, task_id: Id, event_ids: Sequence[Id]) -> Episode
 prepare_model_request(ctx: InstallationContext, job: Job) -> ModelRequest

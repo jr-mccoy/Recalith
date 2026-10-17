@@ -223,7 +223,9 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run",
-            "tests/integration/test_capture_recovery.py::test_publish_before_cursor_replays_once"
+            "tests/integration/test_capture_recovery.py::test_publish_before_cursor_replays_once",
+            "tests/unit/test_lineage.py::test_replayed_source_event_has_one_root_and_one_effect",
+            "tests/integration/test_worker.py::test_lineage_merge_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -231,7 +233,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Kill/restart at every spool/cursor/ingest failpoint vs a reference run (3 reps default, 20 nightly). Real Claude source payloads arrive in Task 3b."
+          "notes": "Kill/restart at every spool/cursor/ingest failpoint vs a reference run (3 reps default, 20 nightly). Real Claude source payloads arrive in Task 3b. Task 8: root registration rides in the ingestion transaction; replays and kills at every ingest failpoint keep one member per event."
         }
       ]
     },
@@ -604,14 +606,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_lineage.py::test_memory_echo_cannot_confirm",
+            "tests/unit/test_lineage.py::test_shared_subagent_source_counts_once",
+            "tests/unit/test_lineage.py::test_same_user_declarations_collapse_into_one_authority_class",
+            "tests/unit/test_lineage.py::test_no_session_time_or_delivery_discriminator"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: delivery telemetry, assistant restatements, echoed memories, forwarded subagent reports, repeated declarations and delivery counts add no root class, and attaching them writes nothing (last_supported_at unchanged). Strength (Task 9) is not assigned yet."
         }
       ]
     },
@@ -634,14 +642,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_lineage.py::test_new_observation_after_retrieval_can_support",
+            "tests/unit/test_lineage.py::test_genuinely_new_experiment_adds_a_class"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: retrieval adds no root; an unchanged rerun stays in its class; a new experiment (changed command, or a changed complete-dependency fingerprint in the synthetic certified domain) adds a class and advances last_supported_at. Strength and review are Task 9."
         }
       ]
     },
@@ -665,14 +677,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_conditions.py::test_same_proposition_in_different_scopes_is_not_a_global_contradiction",
+            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: per-scope version and branch predicates evaluate independently; keeping both claims active and contradiction handling are Tasks 10/11."
         }
       ]
     },
@@ -836,14 +852,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_conditions.py::test_unknown_condition_cannot_caution",
+            "tests/unit/test_conditions.py::test_scope_precedes_similarity"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: unknown applicability yields at most context (advice_for, ContextItem validator); scope is decided before similarity (in_scope). Packet composition is Task 11."
         }
       ]
     },
@@ -1165,14 +1185,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_lineage.py::test_hostile_quoted_instruction_gains_no_authority",
+            "tests/unit/test_lineage.py::test_same_user_declarations_collapse_into_one_authority_class",
+            "tests/unit/test_lineage.py::test_memory_echo_cannot_confirm"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: repository text is a tool/artifact observation, a quoted instruction stays the single user actor, an assistant paraphrase is no root and cannot borrow the user's root, the host task notification has no user authority, and captured content changes no policy, provider route or configuration. Guarded transports are Task 12a; Codex/generic adapters Task 14."
         }
       ]
     },
@@ -1891,7 +1916,8 @@
           "tests": [
             "tests/integration/test_runtime_provenance.py",
             "tests/unit/test_normalize.py::test_runtime_versions_only_from_certified_exact_invocations",
-            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped"
+            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped",
+            "tests/unit/test_conditions.py::test_missing_stale_or_conflicting_runtime_provenance_is_unknown"
           ],
           "platforms": [
             "linux",
@@ -1899,7 +1925,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Query-time use in applicability evaluation is Task 8/11; hooks reading persisted values is Task 3b/12b."
+          "notes": "Query-time use in applicability evaluation: Task 8 (missing, stale and conflicting runtime provenance evaluate unknown); hooks reading persisted values is Task 3b/12b; precomputed version results are Task 11."
         }
       ]
     },
@@ -2040,14 +2066,26 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_lineage.py::test_unchanged_rerun_stays_one_class",
+            "tests/unit/test_lineage.py::test_contradictory_rerun_records_instability",
+            "tests/unit/test_lineage.py::test_missing_dependency_collapses_conservatively",
+            "tests/unit/test_lineage.py::test_distinct_artifact_snapshots",
+            "tests/unit/test_lineage.py::test_forwarded_subagent_shares_its_roots",
+            "tests/unit/test_lineage.py::test_genuinely_new_experiment_adds_a_class",
+            "tests/unit/test_lineage.py::test_class_ids_are_canonical_with_aliases",
+            "tests/unit/test_lineage.py::test_merge_lowers_count_and_triggers_revalidation",
+            "tests/unit/test_lineage.py::test_snapshot_rule_needs_complete_text_and_the_certified_version",
+            "tests/integration/test_worker.py::test_lineage_merge_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8: canonical root classes (persisted transitive closure, aliases, merge revalidation) over real 2.1.301 payloads and named variants; complete-dependency experiments use a synthetic certified domain registered only in the test process (no host domain is certified). Kill/restart matrix over the merging ingestion and its revalidation job."
         }
       ]
     },
@@ -2285,14 +2323,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11."
         }
       ]
     },
@@ -2575,7 +2616,8 @@
           "status": "in_progress",
           "tests": [
             "tests/platform/test_capture_only_claude.py::test_ambiguous_and_unregistered_tools_never_guess",
-            "tests/platform/test_capture_only_claude.py::test_command_parse_is_exact_or_unknown"
+            "tests/platform/test_capture_only_claude.py::test_command_parse_is_exact_or_unknown",
+            "tests/unit/test_conditions.py::test_real_actions_use_host_arrays_and_ambiguity_stays_unknown"
           ],
           "platforms": [
             "linux",
@@ -2583,7 +2625,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Claude Bash commands: exact argv only for unambiguous POSIX words; pipelines, redirection, expansion, globs, escapes and compound commands are unknown; unregistered tools (e.g. PowerShell) conservative. Codex/generic adapters are Task 14."
+          "notes": "Claude Bash commands: exact argv only for unambiguous POSIX words; pipelines, redirection, expansion, globs, escapes and compound commands are unknown; unregistered tools (e.g. PowerShell) conservative. Codex/generic adapters are Task 14. Task 8: conditions use the captured argv verbatim; an unparsed action has unknown kind and paths (never guessed)."
         }
       ]
     },

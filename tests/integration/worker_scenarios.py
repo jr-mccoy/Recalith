@@ -264,14 +264,21 @@ def main(argv: list[str]) -> int:
     import provider_scenarios as provider
 
     spec = provider.scenario(root)
+    lineage_spec = (root / "lineage.json").exists()  # Task 8: root-class merges at ingestion
     if len(argv) > 3 and argv[3] == "count":
         hits = Path(argv[4])
+        if lineage_spec:
+            import lineage_scenarios as lineage_s
 
         def record_hit(name: str) -> None:
+            state = provider.outstanding(root) if spec else lineage_s.outstanding(root) if lineage_spec else pending_work(root)
             with open(hits, "a", encoding="utf-8") as fh:
-                fh.write(f"{name} {provider.outstanding(root) if spec else pending_work(root)}\n")
+                fh.write(f"{name} {state}\n")
 
-        for name in failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER:
+        names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER
+        if lineage_spec:
+            names += failpoints.LINEAGE + (failpoints.INGEST_BEGIN, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK)
+        for name in names:
             failpoints.arm(name, record_hit, times=10**6)
     elif len(argv) > 3:
         failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
