@@ -803,3 +803,70 @@ def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
         if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
             assert len(calls) <= 1, "a persisted proposal was re-requested from the model"
         assert len(calls) <= 2  # at most the killed launch and one relaunch of the single model job
+
+
+# ---------------------------------------------------------------------------
+# The real request-preparation and provider path under kill/restart (Task 7)
+
+PROVIDER_MATRIX = list(failpoints.WORKER) + list(failpoints.PROVIDER)
+
+
+def _alive_pids(pidlog: Path) -> list[int]:
+    import worker_hosts as wh
+
+    pids = [int(x) for x in pidlog.read_text(encoding="utf-8").split()] if pidlog.exists() else []
+    return [pid for pid in pids if wh.pid_alive(pid)]
+
+
+@pytest.mark.parametrize("failpoint", PROVIDER_MATRIX)
+def test_provider_path_crash_matches_reference(tmp_path, failpoint):
+    """Killed while preparing, launching or applying a real provider call, then restarted: one effect per job.
+
+    Narrative jobs scheduled by real typed reduction and a review job run
+    through the production preparer, a persisted review batch, the budget
+    reservation and a real bounded child (the fake JSON process, which keeps a
+    sleeping grandchild) through ``ProviderBackend``. The reference run logs
+    every failpoint hit with whether a model job was still unfinished; each
+    repetition kills at one of those hits only (the killed store differs from
+    the reference). The reopened store must equal the reference (jobs,
+    applications, operation rows, decisions, task/episode/claim heads, review
+    batches, episode titles, task narrative), and no curator process may
+    survive: the restarted worker reaps a tree its killed predecessor left.
+    """
+    import provider_scenarios as ps
+
+    reference_root = ps.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = osc.normalized(reference_root)
+    reference_extra = ps.extra_state(reference_root)
+    assert sorted(reference["applications"]) == ["build_episode", "review_claims", "service", "update_task"]
+    assert reference_extra["review_batches"] == (1, 1) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
+    assert "Continue from the last checkpoint." in reference_extra["next_actions"]
+    assert wh_wait(lambda: not _alive_pids(tmp_path / "reference.pids"))
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+    assert mine, f"{failpoint} is never reached while a model job is unfinished"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = ps.crash_project(tmp_path, f"crash-{rep}")
+        pidlog = tmp_path / f"crash-{rep}.pids"
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert (osc.normalized(root), ps.extra_state(root)) != (reference, reference_extra), "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert osc.normalized(root) == reference, (failpoint, rep)
+        assert ps.extra_state(root) == reference_extra, (failpoint, rep)
+        assert wh_wait(lambda pidlog=pidlog: not _alive_pids(pidlog)), f"a curator process outlived the crashed worker at {failpoint}"
+        assert not list((root / ".recalith" / "run" / "curators").glob("*.json"))
+        state = ws.state(root)
+        assert {s for _, s in state["usage"]} == {"charged"}  # the killed call stays charged; nothing dangles
+
+
+def wh_wait(predicate, timeout: float = 15) -> bool:
+    import worker_hosts as wh
+
+    return bool(wh.wait_for(predicate, timeout))

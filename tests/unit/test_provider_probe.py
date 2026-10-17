@@ -59,21 +59,39 @@ def section(report_path: Path, provider: str = "fake_cli") -> dict:
 # ---------------------------------------------------------------- environment
 
 
+PROBE_INSTALLATION = "inst_00000000-0000-4000-8000-000000000000"
+
+
 def test_child_environment_removes_markers_and_sets_curator_marker():
     parent = {"PATH": "/bin", "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "old", pc.CURATOR_MARKER: "other", "GITHUB_TOKEN": "x", "HOME": "/real"}
-    child = pc.build_child_environment(parent, purpose="curator", installation_id="inst_a", platform_keys=["PATH", "CLAUDECODE"], overrides={"HOME": "/fixture"})
-    assert child == {"PATH": "/bin", "HOME": "/fixture", pc.CURATOR_MARKER: "inst_a"}
+    child, report = pc.build_child_environment(parent, purpose="curator", installation_id=PROBE_INSTALLATION, platform_keys=["PATH", "CLAUDECODE"], overrides={"HOME": "/fixture"})
+    assert child == {"PATH": "/bin", "HOME": "/fixture", pc.CURATOR_MARKER: PROBE_INSTALLATION}
+    assert report["removed_allowlisted_markers"] == ["CLAUDECODE"] and "GITHUB_TOKEN" in report["inherited_not_permitted"]
     assert parent["CLAUDECODE"] == "1" and parent[pc.WORKER_MARKER] == "old"  # caller unchanged
 
 
-def test_marker_removal_wins_over_allowlist_and_overrides():
-    child = pc.build_child_environment({"CLAUDECODE": "1"}, purpose="worker", installation_id="inst_a", platform_keys=["CLAUDECODE"], overrides={"CLAUDE_CODE_CHILD_SESSION": "1", pc.CURATOR_MARKER: "x"})
-    assert child == {pc.WORKER_MARKER: "inst_a"}
+def test_probe_uses_the_engine_spawn_environment():
+    """Task 7: the probe has no second filter; it builds exactly what ``spawn_environment`` builds."""
+    process_env = pc._process_env()
+    parent = {"PATH": "/bin", "LANG": "C", "CLAUDECODE": "1", "ANTHROPIC_API_KEY": "selected", "AWS_PROFILE": "decoy", "HOME": "/real"}
+    child, _ = pc.build_child_environment(parent, purpose="curator", installation_id=PROBE_INSTALLATION, platform_keys=["PATH", "LANG"], selected_auth_keys=["ANTHROPIC_API_KEY"], overrides={"HOME": "/fixture"})
+    manifest = {"manifest_schema": 1, "purpose": "curator", "installation_id": PROBE_INSTALLATION, "platform_keys": ["PATH", "LANG"], "route_keys": ["ANTHROPIC_API_KEY"], "overrides": {"HOME": "/fixture"}}
+    assert child == process_env.spawn_environment(manifest, parent, purpose="curator")
+    assert "AWS_PROFILE" not in child and "CLAUDECODE" not in child
 
 
-def test_child_environment_rejects_unknown_purpose():
+def test_marker_removal_wins_over_allowlist_and_overrides_cannot_name_markers():
+    child, _ = pc.build_child_environment({"CLAUDECODE": "1"}, purpose="worker", installation_id=PROBE_INSTALLATION, platform_keys=["CLAUDECODE"])
+    assert child == {pc.WORKER_MARKER: PROBE_INSTALLATION}
     with pytest.raises(pc.EnvironmentPolicyError):
-        pc.build_child_environment({}, purpose="operator", installation_id="inst_a", platform_keys=[])
+        pc.build_child_environment({}, purpose="worker", installation_id=PROBE_INSTALLATION, platform_keys=[], overrides={"CLAUDE_CODE_CHILD_SESSION": "1"})
+
+
+def test_child_environment_rejects_unknown_purpose_and_invalid_installation():
+    with pytest.raises(pc.EnvironmentPolicyError):
+        pc.build_child_environment({}, purpose="operator", installation_id=PROBE_INSTALLATION, platform_keys=[])
+    with pytest.raises(pc.EnvironmentPolicyError):
+        pc.build_child_environment({}, purpose="curator", installation_id="inst_a", platform_keys=[])
 
 
 # ---------------------------------------------------------------- config
@@ -304,3 +322,36 @@ def test_detectors_validate_when_fixture_path_is_a_symlink(tmp_path, fake_exe, m
     rep = section(out)
     assert rep["request_capture"]["detector_validation"]["unvalidated_detectors"] == []
     assert rep["dimensions"]["customization_absence"]["verdict"] == "pass"
+
+
+# ---------------------------------------------------------------- route record (Task 7)
+
+
+def test_route_record_is_uncertified_unless_live_certified(tmp_path, monkeypatch, fake_exe):
+    """``--route-out`` writes the installation's explicit route; a request-capture run records it uncertified."""
+    sys.path.insert(0, str(REPO / "src"))
+    from recalith.contracts.common import Actor
+    from recalith.contracts.config import ProjectConfig, ProviderConfig
+    from recalith.core import identity
+    from recalith.providers import base
+
+    project = tmp_path / "project"
+    project.mkdir()
+    identity.initialize_installation(project, ProjectConfig.defaults_for("proj_61616161-6161-4161-8161-616161616161"))
+    ctx = identity.resolve_installation(project, actor=Actor(kind="controller", id="t", channel="worker"))
+    route = {"kind": "env_api_key", "billing": "api", "env_keys": ["ANTHROPIC_API_KEY"], "expected_api_key_source": "ANTHROPIC_API_KEY"}
+    cfg = pp.load_config(write_config(tmp_path, fake_exe, auth_route=route, invocation_args=["-p", "--bare", "--tools", "", "--strict-mcp-config", "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence", "--model", "{model}", "--system-prompt", "{system_prompt}", "--output-format", "stream-json", "--verbose"]))
+    section = {"certified": False, "live": {"status": "not_run"}, "tested_at": "2026-10-17T00:00:00.000000Z", "host_version": {"observed": "9.9.9 (Fake CLI)"}, "invocation": {"executable": str(fake_exe), "executable_sha256": "a" * 64}}
+    for marker in pc.DEFAULT_HOST_MARKERS:
+        monkeypatch.delenv(marker, raising=False)
+    path = pp.write_route(project, cfg, section)
+    stored = base.load_provider_config(project)
+    assert path == base.provider_path(project) and isinstance(stored, ProviderConfig)
+    assert stored.installation_id == ctx.installation_id and stored.certification.certified is False and stored.certification.mode == "request_capture"
+    assert stored.certification.host_version == "9.9.9" and stored.certification.invocation_digest == base.invocation_digest(stored)
+    status = base.route_status(stored, installation_id=ctx.installation_id, inherited={"PATH": os.environ.get("PATH", "")})
+    assert not status.certified and "request_capture_only" in status.reasons
+    # Writing a project's route is an operator action: refused from a host-marked (agent) process.
+    monkeypatch.setenv("CLAUDECODE", "1")
+    with pytest.raises(PermissionError):
+        pp.write_route(project, cfg, section)

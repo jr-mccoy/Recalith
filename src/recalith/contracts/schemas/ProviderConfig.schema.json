@@ -2,7 +2,16 @@
   "$defs": {
     "ProviderCertification": {
       "additionalProperties": false,
+      "description": "What a successful probe of this exact route observed (Task 0 / Task 7).\n\n``certified`` is true only for a complete *live* observation with the\noperator's checked background-use eligibility. The route is usable only\nwhile the executable digest, host version, auth route and invocation\nstill equal what was certified; any change requires recertification.",
       "properties": {
+        "auth_env_keys": {
+          "items": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+            "type": "string"
+          },
+          "title": "Auth Env Keys",
+          "type": "array"
+        },
         "certified": {
           "title": "Certified",
           "type": "boolean"
@@ -31,6 +40,19 @@
           "default": null,
           "title": "Executable Sha256"
         },
+        "expected_api_key_source": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Api Key Source"
+        },
         "host_version": {
           "anyOf": [
             {
@@ -43,6 +65,44 @@
           ],
           "default": null,
           "title": "Host Version"
+        },
+        "invocation_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invocation Digest"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "live",
+                "request_capture"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "operator_attestation": {
+          "default": "unchecked",
+          "enum": [
+            "checked_eligible",
+            "checked_ineligible",
+            "unchecked"
+          ],
+          "title": "Operator Attestation",
+          "type": "string"
         },
         "report_digest": {
           "anyOf": [
@@ -66,7 +126,7 @@
   },
   "$id": "recalith:contracts/ProviderConfig",
   "additionalProperties": false,
-  "description": "Explicit backend/model/auth reference; never chosen because a CLI is on PATH.",
+  "description": "Explicit backend/model/auth reference; never chosen because a CLI is on PATH.\n\nLocal to one installation (``.recalith/provider.json``, never tracked):\n``installation_id`` binds it, so a copied configuration is refused.\n``invocation_args`` may contain ``{model}`` and ``{system_prompt}``.\n``nonsecret_env`` holds nonsecret switches for the curator child;\n``network_env_keys`` names managed proxy/TLS keys carried with the route.",
   "properties": {
     "auth_env_keys": {
       "items": {
@@ -109,6 +169,23 @@
       "title": "Executable",
       "type": "string"
     },
+    "expected_api_key_source": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Api Key Source"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
     "invocation_args": {
       "items": {
         "type": "string"
@@ -128,6 +205,24 @@
       "title": "Max Wire Stdout Bytes",
       "type": "integer"
     },
+    "network_env_keys": {
+      "items": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+        "type": "string"
+      },
+      "title": "Network Env Keys",
+      "type": "array"
+    },
+    "nonsecret_env": {
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]{0,127}$": {
+          "maxLength": 1024,
+          "type": "string"
+        }
+      },
+      "title": "Nonsecret Env",
+      "type": "object"
+    },
     "provider_id": {
       "pattern": "^[a-z][a-z0-9_]{1,63}$",
       "title": "Provider Id",
@@ -142,6 +237,7 @@
   },
   "required": [
     "provider_id",
+    "installation_id",
     "backend",
     "executable",
     "configured_model",

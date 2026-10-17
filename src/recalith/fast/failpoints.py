@@ -49,6 +49,12 @@ SERVICE_BEFORE_COMMIT = "service.before_commit"
 REDUCE_AFTER_APPLY = "reduce.after_apply"
 BINDING_AFTER_REBIND = "binding.after_rebind"
 
+# Provider path (Task 7): after a review batch snapshot is committed (before any
+# reservation); after a curator child is spawned and its spawn record written
+# (the call is in flight, nothing is charged yet).
+REQUEST_AFTER_BATCH = "request.after_batch"
+PROVIDER_AFTER_SPAWN = "provider.after_spawn"
+
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
@@ -56,7 +62,8 @@ CAPTURE = (
 WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, PROPOSAL_BEFORE_COMMIT, JOB_AFTER_PROPOSAL, APPLY_AFTER_GROUP, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
 SERVICE = (SERVICE_BEFORE_COMMIT,)
 REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION
+PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

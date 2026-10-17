@@ -39,7 +39,7 @@ Run probes from an ordinary terminal for the account you intend Recalith to use.
 | `alternate_auth_env_keys` | no | Keys that would select a different account/billing route; planted as decoys and required absent from the child unless selected |
 | `control_args`, `control_resume_args` | no | Deliberately non-isolated launches used only to prove detectors fire (request-capture mode, no account) |
 | `host_markers` | no | Registered host/nested-session markers (default `CLAUDECODE`, `CLAUDE_CODE_CHILD_SESSION`) |
-| `probe_installation_id` | no | Value for the fresh `RECALITH_CURATOR_INSTALLATION` marker |
+| `probe_installation_id` | no | Value for the fresh `RECALITH_CURATOR_INSTALLATION` marker (a valid `inst_` UUIDv4; default `inst_00000000-0000-4000-8000-000000000000`). The child environment is built by the engine's stdlib `spawn_environment`, so overrides cannot name a marker |
 | `limits` | no | `timeout_seconds` (120), `bounds_timeout_seconds` (10), `wire_stdout_bytes` (262144), `stderr_bytes` (65536), `body_bytes` (24000) |
 | `auth_route` | yes | See below |
 | `operator_attestation` | yes | See below |
@@ -64,6 +64,16 @@ With Claude CLI 2.1.x, `--bare` reads Anthropic auth strictly from `ANTHROPIC_AP
 * `live` runs the isolated launch through the selected route from a clean and a host-marked parent and checks the host init diagnostic, sentinel markers, the actual child environment (Linux `/proc`), the reported auth source and a model-visible negative canary (two short model calls).
 
 Exit codes: 0 complete certification; 4 unavailable/uncertified (report lists blocking dimensions); 2 invalid configuration.
+
+### Recording the route for a project (Task 7)
+
+```bash
+python tools/probe_provider.py --config probe-private/local-config.json --output docs/host-compatibility.json --route-out /path/to/project
+```
+
+`--route-out` writes the project's private `.recalith/provider.json` (`ProviderConfig`, key **names** only) from this run. It is `certified` only after a complete live pass with `operator_attestation.background_use = checked_eligible`; any other run records the route explicitly uncertified, which the worker reports unavailable and never launches. Writing the route is an operator action: it is refused (exit 6) when the invoking process carries a registered host marker. The worker rechecks the recorded executable digest, host version, auth key names, expected auth source and invocation on every start, plus a request-capture isolation check from its own environment; any change makes the route unavailable until the probe is run again (decision 0009).
+
+`python tools/check_provider_runtime.py --config probe-private/local-config.json --output docs/host-compatibility.json` records the production adapter's own request-capture checks (clean and host-marked parents) and route status in `sections.provider_runtime`; it never certifies (exit 4 unless the route is certified and both checks pass).
 
 ## `delivery` (Task 0b, `tools/probe_delivery.py`)
 

@@ -156,6 +156,9 @@ def head_ref(root: Path, kind: str, record_id: str) -> RecordRef:
     return RecordRef(kind=kind, id=record_id, revision=current[0])
 
 
+EARLIEST = "2000-01-01T00:00:00.000000Z"
+
+
 def leased(root: Path, kind: str, *, input_refs: list[RecordRef] | None = None, now: str = ws.START, owner: str = "worker-test"):
     """Enqueue and lease one model job (the lease the application is fenced by)."""
     ctx = context(root)
@@ -163,7 +166,8 @@ def leased(root: Path, kind: str, *, input_refs: list[RecordRef] | None = None, 
     with db.open_store(ctx) as store:
         with store.transaction() as txn:
             candidates = [jobs.ReviewCandidate(claim_id=refs[0].id, origin="extracted", claim_kind="fact")] if kind == "review_claims" else ()
-            job_id, _ = jobs.enqueue(txn, kind=kind, input_refs=refs, now=now, prompt_version="test@1", review_candidates=candidates, idempotency=digest_of(new_id("job")))  # a distinct attempt each call
+            # A distinct attempt each call, due before any narrative job typed reduction scheduled (decision 0009).
+            job_id, _ = jobs.enqueue(txn, kind=kind, input_refs=refs, now=now, prompt_version="test@1", review_candidates=candidates, idempotency=digest_of(new_id("job")), due_at=EARLIEST)
         job = jobs.lease_next(ctx, owner=owner, now=now, kinds=[kind], store=store)
     assert job is not None and job.job_id == job_id
     return job

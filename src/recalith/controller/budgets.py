@@ -264,18 +264,23 @@ def check_wire(stdout: bytes, *, overflowed: bool) -> None:
         raise OutputRejected("wire_stdout_oversized")
 
 
-def decode_body(body: bytes, reservation: BudgetReservation) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
-    """Count the decoded body's original UTF-8 bytes against ``3 ×`` the allowance, then parse.
+def decode_purpose_body(body: bytes, *, purpose: str, body_cap: int) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
+    """Count the decoded body's original UTF-8 bytes against its cap, then parse (never clipped).
 
     The enclosing body is strict (``response_invalid``); each operation is
     validated on its own and a malformed one fails only its dependency group.
     """
-    if len(body) > reservation.max_response_body_bytes:
+    if len(body) > body_cap:
         raise OutputRejected("response_body_oversized")
     try:
-        return parse_model_body_partitioned(body, purpose=reservation.purpose, body_cap=reservation.max_response_body_bytes)
+        return parse_model_body_partitioned(body, purpose=purpose, body_cap=body_cap)  # type: ignore[arg-type]
     except (ValueError, UnicodeDecodeError):
         raise OutputRejected("response_invalid") from None
+
+
+def decode_body(body: bytes, reservation: BudgetReservation) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
+    """:func:`decode_purpose_body` under the reservation's purpose and ``3 ×`` allowance cap."""
+    return decode_purpose_body(body, purpose=reservation.purpose, body_cap=reservation.max_response_body_bytes)
 
 
 # --------------------------------------------------------------------------
@@ -316,5 +321,5 @@ def waiting_reasons(job_bodies: Iterable[str]) -> dict[str, int]:
 
 __all__ = [
     "Amounts", "Plan", "Refusal", "OutputRejected", "pool_limits", "utc_day", "plan", "fits_lower_bound", "reserve", "charge",
-    "charge_interrupted", "check_wire", "decode_body", "summary", "used_by_pool", "charged_by_pool", "actual_usage", "STDERR_CAP", "WIRE_STDOUT_CAP",
+    "charge_interrupted", "check_wire", "decode_body", "decode_purpose_body", "summary", "used_by_pool", "charged_by_pool", "actual_usage", "STDERR_CAP", "WIRE_STDOUT_CAP",
 ]

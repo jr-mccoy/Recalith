@@ -29,7 +29,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from recalith.contracts.config import STDERR_CAP, WIRE_STDOUT_CAP
 
@@ -51,6 +51,7 @@ class BoundedResult:
     tree_cleaned: bool | None = None
     descendants_outlived_exit: bool = False
     pid: int | None = None
+    observed_env_keys: list[str] | None = None  # Linux /proc only; None when unobservable
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -78,6 +79,26 @@ def _linux_group_members(pgid: int) -> list[str] | None:
         if len(fields) > 2 and int(fields[2]) == pgid:
             states.append(fields[0])
     return states
+
+
+def observed_environment_keys(pid: int, *, attempts: int = 20, interval_s: float = 0.01) -> list[str] | None:
+    """Key names of a live child's initial environment (Linux ``/proc`` only; names, never values).
+
+    While a launcher shim ``exec``s the real program ``/proc`` can briefly read
+    empty; a curator child always carries its role marker, so an empty read is
+    re-sampled and, if it persists, reported unobservable (None).
+    """
+    path = Path(f"/proc/{pid}/environ")
+    for _ in range(attempts):
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            return None
+        keys = sorted({item.split(b"=", 1)[0].decode("utf-8", "replace") for item in raw.split(b"\0") if b"=" in item})
+        if keys:
+            return keys
+        time.sleep(interval_s)
+    return None
 
 
 def group_alive(pgid: int) -> bool:
@@ -195,6 +216,8 @@ def run_bounded(
     timeout_s: float,
     stdout_cap: int = WIRE_STDOUT_CAP,
     stderr_cap: int = STDERR_CAP,
+    observe_env: bool = False,
+    on_spawn: "Callable[[int, int | None], None] | None" = None,
 ) -> BoundedResult:
     result = BoundedResult()
     kwargs: dict = {}
@@ -266,6 +289,17 @@ def run_bounded(
             pass
 
     threads = [threading.Thread(target=t, daemon=True) for t in (read_stdout, read_stderr, write_stdin)]
+    if on_spawn is not None:
+        try:
+            on_spawn(proc.pid, pgid)
+        except BaseException:
+            if job is not None:
+                job.terminate()
+            elif pgid is not None:
+                _kill_group(proc, pgid)
+            raise
+    if observe_env and os.name != "nt":
+        result.observed_env_keys = observed_environment_keys(proc.pid)
     for t in threads:
         t.start()
 
