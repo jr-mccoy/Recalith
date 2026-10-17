@@ -298,7 +298,7 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Forgetting**: the root tables hold IDs and digests only, but Task 16 must delete rows for forgotten events.
   - **Schema**: schema-3 development stores are refused, never migrated (Task 17).
   - **Crash protocol**: process death, not power loss.
-- CI: pending.
+- CI (commit 9103d77): **run 41: all five jobs green on the first run.** Linux 3.12, 3.13 and 3.14 passed (3.13 also passed the requirements-lock check and offline provisioning; the non-root runners run the real `EACCES` variants). macOS 3.13 passed 545 with 12 skips and 1 xfail (the case-insensitive path variants ran there). Windows 3.13 passed 502 with 55 skips and 1 xfail: the lineage and condition tests and the new merge kill/restart matrix (3 reps per failpoint) ran natively, and the runner had no orphan processes to clean up.
 
 Add each later checkpoint with:
 
