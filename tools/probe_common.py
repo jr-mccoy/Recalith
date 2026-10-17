@@ -1,12 +1,15 @@
 """Shared, standard-library-only helpers for the Task 0/0b standalone probes.
 
 These probes run before the engine exists (IMPLEMENTATION_PLAN Tasks 0 and 0b),
-so nothing here imports ``recalith``. Every helper is deliberately small:
+so nothing here needs an engine database; the only engine module used is the
+stdlib-only ``recalith.fast.process_env``. Every helper is deliberately small:
 
 * ``build_child_environment`` constructs a *fresh* allowlisted child
-  environment (SYSTEM_SPEC §9.1). It never copies the inherited map wholesale,
-  always removes registered host/nested-session markers and inherited recalith
-  role markers, then sets exactly one fresh role marker.
+  environment (SYSTEM_SPEC §9.1) through the engine's one stdlib helper,
+  ``recalith.fast.process_env.spawn_environment`` (no second filter). It never
+  copies the inherited map wholesale, always removes registered
+  host/nested-session markers and inherited recalith role markers, then sets
+  exactly one fresh role marker.
 * ``run_bounded`` launches an argument array with ``shell=False`` in its own
   process group, bounds raw stdout/stderr while reading, enforces a wall-clock
   deadline and verifies the whole process tree is gone afterwards.
@@ -156,6 +159,21 @@ class EnvironmentPolicyError(ValueError):
     pass
 
 
+def _process_env():
+    """The engine's stdlib role-environment helper (``recalith.fast.process_env``).
+
+    It is standard library only and needs no engine database, so the
+    standalone probes reuse it instead of keeping a second environment filter
+    (DATA_CONTRACTS §2.3; Task 7 migration).
+    """
+    src = str(Path(__file__).resolve().parent.parent / "src")
+    if src not in sys.path:
+        sys.path.insert(0, src)
+    from recalith.fast import process_env
+
+    return process_env
+
+
 def build_child_environment(
     inherited: Mapping[str, str],
     *,
@@ -165,30 +183,29 @@ def build_child_environment(
     selected_auth_keys: Sequence[str] = (),
     network_keys: Sequence[str] = (),
     overrides: Mapping[str, str] | None = None,
-    host_markers: Sequence[str] = DEFAULT_HOST_MARKERS,
-) -> dict[str, str]:
-    """Return a fresh environment for an engine-owned child role.
+) -> tuple[dict[str, str], dict[str, Any]]:
+    """``(environment, key-name report)`` for an engine-owned child role, via ``spawn_environment``.
 
-    Only the named keys are taken from ``inherited``; ``overrides`` supplies
-    purpose-specific nonsecret values (fixture HOME, telemetry switches). Marker
-    removal is applied last so an allowlist or override mistake cannot
-    re-introduce a host marker. The inherited map is never mutated.
+    Only the named keys are taken from ``inherited`` (platform keys, then the
+    selected route's auth and network keys); ``overrides`` supplies
+    purpose-specific nonsecret values (fixture HOME, telemetry switches) and
+    may not name a marker. Registered host markers and inherited recalith role
+    markers are removed after selection and the one fresh role marker is set.
+    The inherited map is never mutated.
     """
-    if purpose not in ROLE_FOR_PURPOSE:
-        raise EnvironmentPolicyError(f"purpose must be worker|curator, got {purpose!r}")
-    if not installation_id:
-        raise EnvironmentPolicyError("installation_id is required for the role marker")
-    forbidden = set(host_markers) | set(ROLE_MARKERS)
-    child: dict[str, str] = {}
-    for key in list(platform_keys) + list(network_keys) + list(selected_auth_keys):
-        if key in inherited:
-            child[key] = inherited[key]
-    for key, value in (overrides or {}).items():
-        child[key] = value
-    for key in forbidden:
-        child.pop(key, None)
-    child[ROLE_FOR_PURPOSE[purpose]] = installation_id
-    return child
+    pe = _process_env()
+    manifest = {
+        "manifest_schema": 1,
+        "purpose": purpose,
+        "installation_id": installation_id,
+        "platform_keys": list(platform_keys),
+        "route_keys": list(dict.fromkeys([*network_keys, *selected_auth_keys])),
+        "overrides": dict(overrides or {}),
+    }
+    try:
+        return pe.spawn_environment_report(manifest, inherited, purpose=purpose)
+    except pe.ManifestError as exc:
+        raise EnvironmentPolicyError(str(exc)) from None
 
 
 def environment_key_report(

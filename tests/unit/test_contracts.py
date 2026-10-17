@@ -415,7 +415,7 @@ def test_project_config_defaults_follow_profile():
 
 
 def test_provider_config_rejects_schema_tool_flag():
-    base = {"provider_id": "claude_cli", "backend": "claude_cli", "executable": "/usr/bin/claude", "configured_model": "m", "auth_route": "env_api_key", "auth_env_keys": ["ANTHROPIC_API_KEY"], "invocation_args": ["-p", "--bare"], "certification": {"certified": False}}
+    base = {"provider_id": "claude_cli", "backend": "claude_cli", "executable": "/usr/bin/claude", "configured_model": "m", "installation_id": f.INSTALL, "auth_route": "env_api_key", "auth_env_keys": ["ANTHROPIC_API_KEY"], "invocation_args": ["-p", "--bare"], "certification": {"certified": False}}
     ProviderConfig.model_validate(base)
     rejects(ProviderConfig, {**base, "invocation_args": ["-p", "--json-schema", "{}"]}, "decision 0002")
 

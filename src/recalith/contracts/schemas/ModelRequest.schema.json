@@ -1,5 +1,27 @@
 {
   "$defs": {
+    "BoundaryContext": {
+      "additionalProperties": false,
+      "description": "A pending boundary candidate as narrative input, with the binding revisions its events have now.\n\n``binding_revisions`` is what a ``resolve_task_binding`` proposal must\nname as ``expected_binding_revisions``; a moved binding re-evaluates it.",
+      "properties": {
+        "binding_revisions": {
+          "additionalProperties": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Binding Revisions",
+          "type": "object"
+        },
+        "candidate": {
+          "$ref": "#/$defs/TaskBoundaryCandidate"
+        }
+      },
+      "required": [
+        "candidate"
+      ],
+      "title": "BoundaryContext",
+      "type": "object"
+    },
     "ClaimRevision": {
       "additionalProperties": false,
       "properties": {
@@ -1578,6 +1600,85 @@
       "title": "SupportedText",
       "type": "object"
     },
+    "TaskBoundaryCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "after_event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Event Id"
+        },
+        "boundary_id": {
+          "title": "Boundary Id",
+          "type": "string"
+        },
+        "policy_revision": {
+          "minimum": 1,
+          "title": "Policy Revision",
+          "type": "integer"
+        },
+        "proposed_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Proposed Event Ids",
+          "type": "array"
+        },
+        "reason": {
+          "enum": [
+            "host_reset",
+            "pivot_prefix",
+            "disjoint_paths",
+            "idle_resume",
+            "new_session",
+            "single_active_task"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "signal": {
+          "additionalProperties": true,
+          "title": "Signal",
+          "type": "object"
+        },
+        "source_task_id": {
+          "title": "Source Task Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "confirmed",
+            "rejected",
+            "linked"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "boundary_id",
+        "session_id",
+        "after_event_id",
+        "proposed_event_ids",
+        "reason",
+        "source_task_id",
+        "state",
+        "policy_revision"
+      ],
+      "title": "TaskBoundaryCandidate",
+      "type": "object"
+    },
     "TaskState": {
       "additionalProperties": false,
       "properties": {
@@ -1750,6 +1851,13 @@
         "$ref": "#/$defs/RecordRef"
       },
       "title": "Allowed Evidence Refs",
+      "type": "array"
+    },
+    "boundaries": {
+      "items": {
+        "$ref": "#/$defs/BoundaryContext"
+      },
+      "title": "Boundaries",
       "type": "array"
     },
     "claims": {

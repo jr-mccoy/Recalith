@@ -29,8 +29,10 @@ applied; application and completion are one fenced transaction. A late or
 superseded result therefore never applies, and recovery after a crash applies
 a persisted proposal without another model call. Each evidence-expansion
 round is another reserved, charged invocation. Provider execution is behind
-the :class:`Backend` interface; production preview has no backend until
-Task 7 certifies one, so model jobs wait visibly with ``provider_unavailable``.
+the :class:`Backend` interface. The process entry builds one only from the
+installation's explicit, currently certified route (``providers.base``),
+gated by a request-capture isolation recheck from the worker's own
+environment; without one, model jobs wait visibly with ``provider_unavailable``.
 
 **Process entry.** ``python -I -m recalith.controller.worker --project ROOT``
 is the internal entry the hook's registered start path launches with a fresh
@@ -55,13 +57,15 @@ from typing import Any, Callable, Mapping, Protocol, Sequence
 from recalith.capture import pipeline
 from recalith.contracts.common import Actor, InstallationContext, canonical_json, new_id, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_tokens
-from recalith.contracts.jobs import MODEL_JOB_KINDS, Job, LocalUsage
-from recalith.contracts.operations import ModelRequest, ModelResponse, ResponseProvenance, UsageReport
+from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
+from recalith.contracts.operations import ModelRequest, ModelResponse
 from recalith.controller import apply, budgets, jobs, launch
+from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
 from recalith.storage import spool
 from recalith.storage.db import Store, Txn, open_store
+from recalith.providers.base import LaunchOutcome, ProviderSupervisor, evaluate_outcome, reap_orphans
 from recalith.working import reducer as working_reducer
 
 WORKER_ACTOR = Actor(kind="controller", id="worker", channel="worker")
@@ -94,17 +98,6 @@ class Clock:
 
     def wait(self, seconds: float, event: threading.Event) -> bool:
         return event.wait(max(0.0, seconds))
-
-
-@dataclass
-class LaunchOutcome:
-    stdout: bytes
-    overflowed: bool = False
-    timed_out: bool = False
-    returncode: int | None = 0
-    duration_ms: int = 0
-    stderr: bytes = b""
-    tree_bound: str = "contained"
 
 
 class Backend(Protocol):
@@ -286,6 +279,7 @@ class Worker:
         spawn: SpawnInfo | None = None,
         environment: Mapping[str, str] | None = None,
         stop_event: threading.Event | None = None,
+        provider: ProviderSupervisor | None = None,
     ) -> None:
         self.ctx = ctx
         self.config = config or _project_config(ctx)
@@ -293,6 +287,7 @@ class Worker:
             raise RecalithError("foreign_installation", "worker configuration names another project")
         self.clock = clock or Clock()
         self.model = model
+        self.provider = provider
         self.parsers = dict(PARSERS if parsers is None else parsers)
         self.handlers = dict(DEFAULT_HANDLERS if handlers is None else handlers)
         self.ingest_reducers: list[Callable[[Txn, Job, Worker], None]] = [working_reducer.reduce_ingested]
@@ -316,6 +311,7 @@ class Worker:
         self._last_poll_worked = False
         self._interval = float(self.config.worker.active_poll_seconds)
         self.max_clock_jump = 0.0
+        self.reaped: list[dict[str, Any]] = []
 
     # ---------------------------------------------------------------- store
 
@@ -349,7 +345,7 @@ class Worker:
                 jobs.schedule_housekeeping(txn, now=now)
             worked |= self._run_deterministic()
             worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
-            if self.lane is None:
+            if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None
         except RecalithError as exc:
@@ -479,7 +475,8 @@ class Worker:
                 "host_markers_present": markers,
                 "curator_marker_present": process_env.CURATOR_MARKER in env,
             },
-            "model_lane": "running" if self.lane is not None else "provider_unavailable",
+            "model_lane": "running" if self.lane is not None and self.lane.available() else "provider_unavailable",
+            "provider": self.provider.report() if self.provider is not None else {"state": "unavailable", "reasons": ["provider_not_configured"]},
             "counters": dict(self.counters),
             "max_clock_jump_seconds": round(self.max_clock_jump, 3),
             "last_error": self.last_error,
@@ -556,6 +553,7 @@ class Worker:
     def startup(self) -> None:
         """Recovery while holding the lock: dead workers' leases end, their calls stay charged."""
         jobs.recover_abandoned_leases(self.store, owner=self.owner, now=self.clock.now())
+        self.reaped = reap_orphans(self.run_dir, max_age_seconds=jobs.lease_seconds("update_task", self.config.budgets))
         with self.store.transaction() as txn:
             budgets.charge_interrupted(txn)
 
@@ -568,6 +566,8 @@ class Worker:
             time.sleep(0.02)
         try:
             self.startup()
+            if self.provider is not None:
+                self.provider.start()
             self.state = "running"
             self.write_status()
             if self.lane is not None:
@@ -618,6 +618,13 @@ class ModelLane:
     def now(self) -> str:
         return self.worker.clock.now()
 
+    def available(self) -> bool:
+        """A certified backend whose isolation recheck passed and which no call has disabled."""
+        provider = self.worker.provider
+        if provider is not None and not provider.available:
+            return False
+        return getattr(self.runtime.backend, "unavailable_reason", None) is None
+
     # ---------------------------------------------------------------- thread
 
     def start(self) -> None:
@@ -647,6 +654,8 @@ class ModelLane:
 
     def step(self) -> bool:
         """One model scheduling opportunity; True when a job was leased."""
+        if not self.available():
+            return False
         job = jobs.lease_next(self.worker.ctx, owner=self.owner, now=self.now(), kinds=MODEL_JOB_KINDS, store=self.store, config=self.config)
         if job is None:
             return False
@@ -688,6 +697,13 @@ class ModelLane:
         while True:
             try:
                 request = self.runtime.prepare(self.store, job, list(rounds))
+            except NothingToPrepare as exc:
+                with jobs.fenced(self.store, job, now=self.now()) as txn:
+                    jobs.supersede(txn, job, exc.reason)
+                return None
+            except PrepareFailed as exc:
+                self._fail(job, exc.code, final=exc.final)
+                return None
             except RecalithError as exc:
                 self._fail(job, exc.code)
                 return None
@@ -699,6 +715,10 @@ class ModelLane:
                 self._fail(job, "model_input_oversized", final=True)
                 return None
             estimate = estimate_tokens(len(raw))
+            if not self.available():  # disabled by an earlier call: nothing is reserved or launched
+                with jobs.fenced(self.store, job, now=self.now()) as txn:
+                    jobs.release(txn, job, reason=jobs.PROVIDER_UNAVAILABLE)
+                return None
             with jobs.fenced(self.store, job, now=self.now()) as txn:
                 reservation = budgets.reserve(txn, job_id=job.job_id, purpose=job.kind, input_estimate=estimate, now=self.now(), config=self.config)
                 if isinstance(reservation, budgets.Refusal):
@@ -729,44 +749,10 @@ class ModelLane:
 
     def _evaluate(self, outcome: LaunchOutcome, reservation, estimate: int) -> tuple[str | None, ModelResponse | None]:
         backend = self.runtime.backend
-        reported: UsageReport | None = None
-        local: LocalUsage | None = None
-        code: str | None = None
-        response: ModelResponse | None = None
-        if outcome.timed_out:
-            code = "provider_timeout"
-        elif outcome.overflowed:
-            code = "wire_stdout_oversized"
-        elif outcome.returncode != 0:
-            code = "provider_failed"
-        else:
-            try:
-                budgets.check_wire(outcome.stdout, overflowed=False)
-                body, usage = backend.unwrap(outcome.stdout)
-            except budgets.OutputRejected as exc:
-                code = exc.code
-            except (ValueError, TypeError, KeyError):
-                code = "envelope_invalid"
-            else:
-                local = LocalUsage(input_estimate=estimate, output_estimate=estimate_tokens(len(body)))
-                reported = UsageReport(
-                    input_tokens=_count(usage.get("input_tokens")),
-                    output_tokens=_count(usage.get("output_tokens")),
-                    estimated_input_tokens=estimate,
-                    estimated_output_tokens=local.output_estimate,
-                    provider_request_id=usage.get("provider_request_id") if isinstance(usage.get("provider_request_id"), str) else None,
-                    duration_ms=max(0, int(outcome.duration_ms)),
-                )
-                try:
-                    operations, no_op_reason, malformed = budgets.decode_body(body, reservation)
-                except budgets.OutputRejected as exc:
-                    code = exc.code
-                else:
-                    provenance = ResponseProvenance(provider_id=backend.provider_id[:64], configured_model=backend.configured_model[:128], resolved_model=None, adapter_version=self.runtime.adapter_version)
-                    response = ModelResponse(response_schema=1, operations=operations, no_op_reason=no_op_reason, usage=reported, provenance=provenance, malformed=malformed)
+        result = evaluate_outcome(outcome, backend, purpose=reservation.purpose, body_cap=reservation.max_response_body_bytes, estimate=estimate, adapter_version=self.runtime.adapter_version)
         with self.store.transaction() as txn:  # charged whatever happened, fenced or not
-            budgets.charge(txn, reservation.reservation_id, reported=reported, local=local, provider_id=backend.provider_id[:64], model=backend.configured_model[:128])
-        return code, response
+            budgets.charge(txn, reservation.reservation_id, reported=result.reported, local=result.local, provider_id=backend.provider_id[:64], model=backend.configured_model[:128])
+        return result.code, result.response
 
     def _persist(self, job: Job, request: ModelRequest, response: ModelResponse) -> None:
         apply.persist_proposal(self.store, job, response, request.read_set, now=self.now())
@@ -787,10 +773,6 @@ def _project_config(ctx: InstallationContext) -> ProjectConfig:
     return load_project_config(Layout(Path(ctx.root)))
 
 
-def _count(value: Any) -> int | None:
-    return value if type(value) is int and value >= 0 else None
-
-
 # --------------------------------------------------------------------------
 # Public entry points
 
@@ -807,6 +789,21 @@ def run_worker(ctx: InstallationContext, *, mode: str, **options: Any) -> int:
     if mode != "persistent":
         raise RecalithError("invalid_schema", "worker mode is persistent or session")
     return Worker(ctx, **options).run()
+
+
+def configured_provider(ctx: InstallationContext, environment: Mapping[str, str]) -> tuple[ProviderSupervisor, ModelRuntime | None]:
+    """The installation's explicit route: a model runtime only when it is certified now.
+
+    Without a certified route there is no runtime and model jobs keep waiting
+    visibly with ``provider_unavailable``; nothing falls back to another
+    provider, model, account or weaker launch (SYSTEM_SPEC §9.1).
+    """
+    from recalith.controller import requests
+
+    provider = ProviderSupervisor(ctx, inherited=environment)
+    if provider.backend is None:
+        return provider, None
+    return provider, ModelRuntime(backend=provider.backend, prepare=requests.runtime_preparer(ctx))
 
 
 def request_stop(root: Path | str) -> None:
@@ -850,12 +847,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if env.get(process_env.WORKER_MARKER) != ctx.installation_id:
             raise RecalithError("policy_refused", "the worker role marker does not name this installation")
         spawn = SpawnInfo(spawned_by=args.get("spawned-by", "direct"), method=args.get("spawn-method", "none"), in_job=windows_in_job())
+        provider, model = configured_provider(ctx, env)
         stop = threading.Event()
         if os.name != "nt":
             import signal
 
             signal.signal(signal.SIGTERM, lambda *_: stop.set())
-        return run_worker(ctx, mode="persistent", spawn=spawn, stop_event=stop)
+        return run_worker(ctx, mode="persistent", spawn=spawn, stop_event=stop, provider=provider, model=model)
     except RecalithError as exc:
         print(f"recalith-worker: {exc.code}", file=sys.stderr)
         return exc.exit_code

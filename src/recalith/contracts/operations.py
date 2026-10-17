@@ -463,6 +463,17 @@ class RequestLimits(StrictModel):
         return self
 
 
+class BoundaryContext(StrictModel):
+    """A pending boundary candidate as narrative input, with the binding revisions its events have now.
+
+    ``binding_revisions`` is what a ``resolve_task_binding`` proposal must
+    name as ``expected_binding_revisions``; a moved binding re-evaluates it.
+    """
+
+    candidate: TaskBoundaryCandidate
+    binding_revisions: dict[Id, Revision] = Field(default_factory=dict)
+
+
 class ModelRequest(StrictModel):
     request_schema: One
     job_id: Id
@@ -473,6 +484,7 @@ class ModelRequest(StrictModel):
     episodes: list[Episode] = Field(default_factory=list)
     claims: list[ClaimRevision] = Field(default_factory=list)
     task_state: TaskState | None = None
+    boundaries: list[BoundaryContext] = Field(default_factory=list)
     allowed_evidence_refs: list[RecordRef] = Field(default_factory=list)
     read_set: ReadSet
     output_schema: JsonObject

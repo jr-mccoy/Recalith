@@ -22,7 +22,9 @@ reduce in order. For each event it:
    the one eligible task;
 5. at checkpoints (compaction, session end, idle pause) turns the task's open
    range into an episode (``episodes``), unless that would sever a failure
-   from its later result.
+   from its later result, and schedules the checkpoint's model narrative
+   (``controller.requests.schedule_narrative``, decision 0009) in the same
+   transaction; the reduction itself never calls a model.
 
 Every persistent change is an operation applied by
 ``controller.apply.apply_in_transaction`` (Task 5) as one atomic group per
@@ -39,7 +41,7 @@ from recalith.contracts.common import Actor, InstallationContext, ReadSet, deriv
 from recalith.contracts.config import ProjectConfig
 from recalith.contracts.memory import TaskState
 from recalith.contracts.operations import ApplyResult, ProposedOperation
-from recalith.controller import apply
+from recalith.controller import apply, requests
 from recalith.episodes import condense
 from recalith.episodes import segment as episode_segment
 from recalith.errors import RecalithError
@@ -322,6 +324,8 @@ class Reduction:
             book = bindings.task_book(self.txn, task_id)
             book.update({"open_from": None, "checkpoint_pending": False, "last_episode_id": ref.id})
             bindings.save_task_book(self.txn, task_id, book)
+            # Narrative for the quiet checkpoint, scheduled atomically with the episode (decision 0009).
+            requests.schedule_narrative(self.txn, task_id=task_id, episode_ref=ref, now=self.now)
 
     def _apply_episodes(self, ops: Sequence[tuple[str, dict[str, Any]]]) -> ApplyResult:
         result = self._apply(ops, reason="episode checkpoint")

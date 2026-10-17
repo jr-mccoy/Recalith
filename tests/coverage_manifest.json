@@ -775,7 +775,8 @@
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
             "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
             "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect",
-            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference"
+            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
+            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -783,7 +784,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference."
         }
       ]
     },
@@ -1006,7 +1007,14 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/unit/test_provider_probe.py"
+            "tests/unit/test_provider_probe.py",
+            "tests/platform/test_provider_isolation.py::test_user_level_hooks_and_memory_are_absent",
+            "tests/platform/test_provider_isolation.py::test_installed_cli_isolation_from_a_host_marked_parent",
+            "tests/platform/test_provider_isolation.py::test_recursion_marker_is_not_no_hooks_proof",
+            "tests/platform/test_provider_isolation.py::test_hook_started_worker_rechecks_curator_isolation",
+            "tests/platform/test_provider_isolation.py::test_provider_never_receives_other_project",
+            "tests/unit/test_provider_contract.py::test_unknown_capabilities_leave_the_worker_without_a_backend",
+            "tests/unit/test_provider_probe.py::test_probe_uses_the_engine_spawn_environment"
           ],
           "platforms": [
             "linux",
@@ -1014,7 +1022,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 7: the production curator launch (shared spawn_environment curator role, fresh private root outside any checkout, certified argument array) is checked for effective isolation with the Task 0 sentinels planted, from clean and host-marked parents with decoy credentials, through the fake CLI on every platform and the installed Claude Code 2.1.302 in request-capture mode; a hook that runs despite the recursion marker fails and withdraws a route; the hook-started worker rechecks its own curator launch (run/provider-check.json); a request carries only its own installation's records. Live certification is still B1 (no route); request capture never certifies."
         }
       ]
     },
@@ -1038,14 +1046,22 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/unit/test_provider_contract.py::test_unknown_capabilities_disable_backend",
+            "tests/unit/test_provider_contract.py::test_auth_route_change_is_visible",
+            "tests/unit/test_provider_contract.py::test_unknown_capabilities_leave_the_worker_without_a_backend",
+            "tests/unit/test_provider_contract.py::test_per_call_host_diagnostic_rechecks_isolation",
+            "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
+            "tests/unit/test_provider_contract.py::test_certification_record_requires_a_complete_live_observation"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain."
         }
       ]
     },
@@ -1074,7 +1090,14 @@
             "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
             "tests/integration/test_worker.py::test_process_backend_bounds_hang_flood_and_tree",
             "tests/unit/test_contracts.py::test_model_body_cap_precedes_parsing_and_15kb_episode_fits",
-            "tests/unit/test_provider_probe.py"
+            "tests/unit/test_provider_probe.py",
+            "tests/platform/test_provider_isolation.py::test_timeout_terminates_process_tree",
+            "tests/platform/test_provider_isolation.py::test_output_flood_is_bounded",
+            "tests/platform/test_provider_isolation.py::test_15kb_episode_response_is_accepted_through_a_real_launch",
+            "tests/unit/test_provider_contract.py::test_15kb_episode_response_is_accepted",
+            "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
+            "tests/unit/test_provider_contract.py::test_model_text_cannot_supply_usage_or_provenance",
+            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -1082,7 +1105,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7."
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1."
         }
       ]
     },
@@ -1677,7 +1700,10 @@
           "tests": [
             "tests/platform/test_capture_only_claude.py::test_capture_only_real_lifecycle",
             "tests/platform/test_capture_only_claude.py::test_uncertified_host_version_is_conservative",
-            "tests/platform/test_capture_only_claude.py::test_unknown_transcript_records_and_host_fields_are_gaps"
+            "tests/platform/test_capture_only_claude.py::test_unknown_transcript_records_and_host_fields_are_gaps",
+            "tests/unit/test_provider_contract.py::test_unknown_capabilities_disable_backend",
+            "tests/unit/test_provider_contract.py::test_per_call_host_diagnostic_rechecks_isolation",
+            "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation"
           ],
           "platforms": [
             "linux",
@@ -1685,7 +1711,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full."
         },
         {
           "variant": "full_only",
@@ -1799,7 +1825,10 @@
             "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
             "tests/integration/test_worker.py::test_five_candidates_use_one_review_call",
             "tests/integration/test_working_memory.py::test_typed_reduction_runs_while_model_call_is_in_flight",
-            "tests/integration/test_working_memory.py::test_single_active_task_links_without_model_budget"
+            "tests/integration/test_working_memory.py::test_single_active_task_links_without_model_budget",
+            "tests/integration/test_requests.py::test_reservation_uses_the_exact_request_estimate",
+            "tests/integration/test_requests.py::test_reduction_schedules_narrative_within_the_ordinary_budget",
+            "tests/integration/test_requests.py::test_review_batch_is_persisted_before_launch_and_reused_while_unchanged"
           ],
           "platforms": [
             "linux",
@@ -1807,7 +1836,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted."
+          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted. Task 7: reservations use the exact estimate of the prepared request; narrative is scheduled in the ordinary pool, coalesced; the review batch is persisted before launch (assessment application remains Task 9)."
         }
       ]
     },
@@ -2442,7 +2471,12 @@
             "tests/integration/test_worker.py::test_curator_child_environment_from_worker",
             "tests/platform/test_worker_lifecycle.py::test_hook_spawn_clears_host_markers",
             "tests/platform/test_worker_lifecycle.py::test_worker_sets_its_own_role_marker",
-            "tests/unit/test_provider_probe.py"
+            "tests/unit/test_provider_probe.py",
+            "tests/platform/test_provider_isolation.py::test_hook_started_worker_rechecks_curator_isolation",
+            "tests/platform/test_provider_isolation.py::test_user_level_hooks_and_memory_are_absent",
+            "tests/platform/test_provider_isolation.py::test_installed_cli_isolation_from_a_host_marked_parent",
+            "tests/platform/test_provider_isolation.py::test_recursion_marker_is_not_no_hooks_proof",
+            "tests/unit/test_provider_contract.py::test_auth_route_change_is_visible"
           ],
           "platforms": [
             "linux",
@@ -2450,7 +2484,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 0 harness plus the Task 4 hops: hook→worker from clean and host-marked parents (fresh allowlist, markers and inherited RECALITH_* removed, own worker marker, names-only diagnostics, Linux /proc cross-check) and worker→model child through spawn_environment(purpose=curator) with only the selected route key. Live provider route and effective isolation remain Tasks 7/13 (B1)."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 0 harness plus the Task 4 hops: hook→worker from clean and host-marked parents (fresh allowlist, markers and inherited RECALITH_* removed, own worker marker, names-only diagnostics, Linux /proc cross-check) and worker→model child through spawn_environment(purpose=curator) with only the selected route key. Live provider route and effective isolation remain Tasks 7/13 (B1). Task 7: hook→worker→curator with real processes: the real hook entry from a host-marked parent with decoy credentials starts the worker (worker role marker), whose provider recheck launches the curator (installed Claude 2.1.302 in request capture, or the fake CLI) from the worker's environment; the observed child keys (Linux /proc) are only constructed keys with the curator marker naming the installation, no host or worker marker, no decoys; effective hooks/MCP/memory/tools are checked separately and fail isolation when present. Live auth route unchanged is B1."
         }
       ]
     },

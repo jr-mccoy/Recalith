@@ -107,7 +107,7 @@ DEFAULTS: dict[str, Any] = {
     "control_resume_args": ["--continue"],
     "limits": {},
     "host_markers": list(pc.DEFAULT_HOST_MARKERS),
-    "probe_installation_id": "inst_probe_00000000-0000-4000-8000-000000000000",
+    "probe_installation_id": "inst_00000000-0000-4000-8000-000000000000",
 }
 DEFAULT_LIMITS = {
     "timeout_seconds": 120,
@@ -509,8 +509,7 @@ class Probe:
             selected_auth_keys=auth_keys,
             network_keys=network,
             overrides=overrides,
-            host_markers=self.markers,
-        )
+        )[0]
 
     def argv(self, args: Sequence[str]) -> list[str]:
         model = self.cfg["model"] or UNSELECTED_MODEL
@@ -834,10 +833,81 @@ def build_dimensions(cfg: dict[str, Any], version: dict[str, Any], capture: dict
 
 
 # --------------------------------------------------------------------------
+# Route record (Task 7): the installation's explicit provider.json
+
+
+def route_config(cfg: dict[str, Any], section: dict[str, Any], *, installation_id: str) -> dict[str, Any]:
+    """The ``ProviderConfig`` this probe run supports; ``certified`` only for a complete live pass.
+
+    The certification block is copied from what the run observed (executable
+    digest, host version, auth key names, report digest); a request-capture or
+    otherwise incomplete run yields an explicitly uncertified route, which the
+    worker reports unavailable and never launches.
+    """
+    src = str(REPO_ROOT / "src")
+    if src not in sys.path:
+        sys.path.insert(0, src)
+    from recalith.contracts.config import ProviderConfig
+    from recalith.providers.base import invocation_digest
+
+    auth = cfg["auth_route"]
+    kind = {"env_api_key": "env_api_key", "env_cloud": "env_cloud"}.get(auth["kind"])
+    if kind is None:
+        raise ConfigError("a route record needs a configured auth_route (env_api_key or env_cloud)")
+    observed = (section.get("host_version") or {}).get("observed") or ""
+    version = re.search(r"(\d+\.\d+\.\d+)", observed)
+    certified = bool(section.get("certified")) and section.get("live", {}).get("status") == "run"
+    digest = pc.sha256_bytes(pc.canonical_json(section))
+    config = {
+        "provider_id": cfg["provider_id"],
+        "installation_id": installation_id,
+        "backend": "claude_cli",
+        "executable": cfg["executable"],
+        "configured_model": cfg["model"],
+        "auth_route": kind,
+        "auth_env_keys": list(auth["env_keys"]),
+        "expected_api_key_source": auth["expected_api_key_source"],
+        "network_env_keys": list(cfg["network_env_keys"]),
+        "nonsecret_env": dict(cfg["nonsecret_env"]),
+        "invocation_args": list(cfg["invocation_args"]),
+        "timeout_seconds": cfg["limits"]["timeout_seconds"],
+        "certification": {"certified": False},
+    }
+    model = ProviderConfig.model_validate(config)
+    config["certification"] = {
+        "certified": certified,
+        "certified_at": section.get("tested_at") if certified else None,
+        "host_version": version.group(1) if version else None,
+        "report_digest": digest,
+        "executable_sha256": section["invocation"].get("executable_sha256"),
+        "mode": "live" if section.get("live", {}).get("status") == "run" else "request_capture",
+        "operator_attestation": cfg["operator_attestation"]["background_use"],
+        "auth_env_keys": list(auth["env_keys"]),
+        "expected_api_key_source": auth["expected_api_key_source"],
+        "invocation_digest": invocation_digest(model),
+    }
+    return ProviderConfig.model_validate(config).model_dump(mode="json")
+
+
+def write_route(project_root: Path, cfg: dict[str, Any], section: dict[str, Any]) -> Path:
+    """Write ``<project>/.recalith/provider.json`` (private; key names only, never values)."""
+    if any(marker in os.environ for marker in cfg["host_markers"]):
+        raise PermissionError("writing a project's provider route is an operator action; run it from an ordinary terminal outside any agent session")
+    import tomllib
+
+    local = project_root / ".recalith" / "local.toml"
+    installation_id = tomllib.loads(local.read_text(encoding="utf-8"))["installation_id"]
+    from recalith.contracts.config import ProviderConfig
+    from recalith.providers.base import save_provider_config
+
+    return save_provider_config(project_root, ProviderConfig.model_validate(route_config(cfg, section, installation_id=installation_id)))
+
+
+# --------------------------------------------------------------------------
 # Entry point
 
 
-def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool = False) -> int:
+def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool = False, route_out: Path | None = None) -> int:
     try:
         cfg = load_config(config_path)
     except ConfigError as exc:
@@ -930,8 +1000,18 @@ def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool =
             "A model-visible negative canary is evidence about this trial, not proof of future behavior.",
             "Environment key names are observed through /proc on Linux; other platforms report the constructed map only.",
         ]
-        pc.merge_report_section(output_path, SECTION, cfg["provider_id"], sanitizer.value(report))
+        section = sanitizer.value(report)
+        pc.merge_report_section(output_path, SECTION, cfg["provider_id"], section)
         print(json.dumps({"verdict": report["verdict"], "blocking_dimensions": blocking}))
+        if route_out is not None:
+            try:
+                path = write_route(route_out, cfg, section)
+            except PermissionError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return 6
+            except (OSError, KeyError, ValueError) as exc:
+                return pc.die_usage(f"cannot write the route record: {exc}")
+            print(json.dumps({"route_record": str(path), "certified": certified}))
         return pc.EXIT_CERTIFIED if certified else pc.EXIT_UNAVAILABLE
     finally:
         if keep_fixture:
@@ -945,8 +1025,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--config", required=True, type=Path, help="local probe configuration (see docs/probes/LOCAL_CONFIG.md)")
     parser.add_argument("--output", required=True, type=Path, help="compatibility report to update")
     parser.add_argument("--keep-fixture", action="store_true", help="keep the disposable fixture tree for debugging")
+    parser.add_argument("--route-out", type=Path, default=None, help="project root whose .recalith/provider.json records this route (certified only by a complete live pass)")
     ns = parser.parse_args(argv)
-    return probe_provider(ns.config, ns.output, keep_fixture=ns.keep_fixture)
+    return probe_provider(ns.config, ns.output, keep_fixture=ns.keep_fixture, route_out=ns.route_out)
 
 
 if __name__ == "__main__":

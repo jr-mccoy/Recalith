@@ -261,20 +261,35 @@ def pending_work(root: Path) -> str:
 def main(argv: list[str]) -> int:
     """``ROOT CALLS_LOG [FAILPOINT SKIP | count HITS_LOG]``: optionally kill at one failpoint hit, or log every hit."""
     root, calls_log = Path(argv[1]), Path(argv[2])
+    import provider_scenarios as provider
+
+    spec = provider.scenario(root)
     if len(argv) > 3 and argv[3] == "count":
         hits = Path(argv[4])
 
         def record_hit(name: str) -> None:
             with open(hits, "a", encoding="utf-8") as fh:
-                fh.write(f"{name} {pending_work(root)}\n")
+                fh.write(f"{name} {provider.outstanding(root) if spec else pending_work(root)}\n")
 
-        for name in failpoints.WORKER + failpoints.REDUCTION:
+        for name in failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER:
             failpoints.arm(name, record_hit, times=10**6)
     elif len(argv) > 3:
         failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
     ctx = context(root)
     import operation_scenarios as scenarios
 
+    if spec is not None:  # Task 7: the production preparer and a real bounded provider child
+        clock = FakeClock(spec["clock"])
+        w = worker.Worker(ctx, clock=clock, model=provider.runtime(ctx, spec, clock), owner=f"driver:{new_id('act')[4:12]}")
+        lock = process_env.InstallationLock(root)
+        assert lock.try_acquire(), "another worker holds the installation"
+        try:
+            w.startup()  # reaps a curator tree a killed predecessor left behind
+            drain(w)
+        finally:
+            w.close()
+            lock.release()
+        return 0
     bodies = scenarios.scenario_bodies(root)
     if bodies is None:
         backend, prepare = FakeBackend(log=calls_log), None

@@ -1,0 +1,39 @@
+{
+  "fixture_schema": 1,
+  "description": "Harmless sentinel customizations planted around an isolated curator launch. Every token must be absent from the effective launch; a hook that runs and is merely ignored fails the probe.",
+  "prefix": "SENTINEL_",
+  "tokens": {
+    "user_instruction": "SENTINEL_USER_INSTRUCTION_7C1E",
+    "project_instruction": "SENTINEL_PROJECT_INSTRUCTION_2B9D",
+    "local_instruction": "SENTINEL_LOCAL_INSTRUCTION_4E07",
+    "native_memory": "SENTINEL_NATIVE_MEMORY_9A33",
+    "user_skill": "SENTINEL_USER_SKILL_5F21",
+    "user_agent": "SENTINEL_USER_AGENT_0D6C",
+    "user_mcp_tool": "SENTINEL_USER_MCP_TOOL_8E4A",
+    "project_mcp_tool": "SENTINEL_PROJECT_MCP_TOOL_3C58",
+    "prior_session": "SENTINEL_PRIOR_SESSION_6B12",
+    "agents_md": "SENTINEL_AGENTS_MD_1D47"
+  },
+  "hook_events": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "Stop",
+    "SubagentStop",
+    "PreCompact",
+    "SessionEnd",
+    "Notification"
+  ],
+  "hook_scopes": [
+    "user",
+    "project",
+    "local"
+  ],
+  "informational_tokens": [
+    "agents_md"
+  ],
+  "informational_reason": {
+    "agents_md": "Claude 2.1.301 loads a built-in agents-md hook module even under --bare, but no AGENTS.md content was observed in isolated or non-isolated requests, so this detector cannot be positively validated. Presence still fails a run."
+  }
+}

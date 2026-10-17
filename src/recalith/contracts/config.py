@@ -8,6 +8,7 @@ transition can change defaults without discarding overrides (§10.1).
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
@@ -189,25 +190,71 @@ class ProjectConfig(StrictModel):
 
 
 AuthRouteKind = Literal["env_api_key", "env_oauth_token", "env_cloud", "api_key_helper"]
+EnvKeyName = Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")]
+# Names an explicit route or nonsecret switch may never use (SYSTEM_SPEC §9.1, §13.1).
+FORBIDDEN_ENV_NAMES = frozenset({"CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION"})
+_CREDENTIAL_NAME = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)
+
+
+def _forbidden_env_name(name: str) -> bool:
+    return name.upper().startswith("RECALITH_") or name.upper() in FORBIDDEN_ENV_NAMES
 
 
 class ProviderCertification(StrictModel):
+    """What a successful probe of this exact route observed (Task 0 / Task 7).
+
+    ``certified`` is true only for a complete *live* observation with the
+    operator's checked background-use eligibility. The route is usable only
+    while the executable digest, host version, auth route and invocation
+    still equal what was certified; any change requires recertification.
+    """
+
     certified: bool
     certified_at: UtcTime | None = None
     host_version: Annotated[str, Field(max_length=128)] | None = None
     report_digest: Digest | None = None
     executable_sha256: Digest | None = None
+    mode: Literal["live", "request_capture"] | None = None
+    operator_attestation: Literal["checked_eligible", "checked_ineligible", "unchecked"] = "unchecked"
+    auth_env_keys: list[EnvKeyName] = Field(default_factory=list)
+    expected_api_key_source: Annotated[str, Field(max_length=128)] | None = None
+    invocation_digest: Digest | None = None
+
+    @model_validator(mode="after")
+    def _complete(self) -> "ProviderCertification":
+        if self.certified:
+            missing = [f for f in ("certified_at", "host_version", "report_digest", "executable_sha256", "invocation_digest") if getattr(self, f) is None]
+            if missing:
+                raise ValueError(f"a certified route records {missing}")
+            if self.mode != "live":
+                raise ValueError("request-capture observations never certify a route")
+            if self.operator_attestation != "checked_eligible":
+                raise ValueError("certification requires the operator's checked background-use eligibility")
+            if not self.auth_env_keys:
+                raise ValueError("a certified route records its selected auth key names")
+        return self
 
 
 class ProviderConfig(StrictModel):
-    """Explicit backend/model/auth reference; never chosen because a CLI is on PATH."""
+    """Explicit backend/model/auth reference; never chosen because a CLI is on PATH.
+
+    Local to one installation (``.recalith/provider.json``, never tracked):
+    ``installation_id`` binds it, so a copied configuration is refused.
+    ``invocation_args`` may contain ``{model}`` and ``{system_prompt}``.
+    ``nonsecret_env`` holds nonsecret switches for the curator child;
+    ``network_env_keys`` names managed proxy/TLS keys carried with the route.
+    """
 
     provider_id: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")]
+    installation_id: Id
     backend: Literal["claude_cli", "json_process"]
     executable: Annotated[str, Field(min_length=1, max_length=4096)]
     configured_model: Annotated[str, Field(min_length=1, max_length=128)]
     auth_route: AuthRouteKind
-    auth_env_keys: list[Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")]]
+    auth_env_keys: list[EnvKeyName]
+    expected_api_key_source: Annotated[str, Field(max_length=128)] | None = None
+    network_env_keys: list[EnvKeyName] = Field(default_factory=list)
+    nonsecret_env: dict[EnvKeyName, Annotated[str, Field(max_length=1024)]] = Field(default_factory=dict)
     invocation_args: list[str]
     certification: ProviderCertification
     timeout_seconds: PositiveInt = 120
@@ -220,4 +267,12 @@ class ProviderConfig(StrictModel):
             raise ValueError("--json-schema adds a model-visible tool on certified Claude builds (decision 0002)")
         if not self.auth_env_keys:
             raise ValueError("an explicit auth route must name its environment keys")
+        for name in [*self.auth_env_keys, *self.network_env_keys, *self.nonsecret_env]:
+            if _forbidden_env_name(name):
+                raise ValueError("a route never names a host or recalith role marker")
+        for name in self.nonsecret_env:
+            if _CREDENTIAL_NAME.search(name):
+                raise ValueError("nonsecret_env must not carry credentials")
+        if self.max_wire_stdout_bytes > WIRE_STDOUT_CAP or self.max_stderr_bytes > STDERR_CAP:
+            raise ValueError("provider output caps cannot exceed the hard 256 KiB wire / 64 KiB stderr limits")
         return self
