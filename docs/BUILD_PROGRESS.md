@@ -233,7 +233,9 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Undo:** restores bindings and task fields; reducer bookkeeping (a session's current task, clusters) is not rewound, so a session's next events still go to the task it last pointed at.
   - **Host facts:** no certified host task identifier exists for Claude 2.1.301; a capture-time `task_id` hint naming an existing task is honored as a host binding, untested against a real host.
   - **Crash protocol:** process death, not power loss.
-- CI: pending (recorded in a follow-up docs commit).
+- CI (commits 6fde83b, 7684a12):
+  - **Run 32 (6fde83b)** failed only on Windows, in the pre-existing Task 4 `test_killed_worker_is_restarted_by_the_next_hook` (`deadline_worker_start_skipped` instead of `worker_start_pending`). Its throttle check ran a real hook under the real 250 ms deadline; the loaded runner spent the whole deadline on capture, and `ensure_worker` correctly shed the start before the throttle check (it sheds only an exhausted deadline before the lock probe). This is the third timing pattern from Task 5, not a Task 6 code defect. It could not be reproduced on Linux by CPU load, so the test now reproduces the branch deterministically in process with an exhausted deadline and asserts the throttle (`worker_start_pending`, no spawn) with a generous one; nothing was rerun to pass.
+  - **Run 33 (7684a12): all five jobs green.** Linux 3.12, 3.13 and 3.14 passed (3.13 also passed offline provisioning); macOS 3.13 passed 455 with 11 skips and 1 xfail (the non-root runner runs the real `EACCES` variants). Windows 3.13 passed 414 with 52 skips and 1 xfail, running the Task 6 working-memory and episode tests, the reduction kill/restart matrix (3 reps per failpoint) and the in-flight reduction test natively; the runner had no orphan processes to clean up.
 
 Add each later checkpoint with:
 
