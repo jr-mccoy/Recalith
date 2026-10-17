@@ -9,13 +9,16 @@ smuggled in by a provider.
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationError, model_validator
 
 from .common import (
     Condition,
     DependencyRef,
+    Digest,
     EvidenceLink,
     Id,
     JsonObject,
@@ -351,12 +354,30 @@ class ResponseProvenance(StrictModel):
     adapter_version: Annotated[str, Field(min_length=1, max_length=64)]
 
 
+ReasonCode = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")]
+
+
+class MalformedOperation(StrictModel):
+    """Adapter-recorded: one proposed operation that failed strict validation.
+
+    It fails exactly its atomic dependency group (DATA_CONTRACTS §7.1); its
+    raw text is not retained. ``local_ref``/``depends_on`` are kept only when
+    they were themselves valid, so dependents can be grouped with it.
+    """
+
+    index: NonNegative
+    local_ref: LocalRef | None
+    depends_on: list[LocalRef] = Field(default_factory=list)
+    reason_code: ReasonCode
+
+
 class ModelResponse(StrictModel):
     response_schema: One
     operations: list[ProposedOperation]
     no_op_reason: Annotated[str, Field(max_length=1024)] | None
     usage: UsageReport
     provenance: ResponseProvenance | None = None
+    malformed: list[MalformedOperation] = Field(default_factory=list)
 
     @classmethod
     def from_body(cls, body: ModelProposalBody, usage: UsageReport, provenance: ResponseProvenance | None) -> "ModelResponse":
@@ -406,7 +427,7 @@ class ModelRequest(StrictModel):
 class AdmissionDecision(StrictModel):
     local_ref: LocalRef
     outcome: Literal["apply", "review_required", "candidate_only", "reject", "requeue"]
-    reason_code: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")]
+    reason_code: ReasonCode
     resolved_operation_id: Id | None
 
 
@@ -418,6 +439,45 @@ class ApplyResult(StrictModel):
     requeued_job_ids: list[Id] = Field(default_factory=list)
 
 
+class UndoChange(StrictModel):
+    """One compensating change an undo would append (decision 0007)."""
+
+    action: Literal["restore_fields", "retire", "remove_relation"]
+    ref: RecordRef | None
+    fields: list[Annotated[str, Field(min_length=1, max_length=64)]] = Field(default_factory=list)
+    relation: Annotated[list[Annotated[str, Field(min_length=1, max_length=128)]], Field(min_length=3, max_length=3)] | None = None
+
+    @model_validator(mode="after")
+    def _shape(self) -> "UndoChange":
+        if (self.action == "remove_relation") != (self.relation is not None and self.ref is None):
+            raise ValueError("relation removals name a relation; record changes name a ref")
+        return self
+
+
+class UndoConflict(StrictModel):
+    """A later revision changed what the undone operation changed; undo leaves it alone."""
+
+    ref: RecordRef
+    undone_revision: Revision
+    current_revision: NonNegative
+    fields: list[Annotated[str, Field(min_length=1, max_length=64)]] = Field(default_factory=list)
+    reason: ReasonCode
+
+
+class UndoPreview(StrictModel):
+    """``recalith undo OPERATION_ID --preview``: the compensation and its conflicts.
+
+    ``--apply`` requires this exact ``preview_digest``; any intervening change
+    alters the digest, so nothing is applied that was not previewed.
+    """
+
+    operation_id: Id
+    state: Literal["clean", "partial", "conflicted", "nothing_to_undo"]
+    compensations: list[UndoChange]
+    conflicts: list[UndoConflict]
+    preview_digest: Digest
+
+
 def parse_model_body(raw: bytes, *, purpose: ModelPurpose, body_cap: int) -> ModelProposalBody:
     """Validate a decoded model body: byte cap first, then strict DTO, then purpose."""
     if len(raw) > body_cap:
@@ -426,3 +486,58 @@ def parse_model_body(raw: bytes, *, purpose: ModelPurpose, body_cap: int) -> Mod
     body.validate_for_purpose(purpose)
     return body
 
+
+
+_LOCAL_REF = re.compile(r"^[a-z0-9][a-z0-9_\-]{0,63}$")
+
+
+def _reject_constant(name: str) -> None:
+    raise ValueError(f"non-finite JSON number {name}")
+
+
+def parse_model_body_partitioned(raw: bytes, *, purpose: ModelPurpose, body_cap: int) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
+    """Validate a decoded body per operation (DATA_CONTRACTS §7.1).
+
+    The byte cap and the enclosing object are strict: oversize, invalid JSON,
+    unknown top-level keys or a mixed review response reject the whole body.
+    Each operation is then validated strictly on its own; one that fails (or
+    whose kind the purpose does not permit) is recorded as a
+    :class:`MalformedOperation` and fails only its dependency group.
+    """
+    if len(raw) > body_cap:
+        raise ValueError("decoded model body exceeds its purpose cap; it is never clipped")
+    data = json.loads(raw.decode("utf-8"), parse_constant=_reject_constant)
+    if not isinstance(data, dict) or not set(data) <= {"operations", "no_op_reason"} or "operations" not in data:
+        raise ValueError("a model body is an object with operations and an optional no_op_reason")
+    items, reason = data["operations"], data.get("no_op_reason")
+    if not isinstance(items, list) or len(items) > 256:
+        raise ValueError("operations is a list of at most 256 entries")
+    if reason is not None and (not isinstance(reason, str) or len(reason) > 1024):
+        raise ValueError("no_op_reason is a bounded string")
+    if not items and not reason:
+        raise ValueError("an empty proposal explains itself with no_op_reason")
+    valid: list[ProposedOperation] = []
+    malformed: list[MalformedOperation] = []
+    allowed = PURPOSE_KINDS[purpose]
+
+    def _ref(item: object) -> str | None:
+        value = item.get("local_ref") if isinstance(item, dict) else None
+        return value if isinstance(value, str) and _LOCAL_REF.match(value) else None
+
+    def _deps(item: object) -> list[str]:
+        value = item.get("depends_on") if isinstance(item, dict) else None
+        return [d for d in value if isinstance(d, str) and _LOCAL_REF.match(d)] if isinstance(value, list) else []
+
+    for index, item in enumerate(items):
+        try:
+            op = ProposedOperation.model_validate_json(json.dumps(item))
+        except (ValidationError, ValueError):
+            malformed.append(MalformedOperation(index=index, local_ref=_ref(item), depends_on=_deps(item), reason_code="malformed_operation"))
+            continue
+        if op.kind not in allowed:
+            malformed.append(MalformedOperation(index=index, local_ref=op.local_ref, depends_on=list(op.depends_on), reason_code="kind_not_permitted"))
+            continue
+        valid.append(op)
+    if purpose == "review_claims" and len({op.kind for op in valid}) > 1:
+        raise ValueError("a review response is either terminal assessments or evidence requests, not both")
+    return valid, reason, malformed

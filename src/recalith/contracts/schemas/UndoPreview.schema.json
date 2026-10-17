@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "UndoChange": {
+      "additionalProperties": false,
+      "description": "One compensating change an undo would append (decision 0007).",
+      "properties": {
+        "action": {
+          "enum": [
+            "restore_fields",
+            "retire",
+            "remove_relation"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relation"
+        }
+      },
+      "required": [
+        "action",
+        "ref"
+      ],
+      "title": "UndoChange",
+      "type": "object"
+    },
+    "UndoConflict": {
+      "additionalProperties": false,
+      "description": "A later revision changed what the undone operation changed; undo leaves it alone.",
+      "properties": {
+        "current_revision": {
+          "minimum": 0,
+          "title": "Current Revision",
+          "type": "integer"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "reason": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Reason",
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "undone_revision": {
+          "minimum": 1,
+          "title": "Undone Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ref",
+        "undone_revision",
+        "current_revision",
+        "reason"
+      ],
+      "title": "UndoConflict",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/UndoPreview",
+  "additionalProperties": false,
+  "description": "``recalith undo OPERATION_ID --preview``: the compensation and its conflicts.\n\n``--apply`` requires this exact ``preview_digest``; any intervening change\nalters the digest, so nothing is applied that was not previewed.",
+  "properties": {
+    "compensations": {
+      "items": {
+        "$ref": "#/$defs/UndoChange"
+      },
+      "title": "Compensations",
+      "type": "array"
+    },
+    "conflicts": {
+      "items": {
+        "$ref": "#/$defs/UndoConflict"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "operation_id": {
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "preview_digest": {
+      "title": "Preview Digest",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "clean",
+        "partial",
+        "conflicted",
+        "nothing_to_undo"
+      ],
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "operation_id",
+    "state",
+    "compensations",
+    "conflicts",
+    "preview_digest"
+  ],
+  "title": "UndoPreview",
+  "type": "object"
+}

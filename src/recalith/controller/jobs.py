@@ -164,11 +164,19 @@ def enqueue(
     due_at: str | None = None,
     coalesce: bool = False,
     idempotency: str | None = None,
+    review_priority: str | None = None,
 ) -> tuple[str, bool]:
-    """Create a job once per idempotency key; priority and pool are computed here."""
-    if kind == "review_claims" and not review_candidates:
+    """Create a job once per idempotency key; priority and pool are computed here.
+
+    ``review_priority`` lets a re-evaluation inherit the code-assigned priority
+    of the review job it replaces; a new review job derives it from its candidates.
+    """
+    if kind == "review_claims" and not review_candidates and review_priority is None:
         raise RecalithError("invalid_schema", "a review job names its candidates so code can assign its priority")
-    review_priority = review_priority_for(review_candidates) if kind == "review_claims" else None
+    if kind == "review_claims":
+        review_priority = review_priority_for(review_candidates) if review_candidates else review_priority
+    else:
+        review_priority = None
     meta = txn.meta
     key = idempotency or idempotency_key(kind, input_refs, policy_revision=meta.policy_revision, prompt_version=prompt_version, tombstone_epoch=meta.tombstone_epoch)
     existing = txn.one("SELECT job_id FROM jobs WHERE idempotency_key = ?", (key,))
@@ -323,6 +331,14 @@ def set_proposal(txn: Txn, job: Job, proposal_ref: str) -> Job:
     current = _current(txn, job).model_copy(update={"proposal_ref": proposal_ref})
     _save(txn, current)
     return current
+
+
+def supersede(txn: Txn, job: Job, code: str) -> Job:
+    """A conflict replaced this attempt with a re-evaluation job; it never applies."""
+    current = _current(txn, job)
+    done = current.model_copy(update={"state": "cancelled", "lease_owner": None, "lease_until": None, "last_error_code": code[:64]})
+    _save(txn, done)
+    return done
 
 
 def count_attempt(txn: Txn, job: Job) -> Job:

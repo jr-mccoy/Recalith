@@ -41,6 +41,7 @@ MODELS = {
     "ModelResponse": operations.ModelResponse,
     "AdmissionDecision": operations.AdmissionDecision,
     "ApplyResult": operations.ApplyResult,
+    "UndoPreview": operations.UndoPreview,
     "ContextQuery": context.ContextQuery,
     "ContextPacket": context.ContextPacket,
     "DeliveryReceipt": context.DeliveryReceipt,

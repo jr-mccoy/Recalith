@@ -96,8 +96,8 @@ def test_unknown_schema_cannot_write(tmp_path):
     b = make_project(tmp_path, "b")
     path = a.root / ".recalith/state/memory.sqlite"
     raw = sqlite3.connect(path)
-    raw.execute("UPDATE installation_meta SET schema_version = 2")
-    raw.execute("PRAGMA user_version = 2")
+    raw.execute("UPDATE installation_meta SET schema_version = ?", (db.SCHEMA_VERSION + 1,))
+    raw.execute(f"PRAGMA user_version = {db.SCHEMA_VERSION + 1}")
     raw.commit()
     raw.close()
     before = path.read_bytes()

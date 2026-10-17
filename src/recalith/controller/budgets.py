@@ -40,7 +40,7 @@ from typing import Any, Iterable, Mapping
 from recalith.contracts.common import new_id
 from recalith.contracts.config import MODEL_INPUT_CAP, PROTECTED_PURPOSES, PURPOSE_OUTPUT_ALLOWANCE, STDERR_CAP, WIRE_STDOUT_CAP, BudgetConfig, body_cap_for, estimate_tokens
 from recalith.contracts.jobs import BudgetReservation, LocalUsage, PoolAllocation
-from recalith.contracts.operations import ModelProposalBody, UsageReport, parse_model_body
+from recalith.contracts.operations import MalformedOperation, ProposedOperation, UsageReport, parse_model_body_partitioned
 from recalith.storage.db import Txn
 
 DIMENSIONS = ("invocations", "input_estimate", "output_estimate")
@@ -264,13 +264,17 @@ def check_wire(stdout: bytes, *, overflowed: bool) -> None:
         raise OutputRejected("wire_stdout_oversized")
 
 
-def decode_body(body: bytes, reservation: BudgetReservation) -> ModelProposalBody:
-    """Count the decoded body's original UTF-8 bytes against ``3 ×`` the allowance, then parse strictly."""
+def decode_body(body: bytes, reservation: BudgetReservation) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
+    """Count the decoded body's original UTF-8 bytes against ``3 ×`` the allowance, then parse.
+
+    The enclosing body is strict (``response_invalid``); each operation is
+    validated on its own and a malformed one fails only its dependency group.
+    """
     if len(body) > reservation.max_response_body_bytes:
         raise OutputRejected("response_body_oversized")
     try:
-        return parse_model_body(body, purpose=reservation.purpose, body_cap=reservation.max_response_body_bytes)
-    except ValueError:
+        return parse_model_body_partitioned(body, purpose=reservation.purpose, body_cap=reservation.max_response_body_bytes)
+    except (ValueError, UnicodeDecodeError):
         raise OutputRejected("response_invalid") from None
 
 
