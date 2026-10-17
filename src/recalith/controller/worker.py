@@ -62,6 +62,7 @@ from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
 from recalith.storage import spool
 from recalith.storage.db import Store, Txn, open_store
+from recalith.working import reducer as working_reducer
 
 WORKER_ACTOR = Actor(kind="controller", id="worker", channel="worker")
 STATUS_FILE = "worker.json"
@@ -191,8 +192,10 @@ class ModelRuntime:
 def handle_ingest(txn: Txn, job: Job, worker: "Worker") -> None:
     """Typed follow-on processing of newly ingested events (no model budget).
 
-    Task 4 confirms the events are committed; typed task reduction (Task 6)
-    and failure triggers (Task 9/10) register as further reducers here.
+    Task 4 confirms the events are committed; typed task reduction (Task 6,
+    ``working.reducer.reduce_ingested``) is registered by default and runs in
+    this fenced transaction; failure triggers (Task 9/10) register as further
+    reducers here.
     """
     for ref in job.input_refs:
         if txn.one("SELECT 1 FROM events WHERE event_id = ?", (ref.id,)) is None:
@@ -292,7 +295,7 @@ class Worker:
         self.model = model
         self.parsers = dict(PARSERS if parsers is None else parsers)
         self.handlers = dict(DEFAULT_HANDLERS if handlers is None else handlers)
-        self.ingest_reducers: list[Callable[[Txn, Job, Worker], None]] = []
+        self.ingest_reducers: list[Callable[[Txn, Job, Worker], None]] = [working_reducer.reduce_ingested]
         self.owner = owner or f"worker:{os.getpid()}:{new_id('act')[4:12]}"
         self.spawn = spawn or SpawnInfo()
         self.environment = os.environ if environment is None else environment
@@ -345,6 +348,7 @@ class Worker:
             with self.store.transaction() as txn:
                 jobs.schedule_housekeeping(txn, now=now)
             worked |= self._run_deterministic()
+            worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
             if self.lane is None:
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None

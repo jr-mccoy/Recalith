@@ -135,7 +135,7 @@ Task 3b enables only the capture column and advertises delivery unavailable; it 
 
 A `linked` placeholder has `next_action=null` and `pending_actions=[]` in its current head. Reducers do not derive actions, blockers or tentative actionable context from it; follow the versioned binding to the nonlinked target instead. Historical pre-link revisions remain inspectable as history only. Link creation transfers pending call associations before clearing the placeholder's current actionable fields. Reject model patches that try to reactivate or put actions on a linked head; an explicit later split creates a new task under the existing rules.
 
-No field is cleared just because it was absent from a new chunk. Task operations are explicit patches: set a field, append an item, close an item by ID, or change status. Full replacement requires an expected revision and a complete state. Field changes preserve supporting references in history.
+No field is cleared just because it was absent from a new chunk. Task operations are explicit patches: set a field, append an item, close an item by ID, or change status. A pending action's ID is its code-assigned `action_id`; every other list item (a `SupportedText`) is identified by `item_` + SHA-256 of its normalized content (decision 0008). Full replacement requires an expected revision and a complete state. Field changes preserve supporting references in history. A status patch to `completed` requires a `completion_basis` citing at least one record (`completion_requires_evidence`); inactivity pauses a task and never completes it.
 
 ### 3.1 Versioned task bindings
 
@@ -145,13 +145,15 @@ No field is cleared just because it was absent from a new chunk. Task operations
 
 `TaskBindingProposal = {boundary_id: Id, decision: confirm_split|reject|link_session, event_ids: list[Id], target_task_id: Id|null, expected_binding_revisions: dict[Id,int], evidence: list[EvidenceLink]}`. For a split, code allocates the new task ID and moves the exact range atomically with the task-state revisions; the model cannot rewrite source events. Linking requires an existing eligible same-project task. Pending call/result pairs remain together. An unknown/ambiguous decision keeps provisional bindings and preserves separate existing objectives. After the deterministic link, the abandoned provisional head has `status=linked` and `redirect_task_id=target`; it is not a second active objective or candidate for another automatic link. Reassign the provisional session range and its pending call/result pairs atomically; do not copy narrative fields over the target. Preserve history so an explicit later split can reverse the assignment. Metrics count allocated placeholders separately from nonredirected task heads.
 
+Persistence (decision 0008): typed reduction opens provisional tasks with the controller-only `create_task`, writes first (provisional) bindings and their typed facts with `bind_events`, and records candidates with `record_boundary`; none of the three is in any model purpose's permitted kinds. One binding chain per event (`binding_id` = `bind_` + SHA-256 of the event ID). A result joins its call by `tool_call_id` (`tool_calls`), across splits and sessions. A proposal's `event_ids` must be bound to the boundary's source task (following redirects), lie in one session and form a contiguous slice of that session's events in the task; a range that would separate a call from a result that has already arrived is rejected (`detaches_call_result`), while a still-pending call may move and its result follows it. `confirm_split` moves the range and the items whose evidence lies wholly inside it; the source keeps its objective. `reject` confirms the events where they are. `link_session` on a `linked` candidate with its current target confirms the deterministic link; a link is reversed only by an explicit split, never by reviving the placeholder.
+
 ## 4. Episode
 
 `Episode` fields: `episode_id`, installation identity, `revision`, `task_id`, `title`, `started_at`, `ended_at|null`, `state: open|settled|archived`, `objective: SupportedText`, `preconditions: list[SupportedText]`, `steps: list[EpisodeStep]`, `outcome: SupportedText`, `unresolved: list[SupportedText]`, `source_event_ids: list[Id]`, `related_episode_ids: list[Id]`, `scope`, and `coverage`.
 
 `EpisodeStep = {ordinal: int, action: SupportedText, result: SupportedText|null, outcome: success|failure|interrupted|not_run|unknown, causal_assessment: SupportedText|null}`.
 
-Episodes retain successful, unsuccessful, and uncertain outcomes. A procedure extracted from several episodes references each episode and its underlying independent roots. An episode derived only from another episode cannot masquerade as a new experience.
+Episodes retain successful, unsuccessful, and uncertain outcomes. `create_episode` takes `state: open|settled` (default `open`); `coverage` is computed by code from the source events, never supplied; `revise_episode` may set `state` to `open` or `settled` only. Deterministic checkpoint episodes cite events outside their own `source_event_ids` (the objective, a call started in an earlier range, a predecessor's unresolved items) with relation `context` only (decision 0008). A procedure extracted from several episodes references each episode and its underlying independent roots. An episode derived only from another episode cannot masquerade as a new experience.
 
 ## 5. Claim and procedure
 
@@ -258,6 +260,9 @@ Every operation has `local_ref: str`, `kind`, `depends_on: list[str]`, `target: 
 | `change_claim_status` | Requested status, replacement local ref or existing ref, and evidence |
 | `request_evidence` | Enumerated `file_excerpt\|record\|dependency_diff\|event_range` request within allowed refs |
 | `no_op` | Reason; no mutation |
+| `create_task` | Controller-only (typed reduction): code-allocated `task_id`, `title`, `reason: new_session\|host_reset`, `session_ids`, `started_at` |
+| `bind_events` | Controller-only: `task_id`, `expected_revision`, unbound `event_ids` (≤256), optional `boundary_id`, typed `patches` (≤256) citing the events; code derives `session_ids`, `last_activity_at` and reactivation |
+| `record_boundary` | Controller-only: one pending `TaskBoundaryCandidate` |
 
 The provider schema enumerates permitted payload keys for each kind and job purpose. `assess_claim` is valid only for the assigned review batch; it materializes one `ReviewAssessment` with resolved evidence links and code-assigned provenance. `supported` requires at least one valid evidence ID; `revise`/`reject` may cite none with a missing-evidence objection; `reject` with the exact `review_capacity` objection may also have an empty evidence-ID list because it makes no substantive evidence judgment. Duplicate, missing, or foreign candidate assessments cannot activate a claim. The review request contains only the candidate proposition/scope/conditions and permitted original evidence; remove all proposal `reason` keys and extractor rationales before serialization. Evidence quotations are not modified. It cannot return operator forget, policy changes, provider changes, shell execution, instruction-file edits, export, or cross-project import. A malformed operation fails its atomic dependency group; independent valid groups may continue. The decoded body is therefore validated in two levels: the byte cap and the enclosing object (`operations`, optional `no_op_reason`, no other keys) are strict and reject the whole body; each operation is then validated strictly on its own. Atomic groups are the connected components of the `depends_on` graph, applied in topological order inside one transaction, each within its own savepoint; a local ref named in a payload (such as `replacement_local_ref`) must also appear in `depends_on`. Ordinary proposed patches may not modify immutable source text, origin IDs, evidence-root identity, or capture authority.
 
@@ -321,7 +326,9 @@ Implement ordered SQL migrations with explicit indexes. JSON fields use canonica
 | `capture_sources` | Source registration ID, exact path/identity, durable and ingested cursors, coverage |
 | `source_conflicts` | Conflict ID; unique adapter/source key/digest, original event ref, scrubbed conflicting payload, coverage, resolution state |
 | `root_classes`, `root_members`, `root_aliases` | Canonical origin identity, equivalence reasons, imported descriptors, and merged-class aliases |
-| `task_boundaries`, `task_binding_revisions`, `task_binding_heads` | Boundary candidates and versioned event-to-task assignments |
+| `task_boundaries`, `task_binding_revisions`, `task_binding_heads` | Boundary candidates and versioned event-to-task assignments; heads carry the event's commit sequence and session (schema 3) |
+| `tool_calls` | Adapter + `tool_call_id` → first call and first result event (pair joins across splits and sessions) |
+| `working_cursor`, `working_sessions`, `working_tasks` | Typed reducer bookkeeping: last reduced commit sequence, per-session detection state, per-task observed clusters and open episode range; derived, never served |
 | `failure_triggers` | Pending/resolved debounced boundaries and deterministic action-family identity |
 | `environment_observations` | Allowlisted value/fingerprint, workspace/executable binding, source ref or config revision, freshness |
 | `review_batches` | Immutable candidate revision/digest snapshots, evidence index, origin/review job IDs, read set |
@@ -363,6 +370,8 @@ evaluate_operation(ctx: InstallationContext, operation: ProposedOperation, read_
     # Task 5 helpers (decision 0007): persist before apply; service writes; compensating undo.
 persist_proposal(store: Store, job: Job, response: ModelResponse, read_set: ReadSet, *, now: UtcTime) -> Id
 apply_operations(ctx: InstallationContext, operations: Sequence[ProposedOperation], *, read_set: ReadSet, submission_id: Id) -> ApplyResult
+apply_in_transaction(txn, ctx: InstallationContext, operations: Sequence[ProposedOperation], *, read_set: ReadSet, submission_id: Id, now: UtcTime, kind: str = "apply_reduction") -> ApplyResult
+    # Task 6 (decision 0008): the same application inside a caller's write transaction (typed reduction in its fenced ingest job).
 preview_undo(ctx: InstallationContext, operation_id: Id) -> UndoPreview
 apply_undo(ctx: InstallationContext, operation_id: Id, *, preview_digest: Digest) -> ApplyResult
 propose_task_boundaries(ctx: InstallationContext, events: Sequence[EventEnvelope]) -> list[TaskBoundaryCandidate]

@@ -744,3 +744,62 @@ def test_backend_bug_fails_its_job_not_the_lane(root):
     assert [r.state for r in reservations(root)] == ["charged"]  # unknown usage: charged in full, never left dangling
     healthy = ws.enqueue_model_job(root, "update_task", key="healthy")
     assert w.lane.step() and job_row(root, healthy).state == "completed"
+
+
+# ---------------------------------------------------------------------------
+# Typed reduction and binding application under kill/restart (Task 6)
+
+REDUCTION_MATRIX = list(failpoints.WORKER) + list(failpoints.REDUCTION)
+
+
+def _count_hits(root: Path, log: Path, hits: Path) -> subprocess.CompletedProcess:
+    args = [sys.executable, str(HERE / "worker_scenarios.py"), str(root), str(log), "count", str(hits)]
+    return subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
+
+
+@pytest.mark.parametrize("failpoint", REDUCTION_MATRIX)
+def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
+    """Killed inside typed reduction, the deterministic link or a binding split, then restarted: one effect.
+
+    The project holds real 2.1.301 lifecycle payloads (with a pivot and one
+    more call as variants) and a second, variant session that reduction links
+    deterministically; nothing is ingested yet, so the first kills land on
+    ingest jobs running typed reduction. One ``update_task`` model job then
+    splits the lifecycle session at its pivot. The reference run logs every
+    failpoint hit with whether reduction or the split was still outstanding;
+    each repetition kills at one of those hits only, and the killed store is
+    checked to differ from the reference, so every kill lands on the work
+    under test (an ingest job with nothing left to reduce is never the target). The reopened store must equal the reference: tasks, bindings and
+    their revisions, boundaries, episodes, operation rows, decisions, the
+    reduction cursor and the guidance epoch.
+    """
+    import working_scenarios as wks
+
+    reference_root = wks.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = osc.normalized(reference_root)
+    assert sorted(reference["boundaries"]) == [("new_session", "pending"), ("new_session", "pending"), ("pivot_prefix", "confirmed"), ("single_active_task", "linked")]
+    assert reference["applications"] == ["update_task"] and reference["decisions"] == [("update_task", "split", "apply", "admitted")]
+    assert len(reference["tasks"]) == 3 and sorted(status for _rev, status, _body in reference["tasks"]) == ["active", "active", "linked"]
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [(r, s_) for name, r, s_ in hits if name == failpoint]
+    reducing = [i for i, (r, _s) in enumerate(mine) if r == "1"]
+    deciding = [i for i, (r, s_) in enumerate(mine) if r == "0" and s_ == "1"]
+    # Kill while typed reduction is outstanding (the job that reduces) and while only the split is (the model job).
+    ordinals = sorted({*reducing[:1], *deciding[-1:]})
+    assert ordinals, f"{failpoint} is never reached while reduction or the binding decision is outstanding"
+    for rep in range(REPS):
+        root = wks.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert osc.normalized(root) != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert osc.normalized(root) == reference, (failpoint, rep)
+        calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
+            assert len(calls) <= 1, "a persisted proposal was re-requested from the model"
+        assert len(calls) <= 2  # at most the killed launch and one relaunch of the single model job

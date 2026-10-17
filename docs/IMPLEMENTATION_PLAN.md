@@ -221,7 +221,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 6: Tasks, episodes, and cross-session continuity
 
-**Files:** Create `working/{segment,reducer,tasks,bindings}.py`, `episodes/{segment,condense}.py`, `tests/integration/test_working_memory.py`, `tests/integration/test_episodes.py`.
+**Files:** Create `working/{segment,reducer,tasks,bindings}.py`, `episodes/{segment,condense}.py`, `tests/integration/test_working_memory.py`, `tests/integration/test_episodes.py`. The task also added `storage/migrations/0003.sql` (schema 3: binding-head columns, `tool_calls`, reducer bookkeeping), the controller-only operation kinds `create_task`/`bind_events`/`record_boundary` and `controller.apply.apply_in_transaction`, the `failpoints.REDUCTION` family, and the test builders `tests/integration/working_scenarios.py` (real 2.1.301 payloads, named synthetic variants, recorded proposals, the reduction kill/restart scenario) (decision 0008).
 
 **Interfaces:** Produce `reduce_task(ctx, task_id: Id, events: Sequence[EventEnvelope]) -> TaskState` and `build_episode(ctx, task_id: Id, event_ids: Sequence[Id]) -> Episode`. Also produce `propose_task_boundaries(ctx, events) -> list[TaskBoundaryCandidate]` and `resolve_task_binding(ctx, proposal) -> ApplyResult` through Task 5. These build proposed state/episode bodies; persistence goes through Task 5. Deterministic reducers set only supported typed facts; model narrative patches use the same write path later.
 

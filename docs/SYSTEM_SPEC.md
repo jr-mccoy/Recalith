@@ -112,6 +112,8 @@ Until a boundary is confirmed, subsequent unbound events remain provisionally as
 
 Working state tracks the objective, constraints, pending actions, blockers, known results, and the latest supported next action. Each field references its supporting event or claim revision. Fields may be unknown. An assistant's intention is a proposed next action, not evidence that the action ran. A tool call awaiting a result is pending, not successful.
 
+Typed reduction (decision 0008) counts user, assistant, tool and artifact events as activity; session lifecycle and compaction notices are not activity, so a resumed session's start does not hide an idle gap. A pivot that is a new session's first request records no split candidate (the session already has its own provisional task) but still blocks the continuity link. A failing test or build is a blocker until the same action (tool, working directory, argument array, paths) passes.
+
 A task becomes completed only with evidence of completion of its stated objective: an explicit user completion statement, a configured deterministic completion criterion, or a supported model assessment of the task's actual acceptance results. The latter is labeled inferred and reversible. A passing unrelated test or a commit alone is insufficient. Inactivity changes active to paused after the configured interval; it never proves completion.
 
 ### 3.3 Episodes

@@ -1,6 +1,6 @@
 # Decision 0007: Mutation application, re-evaluation and compensating undo
 
-Status: accepted (Task 5 preview slice) · Date: 2026-10-16
+Status: accepted (Task 5 preview slice) · Date: 2026-10-16 · Item 7's `task_binding_unavailable` rejection is superseded by decision 0008 (Task 6 applies `resolve_task_binding`).
 
 ## Context
 

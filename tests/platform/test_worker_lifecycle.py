@@ -322,9 +322,15 @@ def test_killed_worker_is_restarted_by_the_next_hook(replay, tmp_path):
     assert first
     wh.kill_pid(first["pid"])
     assert wh.wait_for(lambda: not process_env.worker_running(replay.root), 20)  # the OS released the dead worker's lock
-    # Within the start throttle a hook does not spawn again ...
-    pending, _ = hook(replay, wh.prompt_record(), tmp_path)
+    # Within the start throttle a hook does not spawn again ... The throttle is asserted in process with a generous
+    # deadline. Under the real 250 ms deadline a loaded runner can spend it all on capture, and the hook then
+    # correctly sheds the start before the throttle check (CI run 32, Windows); that branch is reproduced here.
+    record = wh.prompt_record()
+    shed = entry.run(str(replay.root), "claude_code", replay.prepare(record), registered_event=record["event"], env=cf.child_env(), deadline=time.monotonic())
+    assert shed["worker"] == "deadline_worker_start_skipped"
+    pending = entry.run(str(replay.root), "claude_code", replay.prepare(record), registered_event=record["event"], env=cf.child_env(), deadline=time.monotonic() + 5)
     assert pending["worker"] == "worker_start_pending"
+    assert not process_env.worker_running(replay.root)
     stamp_path = Path(process_env.run_dir(replay.root)) / process_env.START_STAMP
     stamp = json.loads(stamp_path.read_text(encoding="utf-8"))
     stamp_path.write_text(json.dumps(dict(stamp, at=stamp["at"] - process_env.START_THROTTLE_SECONDS - 1)), encoding="utf-8")

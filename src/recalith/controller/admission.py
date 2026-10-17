@@ -31,12 +31,16 @@ from pydantic import ValidationError
 
 from recalith.contracts.common import EvidenceLink, InstallationContext, ReadSet, RecordRef, Scope, digest_of
 from recalith.contracts.events import MEMORY_KINDS
+from recalith.contracts.memory import TaskBindingProposal
 from recalith.contracts.operations import (
     AdmissionDecision,
     AttachEvidencePayload,
+    BindEventsPayload,
     ChangeClaimStatusPayload,
     CreateEpisodePayload,
+    CreateTaskPayload,
     ProposedOperation,
+    RecordBoundaryPayload,
     ReviseClaimPayload,
     ReviseEpisodePayload,
     UpdateTaskPayload,
@@ -46,6 +50,8 @@ from recalith.core.paths import PathPolicy
 from recalith.errors import RecalithError
 from recalith.storage import records
 from recalith.storage.db import Store, open_store
+from recalith.working import bindings
+from recalith.working import tasks as working_tasks
 
 APPLY = "apply"
 CANDIDATE = "candidate_only"
@@ -250,7 +256,7 @@ def _current(q: Any, ref: RecordRef, resolution: Resolution) -> tuple[Verdict | 
 
 def subject_ref(op: ProposedOperation, typed: Any) -> RecordRef | None:
     """The existing record an operation changes (its required ``target`` when set)."""
-    if isinstance(typed, UpdateTaskPayload):
+    if isinstance(typed, (UpdateTaskPayload, BindEventsPayload)):
         return RecordRef(kind="task", id=typed.task_id, revision=typed.expected_revision)
     if isinstance(typed, ReviseEpisodePayload):
         return RecordRef(kind="episode", id=typed.episode_id, revision=typed.expected_revision)
@@ -264,8 +270,6 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
         return _no("kind_not_permitted")
     if op.kind == "request_evidence":
         return _no("evidence_request_not_applicable")  # expansion rounds are never persisted or applied
-    if op.kind == "resolve_task_binding":
-        return _no("task_binding_unavailable")  # binding application is Task 6
     try:
         typed = op.typed_payload()
     except ValidationError:
@@ -286,7 +290,8 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
         if failure is not None:
             return failure
 
-    for link in [*op.evidence, *_payload_links(op.payload)]:
+    extra_links = list(typed.evidence) if isinstance(typed, TaskBindingProposal) else []
+    for link in [*op.evidence, *_payload_links(op.payload), *extra_links]:
         reason = check_link(q, link)
         if reason is not None:
             return _no(reason)
@@ -294,8 +299,24 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
     if op.kind == "update_task":
         assert head is not None
         if head[1] not in policy.TASK_UPDATABLE_STATUSES:
-            return _no("task_not_updatable")
+            return _no("task_not_updatable")  # also refuses reactivating or adding actions to a linked placeholder
+        if (reason := _completion(q, typed, head)) is not None:  # type: ignore[arg-type]
+            return _no(reason)
         return _ok()
+    if op.kind == "create_task":
+        assert isinstance(typed, CreateTaskPayload)
+        return _verdict(bindings.check_create_task(q, ctx, typed))
+    if op.kind == "bind_events":
+        assert isinstance(typed, BindEventsPayload)
+        return _verdict(bindings.check_bind_events(q, ctx, typed))
+    if op.kind == "record_boundary":
+        assert isinstance(typed, RecordBoundaryPayload)
+        return _verdict(bindings.check_record_boundary(q, ctx, typed))
+    if op.kind == "resolve_task_binding":
+        assert isinstance(typed, TaskBindingProposal)
+        if bindings.stale_bindings(q, typed):
+            return _stale(bindings.STALE)
+        return _verdict(bindings.check_resolve(q, ctx, typed))
     if op.kind == "create_episode":
         assert isinstance(typed, CreateEpisodePayload)
         task = records.head(q, "task", typed.task_id)
@@ -306,6 +327,9 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
         for event_id in typed.source_event_ids:
             if check_link(q, EvidenceLink(ref=RecordRef(kind="event", id=event_id, revision=1), relation="context")) is not None:
                 return _no("evidence_missing")
+            bound = bindings.binding_head(q, event_id)
+            if bound is not None and working_tasks.resolve_task(q, bound["task_id"]) != typed.task_id:
+                return _no("event_bound_elsewhere")  # an episode recounts its own task's events
         if (reason := check_scope(q, typed.scope)) is not None:
             return _no(reason)
         if typed.ended_at is not None and typed.ended_at < typed.started_at:
@@ -357,6 +381,23 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
         if replacement is not None and replacement.id == subject.id:  # type: ignore[union-attr]
             return _no("replacement_is_target")
     return _ok()
+
+
+def _verdict(reason: str | None) -> Verdict:
+    return _ok() if reason is None else _no(reason)
+
+
+def _completion(q: Any, typed: UpdateTaskPayload, head: tuple[int, str]) -> str | None:
+    """Completion only with completion evidence (SYSTEM_SPEC §3.2); idle or a passing test never suffices."""
+    if not any(p.op == "status" and p.status == "completed" for p in typed.patches):
+        return None
+    basis = next((p.value for p in reversed(typed.patches) if p.op == "set" and p.field == "completion_basis"), None)
+    if basis is None:
+        body = records.body(q, "task", typed.task_id, head[0]) or {}
+        basis = body.get("completion_basis")
+    if not working_tasks.completion_supported({"completion_basis": basis}):
+        return "completion_requires_evidence"
+    return None
 
 
 def _replacement(q: Any, typed: ChangeClaimStatusPayload, resolution: Resolution) -> RecordRef | Verdict | None:

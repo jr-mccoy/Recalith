@@ -55,11 +55,15 @@ from pydantic import ValidationError
 from recalith.contracts.common import EvidenceLink, InstallationContext, ReadSet, RecordRef, canonical_json, derived_id, digest_of, format_utc, new_id, parse_utc, utc_now
 from recalith.contracts.jobs import Job
 from recalith.contracts.memory import ClaimRevision, Episode, PendingAction, TaskState
+from recalith.contracts.memory import TaskBindingProposal
 from recalith.contracts.operations import (
     AdmissionDecision,
     ApplyResult,
     AttachEvidencePayload,
+    BindEventsPayload,
     ChangeClaimStatusPayload,
+    CreateTaskPayload,
+    RecordBoundaryPayload,
     CreateEpisodePayload,
     MalformedOperation,
     ModelResponse,
@@ -78,12 +82,15 @@ from recalith.errors import RecalithError
 from recalith.fast import failpoints
 from recalith.storage import records
 from recalith.storage.db import Store, Txn, open_store
+from recalith.working import bindings
+from recalith.working import tasks as working_tasks
 
 APPLY_REF = "@apply"
 REQUEUE_REF = "@requeue"
 UNDO_REF = "@undo"
 APPLICATION_KIND = "apply_proposal"
 SERVICE_KIND = "apply_service"
+REDUCTION_KIND = "apply_reduction"
 REQUEUE_KIND = "requeue"
 UNDO_KIND = "undo"
 REQUEUED = "reevaluation_requeued"
@@ -152,6 +159,7 @@ def load_proposal(q: Any, proposal_id: str) -> tuple[ModelResponse, ReadSet, str
 class _Change:
     entries: list[dict[str, Any]] = field(default_factory=list)
     refs: list[RecordRef] = field(default_factory=list)
+    serving: bool | None = None  # None: decided by the operation kind (policy.SERVING_RELEVANT_KINDS)
 
     def record(self, ref: RecordRef, before: int | None) -> None:
         self.entries.append({"ref": ref.model_dump(mode="json"), "before": before})
@@ -159,6 +167,12 @@ class _Change:
 
     def relation(self, source: str, target: str, relation: str) -> None:
         self.entries.append({"relation": [source, target, relation], "added": True})
+
+    def binding(self, event_id: str, before: dict[str, Any] | None, after: dict[str, Any]) -> None:
+        self.entries.append({"binding": event_id, "before": before, "after": after})
+
+    def boundary(self, boundary_id: str, before: str | None, after: str) -> None:
+        self.entries.append({"boundary": boundary_id, "before": before, "after": after})
 
 
 @dataclass
@@ -174,6 +188,37 @@ class _Run:
     resolution: admission.Resolution = field(default_factory=admission.Resolution)
     created: set[tuple[str, str]] = field(default_factory=set)
     serving: bool = False
+    source: str = "proposal"  # proposal (model) | service | reduction (typed reducer)
+
+
+class _Writer:
+    """The handler-facing view of one operation inside the application (``bindings.Writer``)."""
+
+    def __init__(self, run: _Run, op: ProposedOperation, change: _Change) -> None:
+        self.txn = run.txn
+        self.ctx = run.ctx
+        self.now = run.now
+        self.op_id = operation_id(run.scope_id, run.digest, op.local_ref)
+        self.source = run.source
+        self._run = run
+        self._change = change
+
+    def record(self, ref: RecordRef, before: int | None) -> None:
+        if before is not None:
+            _touch(self._run, ref.kind, ref.id, before)
+        self._change.record(ref, before)
+
+    def created(self, kind: str, record_id: str) -> None:
+        self._run.created.add((kind, record_id))
+
+    def binding(self, event_id: str, before: dict[str, Any] | None, after: dict[str, Any]) -> None:
+        self._change.binding(event_id, before, after)
+
+    def boundary(self, boundary_id: str, before: str | None, after: str) -> None:
+        self._change.boundary(boundary_id, before, after)
+
+    def serving(self) -> None:
+        self._change.serving = True
 
 
 class _GroupFailed(Exception):
@@ -355,31 +400,7 @@ def _change_status(run: _Run, op: ProposedOperation, typed: ChangeClaimStatusPay
 
 
 def _patch(data: dict[str, Any], patches: Sequence[Any], *, list_fields: frozenset[str], op_id: str, ids: dict[str, str] | None = None) -> None:
-    for index, patch in enumerate(patches):
-        if patch.op == "status":
-            data["status"] = patch.status
-            continue
-        name = patch.field
-        if patch.op == "set":
-            if name in list_fields:
-                raise ValueError("list fields change by append/close, not set")
-            data[name] = patch.value
-        elif patch.op == "append":
-            if name not in list_fields:
-                raise ValueError("append applies to list fields")
-            value = patch.value
-            if ids and name in ids:
-                assert isinstance(value, dict)
-                value = {**value, ids[name]: derived_id("act", [op_id, index])}  # code assigns item ids
-            data[name] = [*data.get(name, []), value]
-        elif patch.op == "close":
-            key = (ids or {}).get(name)
-            if key is None:
-                raise ValueError("only identified list items can be closed")
-            kept = [item for item in data.get(name, []) if item.get(key) != patch.item_id]
-            if len(kept) == len(data.get(name, [])):
-                raise ValueError("no list item has that id")
-            data[name] = kept
+    working_tasks.patch_fields(data, patches, list_fields=list_fields, op_id=op_id, ids=ids)
 
 
 TASK_LIST_FIELDS = frozenset({"constraints", "plan", "pending_actions", "known_results", "blockers", "open_questions"})
@@ -403,14 +424,30 @@ def _update_task(run: _Run, op: ProposedOperation, typed: UpdateTaskPayload, cha
     return None
 
 
+def episode_coverage(q: Any, typed: CreateEpisodePayload) -> dict[str, Any]:
+    """Code-derived coverage of an episode's sources (never model-supplied)."""
+    events = working_tasks.load_events(q, typed.source_event_ids)
+    started = {ev.tool_call_id for ev in events if ev.kind == "tool_started" and ev.tool_call_id}
+    finished = {ev.tool_call_id for ev in events if ev.kind == "tool_finished" and ev.tool_call_id}
+    return {
+        "source_events": len(events),
+        "truncated_events": sum(1 for ev in events if ev.coverage.get("truncated")),
+        "redacted_events": sum(1 for ev in events if ev.coverage.get("redacted")),
+        "incomplete_events": sum(1 for ev in events if ev.coverage.get("missing_context") or not ev.coverage.get("parser_complete", True)),
+        "compactions": sum(1 for ev in events if ev.kind == "compaction"),
+        "sessions": len({ev.session_id for ev in events}),
+        "calls_awaiting_result": len(started - finished),
+        "causal_assessment": "assessed" if any(step.causal_assessment is not None for step in typed.steps) else "unassessed",
+    }
+
+
 def _create_episode(run: _Run, op: ProposedOperation, typed: CreateEpisodePayload, change: _Change) -> str | None:
     episode = Episode(
         episode_id=new_id("ep"),
         project_id=run.ctx.project_id,
         installation_id=run.ctx.installation_id,
         revision=1,
-        state="open",
-        coverage={},
+        coverage=episode_coverage(run.txn, typed),
         **typed.model_dump(),
     )
     ref = records.write_episode(run.txn, _validate(Episode, episode.model_dump(mode="json")))
@@ -431,7 +468,32 @@ def _revise_episode(run: _Run, op: ProposedOperation, typed: ReviseEpisodePayloa
     return None
 
 
+def _create_task(run: _Run, op: ProposedOperation, typed: CreateTaskPayload, change: _Change) -> str | None:
+    bindings.apply_create_task(_Writer(run, op, change), typed)
+    return None
+
+
+def _bind_events(run: _Run, op: ProposedOperation, typed: BindEventsPayload, change: _Change) -> str | None:
+    change.serving = False  # serving-relevant only when the task revision changes (set by the writer)
+    bindings.apply_bind_events(_Writer(run, op, change), typed)
+    return None
+
+
+def _record_boundary(run: _Run, op: ProposedOperation, typed: RecordBoundaryPayload, change: _Change) -> str | None:
+    bindings.apply_record_boundary(_Writer(run, op, change), typed)
+    return None
+
+
+def _resolve_binding(run: _Run, op: ProposedOperation, typed: TaskBindingProposal, change: _Change) -> str | None:
+    bindings.apply_resolve(_Writer(run, op, change), typed)
+    return None
+
+
 HANDLERS = {
+    "create_task": _create_task,
+    "bind_events": _bind_events,
+    "record_boundary": _record_boundary,
+    "resolve_task_binding": _resolve_binding,
     "propose_claim": _propose_claim,
     "attach_evidence": _attach_evidence,
     "revise_claim": _revise_claim,
@@ -571,8 +633,11 @@ def _stale_targets(q: Any, ops: Iterable[ProposedOperation]) -> bool:
     for op in ops:
         try:
             refs = _subject_refs(op)
+            typed = op.typed_payload()
         except ValidationError:
             continue
+        if isinstance(typed, TaskBindingProposal) and bindings.stale_bindings(q, typed):
+            return True
         for ref in refs:
             if ref.kind not in records.HEAD_TABLES:
                 continue
@@ -599,6 +664,8 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         group_serving = False
         try:
             for op in group:
+                if run.source == "proposal" and op.kind in policy.REDUCTION_KINDS:
+                    raise _GroupFailed(op.local_ref, "kind_not_permitted")  # controller-only kinds never come from a model
                 verdict = admission.check_operation(run.txn, run.ctx, op, resolution=run.resolution)
                 if not verdict.admitted:
                     raise _GroupFailed(op.local_ref, verdict.reason)
@@ -616,7 +683,7 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
                         oid = _record_operation(run, op, group_id, change)
                         group_ids.append(oid)
                         group_changed.extend(change.refs)
-                        group_serving = group_serving or op.kind in policy.SERVING_RELEVANT_KINDS
+                        group_serving = group_serving or (change.serving if change.serving is not None else op.kind in policy.SERVING_RELEVANT_KINDS)
                 group_decisions.append(AdmissionDecision(local_ref=op.local_ref, outcome=verdict.outcome, reason_code=reason, resolved_operation_id=oid))  # type: ignore[arg-type]
         except _GroupFailed as failed:
             run.txn.execute("ROLLBACK TO apply_group")
@@ -790,26 +857,47 @@ def apply_operations(
     Task 12a). ``submission_id`` makes a retry idempotent. A revision conflict
     raises ``revision_conflict`` and applies nothing; there is no job to requeue.
     """
-    if not policy.allowed_kinds(ctx.actor):
-        raise RecalithError("policy_refused", "this actor cannot apply memory operations")
-    response = ModelResponse(response_schema=1, operations=list(operations), no_op_reason=None if operations else "empty submission", usage=_NO_USAGE, provenance=None)
-    digest = proposal_digest(response)
-    app_id = operation_id(submission_id, digest, APPLY_REF)
     own = store is None
     store = store or open_store(ctx)
     now = now or utc_now()
     try:
         with store.transaction() as txn:
-            done = stored_result(txn, app_id)
-            if done is not None:
-                return done
-            run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id)
-            result = _apply(run, response, read_set, kind=SERVICE_KIND)
+            result = apply_in_transaction(txn, ctx, operations, read_set=read_set, submission_id=submission_id, now=now, kind=SERVICE_KIND)
             failpoints.hit(failpoints.SERVICE_BEFORE_COMMIT)
         return result
     finally:
         if own:
             store.close()
+
+
+def apply_in_transaction(
+    txn: Txn,
+    ctx: InstallationContext,
+    operations: Sequence[ProposedOperation],
+    *,
+    read_set: ReadSet,
+    submission_id: str,
+    now: str,
+    kind: str = REDUCTION_KIND,
+) -> ApplyResult:
+    """Apply typed operations inside a write transaction the caller already holds.
+
+    This is the same application as :func:`apply_operations` (admission,
+    revision checks, atomic groups, deterministic operation IDs, the
+    ``@apply`` record, the epochs), used by the deterministic reducer inside
+    its fenced ingest job so typed reduction and job completion commit
+    together. ``kind`` is ``apply_reduction`` for the reducer.
+    """
+    if not policy.allowed_kinds(ctx.actor):
+        raise RecalithError("policy_refused", "this actor cannot apply memory operations")
+    response = ModelResponse(response_schema=1, operations=list(operations), no_op_reason=None if operations else "empty submission", usage=_NO_USAGE, provenance=None)
+    digest = proposal_digest(response)
+    done = stored_result(txn, operation_id(submission_id, digest, APPLY_REF))
+    if done is not None:
+        return done
+    source = "reduction" if kind == REDUCTION_KIND else "service"
+    run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id, source=source)
+    return _apply(run, response, read_set, kind=kind)
 
 
 def _usage():
@@ -830,6 +918,11 @@ def _status_of(kind: str, data: dict[str, Any]) -> str:
 
 
 def _compute_undo(q: Any, operation_id_: str) -> tuple[list[UndoChange], list[UndoConflict], list[tuple[RecordRef, dict[str, Any]]]]:
+    compensations, conflicts, planned, _bindings = _compute_undo_all(q, operation_id_)
+    return compensations, conflicts, planned
+
+
+def _compute_undo_all(q: Any, operation_id_: str) -> tuple[list[UndoChange], list[UndoConflict], list[tuple[RecordRef, dict[str, Any]]], list[tuple[str, dict[str, Any], str | None, str | None]]]:
     row = q.execute("SELECT kind, changed FROM operations WHERE operation_id = ?", (operation_id_,)).fetchone()
     if row is None:
         raise RecalithError("invalid_schema", "no such operation")
@@ -839,7 +932,27 @@ def _compute_undo(q: Any, operation_id_: str) -> tuple[list[UndoChange], list[Un
     compensations: list[UndoChange] = []
     conflicts: list[UndoConflict] = []
     planned: list[tuple[RecordRef, dict[str, Any]]] = []
-    for entry in json.loads(changed):
+    planned_bindings: list[tuple[str, dict[str, Any], str | None, str | None]] = []
+    entries = json.loads(changed)
+    boundaries = {e["boundary"]: e for e in entries if "boundary" in e}
+    for entry in entries:
+        if "boundary" in entry:
+            continue  # restored with the bindings it decided (below)
+        if "binding" in entry:
+            event_id, before, after = entry["binding"], entry["before"], entry["after"]
+            head = bindings.binding_head(q, event_id)
+            ref = RecordRef(kind="event", id=event_id, revision=1)
+            current = 0 if head is None else head["revision"]
+            if before is None:
+                conflicts.append(UndoConflict(ref=ref, undone_revision=after["revision"], current_revision=current, fields=["task_id"], reason="initial_binding"))
+            elif current != after["revision"]:
+                conflicts.append(UndoConflict(ref=ref, undone_revision=after["revision"], current_revision=current, fields=["task_id"], reason="changed_later"))
+            else:
+                compensations.append(UndoChange(action="restore_fields", ref=ref, fields=["task_id"], relation=None))
+                decided = boundaries.get(after.get("boundary_id") or "")
+                restore_state = decided["before"] if decided is not None else None
+                planned_bindings.append((event_id, before, after.get("boundary_id") if decided is not None else None, restore_state))
+            continue
         if "relation" in entry:
             source, target, relation = entry["relation"]
             present = q.execute("SELECT 1 FROM relations WHERE source_id = ? AND target_id = ? AND relation = ?", (source, target, relation)).fetchone() is not None
@@ -894,11 +1007,16 @@ def _compute_undo(q: Any, operation_id_: str) -> tuple[list[UndoChange], list[Un
                 planned.append((head_ref, restored))
         if later:
             conflicts.append(UndoConflict(ref=head_ref, undone_revision=after.revision, current_revision=current[0], fields=later, reason="changed_later"))
-    return compensations, conflicts, planned
+    return compensations, conflicts, planned, planned_bindings
 
 
 def _preview(q: Any, operation_id_: str) -> tuple[UndoPreview, list[tuple[RecordRef, dict[str, Any]]]]:
-    compensations, conflicts, planned = _compute_undo(q, operation_id_)
+    preview, planned, _bindings = _preview_all(q, operation_id_)
+    return preview, planned
+
+
+def _preview_all(q: Any, operation_id_: str):
+    compensations, conflicts, planned, planned_bindings = _compute_undo_all(q, operation_id_)
     if not compensations and not conflicts:
         state = "nothing_to_undo"
     elif not conflicts:
@@ -908,7 +1026,7 @@ def _preview(q: Any, operation_id_: str) -> tuple[UndoPreview, list[tuple[Record
     else:
         state = "conflicted"
     digest = digest_of({"operation_id": operation_id_, "compensations": [c.model_dump(mode="json") for c in compensations], "conflicts": [c.model_dump(mode="json") for c in conflicts]})
-    return UndoPreview(operation_id=operation_id_, state=state, compensations=compensations, conflicts=conflicts, preview_digest=digest), planned  # type: ignore[arg-type]
+    return UndoPreview(operation_id=operation_id_, state=state, compensations=compensations, conflicts=conflicts, preview_digest=digest), planned, planned_bindings  # type: ignore[arg-type]
 
 
 def preview_undo(ctx: InstallationContext, operation_id_: str, *, store: Store | None = None) -> UndoPreview:
@@ -936,7 +1054,7 @@ def apply_undo(ctx: InstallationContext, operation_id_: str, *, preview_digest: 
             row = txn.one("SELECT inputs FROM operations WHERE operation_id = ?", (undo_id,))
             if row is not None:
                 return ApplyResult.model_validate(json.loads(row[0])["result"])
-            preview, planned = _preview(txn, operation_id_)
+            preview, planned, planned_bindings = _preview_all(txn, operation_id_)
             if preview.preview_digest != preview_digest:
                 raise RecalithError("revision_conflict", "the undo preview is no longer current; preview again")
             if not preview.compensations:
@@ -952,6 +1070,18 @@ def apply_undo(ctx: InstallationContext, operation_id_: str, *, preview_digest: 
                 workspace = records.task_workspace(txn, ref.id) if ref.kind == "task" else None
                 new_ref = records.write(txn, ref.kind, record, workspace_id=workspace)
                 change.record(new_ref, ref.revision)
+            writer = _UndoWriter(txn, ctx, now, undo_id, change)
+            restored_boundaries: dict[str, str] = {}
+            for event_id, before, boundary_id, boundary_state in planned_bindings:
+                row = txn.one("SELECT commit_sequence, session_id FROM events WHERE event_id = ?", (event_id,))
+                bindings.write_binding(writer, event_id, seq=row[0], session_id=row[1], task_id=before["task_id"], binding=before["binding"], boundary_id=before.get("boundary_id"))
+                if boundary_id is not None and boundary_state is not None:
+                    restored_boundaries[boundary_id] = boundary_state
+            for boundary_id, state_ in sorted(restored_boundaries.items()):
+                candidate = bindings.load_boundary(txn, boundary_id)
+                if candidate is not None and candidate.state != state_:
+                    txn.execute("UPDATE task_boundaries SET state = ?, body = ? WHERE boundary_id = ?", (state_, candidate.model_copy(update={"state": state_}).model_dump_json(), boundary_id))
+                    change.boundary(boundary_id, candidate.state, state_)
             for comp in preview.compensations:
                 if comp.action == "remove_relation" and comp.relation is not None:
                     source, target, relation = comp.relation
@@ -972,6 +1102,28 @@ def apply_undo(ctx: InstallationContext, operation_id_: str, *, preview_digest: 
     finally:
         if own:
             store.close()
+
+
+class _UndoWriter:
+    """Binding writes of an operator undo (``bindings.Writer``), recorded on the undo operation."""
+
+    def __init__(self, txn: Txn, ctx: InstallationContext, now: str, op_id: str, change: _Change) -> None:
+        self.txn, self.ctx, self.now, self.op_id, self.source, self._change = txn, ctx, now, op_id, "service", change
+
+    def record(self, ref: RecordRef, before: int | None) -> None:
+        self._change.record(ref, before)
+
+    def created(self, kind: str, record_id: str) -> None:
+        pass
+
+    def binding(self, event_id: str, before: dict[str, Any] | None, after: dict[str, Any]) -> None:
+        self._change.binding(event_id, before, after)
+
+    def boundary(self, boundary_id: str, before: str | None, after: str) -> None:
+        self._change.boundary(boundary_id, before, after)
+
+    def serving(self) -> None:
+        pass
 
 
 def _days(n: int):
