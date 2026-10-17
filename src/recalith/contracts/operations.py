@@ -53,6 +53,7 @@ from .memory import (
     ReviewBatch,
     SupportedText,
     TaskBindingProposal,
+    TaskBoundaryCandidate,
     TaskState,
 )
 
@@ -68,7 +69,13 @@ OperationKind = Literal[
     "change_claim_status",
     "request_evidence",
     "no_op",
+    # Controller-only (decision 0008): typed reduction opens tasks, assigns
+    # events and records boundary candidates. No model purpose may return them.
+    "create_task",
+    "bind_events",
+    "record_boundary",
 ]
+REDUCTION_KINDS = frozenset({"create_task", "bind_events", "record_boundary"})
 LocalRef = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_\-]{0,63}$")]
 
 
@@ -110,9 +117,57 @@ class UpdateTaskPayload(StrictModel):
     patches: Annotated[list[TaskPatch], Field(min_length=1, max_length=64)]
 
 
+class CreateTaskPayload(StrictModel):
+    """Controller-only: a provisional task for a new session, a reset or a host binding.
+
+    Code allocates ``task_id`` (no model purpose may return this kind). The
+    task starts active; its objective is unknown unless typed evidence names it.
+    """
+
+    task_id: Id
+    title: Annotated[str, Field(min_length=1, max_length=256)]
+    reason: Literal["new_session", "host_reset"]
+    session_ids: Annotated[list[Id], Field(min_length=1, max_length=64)]
+    started_at: UtcTime
+
+
+class BindEventsPayload(StrictModel):
+    """Controller-only: first (provisional) binding of unbound events plus their typed facts.
+
+    Each patch is a typed field patch citing its supporting events; the task's
+    code-owned fields (``session_ids``, ``last_activity_at``, reactivation of
+    a paused task) follow from the bound events themselves.
+    """
+
+    task_id: Id
+    expected_revision: Revision
+    event_ids: Annotated[list[Id], Field(min_length=1, max_length=256)]
+    boundary_id: Id | None = None
+    patches: Annotated[list[TaskPatch], Field(max_length=256)] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _distinct(self) -> "BindEventsPayload":
+        if len(set(self.event_ids)) != len(self.event_ids):
+            raise ValueError("an event is bound once per operation")
+        return self
+
+
+class RecordBoundaryPayload(StrictModel):
+    """Controller-only: persist one deterministic boundary candidate (pending)."""
+
+    candidate: TaskBoundaryCandidate
+
+    @model_validator(mode="after")
+    def _pending(self) -> "RecordBoundaryPayload":
+        if self.candidate.state != "pending":
+            raise ValueError("a recorded candidate starts pending; resolve_task_binding decides it")
+        return self
+
+
 class CreateEpisodePayload(StrictModel):
     task_id: Id
     title: Annotated[str, Field(min_length=1, max_length=256)]
+    state: Literal["open", "settled"] = "open"
     started_at: UtcTime
     ended_at: UtcTime | None = None
     objective: SupportedText
@@ -127,8 +182,14 @@ class CreateEpisodePayload(StrictModel):
 
 class EpisodePatch(StrictModel):
     op: Literal["set", "append"]
-    field: Literal["title", "objective", "preconditions", "steps", "outcome", "unresolved", "related_episode_ids", "ended_at"]
+    field: Literal["title", "objective", "preconditions", "steps", "outcome", "unresolved", "related_episode_ids", "ended_at", "state"]
     value: JsonObject | Annotated[str, Field(max_length=256)]
+
+    @model_validator(mode="after")
+    def _state(self) -> "EpisodePatch":
+        if self.field == "state" and (self.op != "set" or self.value not in ("open", "settled")):
+            raise ValueError("an episode patch may set state to open or settled; archiving is code-owned")
+        return self
 
 
 class ReviseEpisodePayload(StrictModel):
@@ -247,6 +308,9 @@ PAYLOAD_MODELS: dict[str, type[StrictModel]] = {
     "change_claim_status": ChangeClaimStatusPayload,
     "request_evidence": RequestEvidencePayload,
     "no_op": NoOpPayload,
+    "create_task": CreateTaskPayload,
+    "bind_events": BindEventsPayload,
+    "record_boundary": RecordBoundaryPayload,
 }
 
 # Which operation kinds each model purpose may return (provider schema).

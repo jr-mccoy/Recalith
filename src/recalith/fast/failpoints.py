@@ -41,6 +41,13 @@ JOB_AFTER_COMPLETE = "job.after_complete"
 PROPOSAL_BEFORE_COMMIT = "proposal.before_commit"
 APPLY_AFTER_GROUP = "apply.after_group"
 SERVICE_BEFORE_COMMIT = "service.before_commit"
+# Typed reduction and binding application (Task 6): inside an ingest job's
+# fenced transaction after the reducer's first application (bindings and
+# typed facts written, later passes, episodes and job completion pending);
+# inside a binding resolution after the range is rebound and before the task
+# revisions and bookkeeping that complete it.
+REDUCE_AFTER_APPLY = "reduce.after_apply"
+BINDING_AFTER_REBIND = "binding.after_rebind"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -48,7 +55,8 @@ CAPTURE = (
 )
 WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, PROPOSAL_BEFORE_COMMIT, JOB_AFTER_PROPOSAL, APPLY_AFTER_GROUP, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
 SERVICE = (SERVICE_BEFORE_COMMIT,)
-ALL = CAPTURE + WORKER + SERVICE
+REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

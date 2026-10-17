@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "EvidenceLink": {
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpanLocator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mapping": {
+          "anyOf": [
+            {
+              "enum": [
+                "tool.exit_code",
+                "tool.reported_result",
+                "config.exact_value"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mapping"
+        },
+        "ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "relation": {
+          "enum": [
+            "supports",
+            "contradicts",
+            "context"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ref",
+        "relation"
+      ],
+      "title": "EvidenceLink",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "SpanLocator": {
+      "additionalProperties": false,
+      "description": "Unicode code-point offsets into an exact stored string field/chunk.",
+      "properties": {
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "start",
+        "end",
+        "text_digest"
+      ],
+      "title": "SpanLocator",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/TaskBindingProposal",
+  "additionalProperties": false,
+  "properties": {
+    "boundary_id": {
+      "title": "Boundary Id",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "confirm_split",
+        "reject",
+        "link_session"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Event Ids",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceLink"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "expected_binding_revisions": {
+      "additionalProperties": {
+        "minimum": 1,
+        "type": "integer"
+      },
+      "title": "Expected Binding Revisions",
+      "type": "object"
+    },
+    "target_task_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Target Task Id"
+    }
+  },
+  "required": [
+    "boundary_id",
+    "decision",
+    "event_ids",
+    "target_task_id",
+    "expected_binding_revisions"
+  ],
+  "title": "TaskBindingProposal",
+  "type": "object"
+}

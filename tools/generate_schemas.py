@@ -31,6 +31,7 @@ MODELS = {
     "TaskState": memory.TaskState,
     "TaskBoundaryCandidate": memory.TaskBoundaryCandidate,
     "TaskBindingRevision": memory.TaskBindingRevision,
+    "TaskBindingProposal": memory.TaskBindingProposal,
     "Episode": memory.Episode,
     "ClaimRevision": memory.ClaimRevision,
     "EvidenceCapsule": memory.EvidenceCapsule,

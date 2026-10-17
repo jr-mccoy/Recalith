@@ -3,9 +3,10 @@
 Projects are filled from the sanitized real Claude Code 2.1.301 lifecycle
 fixture (``tests/platform/claude_fixtures.py``): the real hook entry captures
 every record in-process and ``ingest_ready`` commits it, so operations cite
-real event IDs, payloads and quoted spans. A task is seeded directly because
-task creation belongs to Task 6; this is a controlled fixture state, not a
-production path. Model responses are built by parsing a JSON body with the
+real event IDs, payloads and quoted spans. :func:`seed_task` opens a task
+through the production ``create_task`` operation (Task 6) for the captured
+session, and the kill/restart scenario targets the task that real typed
+reduction created for the lifecycle session. Model responses are built by parsing a JSON body with the
 same partitioned parser the worker uses, so malformed operations reach
 application exactly as they would from a provider.
 """
@@ -24,7 +25,6 @@ import claude_fixtures as cf  # noqa: E402
 from recalith.capture import pipeline
 from recalith.contracts.common import Actor, ReadSet, RecordRef, derived_id, digest_of, new_id
 from recalith.contracts.config import body_cap_for
-from recalith.contracts.memory import TaskState
 from recalith.contracts.operations import ModelResponse, UsageReport, parse_model_body_partitioned
 from recalith.controller import jobs
 from recalith.core import identity
@@ -99,18 +99,25 @@ def missing_event_link() -> dict[str, Any]:
 
 
 def seed_task(root: Path, *, title: str = "Fix the failing fixture test") -> str:
-    """A provisional task head (Task 6 creates these in production)."""
+    """A provisional task opened through the controller's ``create_task`` operation (Task 6)."""
+    from recalith.controller import apply
+    from recalith.contracts.operations import ProposedOperation
+
     ctx = context(root)
-    now = ws.START
     task_id = new_id("task")
-    state = TaskState(
-        task_id=task_id, project_id=ctx.project_id, installation_id=ctx.installation_id, revision=1, status="active", title=title,
-        objective=None, updated_at=now, last_activity_at=now,
-    )
-    with db.open_store(ctx) as store, store.transaction() as txn:
-        records.write_task(txn, state, workspace_id=ctx.workspace_id)
-        txn.mutated(serving_relevant=True)
+    with db.open_store(ctx, readonly=True) as store, store.read() as view:
+        session_id = view.execute("SELECT session_id FROM sessions ORDER BY session_id LIMIT 1").fetchone()[0]
+    create = ProposedOperation.model_validate(op("open", "create_task", {"task_id": task_id, "title": title, "reason": "new_session", "session_ids": [session_id], "started_at": ws.START}))
+    apply.apply_operations(ctx, [create], read_set=read_set(root), submission_id=derived_id("op", ["seed", task_id]), now=ws.START)
     return task_id
+
+
+def reduced_task(root: Path, role: str = "prompt") -> RecordRef:
+    """The task typed reduction bound a real event to, at its current head revision."""
+    with db.open_store(context(root), readonly=True) as store, store.read() as view:
+        task_id = view.execute("SELECT task_id FROM task_binding_heads WHERE event_id = ?", (events(root)[role]["id"],)).fetchone()[0]
+        revision = records.head(view, "task", task_id)[0]
+    return RecordRef(kind="task", id=task_id, revision=revision)
 
 
 # --------------------------------------------------------------------------
@@ -205,10 +212,10 @@ def crash_project(tmp: Path, name: str) -> Path:
     root = project(tmp, name)
     ctx = context(root)
     _drain_ingest(root)  # the kill points must land on the model jobs' application, not on typed ingestion
-    task_id = seed_task(root)
+    task = reduced_task(root)  # opened by real typed reduction of the lifecycle session
+    task_id = task.id
     seeded = apply.apply_operations(operator(root), [_op(op("orig", "propose_claim", claim(ORIGINAL, basis="inferred"), evidence=[link(root, "fail")]))], read_set=read_set(root), submission_id=derived_id("op", [name, "seed"]), now=ws.START)
     original = seeded.changed_refs[0]
-    task = RecordRef(kind="task", id=task_id, revision=1)
     ev = events(root)
     bodies = {
         "extract_claims": body([
@@ -229,7 +236,7 @@ def crash_project(tmp: Path, name: str) -> Path:
             }),
         ]).decode(),
         "update_task": body([
-            op("progress", "update_task", {"task_id": task_id, "expected_revision": 1, "patches": [
+            op("progress", "update_task", {"task_id": task_id, "expected_revision": task.revision, "patches": [
                 {"op": "append", "field": "known_results", "value": supported(root, "pytest exits 1 with FAILURES.", quote="FAILURES")},
                 {"op": "set", "field": "next_action", "value": supported(root, "Inspect test_end.", quote="test_end")},
             ]}, target=task.model_dump(mode="json")),
@@ -290,13 +297,24 @@ def normalized(root: Path) -> dict[str, Any]:
             for d in json.loads(inputs)["result"]["decisions"]
         )
         claims = sorted((json.loads(b)["proposition"], rev, status) for _cid, rev, status, b in view.execute("SELECT h.claim_id, h.revision, h.status, r.body FROM claim_heads h JOIN claim_revisions r ON r.claim_id = h.claim_id AND r.revision = h.revision").fetchall())
-        tasks = sorted((rev, status, json.dumps({k: v for k, v in json.loads(b).items() if k not in ("updated_at",)}, sort_keys=True).replace(ctx.installation_id, "INST")) for rev, status, b in view.execute("SELECT h.revision, h.status, r.body FROM task_heads h JOIN task_revisions r ON r.task_id = h.task_id AND r.revision = h.revision").fetchall())
+        tasks = sorted((rev, status, json.dumps({k: v for k, v in json.loads(b).items() if k not in ("updated_at", "last_activity_at")}, sort_keys=True).replace(ctx.installation_id, "INST")) for rev, status, b in view.execute("SELECT h.revision, h.status, r.body FROM task_heads h JOIN task_revisions r ON r.task_id = h.task_id AND r.revision = h.revision").fetchall())
         episodes = sorted((json.loads(b)["title"], rev, state) for rev, state, b in view.execute("SELECT h.revision, h.state, r.body FROM episode_heads h JOIN episode_revisions r ON r.episode_id = h.episode_id AND r.revision = h.revision").fetchall())
-        counts = {t: view.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("claim_revisions", "task_revisions", "episode_revisions", "relations", "evidence_links", "events", "revision_chain")}  # noqa: S608
+        counts = {t: view.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("claim_revisions", "task_revisions", "episode_revisions", "relations", "evidence_links", "events", "revision_chain", "task_binding_revisions", "task_boundaries", "tool_calls")}  # noqa: S608
+        # Tasks are named by the first event ever bound to them (IDs are random; capture times differ per run).
+        first = dict(view.execute("SELECT r.task_id, MIN(e.commit_sequence) FROM task_binding_revisions r JOIN events e ON e.event_id = r.event_id GROUP BY r.task_id").fetchall())
+        task_order = {tid: first.get(tid) for (tid,) in view.execute("SELECT task_id FROM task_heads").fetchall()}
+        bindings_ = sorted((e_kind, seq, task_order.get(tid), binding) for e_kind, seq, tid, binding in view.execute(
+            "SELECT e.kind, e.commit_sequence, h.task_id, r.binding FROM task_binding_heads h JOIN events e ON e.event_id = h.event_id JOIN task_binding_revisions r ON r.binding_id = h.binding_id AND r.revision = h.revision"
+        ).fetchall())
+        boundaries = sorted((reason, state) for reason, state in view.execute("SELECT reason, state FROM task_boundaries").fetchall())
+        cursor = view.execute("SELECT commit_sequence FROM working_cursor").fetchone()[0]
         meta = store.meta()
     task_ids = {json.loads(t[2])["task_id"] for t in tasks}
     tasks = [(rev, status, _strip(body_, task_ids)) for rev, status, body_ in tasks]
-    return {"jobs": jobs_, "applications": apps, "operations": ops, "decisions": decisions, "claims": claims, "tasks": tasks, "episodes": episodes, "counts": counts, "guidance_epoch": meta.guidance_epoch}
+    return {
+        "jobs": jobs_, "applications": apps, "operations": ops, "decisions": decisions, "claims": claims, "tasks": tasks, "episodes": episodes, "counts": counts,
+        "bindings": bindings_, "boundaries": boundaries, "reduction_cursor": cursor, "guidance_epoch": meta.guidance_epoch,
+    }
 
 
 def _strip(text: str, ids: set[str]) -> str:
@@ -306,4 +324,5 @@ def _strip(text: str, ids: set[str]) -> str:
     out = json.dumps(data, sort_keys=True)
     for i in ids:
         out = out.replace(i, "TASK")
+    out = re.sub(r"sess_[0-9a-f]{64}", "SESS", out)  # session IDs derive from the installation too
     return re.sub(r"evt_[0-9a-f]{64}", "EVT", out)  # event IDs derive from the installation

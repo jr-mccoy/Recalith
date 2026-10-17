@@ -19,19 +19,33 @@ from recalith.contracts.common import Actor
 
 # Kinds that change memory records. ``no_op``, ``request_evidence`` and
 # ``assess_claim`` (Task 9 admission) change nothing here.
-MUTATING_KINDS = frozenset({"update_task", "create_episode", "revise_episode", "propose_claim", "attach_evidence", "revise_claim", "change_claim_status"})
+MUTATING_KINDS = frozenset({
+    "update_task", "create_episode", "revise_episode", "propose_claim", "attach_evidence", "revise_claim", "change_claim_status",
+    "resolve_task_binding", "create_task", "bind_events", "record_boundary",
+})
 
-# Every mutating kind changes servable task/episode/claim/evidence state, so it
-# advances the guidance epoch. Job completion, proposal persistence, requeue
-# records and application audit rows are bookkeeping and do not.
-SERVING_RELEVANT_KINDS = MUTATING_KINDS
+# Controller-only kinds (decision 0008): typed reduction opens provisional
+# tasks, binds events and records boundary candidates. No model purpose may
+# return them, and ``apply_proposal`` rejects them; they reach the store only
+# through the deterministic reducer or a controller service writer.
+REDUCTION_KINDS = frozenset({"create_task", "bind_events", "record_boundary"})
+
+# These kinds change servable task/episode/claim/evidence state or task
+# assignment, so they advance the guidance epoch. ``record_boundary`` stores a
+# pending candidate (served nowhere), and ``bind_events`` is serving-relevant
+# only when it writes a task revision (decided per change by the handler).
+# Job completion, proposal persistence, requeue records and application audit
+# rows are bookkeeping and do not.
+SERVING_RELEVANT_KINDS = MUTATING_KINDS - {"record_boundary", "bind_events"}
 
 # Who may apply what. The worker applies persisted model proposals; the guarded
 # operator transport (Task 12a assigns the actor) applies typed service
 # operations such as a correction or archive. Hooks, MCP callers and adapters
 # never apply memory operations directly.
-WORKER_KINDS = frozenset({"update_task", "resolve_task_binding", "create_episode", "revise_episode", "propose_claim", "assess_claim", "attach_evidence", "revise_claim", "change_claim_status", "request_evidence", "no_op"})
-OPERATOR_KINDS = frozenset({"update_task", "propose_claim", "attach_evidence", "revise_claim", "change_claim_status", "no_op"})
+WORKER_KINDS = frozenset({"update_task", "resolve_task_binding", "create_episode", "revise_episode", "propose_claim", "assess_claim", "attach_evidence", "revise_claim", "change_claim_status", "request_evidence", "no_op"}) | REDUCTION_KINDS
+# An operator binding outranks segmentation guesses (SYSTEM_SPEC §3.2); the
+# guarded transport is Task 12a.
+OPERATOR_KINDS = frozenset({"update_task", "resolve_task_binding", "propose_claim", "attach_evidence", "revise_claim", "change_claim_status", "no_op"})
 
 LIVE_CLAIM_STATUSES = frozenset({"candidate", "active", "disputed"})
 CONTENT_FREE_STATUSES = frozenset({"quarantined", "forgotten"})
@@ -51,6 +65,9 @@ STATUS_NEEDS_EVIDENCE = frozenset({"disputed", "invalidated"})
 
 REVISABLE_STATUSES = LIVE_CLAIM_STATUSES
 TASK_UPDATABLE_STATUSES = frozenset({"active", "paused"})
+# Tasks a session may be linked into or events reassigned to (never a placeholder).
+TASK_LINKABLE_STATUSES = TASK_UPDATABLE_STATUSES
+
 
 # Revision conflicts create bounded re-evaluation jobs (SYSTEM_SPEC §6.2): a
 # job may be re-evaluated at most this many times along one chain; then it

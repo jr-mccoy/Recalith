@@ -240,9 +240,37 @@ def state(root: Path) -> dict[str, Any]:
 # Crash driver
 
 
+def pending_work(root: Path) -> str:
+    """``R S``: whether typed reduction (R) and the binding decision (S) are still outstanding (read-only peek)."""
+    import sqlite3
+
+    path = root / ".recalith" / db.STATE_DB
+    conn = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
+    try:
+        cursor = conn.execute("SELECT commit_sequence FROM working_cursor").fetchone()[0]
+        latest = conn.execute("SELECT COALESCE(MAX(commit_sequence), 0) FROM events").fetchone()[0]
+        undecided = conn.execute("SELECT COUNT(*) FROM task_boundaries WHERE reason = 'pivot_prefix' AND state = 'pending'").fetchone()[0]
+        ready = any((root / ".recalith" / "spool" / "ready").glob("*.json"))
+        return f"{int(ready or cursor < latest or latest == 0)} {int(undecided > 0)}"
+    except sqlite3.Error:
+        return "1 1"
+    finally:
+        conn.close()
+
+
 def main(argv: list[str]) -> int:
+    """``ROOT CALLS_LOG [FAILPOINT SKIP | count HITS_LOG]``: optionally kill at one failpoint hit, or log every hit."""
     root, calls_log = Path(argv[1]), Path(argv[2])
-    if len(argv) > 3:
+    if len(argv) > 3 and argv[3] == "count":
+        hits = Path(argv[4])
+
+        def record_hit(name: str) -> None:
+            with open(hits, "a", encoding="utf-8") as fh:
+                fh.write(f"{name} {pending_work(root)}\n")
+
+        for name in failpoints.WORKER + failpoints.REDUCTION:
+            failpoints.arm(name, record_hit, times=10**6)
+    elif len(argv) > 3:
         failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
     ctx = context(root)
     import operation_scenarios as scenarios
@@ -250,8 +278,15 @@ def main(argv: list[str]) -> int:
     bodies = scenarios.scenario_bodies(root)
     if bodies is None:
         backend, prepare = FakeBackend(log=calls_log), None
-    else:  # real operations over real captured events (Task 5)
-        backend = FakeBackend(lambda purpose, i: worker.LaunchOutcome(stdout=envelope(bodies[purpose], usage={"input_tokens": 50, "output_tokens": 10})), log=calls_log)
+    else:  # real operations over real captured events (Tasks 5 and 6)
+        import working_scenarios as working
+
+        def body_for(purpose: str) -> bytes:
+            if purpose not in bodies and working.dynamic(root):
+                return working.split_body(root)  # a binding decision computed from the reduced store
+            return bodies[purpose]
+
+        backend = FakeBackend(lambda purpose, i: worker.LaunchOutcome(stdout=envelope(body_for(purpose), usage={"input_tokens": 50, "output_tokens": 10})), log=calls_log)
         prepare = scenarios.scenario_prepare
     w = worker.Worker(ctx, model=runtime(backend, prepare), owner=f"driver:{new_id('act')[4:12]}")
     lock = process_env.InstallationLock(root)

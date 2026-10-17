@@ -401,14 +401,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_working_memory.py::test_parallel_tasks_keep_distinct_next_actions",
+            "tests/integration/test_working_memory.py::test_pending_result_joins_its_call_across_sessions",
+            "tests/integration/test_working_memory.py::test_typed_reduction_runs_while_model_call_is_in_flight"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 6: two interleaved sessions (second session a synthetic variant of real 2.1.301 payloads) keep distinct objectives, recorded next-action patches and pending results; a late result joins its call by tool_call_id, also across sessions. Delivery of task state is Task 12b. Deterministic mechanics form only (recorded proposals); live segmentation/narrative quality is ACCEPTANCE_TESTS §5 and is not claimed."
         }
       ]
     },
@@ -430,14 +435,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_working_memory.py::test_idle_does_not_complete_task"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 6: 24 h idle (controlled capture time) pauses, never completes; a passing unrelated test and a git commit leave the task active and open; a 30-minute gap only records an idle_resume candidate; a model completion without completion evidence is refused (completion_requires_evidence) and one citing the user's explicit statement is applied. Semantic relevance of a completion assessment to the stated objective is Task 9 review. Deterministic mechanics form only (recorded proposals); live segmentation/narrative quality is ACCEPTANCE_TESTS §5 and is not claimed."
         }
       ]
     },
@@ -459,14 +467,22 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_episodes.py::test_failure_and_fix_cross_chunk_boundary",
+            "tests/integration/test_episodes.py::test_carried_context_is_not_new_evidence",
+            "tests/integration/test_episodes.py::test_step_cap_flushes_an_open_episode_and_carries_what_is_unresolved",
+            "tests/integration/test_episodes.py::test_successful_results_are_preserved",
+            "tests/integration/test_episodes.py::test_model_narrative_uses_the_same_write_path",
+            "tests/integration/test_working_memory.py::test_restart_and_compaction_keep_blockers_and_pending_actions"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 6: failure, real manual compaction, change and green rerun in four ingest chunks form one settled episode (the compaction checkpoint waits for the fix); causes stay unassessed; carried objective/unresolved items are context links only; successes keep exit code, certified assertions and an exactly quoted excerpt. Auto-compaction was not observed headless (decision 0005). Deterministic mechanics form only (recorded proposals); live segmentation/narrative quality is ACCEPTANCE_TESTS §5 and is not claimed."
         }
       ]
     },
@@ -488,14 +504,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_working_memory.py::test_expected_red_test_is_not_a_failed_approach",
+            "tests/integration/test_episodes.py::test_session_end_records_an_unanswered_call"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 6 slice: an expected red test (real failing pytest, synthetic green rerun), the real denied call, a synthetic interruption and the real grep no-match create no claim, trigger or extraction job; red→green closes the blocker; the denied call stays awaiting_result. Semantic A13 review and FailureTrigger debounce (A66) are Task 9."
         }
       ]
     },
@@ -754,7 +774,8 @@
             "tests/integration/test_worker.py::test_late_model_result_after_takeover_is_discarded",
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
             "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
-            "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect"
+            "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect",
+            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -762,7 +783,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state."
         }
       ]
     },
@@ -1776,7 +1797,9 @@
             "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
             "tests/integration/test_worker.py::test_evidence_expansion_rounds_are_charged",
             "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
-            "tests/integration/test_worker.py::test_five_candidates_use_one_review_call"
+            "tests/integration/test_worker.py::test_five_candidates_use_one_review_call",
+            "tests/integration/test_working_memory.py::test_typed_reduction_runs_while_model_call_is_in_flight",
+            "tests/integration/test_working_memory.py::test_single_active_task_links_without_model_budget"
           ],
           "platforms": [
             "linux",
@@ -1784,7 +1807,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9."
+          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted."
         }
       ]
     },
@@ -2017,14 +2040,33 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_working_memory.py::test_new_session_can_link_without_merging_tasks",
+            "tests/integration/test_working_memory.py::test_single_active_task_links_without_model_budget",
+            "tests/integration/test_working_memory.py::test_ambiguous_tasks_do_not_autolink",
+            "tests/integration/test_working_memory.py::test_pivot_or_reset_blocks_the_continuity_link",
+            "tests/integration/test_working_memory.py::test_src_tests_docs_do_not_propose_a_boundary",
+            "tests/integration/test_working_memory.py::test_operator_cluster_mapping_extends_the_code_cluster",
+            "tests/integration/test_working_memory.py::test_path_cluster_rules",
+            "tests/integration/test_working_memory.py::test_provisional_split_preserves_late_result",
+            "tests/integration/test_working_memory.py::test_rejected_split_keeps_objective",
+            "tests/integration/test_working_memory.py::test_later_split_preserves_both_objectives",
+            "tests/integration/test_working_memory.py::test_pending_result_joins_its_call_across_sessions",
+            "tests/integration/test_working_memory.py::test_operator_undo_reverses_a_link",
+            "tests/integration/test_working_memory.py::test_linked_head_refuses_model_patches",
+            "tests/integration/test_working_memory.py::test_reduce_task_and_bindings_interfaces",
+            "tests/integration/test_working_memory.py::test_bookkeeping_bindings_do_not_advance_guidance",
+            "tests/integration/test_working_memory.py::test_a_large_pass_stays_within_operation_bounds",
+            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 6: versioned bindings keep immutable events and call/result pairs; at zero model budget exactly one eligible task plus three compatible path actions links the session (reason single_active_task); two candidates, a pivot or a host /clear do not; the linked placeholder is not a second active task (counted separately); src/tests/test/docs movement is one @code cluster and five truly disjoint actions propose; splits move exact contiguous ranges and refuse to detach an arrived result; links reverse by an explicit split or operator undo. Kill/restart matrix over typed reduction, the deterministic link and a binding split. Deterministic mechanics form only (recorded proposals); live segmentation/narrative quality is ACCEPTANCE_TESTS §5 and is not claimed."
         }
       ]
     },
