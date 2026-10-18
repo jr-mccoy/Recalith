@@ -377,7 +377,7 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
     assert wh.wait_running(replay.root)
     idle = worker.read_status(replay.root)["poll"]["idle_seconds"]
     assert idle == 5 and worker.read_status(replay.root)["poll"]["ipc_wake"] == "unavailable_in_preview"
-    latencies, from_spawn = [], []
+    latencies, from_spawn, polls = [], [], []
     for trial in range(PHASES):
         settled = wh.wait_for(lambda: (lambda s: s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None)(worker.read_status(replay.root)), 30)
         assert settled, "worker never returned to idle polling"
@@ -396,8 +396,9 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
         done = time.monotonic()
         latencies.append(done - acked)
         from_spawn.append(done - spawned)
+        polls.append((worker.read_status(replay.root) or {}).get("poll", {}).get("last_poll_seconds"))  # diagnostics: where the time goes
     p95 = statistics.quantiles(latencies, n=20, method="inclusive")[18]
-    report = {"phases": PHASES, "p50": statistics.median(latencies), "p95": p95, "max": max(latencies), "p95_from_hook_spawn": statistics.quantiles(from_spawn, n=20, method="inclusive")[18]}
+    report = {"phases": PHASES, "p50": statistics.median(latencies), "p95": p95, "max": max(latencies), "p95_from_hook_spawn": statistics.quantiles(from_spawn, n=20, method="inclusive")[18], "poll_seconds": [round(x, 3) if isinstance(x, float) else x for x in polls]}
     print("typed-state latency (s):", json.dumps({k: round(v, 3) if isinstance(v, float) else v for k, v in report.items()}))
     assert p95 <= 5.0, report
     assert max(latencies) <= idle + 1.0, report  # one idle interval plus bounded processing

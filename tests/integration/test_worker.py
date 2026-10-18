@@ -655,6 +655,29 @@ def test_worker_recovers_registered_transcripts_with_their_named_parser(tmp_path
     assert gaps.count(("source_parser_unavailable", "claude_code_transcript@9.9.9")) == 1
 
 
+def test_poll_cadence_runs_from_poll_start(root):
+    """SYSTEM_SPEC §6.1: the idle 5 s (active 1 s) cadence runs from poll start; a slow poll does not stretch it."""
+    clock = ws.FakeClock()
+    w = make_worker(root, ws.FakeBackend(), clock=clock)
+    try:
+        w.poll_once()
+        real_tick = w.tick
+
+        def slow_tick() -> bool:
+            clock.advance(0.8)  # e.g. fsync'd transactions and the status write on a slow runner
+            return real_tick()
+
+        w.tick = slow_tick  # type: ignore[method-assign]
+        started = clock.monotonic()
+        assert not w.poll_once() and w.state == "idle"
+        assert w.cadence_wait(started) == pytest.approx(5.0 - 0.8)
+        assert w.status()["poll"]["last_poll_seconds"] == pytest.approx(0.8)
+        clock.advance(7.0)
+        assert w.cadence_wait(started) == 0.0  # an overlong poll never waits a negative time
+    finally:
+        w.close()
+
+
 def test_resume_coalesces_overdue_jobs(root):
     """A suspend/resume clock jump yields one housekeeping job and no launch burst."""
     clock = ws.FakeClock()

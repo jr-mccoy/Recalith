@@ -309,6 +309,7 @@ class Worker:
         self._last_poll_mono: float | None = None
         self._last_poll_at: str | None = None
         self._last_poll_worked = False
+        self._last_poll_seconds: float | None = None
         self._interval = float(self.config.worker.active_poll_seconds)
         self.max_clock_jump = 0.0
         self.reaped: list[dict[str, Any]] = []
@@ -468,6 +469,7 @@ class Worker:
                 "last_poll_at": self._last_poll_at,
                 "last_poll_wall": self._last_poll_wall,
                 "last_poll_worked": self._last_poll_worked,
+                "last_poll_seconds": self._last_poll_seconds,
                 "ipc_wake": "unavailable_in_preview",
             },
             "spawn": self.spawn.independence(),
@@ -544,6 +546,13 @@ class Worker:
         self.state = "running" if (worked or busy) else "idle"
         return worked
 
+    def cadence_wait(self, started: float) -> float:
+        """The rest of this poll's interval: the 1 s / 5 s cadence runs from poll start, so a slow poll
+        (fsync'd transactions, the status write) does not lengthen every idle cycle by its own duration."""
+        elapsed = max(0.0, self.clock.monotonic() - started)
+        self._last_poll_seconds = elapsed
+        return max(0.0, self._interval - elapsed)
+
     def _sleep(self, seconds: float) -> None:
         give_up = self.clock.monotonic() + seconds
         while not self.stop_requested():
@@ -575,9 +584,10 @@ class Worker:
             if self.lane is not None:
                 self.lane.start()
             while not self.stop_requested():
+                started = self.clock.monotonic()
                 self.poll_once()
                 self.write_status()
-                self._sleep(self._interval)
+                self._sleep(self.cadence_wait(started))
             self.state = "stopping"
             self.write_status()
             if self.lane is not None:
