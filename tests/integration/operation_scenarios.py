@@ -199,6 +199,8 @@ def count(root: Path, sql: str, params: tuple = ()) -> int:
 # The kill/restart scenario (driven by worker_scenarios.py)
 
 LESSON = "The scripted pytest run fails with exit code 1."
+# An observed fact is exactly the code rendering of its mapped observation (decision 0011).
+OBSERVED = "`pytest -q test_long.py` exited with code 1."
 REPLACEMENT = "The fixture pytest run reports FAILURES for test_end."
 ORIGINAL = "The fixture pytest run is flaky."
 
@@ -216,6 +218,7 @@ def crash_project(tmp: Path, name: str) -> Path:
     root = project(tmp, name)
     ctx = context(root)
     _drain_ingest(root)  # the kill points must land on the model jobs' application, not on typed ingestion
+    cancel_trigger_extractions(root)  # the lifecycle's real failures made debounce triggers due (Task 9); not this matrix's jobs
     task = reduced_task(root)  # opened by real typed reduction of the lifecycle session
     task_id = task.id
     seeded = apply.apply_operations(operator(root), [_op(op("orig", "propose_claim", claim(ORIGINAL, basis="inferred"), evidence=[link(root, "fail")]))], read_set=read_set(root), submission_id=derived_id("op", [name, "seed"]), now=ws.START)
@@ -223,7 +226,7 @@ def crash_project(tmp: Path, name: str) -> Path:
     ev = events(root)
     bodies = {
         "extract_claims": body([
-            op("lesson", "propose_claim", claim(LESSON, basis="observed"), evidence=[link(root, "fail", quote="FAILURES", mapping="tool.exit_code")]),
+            op("lesson", "propose_claim", claim(OBSERVED, basis="observed"), evidence=[link(root, "fail", mapping="tool.exit_code")]),
             op("replacement", "propose_claim", claim(REPLACEMENT, basis="inferred"), evidence=[link(root, "fail", quote="test_end")]),
             op("retire", "change_claim_status", {"claim_ref": original.model_dump(mode="json"), "status": "superseded", "replacement_local_ref": "replacement"}, depends_on=["replacement"], target=original.model_dump(mode="json")),
             op("ghost", "propose_claim", claim("A never-captured run passed."), evidence=[missing_event_link()]),
@@ -265,6 +268,19 @@ def _drain_ingest(root: Path) -> None:
     finally:
         w.close()
     assert count(root, "SELECT COUNT(*) FROM jobs WHERE kind = 'ingest' AND state != 'completed'") == 0
+
+
+def cancel_trigger_extractions(root: Path) -> int:
+    """Cancel the extraction jobs due failure triggers scheduled (scenario setup: a matrix keeps its own jobs)."""
+    from recalith.contracts.jobs import Job
+
+    with db.open_store(context(root)) as store, store.transaction() as txn:
+        rows = txn.execute("SELECT body FROM jobs WHERE kind = 'extract_claims' AND state = 'pending'").fetchall()
+        found = [Job.model_validate_json(r[0]) for r in rows]
+        for job in found:
+            if job.trigger_ref is not None:
+                jobs.supersede(txn, job, "scenario_setup")
+    return sum(1 for j in found if j.trigger_ref is not None)
 
 
 def _op(data: dict[str, Any]):

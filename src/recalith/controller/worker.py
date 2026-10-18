@@ -59,7 +59,7 @@ from recalith.contracts.common import Actor, InstallationContext, canonical_json
 from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_tokens
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
-from recalith.controller import apply, budgets, jobs, launch
+from recalith.controller import apply, budgets, jobs, launch, triggers
 from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
@@ -187,8 +187,8 @@ def handle_ingest(txn: Txn, job: Job, worker: "Worker") -> None:
 
     Task 4 confirms the events are committed; typed task reduction (Task 6,
     ``working.reducer.reduce_ingested``) is registered by default and runs in
-    this fenced transaction; failure triggers (Task 9/10) register as further
-    reducers here.
+    this fenced transaction, followed by the failure-trigger debounce (Task 9,
+    ``controller.triggers.reduce_ingested``) over the events it reduced.
     """
     for ref in job.input_refs:
         if txn.one("SELECT 1 FROM events WHERE event_id = ?", (ref.id,)) is None:
@@ -290,7 +290,7 @@ class Worker:
         self.provider = provider
         self.parsers = dict(PARSERS if parsers is None else parsers)
         self.handlers = dict(DEFAULT_HANDLERS if handlers is None else handlers)
-        self.ingest_reducers: list[Callable[[Txn, Job, Worker], None]] = [working_reducer.reduce_ingested]
+        self.ingest_reducers: list[Callable[[Txn, Job, Worker], None]] = [working_reducer.reduce_ingested, triggers.reduce_ingested]
         self.owner = owner or f"worker:{os.getpid()}:{new_id('act')[4:12]}"
         self.spawn = spawn or SpawnInfo()
         self.environment = os.environ if environment is None else environment
@@ -345,6 +345,7 @@ class Worker:
                 jobs.schedule_housekeeping(txn, now=now)
             worked |= self._run_deterministic()
             worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
+            worked |= bool(triggers.sweep(self.store, now=now))
             if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None

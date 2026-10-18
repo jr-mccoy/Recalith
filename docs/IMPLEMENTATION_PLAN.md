@@ -261,7 +261,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 9: Claim extraction and deterministic admission
 
-**Files:** Create `controller/{extract,review,triggers}.py`, extend `controller/admission.py`, create `prompts/{extract_v1,review_v1}.md`, `tests/integration/test_claim_admission.py`.
+**Files:** Create `controller/{extract,review,triggers}.py`, extend `controller/admission.py`, create `prompts/{extract_v1,review_v1}.md`, `tests/integration/test_claim_admission.py`. The task also added `core/regions.py` (nondeclaration regions), `storage/migrations/0005.sql` (schema 5: `review_requests`, `review_outcomes`, debounce columns, `trigger_cursor`), the `failpoints.ADMISSION` family, the prompt files as `recalith.prompts` package data (they are versions `extract_claims@1`/`review_claims@1`), the test builders `tests/integration/admission_scenarios.py` (real payloads, named variants, recorded proposals, the kill/restart scenario) and the matrix `test_claim_admission_crash_matches_reference` (decision 0011).
 
 **Interfaces:** Consume Tasks 5–8. Produce `review_candidates(ctx, claim_ids: Sequence[Id], *, job: Job) -> ModelResponse`; extraction returns the standard `ModelResponse` and never writes records directly.
 

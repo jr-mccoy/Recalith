@@ -26,7 +26,7 @@ import working_scenarios as wks
 from working_scenarios import record, variant
 from recalith.contracts.common import RecordRef, derived_id, format_utc, parse_utc, utc_now
 from recalith.contracts.config import ProviderConfig
-from recalith.controller import apply, jobs, requests
+from recalith.controller import apply, requests
 from recalith.storage import db
 
 SCENARIO = "provider-scenario.json"
@@ -50,12 +50,10 @@ def crash_project(tmp: Path, name: str) -> Path:
     p.drain()
     p.send_all(green_reruns())
     p.drain()
-    op = osc.op("c", "propose_claim", osc.claim(CLAIM, basis="observed"), evidence=[osc.link(p.root, "fail", quote="FAILURES", mapping="tool.exit_code")])
-    seeded = apply.apply_operations(osc.operator(p.root), [osc._op(op)], read_set=osc.read_set(p.root), submission_id=derived_id("op", [name, "claim"]), now=utc_now())
-    claim = next(r for r in seeded.changed_refs if r.kind == "claim")
+    # An inferred candidate: its application schedules its own review job (Task 9), which runs through the production preparer.
+    op = osc.op("c", "propose_claim", osc.claim(CLAIM), evidence=[osc.link(p.root, "fail", quote="FAILURES")])
+    apply.apply_operations(osc.operator(p.root), [osc._op(op)], read_set=osc.read_set(p.root), submission_id=derived_id("op", [name, "claim"]), now=utc_now())
     latest = max(t["last_activity_at"] for t in p.tasks())
-    with db.open_store(p.ctx) as store, store.transaction() as txn:
-        jobs.enqueue(txn, kind="review_claims", input_refs=[claim], now=latest, prompt_version="review_claims@1", review_candidates=[jobs.ReviewCandidate(claim_id=claim.id, origin="extracted", claim_kind="fact")])
     clock = format_utc(parse_utc(latest) + _dt.timedelta(hours=1))  # every narrative job is due and its task quiet
     (p.root / SCENARIO).write_text(json.dumps({"clock": clock, "pidlog": str(tmp / f"{name}.pids")}), encoding="utf-8")
     return p.root

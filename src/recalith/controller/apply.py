@@ -56,11 +56,12 @@ from pydantic import ValidationError
 
 from recalith.contracts.common import EvidenceLink, InstallationContext, ReadSet, RecordRef, canonical_json, derived_id, digest_of, format_utc, new_id, parse_utc, utc_now
 from recalith.contracts.jobs import Job
-from recalith.contracts.memory import ClaimRevision, Episode, PendingAction, TaskState
+from recalith.contracts.memory import ClaimRevision, Episode, ModelProvenance, PendingAction, ReviewAssessment, TaskState
 from recalith.contracts.memory import TaskBindingProposal
 from recalith.contracts.operations import (
     AdmissionDecision,
     ApplyResult,
+    AssessClaimPayload,
     AttachEvidencePayload,
     BindEventsPayload,
     ChangeClaimStatusPayload,
@@ -78,7 +79,7 @@ from recalith.contracts.operations import (
     UndoPreview,
     UpdateTaskPayload,
 )
-from recalith.controller import admission, jobs
+from recalith.controller import admission, jobs, review
 from recalith.core import lineage, policy
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
@@ -191,6 +192,8 @@ class _Run:
     created: set[tuple[str, str]] = field(default_factory=set)
     serving: bool = False
     source: str = "proposal"  # proposal (model) | service | reduction (typed reducer)
+    review_queue: list[review.Queued] = field(default_factory=list)  # candidates this application wrote
+    provenance: Any = None  # the response's adapter-appended ResponseProvenance (model proposals only)
 
 
 class _Writer:
@@ -317,6 +320,36 @@ def _cap_strength(data: dict[str, Any]) -> None:
         data["strength"] = "supported"  # corroboration requires no unresolved contradiction
 
 
+def _strength(run: _Run, data: dict[str, Any]) -> None:
+    """Strength follows lineage only (``admission.assign_strength``); a candidate stays weak."""
+    data["strength"] = admission.assign_strength(run.txn, data)
+
+
+def _queue(run: _Run, ref: RecordRef, data: dict[str, Any]) -> None:
+    """A candidate revision this application wrote: its review is scheduled when the application commits."""
+    if data.get("status") != "candidate":
+        return
+    if run.source == "proposal" or run.ctx.actor.kind != "operator":
+        origin = "extracted"
+    else:
+        origin = "typed_declaration" if data.get("basis") == "user_declared" else "operator_declaration"
+    run.review_queue.append(review.Queued(ref=ref, claim_kind=data["kind"], basis=data["basis"], origin=origin))
+
+
+def _provenance(run: _Run) -> ModelProvenance | None:
+    """Provider, model and pinned prompt of the job that proposed a claim (adapter-appended, never model text)."""
+    from recalith import prompts
+
+    if run.job is None or run.provenance is None or run.job.prompt_version is None:
+        return None
+    try:
+        digest = prompts.prompt_digest(run.job.prompt_version)
+    except KeyError:
+        return None
+    p = run.provenance
+    return ModelProvenance(provider_id=p.provider_id, configured_model=p.configured_model, resolved_model=p.resolved_model, adapter_version=p.adapter_version, prompt_id=run.job.prompt_version, prompt_digest=digest, job_id=run.job.job_id)
+
+
 def _write_claim_revision(run: _Run, old_revision: int, data: dict[str, Any], change: _Change, *, context: Sequence[EvidenceLink] = ()) -> RecordRef:
     claim = _validate(ClaimRevision, data)
     ref = records.write_claim(run.txn, claim, context=context)
@@ -331,6 +364,11 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
     contradicts = [link for link in op.evidence if link.relation == "contradicts"]
     context = [link for link in op.evidence if link.relation == "context"]
     klass = policy.review_class(kind=typed.kind, basis=typed.basis, dependencies=typed.dependencies)
+    failure = typed.failure
+    if failure is not None:
+        _reason, derived = admission.derive_failure(run.txn, supports)  # admission already refused an underivable body
+        assert derived is not None
+        failure = failure.model_copy(update=derived)  # code-derived index fields (decision 0011)
     candidate = ClaimRevision(
         claim_id=new_id("claim"),
         project_id=ctx.project_id,
@@ -342,8 +380,8 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         scope=typed.scope,
         conditions=typed.conditions,
         basis=typed.basis,
-        strength="weak",  # unreviewed; Task 9 assigns strength after admission
-        status="candidate",
+        strength="weak",  # assigned from lineage below once admitted active
+        status="active" if typed.basis == "observed" else "candidate",  # only a verified mapping skips review
         freshness="current",
         supports=supports,
         contradicts=contradicts,
@@ -355,7 +393,8 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         dependencies=typed.dependencies,
         review_class=klass,
         procedure=typed.procedure,
-        failure=typed.failure,
+        failure=failure,
+        model_provenance=_provenance(run),
     )
     support = lineage.resolve(run.txn, supports, proposition_key=candidate.proposition_key.model_dump(mode="json") if candidate.proposition_key else None)
     if support.support_classes:
@@ -373,15 +412,19 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         data = _new_claim_revision(old, now=run.now)
         data["supports"], data["contradicts"] = supports_out, contradicts_out
         _supported_at(data, when)
-        _cap_strength(data)
+        _strength(run, data)
         ref = _write_claim_revision(run, head.revision, data, change, context=context)
         run.resolution.locals[op.local_ref] = ref
+        _queue(run, ref, data)
         return "duplicate_new_evidence"
+    if candidate.status == "active":
+        candidate = candidate.model_copy(update={"strength": admission.assign_strength(run.txn, candidate.model_dump(mode="json"))})
     ref = records.write_claim(run.txn, candidate, context=context)
     run.created.add(("claim", candidate.claim_id))
     run.resolution.locals[op.local_ref] = ref
     change.record(ref, None)
-    return None
+    _queue(run, ref, candidate.model_dump(mode="json"))
+    return None if candidate.status == "candidate" else "observed_mapping"
 
 
 def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayload, change: _Change) -> str | None:
@@ -404,8 +447,9 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
             return "duplicate_evidence"
         data = _new_claim_revision(data, now=run.now)
         data["contradicts"] = merged  # contradicting outcomes stay attached, even from one class
-    _cap_strength(data)
-    _write_claim_revision(run, revision, data, change)
+    _strength(run, data)
+    ref = _write_claim_revision(run, revision, data, change)
+    _queue(run, ref, data)  # changed support of a candidate needs its own review
     return None
 
 
@@ -425,6 +469,30 @@ def _revise_claim(run: _Run, op: ProposedOperation, typed: ReviseClaimPayload, c
     data["review_due_at"] = format_utc(policy.review_due(parse_utc(run.now), data["review_class"]))
     supports = [link for link in op.evidence if link.relation == "supports"]
     data["supports"], _ = _merge_links(data["supports"], supports)
+    ref = _write_claim_revision(run, revision, data, change)
+    _queue(run, ref, data)
+    return None
+
+
+def _assess_claim(run: _Run, op: ProposedOperation, typed: AssessClaimPayload, change: _Change) -> str | None:
+    """Record one admitted review assessment on its candidate (``controller.review`` decided it may count)."""
+    scope = run.resolution.review
+    assert scope is not None
+    revision, data = _head_body(run.txn, "claim", typed.candidate_ref.id)
+    links = [scope.link(e) for e in typed.evidence_ids]
+    assessment = ReviewAssessment(
+        review_job_id=scope.job.job_id, batch_id=scope.batch.batch_id, candidate_ref=typed.candidate_ref, proposal_digest=run.digest,
+        evidence_digest=scope.batch.evidence_digest, prompt_digest=scope.batch.prompt_digest, verdict=typed.verdict, objections=list(typed.objections),
+        evidence_refs=[link for link in links if link is not None], reviewed_at=run.now,
+    )
+    data = _new_claim_revision(data, now=run.now)
+    data["review_assessment"] = assessment.model_dump(mode="json")
+    capacity = typed.verdict == "reject" and typed.objections == [review.CAPACITY]
+    if typed.verdict == "supported":
+        data["status"] = "active"
+    elif typed.verdict == "reject" and not capacity:
+        data["status"] = "archived"  # not admitted; archiving asserts no falsity
+    _strength(run, data)
     _write_claim_revision(run, revision, data, change)
     return None
 
@@ -551,6 +619,7 @@ HANDLERS = {
     "propose_claim": _propose_claim,
     "attach_evidence": _attach_evidence,
     "revise_claim": _revise_claim,
+    "assess_claim": _assess_claim,
     "change_claim_status": _change_status,
     "update_task": _update_task,
     "create_episode": _create_episode,
@@ -710,7 +779,7 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         decided[ref] = AdmissionDecision(local_ref=ref, outcome="reject", reason_code=reason, resolved_operation_id=None)
     for gi, group in enumerate(plan.groups):
         group_id = derived_id("grp", [run.scope_id, run.digest, group[0].local_ref])
-        snapshot = (dict(run.resolution.locals), dict(run.resolution.base), set(run.created))
+        snapshot = (dict(run.resolution.locals), dict(run.resolution.base), set(run.created), len(run.review_queue))
         run.txn.execute("SAVEPOINT apply_group")
         group_decisions: list[AdmissionDecision] = []
         group_ids: list[str] = []
@@ -742,7 +811,8 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         except _GroupFailed as failed:
             run.txn.execute("ROLLBACK TO apply_group")
             run.txn.execute("RELEASE apply_group")
-            run.resolution.locals, run.resolution.base, run.created = snapshot
+            run.resolution.locals, run.resolution.base, run.created, queued = snapshot
+            del run.review_queue[queued:]
             for op in group:
                 code = failed.reason if op.local_ref == failed.local_ref else "group_rejected"
                 decided[op.local_ref] = AdmissionDecision(local_ref=op.local_ref, outcome="reject", reason_code=code, resolved_operation_id=None)
@@ -755,6 +825,8 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         run.serving = run.serving or group_serving
         if gi == 0:
             failpoints.hit(failpoints.APPLY_AFTER_GROUP)
+        if group_ids and any(op.kind == "assess_claim" for op in group) and run.resolution.review is not None:
+            failpoints.hit(failpoints.REVIEW_AFTER_ASSESSMENT)
     ordered = [decided[r] for r in plan.order if r in decided] + [d for r, d in decided.items() if r not in plan.order]
     return ordered, operation_ids, changed
 
@@ -841,7 +913,14 @@ def _apply(run: _Run, response: ModelResponse, read_set: ReadSet | None, *, kind
     if verdict is not None:
         decisions, operation_ids, changed = _all(response, "reject", verdict.reason), [], []
     else:
+        if run.job is not None and run.job.kind == "review_claims":
+            run.resolution.review = review.scope_for(run.txn, run.job, response)
         decisions, operation_ids, changed = _run_groups(run, response)
+        if run.resolution.review is not None:
+            review.record_outcomes(run.txn, run.resolution.review, response, decisions, now=run.now)
+        if run.review_queue:
+            review.schedule(run.txn, run.ctx, run.review_queue, origin_job_id=run.job.job_id if run.job else None, submission_id=None if run.job else run.scope_id, now=run.now)
+            failpoints.hit(failpoints.REVIEW_AFTER_SCHEDULE)
     result = ApplyResult(operation_ids=operation_ids, changed_refs=changed, decisions=decisions, store_revision=run.txn.next_store_revision, requeued_job_ids=[])
     if run.job is not None:
         jobs.complete(run.txn, run.job, proposal_ref=run.proposal_id)
@@ -879,7 +958,7 @@ def apply_proposal(ctx: InstallationContext, job: Job, response: ModelResponse, 
                 if persisted_digest != digest:
                     raise RecalithError("policy_refused", "the response is not the job's persisted proposal")
                 depth_root = _depth(txn, job.job_id)[1]
-                run = _Run(ctx=ctx, txn=txn, scope_id=job.job_id, digest=digest, now=now, job=current, proposal_id=current.proposal_ref, causal_root=depth_root)
+                run = _Run(ctx=ctx, txn=txn, scope_id=job.job_id, digest=digest, now=now, job=current, proposal_id=current.proposal_ref, causal_root=depth_root, provenance=persisted.provenance)
                 result = _apply(run, persisted, read_set, kind=APPLICATION_KIND)
                 failpoints.hit(failpoints.JOB_BEFORE_COMPLETE_COMMIT)
         except RecalithError as exc:

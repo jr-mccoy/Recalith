@@ -90,7 +90,7 @@ def quiet_now(p: wks.Project) -> str:
 
 
 def seed_claim(p: wks.Project, proposition: str = "The scripted pytest run fails with exit code 1.") -> RecordRef:
-    op = osc.op("c", "propose_claim", osc.claim(proposition, basis="observed"), evidence=[osc.link(p.root, "fail", quote="FAILURES", mapping="tool.exit_code")])
+    op = osc.op("c", "propose_claim", osc.claim(proposition), evidence=[osc.link(p.root, "fail", quote="FAILURES")])  # an inferred candidate
     result = apply.apply_operations(osc.operator(p.root), [osc._op(op)], read_set=osc.read_set(p.root), submission_id=derived_id("op", ["seed", proposition]), now=utc_now())
     return next(r for r in result.changed_refs if r.kind == "claim")
 
@@ -391,7 +391,9 @@ def test_review_batch_is_persisted_before_launch_and_reused_while_unchanged(tmp_
     fresh = requests.prepare_model_request(p.ctx, job.model_copy(update={"input_refs": [osc.head_ref(p.root, "claim", claim.id)]}), now=utc_now())
     assert fresh.review_batch.batch_id != first.review_batch.batch_id and len(fresh.review_batch.evidence_index) == len(ids) + 1
     assert p.count("SELECT COUNT(*) FROM review_batches WHERE review_job_id = ?", (job.job_id,)) == 2
-    # Through the lane the reviewer's capacity rejections apply as Task 5 left them: nothing changes yet (Task 9).
+    # Through the lane: the job's candidate revision was superseded by the attachment, whose application
+    # scheduled the new revision's own review (Task 9), so this job is cancelled without a call; the new
+    # review's capacity rejections apply and change nothing but the recorded assessment.
     backend = answering_backend()
     w = worker.Worker(osc.context(p.root), clock=ws.FakeClock(utc_now()), model=worker.ModelRuntime(backend, requests.runtime_preparer(p.ctx)))
     try:
@@ -399,8 +401,10 @@ def test_review_batch_is_persisted_before_launch_and_reused_while_unchanged(tmp_
             pass
     finally:
         w.close()
-    assert get_job(p, job.job_id).state == "completed"
-    assert osc.claim_by_text(p.root, "The scripted pytest run fails with exit code 1.")["head_status"] == "candidate"
+    stale = get_job(p, job.job_id)
+    assert stale.state == "cancelled" and stale.last_error_code == "review_candidates_stale"
+    after = osc.claim_by_text(p.root, "The scripted pytest run fails with exit code 1.")
+    assert after["head_status"] == "candidate" and after["review_assessment"]["objections"] == ["review_capacity"]
 
 
 def test_expansion_rounds_resolve_only_this_installations_records(tmp_path):

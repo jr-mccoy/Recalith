@@ -165,6 +165,7 @@ def enqueue(
     coalesce: bool = False,
     idempotency: str | None = None,
     review_priority: str | None = None,
+    trigger_ref: str | None = None,
 ) -> tuple[str, bool]:
     """Create a job once per idempotency key; priority and pool are computed here.
 
@@ -196,6 +197,7 @@ def enqueue(
         attempt=0,
         budget_pool=pool_for(kind),
         review_priority=review_priority,
+        trigger_ref=trigger_ref,
     )
     if coalesce and input_refs:
         ids = _input_ids(input_refs)

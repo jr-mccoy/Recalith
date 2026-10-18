@@ -265,17 +265,20 @@ def main(argv: list[str]) -> int:
 
     spec = provider.scenario(root)
     lineage_spec = (root / "lineage.json").exists()  # Task 8: root-class merges at ingestion
+    import admission_scenarios as admission
+
+    admission_spec = admission.scenario(root)  # Task 9: extraction, review admission and failure debounce
     if len(argv) > 3 and argv[3] == "count":
         hits = Path(argv[4])
         if lineage_spec:
             import lineage_scenarios as lineage_s
 
         def record_hit(name: str) -> None:
-            state = provider.outstanding(root) if spec else lineage_s.outstanding(root) if lineage_spec else pending_work(root)
+            state = provider.outstanding(root) if spec else lineage_s.outstanding(root) if lineage_spec else admission.outstanding(root) if admission_spec else pending_work(root)
             with open(hits, "a", encoding="utf-8") as fh:
                 fh.write(f"{name} {state}\n")
 
-        names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER
+        names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER + failpoints.ADMISSION
         if lineage_spec:
             names += failpoints.LINEAGE + (failpoints.INGEST_BEGIN, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK)
         for name in names:
@@ -297,6 +300,23 @@ def main(argv: list[str]) -> int:
             w.close()
             lock.release()
         return 0
+    if admission_spec is not None:  # Task 9: the production preparer; recorded bodies built from each request
+        from recalith.controller import requests as model_requests
+
+        def answer(request: bytes, purpose: str) -> None:
+            backend.body = admission.crash_answer(admission_spec, json.loads(request), purpose)
+
+        backend = FakeBackend(lambda purpose, i: worker.LaunchOutcome(stdout=envelope(backend.body, usage={"input_tokens": 50, "output_tokens": 10})), on_launch=answer, log=calls_log)
+        w = worker.Worker(ctx, model=runtime(backend, model_requests.runtime_preparer(ctx)), owner=f"driver:{new_id('act')[4:12]}")
+        lock = process_env.InstallationLock(root)
+        assert lock.try_acquire(), "another worker holds the installation"
+        try:
+            w.startup()
+            drain(w)
+        finally:
+            w.close()
+            lock.release()
+        return 0
     bodies = scenarios.scenario_bodies(root)
     if bodies is None:
         backend, prepare = FakeBackend(log=calls_log), None
@@ -305,8 +325,10 @@ def main(argv: list[str]) -> int:
 
         def body_for(purpose: str) -> bytes:
             if purpose not in bodies and working.dynamic(root):
-                return working.split_body(root)  # a binding decision computed from the reduced store
-            return bodies[purpose]
+                if purpose == "update_task":
+                    return working.split_body(root)  # a binding decision computed from the reduced store
+                return NO_OP_BODY  # e.g. extraction a due failure trigger scheduled (Task 9)
+            return bodies.get(purpose, NO_OP_BODY)  # jobs Task 9 schedules beside a scenario's own (reviews, extractions)
 
         backend = FakeBackend(lambda purpose, i: worker.LaunchOutcome(stdout=envelope(body_for(purpose), usage={"input_tokens": 50, "output_tokens": 10})), log=calls_log)
         prepare = scenarios.scenario_prepare

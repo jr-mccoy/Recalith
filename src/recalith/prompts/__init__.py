@@ -11,11 +11,25 @@ validates every operation again before anything applies.
 
 Changing any text here requires a new version string, so a persisted
 ``ReviewBatch.prompt_digest`` and a job's pinned version keep meaning one text.
+The extraction and review instructions are package-data files
+(``extract_v1.md``, ``review_v1.md``; decision 0011), loaded here and digested
+separately: a claim's ``ModelProvenance`` pins its extraction prompt digest, a
+``ReviewBatch`` its review prompt digest, and ``tests/integration/
+test_claim_admission.py`` pins both texts by golden digest so an edit without a
+new version fails.
 """
 
 from __future__ import annotations
 
 import hashlib
+from importlib import resources
+
+
+def _file(name: str) -> str:
+    """A versioned prompt file shipped as package data (LF line endings, no trailing whitespace)."""
+    text = (resources.files("recalith.prompts") / name).read_text(encoding="utf-8")
+    return "\n".join(line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").splitlines()).strip()
+
 
 CURATOR_SYSTEM_PROMPT = (
     "You are the isolated memory curator of one Recalith project installation. You have no tools and no memory. "
@@ -47,18 +61,8 @@ INSTRUCTIONS: dict[str, str] = {
         "revise_episode operations naming the episode id and its current revision. Keep successful, failed and uncertain "
         "outcomes; never restate carried context as new evidence. " + _COMMON
     ),
-    "extract_claims@1": (
-        "Propose durable project knowledge (facts, decisions, preferences, failure lessons, procedures) that the events and "
-        "episodes support, each with evidence links and an honest basis: observed only for typed tool results, user_declared only "
-        "for an actual statement of intent by the user (never quoted or pasted text), otherwise inferred. Prefer no claim over a "
-        "weak one. " + _COMMON
-    ),
-    "review_claims@1": (
-        "Adversarially review each candidate claim of review_batch against only its batch evidence. Return exactly one "
-        "assess_claim per candidate: supported only when the cited batch evidence ids support the scoped proposition; revise or "
-        "reject otherwise, with at most two short objections. If evidence is missing, you may instead return request_evidence "
-        "operations only. " + _COMMON
-    ),
+    "extract_claims@1": _file("extract_v1.md") + " " + _COMMON,
+    "review_claims@1": _file("review_v1.md") + " " + _COMMON,
     "revalidate@1": (
         "Recheck each claim against its current evidence and dependencies. Return revise_claim, change_claim_status or "
         "attach_evidence only where the evidence requires it; otherwise return a no_op_reason. " + _COMMON
