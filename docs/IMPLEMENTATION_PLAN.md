@@ -245,7 +245,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 8: Source lineage and applicability
 
-**Files:** Create `core/{lineage,conditions}.py`, `tests/unit/test_lineage.py`, `tests/unit/test_conditions.py`.
+**Files:** Create `core/{lineage,conditions}.py`, `tests/unit/test_lineage.py`, `tests/unit/test_conditions.py`. The task also added `storage/migrations/0004.sql` (schema 4: `root_event_members`, `root_tokens`), root registration inside `capture.pipeline.ingest_ready`, class-based support novelty and `last_supported_at` in `controller/apply.py`, the record-link root check in `controller/admission.py`, `ContextQuery.branch_ref`, the `failpoints.LINEAGE` family (`roots.after_merge`), the test builders `tests/integration/lineage_scenarios.py` (real payloads, named variants, a synthetic certified experiment domain, the merge kill/restart scenario) and the matrix `test_lineage_merge_crash_matches_reference` (decision 0010).
 
 **Interfaces:** Consume `EvidenceLink`, `Condition`, `Scope`, and `ActionDescriptor`. Produce `independent_roots(ctx: InstallationContext, evidence: Sequence[EvidenceLink], *, proposition_key: JsonObject) -> set[Id]` returning canonical root-class IDs and `evaluate_conditions(conditions: Sequence[Condition], query: ContextQuery) -> str`, returning exactly `true`, `false`, or `unknown`.
 

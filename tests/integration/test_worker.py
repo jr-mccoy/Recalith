@@ -806,6 +806,53 @@ def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
 
 
 # ---------------------------------------------------------------------------
+# Root-class merges at ingestion under kill/restart (Task 8)
+
+LINEAGE_MATRIX = [failpoints.INGEST_BEGIN, failpoints.ROOTS_AFTER_MERGE, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK, *failpoints.WORKER]
+
+
+@pytest.mark.parametrize("failpoint", LINEAGE_MATRIX)
+def test_lineage_merge_crash_matches_reference(tmp_path, failpoint):
+    """Killed while a segment that merges two counted root classes is ingested, or while its revalidation runs.
+
+    Live claims cite two separate classes; the spooled segment's bridging
+    event merges them (aliases, moved members and tokens, guidance epoch) and
+    enqueues one revalidation job for the two affected claims in the same
+    ingestion transaction; the worker then runs that job. The reference run
+    logs every failpoint hit with whether the merge or the revalidation was
+    still outstanding; each repetition kills at one of those hits only, the
+    killed store must differ from the reference, and the restarted store must
+    equal it: root classes, members, aliases, token counts, registered events,
+    the revalidation job and its inputs, jobs, claims and the guidance epoch.
+    """
+    import lineage_scenarios as lsc
+
+    reference_root = lsc.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = (osc.normalized(reference_root), lsc.lineage_state(reference_root))
+    state = reference[1]
+    assert state["aliases"] == [("m-x", "m-b"), ("m-y", "m-b")] and state["revalidate"] == [sorted(["Both suites pass.", "Suite a passes."])]
+    assert ("revalidate", "completed") in reference[0]["jobs"] and all(e[0] != "m-say" for e in state["events"])
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+    assert mine, f"{failpoint} is never reached while the merge or its revalidation is outstanding"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = lsc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert (osc.normalized(root), lsc.lineage_state(root)) != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert (osc.normalized(root), lsc.lineage_state(root)) == reference, (failpoint, rep)
+        calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        assert len(calls) <= 2  # at most the killed launch and one relaunch of the single revalidation job
+
+
+# ---------------------------------------------------------------------------
 # The real request-preparation and provider path under kill/restart (Task 7)
 
 PROVIDER_MATRIX = list(failpoints.WORKER) + list(failpoints.PROVIDER)

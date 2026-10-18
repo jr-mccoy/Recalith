@@ -7,8 +7,10 @@ so the same sequence is valid on the hook path. Operational failures return a
 ``not_captured`` receipt; nothing is raised to the host.
 
 ``ingest_ready`` commits each segment's events, environment observations,
-cursor proposals and follow-on ``ingest`` job in one transaction, then removes
-the segment. A crash after commit but before removal replays harmlessly: the
+root-class memberships (decision 0010), cursor proposals and follow-on
+``ingest`` job in one transaction, then removes the segment. A root-class merge
+that can lower a live claim's independent-root count enqueues that claim's
+revalidation in the same transaction. A crash after commit but before removal replays harmlessly: the
 events are duplicates and the job's idempotency key already exists.
 
 ``ingest_ready``'s ``limit`` bounds the number of *segments* handled in one
@@ -30,6 +32,7 @@ from recalith.contracts.common import InstallationContext, RecordRef, canonical_
 from recalith.contracts.config import HOOK_SOFT_DEADLINE_MS, SEGMENT_CAP
 from recalith.contracts.events import TOOL_KINDS, CaptureReceipt, EventEnvelope, Segment
 from recalith.contracts.jobs import IngestResult
+from recalith.core import lineage
 from recalith.errors import RecalithError
 from recalith.fast import redact
 from recalith.storage import failpoints, repository, spool
@@ -192,6 +195,20 @@ def _session_lifecycle(txn: Any, env: EventEnvelope) -> None:
         txn.execute("UPDATE sessions SET state = 'ended', ended_at = ? WHERE session_id = ? AND state != 'ended'", (env.occurred_at or env.recorded_at, env.session_id))
 
 
+REVALIDATION_BATCH = 8
+
+
+def _enqueue_revalidation(txn: Any, claims: list[RecordRef]) -> None:
+    """Merged root classes can lower these claims' counts: revalidate them (coalesced, protected pool)."""
+    if not claims:
+        return
+    from recalith import prompts
+    from recalith.controller import jobs
+
+    for i in range(0, len(claims), REVALIDATION_BATCH):
+        jobs.enqueue(txn, kind="revalidate", input_refs=claims[i : i + REVALIDATION_BATCH], now=utc_now(), prompt_version=prompts.CURRENT["revalidate"], coalesce=True)
+
+
 def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
     """Commit ready segments to the store, then remove them."""
     dirs = spool.SpoolDirs(ctx.root)
@@ -218,6 +235,7 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                 with store.transaction() as txn:
                     failpoints.hit(failpoints.INGEST_BEGIN)
                     inserted: list[EventEnvelope] = []
+                    revalidate: dict[str, RecordRef] = {}
                     for env in segment.envelopes:
                         sources.ensure_session(txn, ctx, session_id=env.session_id, adapter_id=env.adapter_id, host_session_id=env.host_session_id, started_at=env.occurred_at)
                         outcome, _ = repository.insert_event(txn, ctx, env)
@@ -225,6 +243,9 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                         if outcome == "inserted":
                             inserted.append(env)
                             provenance.observe_event(txn, ctx, env)
+                            registered = lineage.register_event(txn, env)
+                            if registered is not None:
+                                revalidate.update((ref.id, ref) for ref in registered.affected_claims)
                             _session_lifecycle(txn, env)
                     for registration in segment.source_registrations:
                         refused = sources.register_proposal(txn, ctx, registration)
@@ -237,6 +258,7 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                         refs = [RecordRef(kind="event", id=e.event_id, revision=1) for e in inserted]
                         job_id, created = repository.enqueue_job(txn, kind="ingest", input_refs=refs)
                         job_id = job_id if created else None
+                    _enqueue_revalidation(txn, [revalidate[k] for k in sorted(revalidate)])
                     failpoints.hit(failpoints.INGEST_BEFORE_COMMIT)
             except RecalithError as exc:
                 if exc.code not in QUARANTINE_CODES:

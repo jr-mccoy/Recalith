@@ -18,8 +18,10 @@ application record uses the reserved ref ``@apply`` (not a valid local ref).
 An already committed application returns its original :class:`ApplyResult`
 before the lease is checked, so a duplicate never increments support or
 revisions and a completed job needs no re-lease. Exact-duplicate claims are
-reused (content key plus evidence-root identity), so the same proposal under a
-different job adds no second effect either.
+reused (content key), and support is attached to an existing claim only when
+it adds an independent root class (``core.lineage``, decision 0010), so the
+same proposal under a different job, a repetition or an unchanged rerun adds
+no second effect and never advances ``last_supported_at``.
 
 **Groups.** Local refs and ``depends_on`` form a graph; each connected
 component is one atomic group, applied in dependency order inside its own
@@ -77,7 +79,7 @@ from recalith.contracts.operations import (
     UpdateTaskPayload,
 )
 from recalith.controller import admission, jobs
-from recalith.core import policy
+from recalith.core import lineage, policy
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
 from recalith.storage import records
@@ -269,6 +271,47 @@ def _merge_links(existing: list[dict[str, Any]], new: Iterable[EvidenceLink]) ->
     return out, added
 
 
+def _new_support(run: _Run, data: dict[str, Any], new: Iterable[EvidenceLink]) -> tuple[list[dict[str, Any]], int, str | None]:
+    """Support links that add an independent root class (SYSTEM_SPEC §7.2 Confirm, §7.1.1; decision 0010).
+
+    A link is attached only when it raises the claim's count of canonical root
+    classes for its proposition. Repetition, an unchanged rerun, a forwarded
+    or summarized copy, memory telemetry, assistant text and a repeated user
+    declaration add none, so they never refresh support. Returns the merged
+    links, how many were added, and the latest observation time of the new
+    classes' roots (for ``last_supported_at``).
+    """
+    key = data.get("proposition_key")
+    existing = [EvidenceLink.model_validate(item) for item in data["supports"]]
+    seen = {records.link_identity(link) for link in existing}
+    count = len(lineage.resolve(run.txn, existing, proposition_key=key).support_classes)
+    out, added, roots = list(data["supports"]), 0, set()
+    for link in new:
+        if records.link_identity(link) in seen:
+            continue
+        trial = lineage.resolve(run.txn, [*existing, link], proposition_key=key)
+        if len(trial.support_classes) <= count:
+            continue
+        existing.append(link)
+        seen.add(records.link_identity(link))
+        count = len(trial.support_classes)
+        out.append(link.model_dump(mode="json"))
+        added += 1
+        roots |= lineage.resolve(run.txn, [link], proposition_key=key).support_roots
+    return out, added, lineage.observed_at(run.txn, roots) if roots else None
+
+
+def _no_root_reason(run: _Run, data: dict[str, Any], new: Sequence[EvidenceLink]) -> str:
+    """``no_independent_root`` when none of the links resolves to an eligible root at all."""
+    resolved = lineage.resolve(run.txn, list(new), proposition_key=data.get("proposition_key"))
+    return "duplicate_evidence" if resolved.support_classes else "no_independent_root"
+
+
+def _supported_at(data: dict[str, Any], when: str | None) -> None:
+    if when is not None and (data.get("last_supported_at") is None or when > data["last_supported_at"]):
+        data["last_supported_at"] = when
+
+
 def _cap_strength(data: dict[str, Any]) -> None:
     if data.get("contradicts") and data.get("strength") == "corroborated":
         data["strength"] = "supported"  # corroboration requires no unresolved contradiction
@@ -314,18 +357,22 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         procedure=typed.procedure,
         failure=typed.failure,
     )
+    support = lineage.resolve(run.txn, supports, proposition_key=candidate.proposition_key.model_dump(mode="json") if candidate.proposition_key else None)
+    if support.support_classes:
+        candidate = candidate.model_copy(update={"last_supported_at": lineage.observed_at(run.txn, support.support_roots)})
     key = records.content_key(candidate)
     existing = records.duplicate_heads(run.txn, key) if key else []
     if existing:
         head = existing[0]
         old = head.model_dump(mode="json")
-        supports_out, s_added = _merge_links(old["supports"], supports)
+        supports_out, s_added, when = _new_support(run, old, supports)
         contradicts_out, c_added = _merge_links(old["contradicts"], contradicts)
         run.resolution.locals[op.local_ref] = records.ref_of(head)
         if not s_added and not c_added:
-            return "duplicate_existing"  # same proposition, scope, conditions and roots: one effect
+            return "duplicate_existing"  # same proposition, scope, conditions and root classes: one effect
         data = _new_claim_revision(old, now=run.now)
         data["supports"], data["contradicts"] = supports_out, contradicts_out
+        _supported_at(data, when)
         _cap_strength(data)
         ref = _write_claim_revision(run, head.revision, data, change, context=context)
         run.resolution.locals[op.local_ref] = ref
@@ -344,12 +391,19 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
         data = _new_claim_revision(data, now=run.now)
         _write_claim_revision(run, revision, data, change, context=context)
         return None
-    key = "supports" if typed.relation == "supports" else "contradicts"
-    merged, added = _merge_links(data[key], op.evidence)
-    if not added:
-        return "duplicate_evidence"  # duplicate mentions never refresh support
-    data = _new_claim_revision(data, now=run.now)
-    data[key] = merged
+    if typed.relation == "supports":
+        merged, added, when = _new_support(run, data, op.evidence)
+        if not added:
+            return _no_root_reason(run, data, op.evidence)  # duplicate mentions never refresh support
+        data = _new_claim_revision(data, now=run.now)
+        data["supports"] = merged
+        _supported_at(data, when)
+    else:
+        merged, added = _merge_links(data["contradicts"], op.evidence)
+        if not added:
+            return "duplicate_evidence"
+        data = _new_claim_revision(data, now=run.now)
+        data["contradicts"] = merged  # contradicting outcomes stay attached, even from one class
     _cap_strength(data)
     _write_claim_revision(run, revision, data, change)
     return None

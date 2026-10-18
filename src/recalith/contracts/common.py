@@ -322,6 +322,7 @@ class Scope(StrictModel):
     environment: EnvironmentValues = Field(default_factory=dict)
 
 
+_GLOB = re.compile(r"[*?\[\]{}]")
 ConditionKind = Literal["action_kind", "tool", "path", "environment_equals", "version_range", "branch_ref"]
 ACTION_KINDS = ("read", "write", "delete", "test", "build", "publish", "version_control", "other", "unknown")
 
@@ -339,6 +340,8 @@ class Condition(StrictModel):
     def _shape(self) -> "Condition":
         if self.kind == "path":
             _check_portable_path(self.value)
+            if _GLOB.search(self.value):
+                raise ValueError("path conditions are exact paths or directory prefixes ending in '/', never glob or regex patterns")
         if self.kind == "environment_equals":
             _check_environment({self.key: self.value})
         if self.kind == "action_kind" and self.value not in ACTION_KINDS:

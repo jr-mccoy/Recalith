@@ -45,6 +45,8 @@ class ContextQuery(StrictModel):
     action: ActionDescriptor | None = None
     environment: EnvironmentValues = Field(default_factory=dict)
     max_estimated_tokens: Annotated[int, Field(gt=0)] | None = None
+    # The current branch, only for explicit ``branch_ref`` conditions (decision 0010); absent is unknown.
+    branch_ref: Annotated[str, Field(min_length=1, max_length=256)] | None = None
 
 
 class ContextItem(StrictModel):
