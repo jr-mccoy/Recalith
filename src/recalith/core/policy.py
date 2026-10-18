@@ -3,11 +3,13 @@
 Code, not the model, decides which actor may apply which operation kind,
 which claim status transitions exist, which changes are serving-relevant
 (advance ``guidance_epoch``) and how far revision conflicts may re-evaluate.
-This preview slice holds the structural rules (schema, identity, revisions,
-evidence existence and quote integrity). Semantic evidence rules (deterministic
-mappings, independent roots, declaration review, strength) are Task 9 and are
-deliberately absent: until then a proposed claim is admitted only as a weak
-candidate, never as active guidance.
+These tables hold the structural rules (schema, identity, revisions,
+evidence existence and quote integrity); the semantic evidence rules
+(deterministic mappings, declarations, review admission and strength) live in
+``controller.admission`` and ``controller.review`` (Task 9, decision 0011).
+A claim becomes active only through a valid deterministic mapping (an
+``observed`` fact) or a supported review; everything else stays a weak
+candidate.
 """
 
 from __future__ import annotations
@@ -17,10 +19,11 @@ from typing import Any
 
 from recalith.contracts.common import Actor
 
-# Kinds that change memory records. ``no_op``, ``request_evidence`` and
-# ``assess_claim`` (Task 9 admission) change nothing here.
+# Kinds that change memory records. ``no_op`` and ``request_evidence`` change
+# nothing; ``assess_claim`` records its review assessment on the candidate (and
+# activates it when the review supports it, decision 0011).
 MUTATING_KINDS = frozenset({
-    "update_task", "create_episode", "revise_episode", "propose_claim", "attach_evidence", "revise_claim", "change_claim_status",
+    "update_task", "create_episode", "revise_episode", "propose_claim", "assess_claim", "attach_evidence", "revise_claim", "change_claim_status",
     "resolve_task_binding", "create_task", "bind_events", "record_boundary",
 })
 

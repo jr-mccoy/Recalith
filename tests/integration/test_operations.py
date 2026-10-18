@@ -87,7 +87,7 @@ def job_row(root, job_id):
 
 def test_duplicate_proposal_has_one_effect(root):
     """The same proposal applied twice, and the same claim proposed by another job, add one effect."""
-    lesson = osc.op("lesson", "propose_claim", osc.claim(osc.LESSON, basis="observed"), evidence=[osc.link(root, "fail", quote="FAILURES", mapping="tool.exit_code")])
+    lesson = osc.op("lesson", "propose_claim", osc.claim(osc.LESSON), evidence=[osc.link(root, "fail", quote="FAILURES")])
     job, response, first = run_job(root, "extract_claims", [lesson])
     before = osc.meta(root)
     second = apply.apply_proposal(osc.context(root), job, response, now=LATER)
@@ -111,7 +111,7 @@ def test_duplicate_proposal_has_one_effect(root):
     _j, _r, fifth = run_job(root, "extract_claims", [attach_new])
     updated = osc.claim_by_text(root, osc.LESSON)
     assert fifth.operation_ids and updated["revision"] == 2 and len(updated["supports"]) == 2
-    assert updated["strength"] == "weak" and updated["status"] == "candidate"  # strength/admission are Task 9
+    assert updated["strength"] == "weak" and updated["status"] == "candidate"  # an inferred candidate stays weak until review admits it
 
 
 def test_apply_requires_the_persisted_proposal(root):
@@ -464,8 +464,12 @@ def test_correction_invalidates_and_creates_candidate_in_one_transaction(root, t
     assert after.store_revision == start.store_revision + 1 and after.guidance_epoch == start.guidance_epoch + 1  # one transaction
     assert osc.claim_by_text(root, "Use the scripted tools from the fixture.")["status"] == "invalidated"
     replacement = osc.claim_by_text(root, "Run the scripted tools only on request.")
-    assert replacement["status"] == "candidate" and replacement["review_assessment"] is None  # review is still owed (Task 9/10)
-    assert osc.count(root, "SELECT COUNT(*) FROM provider_usage") == usage_rows and osc.count(root, "SELECT COUNT(*) FROM jobs WHERE kind != 'ingest'") == 0  # no model call
+    assert replacement["status"] == "candidate" and replacement["review_assessment"] is None and replacement["strength"] == "weak"  # review is still owed
+    assert osc.count(root, "SELECT COUNT(*) FROM provider_usage") == usage_rows  # no model call
+    assert osc.count(root, "SELECT COUNT(*) FROM jobs WHERE kind NOT IN ('ingest', 'review_claims')") == 0
+    # Its typed-declaration review is queued at the highest review priority; queued is not admitted (Task 9).
+    queued = osc.count(root, "SELECT COUNT(*) FROM jobs WHERE kind = 'review_claims' AND state = 'pending' AND review_priority = 'correction_or_declaration' AND body LIKE ?", (f"%{replacement['claim_id']}%",))
+    assert queued == 1
     assert len(result.operation_ids) == 2
     # The same correction against the old revision is stale: nothing applies.
     before = osc.meta(root)

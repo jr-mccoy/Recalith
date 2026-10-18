@@ -58,6 +58,14 @@ PROVIDER_AFTER_SPAWN = "provider.after_spawn"
 # merge has moved members, tokens and aliases to the surviving class, before
 # the affected claims' revalidation is enqueued and the segment commits.
 ROOTS_AFTER_MERGE = "roots.after_merge"
+# Claim admission (Task 9): inside an extraction's application transaction after
+# its new candidates' review jobs are enqueued (job completion pending); inside a
+# review job's application after the first assessment is applied (later
+# assessments, outcome records and completion pending); inside an ingest job's
+# fenced transaction after the failure-trigger pass advanced its cursor.
+REVIEW_AFTER_SCHEDULE = "review.after_schedule"
+REVIEW_AFTER_ASSESSMENT = "review.after_assessment"
+TRIGGERS_AFTER_PASS = "triggers.after_pass"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -68,7 +76,8 @@ SERVICE = (SERVICE_BEFORE_COMMIT,)
 REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
 PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
 LINEAGE = (ROOTS_AFTER_MERGE,)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE
+ADMISSION = (REVIEW_AFTER_SCHEDULE, REVIEW_AFTER_ASSESSMENT, TRIGGERS_AFTER_PASS)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

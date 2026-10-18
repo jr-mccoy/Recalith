@@ -216,10 +216,15 @@ def test_expected_red_test_is_not_a_failed_approach(tmp_path):
     assert any(r.startswith("Bash `sleep 5`: interrupted") for r in results)
     denied = task_by_objective(p, "FIXTURE denied: run the scripted tool.")
     assert [(x["tool_call_id"], x["state"]) for x in denied["pending_actions"]] == [("toolu_probe_0016", "awaiting_result")]  # never a success
-    # No lesson, claim or extraction work came from exit statuses.
+    # No lesson, claim or failure-driven extraction came from exit statuses: the expected red's debounce
+    # trigger (A66, Task 9) was resolved by the green rerun of the same task and action family. The only
+    # extraction work is the settled attempt's own (an episode checkpoint, semantic A13 review applies).
     assert p.count("SELECT COUNT(*) FROM claim_heads") == 0
-    assert p.count("SELECT COUNT(*) FROM jobs WHERE kind IN ('extract_claims', 'review_claims', 'revalidate')") == 0
-    assert p.count("SELECT COUNT(*) FROM failure_triggers") == 0
+    assert p.count("SELECT COUNT(*) FROM jobs WHERE kind IN ('review_claims', 'revalidate')") == 0
+    assert p.count("SELECT COUNT(*) FROM jobs WHERE kind = 'extract_claims' AND body NOT LIKE '%\"trigger_ref\":null%'") == 0
+    green = p.event("tool_finished", call="toolu_probe_0003_green")["id"]
+    assert p.count("SELECT COUNT(*) FROM failure_triggers") == 1
+    assert p.count("SELECT COUNT(*) FROM failure_triggers WHERE state = 'resolved' AND resolved_by = ?", (green,)) == 1
     assert all(e["payload"]["expected_red"] is False for e in p.events("tool_finished"))
     p.send(record("lifecycle", "SessionEnd"))
     p.drain()

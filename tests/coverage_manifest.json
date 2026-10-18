@@ -546,7 +546,13 @@
             "tests/integration/test_operations.py::test_malformed_operation_from_the_provider_fails_only_its_group",
             "tests/integration/test_operations.py::test_replacement_and_retirement_commit_together",
             "tests/integration/test_operations.py::test_evaluate_operation_alone_writes_nothing",
-            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
+            "tests/integration/test_claim_admission.py::test_altered_quote_or_invented_event_rejects_only_its_group",
+            "tests/integration/test_claim_admission.py::test_mapping_validators_are_exact",
+            "tests/integration/test_claim_admission.py::test_inferred_claim_waits_for_review",
+            "tests/integration/test_worker.py::test_claim_admission_crash_matches_reference",
+            "tests/integration/test_claim_admission.py::test_active_guidance_is_superseded_only_by_reviewed_guidance",
+            "tests/integration/test_claim_admission.py::test_a_superseding_replacement_is_reviewed_at_its_latest_revision"
           ],
           "platforms": [
             "linux",
@@ -554,7 +560,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Structural slice (Task 5): operations citing a never-captured or another installation's event, a re-rooted link or an altered quote (span digest over the stored field), and malformed operations recorded by the partitioned parser, fail exactly their dependency group inside real transactions; independent groups apply. Real captured Claude 2.1.301 events. Semantic mapping/entailment checks are Task 9."
+          "notes": "Structural slice (Task 5): operations citing a never-captured or another installation's event, a re-rooted link or an altered quote (span digest over the stored field), and malformed operations recorded by the partitioned parser, fail exactly their dependency group inside real transactions; independent groups apply. Real captured Claude 2.1.301 events. Task 9 slice: semantic gates fail exactly their group (invalid or unregistered mappings, observed wording beyond the mapping, misattributed declarations, underivable failure bodies, wider scope) while independent groups apply; an inferred claim stays a weak candidate until a supported review. Recorded proposals through the real persisted path; live extraction quality is ACCEPTANCE_TESTS section 5 (B1)."
         }
       ]
     },
@@ -576,14 +582,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_claim_admission.py::test_quote_exists_but_cause_is_unsupported",
+            "tests/integration/test_claim_admission.py::test_inferred_claim_waits_for_review",
+            "tests/integration/test_claim_admission.py::test_failure_lesson_fields_are_code_derived"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 9 mechanics: a real failing pytest event quoted exactly for a cause cannot enter as observed (an observed claim is exactly the code rendering of its mapped observation, and only a fact); as inferred it is a weak candidate whose review admits it, still labeled inferred. Whether a live reviewer demands scoped wording is review quality (ACCEPTANCE_TESTS section 5, unavailable until B1)."
         }
       ]
     },
@@ -611,7 +622,9 @@
             "tests/unit/test_lineage.py::test_memory_echo_cannot_confirm",
             "tests/unit/test_lineage.py::test_shared_subagent_source_counts_once",
             "tests/unit/test_lineage.py::test_same_user_declarations_collapse_into_one_authority_class",
-            "tests/unit/test_lineage.py::test_no_session_time_or_delivery_discriminator"
+            "tests/unit/test_lineage.py::test_no_session_time_or_delivery_discriminator",
+            "tests/integration/test_claim_admission.py::test_retrieval_count_never_increases_strength",
+            "tests/integration/test_claim_admission.py::test_declarations_alone_never_exceed_supported"
           ],
           "platforms": [
             "linux",
@@ -619,7 +632,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: delivery telemetry, assistant restatements, echoed memories, forwarded subagent reports, repeated declarations and delivery counts add no root class, and attaching them writes nothing (last_supported_at unchanged). Strength (Task 9) is not assigned yet."
+          "notes": "Task 8 slice: delivery telemetry, assistant restatements, echoed memories, forwarded subagent reports, repeated declarations and delivery counts add no root class, and attaching them writes nothing (last_supported_at unchanged). Task 9 slice: strength comes from lineage only; telemetry, repetition, unchanged reruns, repeated declarations and stated self-confidence add no class and never raise strength or last_supported_at."
         }
       ]
     },
@@ -645,7 +658,9 @@
           "status": "in_progress",
           "tests": [
             "tests/unit/test_lineage.py::test_new_observation_after_retrieval_can_support",
-            "tests/unit/test_lineage.py::test_genuinely_new_experiment_adds_a_class"
+            "tests/unit/test_lineage.py::test_genuinely_new_experiment_adds_a_class",
+            "tests/integration/test_claim_admission.py::test_retrieval_count_never_increases_strength",
+            "tests/integration/test_claim_admission.py::test_contradiction_blocks_corroboration"
           ],
           "platforms": [
             "linux",
@@ -653,7 +668,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: retrieval adds no root; an unchanged rerun stays in its class; a new experiment (changed command, or a changed complete-dependency fingerprint in the synthetic certified domain) adds a class and advances last_supported_at. Strength and review are Task 9."
+          "notes": "Task 8 slice: retrieval adds no root; an unchanged rerun stays in its class; a new experiment (changed command, or a changed complete-dependency fingerprint in the synthetic certified domain) adds a class and advances last_supported_at. Task 9 slice: an active reviewed claim goes from supported to corroborated only through a genuinely new class (a changed invocation, real payload variant); retrieval/delivery telemetry adds nothing (no_independent_root); an unchanged rerun is duplicate_evidence; a contradiction caps corroboration."
         }
       ]
     },
@@ -1853,7 +1868,13 @@
             "tests/integration/test_working_memory.py::test_single_active_task_links_without_model_budget",
             "tests/integration/test_requests.py::test_reservation_uses_the_exact_request_estimate",
             "tests/integration/test_requests.py::test_reduction_schedules_narrative_within_the_ordinary_budget",
-            "tests/integration/test_requests.py::test_review_batch_is_persisted_before_launch_and_reused_while_unchanged"
+            "tests/integration/test_requests.py::test_review_batch_is_persisted_before_launch_and_reused_while_unchanged",
+            "tests/integration/test_worker.py::test_claim_admission_crash_matches_reference",
+            "tests/integration/test_claim_admission.py::test_review_partitions_by_count_output_and_input",
+            "tests/integration/test_claim_admission.py::test_five_candidates_one_fitting_batch_and_exact_verdict_rules",
+            "tests/integration/test_claim_admission.py::test_typed_declaration_waits_for_review",
+            "tests/integration/test_claim_admission.py::test_fenced_quoted_pasted_and_email_text_is_never_a_declaration",
+            "tests/integration/test_claim_admission.py::test_unextracted_statement_is_not_a_ready_declaration"
           ],
           "platforms": [
             "linux",
@@ -1861,7 +1882,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. test_five_candidates_use_one_review_call is xfail (incomplete) until Task 9 builds ReviewBatch persistence and assessment; unextracted-declaration handling is Task 9. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted. Task 7: reservations use the exact estimate of the prepared request; narrative is scheduled in the ordinary pool, coalesced; the review batch is persisted before launch (assessment application remains Task 9)."
+          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted. Task 7: reservations use the exact estimate of the prepared request; narrative is scheduled in the ordinary pool, coalesced; the review batch is persisted before launch. Task 9: test_five_candidates_use_one_review_call now passes for real (no xfail): one real extraction through the production preparer proposes five candidates, its application schedules one fitting review batch, the batch is persisted before launch and the assessments admit all five; two calls, one ordinary and one protected. Partitions split by count (8/8/4), output body and exact serialized input; an oversized candidate is deferred. Typed declarations and extracted declarations with eligible direct user evidence get correction_or_declaration priority; attributed (quoted) text does not; an unextracted statement creates no candidate or review."
         }
       ]
     },
@@ -2241,14 +2262,30 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_claim_admission.py::test_typed_declaration_waits_for_review",
+            "tests/integration/test_claim_admission.py::test_fenced_quoted_pasted_and_email_text_is_never_a_declaration",
+            "tests/integration/test_claim_admission.py::test_uncertain_authorship_regions",
+            "tests/integration/test_claim_admission.py::test_non_user_and_incomplete_text_is_never_a_declaration",
+            "tests/integration/test_claim_admission.py::test_five_candidates_one_fitting_batch_and_exact_verdict_rules",
+            "tests/integration/test_claim_admission.py::test_revise_returns_objections_only",
+            "tests/integration/test_claim_admission.py::test_review_capacity_is_not_a_refutation_and_cannot_loop",
+            "tests/integration/test_claim_admission.py::test_supported_verdict_needs_valid_primary_support",
+            "tests/integration/test_claim_admission.py::test_candidate_only_degradation_without_review",
+            "tests/integration/test_claim_admission.py::test_prompt_digests_are_pinned_separately",
+            "tests/integration/test_claim_admission.py::test_regions_are_newline_independent_and_use_code_points",
+            "tests/integration/test_worker.py::test_claim_admission_crash_matches_reference",
+            "tests/integration/test_claim_admission.py::test_assessment_is_bound_to_the_snapshot_digest",
+            "tests/integration/test_claim_admission.py::test_active_reviewed_claims_stay_valid_in_later_requests"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 9 slice: the operator service route gets no bypass (candidate, typed-declaration priority, not admitted while budget-paused, admitted only by a supported review); fenced, quoted, attached, email, diff and uncertain pasted spans (tracebacks, logs, terminal output, indented code, CRLF) are never declarations, by span intersection without a first-person heuristic; the review request strips proposal reasons and self-confidence and keeps exact evidence; missing, duplicate, foreign and stale verdicts never activate while valid ones apply; revise carries objections only; review_capacity keeps a weak candidate and schedules nothing. The guarded recalith declare transport and its operator_declaration event are Task 12a."
         }
       ]
     },
@@ -2475,7 +2512,18 @@
           "status": "in_progress",
           "tests": [
             "tests/unit/test_normalize.py::test_strict_envelope_still_rejects_expected_red_true",
-            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped"
+            "tests/unit/test_normalize.py::test_untrusted_assertions_and_expected_red_hint_are_dropped",
+            "tests/integration/test_claim_admission.py::test_success_before_six_events_resolves_the_trigger",
+            "tests/integration/test_claim_admission.py::test_six_relevant_events_make_the_trigger_due",
+            "tests/integration/test_claim_admission.py::test_ten_minutes_make_the_trigger_due",
+            "tests/integration/test_claim_admission.py::test_late_success_resolves_a_time_due_trigger_before_its_extraction_runs",
+            "tests/integration/test_claim_admission.py::test_success_matches_family_across_changed_dependencies_only_in_the_same_task",
+            "tests/integration/test_claim_admission.py::test_null_family_never_matches_a_success",
+            "tests/integration/test_claim_admission.py::test_repeated_known_failure_joins_its_pending_trigger",
+            "tests/integration/test_claim_admission.py::test_expected_red_hint_is_dropped_and_still_triggers",
+            "tests/integration/test_claim_admission.py::test_quote_exists_but_cause_is_unsupported",
+            "tests/integration/test_working_memory.py::test_expected_red_test_is_not_a_failed_approach",
+            "tests/integration/test_worker.py::test_claim_admission_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -2483,7 +2531,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 3 slice: expected_red normalization only. Debounce/trigger behavior is Task 9."
+          "notes": "Task 3 slice: expected_red normalization only. Task 9: deterministic six-event/ten-minute debounce in event time with controlled times (synthetic) over real payloads; same-task same-family success resolves across a changed dependency; another task's success does not; a null family (pipeline command) never matches and becomes due by count; the sweep and late-ingested successes are deterministic; expected_red stays reserved false and never excludes a trigger; a lesson is never observed from an exit status. Whether a live reviewer rejects general lessons from exit status alone (semantic A13) is review quality (ACCEPTANCE_TESTS section 5, B1)."
         }
       ]
     },

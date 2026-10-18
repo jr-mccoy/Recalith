@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -360,21 +361,59 @@ def test_declaration_cannot_bypass_exhausted_budget(root):
     assert w.lane.step() and backend.calls == [("review_claims", correction)]
 
 
-def test_five_candidates_use_one_review_call(root):
-    """One extraction plus one fitting review batch is two calls: one ordinary, one protected."""
-    candidates = [jobs.ReviewCandidate(claim_id=f"claim_{i}", origin="extracted", claim_kind="fact") for i in range(5)]
-    batches = jobs.plan_review_batches(candidates)
-    assert len(batches) == 1
-    extraction = ws.enqueue_model_job(root, "extract_claims", key="origin")
-    review = ws.enqueue_model_job(root, "review_claims", key="batch", candidates=batches[0])
-    backend = ws.FakeBackend()
-    w = make_worker(root, backend)
-    while w.lane.step():
-        pass
-    assert sorted(j for _, j in backend.calls) == sorted([extraction, review])
+def test_five_candidates_use_one_review_call(tmp_path):
+    """One extraction proposing five candidates plus one fitting review batch is two calls: one ordinary, one protected.
+
+    Real flow (Task 9): real captured events, the production request preparer,
+    the persisted proposal, admission scheduling the review job in the
+    extraction's application, the persisted ReviewBatch and assessment
+    admission. The backend answers with recorded bodies built from the request
+    it receives (mechanics, not live model quality).
+    """
+    from recalith import prompts
+    from recalith.controller import requests
+
+    root = osc.project(tmp_path)
+    ctx = osc.context(root)
+    fail = osc.events(root)["fail"]
+    with db.open_store(ctx) as store, store.transaction() as txn:
+        extraction, _ = jobs.enqueue(txn, kind="extract_claims", input_refs=[RecordRef(kind="event", id=fail["id"], revision=1)], now=ws.START, prompt_version=prompts.CURRENT["extract_claims"], due_at=osc.EARLIEST)
+    link = osc.link(root, "fail", quote="FAILURES")
+    extraction_body = osc.body([osc.op(f"c{i}", "propose_claim", osc.claim(f"Candidate {i}: the fixture pytest run failed.", subject=f"five-{i}"), evidence=[link]) for i in range(5)])
+    seen: dict[str, Any] = {}
+
+    def answer(request: bytes, purpose: str) -> None:
+        data = json.loads(request)
+        if purpose == "extract_claims":
+            seen["body"] = extraction_body
+            return
+        batch = data["review_batch"]
+        seen["batch"] = batch
+        ops = []
+        for i, ref in enumerate(batch["candidate_refs"]):
+            claim = next(c for c in data["claims"] if c["claim_id"] == ref["id"])
+            evidence = next(e["evidence_id"] for e in batch["evidence_index"] if e["link"] in claim["supports"])
+            payload = {"batch_id": batch["batch_id"], "candidate_ref": ref, "verdict": "supported", "objections": [], "evidence_ids": [evidence]}
+            ops.append({"local_ref": f"a{i}", "kind": "assess_claim", "depends_on": [], "target": ref, "payload": payload, "evidence": [], "reason": ""})
+        seen["body"] = json.dumps({"operations": ops}).encode()
+
+    backend = ws.FakeBackend(lambda purpose, i: outcome(seen["body"]), on_launch=answer)
+    w = worker.Worker(ctx, clock=ws.FakeClock(), model=worker.ModelRuntime(backend=backend, prepare=requests.runtime_preparer(ctx, now=lambda: ws.START)))
+    try:
+        while w.lane.step():
+            pass
+    finally:
+        w.close()
+    (review_job,) = [j for _, j in backend.calls if j != extraction]
+    assert backend.calls == [("extract_claims", extraction), ("review_claims", review_job)]  # two calls in all
     used = reservations(root)
-    assert [(r.purpose, r.ordinary.invocations, r.protected.invocations) for r in used] == [("review_claims", 0, 1), ("extract_claims", 1, 0)]
-    pytest.xfail("incomplete until Task 9: ReviewBatch persistence, candidate claims and assessment application are not built; only the scheduling/budget mechanics ran")
+    assert [(r.purpose, r.ordinary.invocations, r.protected.invocations) for r in used] == [("extract_claims", 1, 0), ("review_claims", 0, 1)]
+    assert len(seen["batch"]["candidate_refs"]) == 5  # one fitting batch, persisted before launch
+    with db.open_store(ctx, readonly=True) as store, store.read() as view:
+        assert view.execute("SELECT COUNT(*) FROM review_batches WHERE review_job_id = ?", (review_job,)).fetchone()[0] == 1
+        heads = view.execute("SELECT status, strength FROM claim_heads").fetchall()
+    assert sorted(heads) == [("active", "supported")] * 5
+    assert job_row(root, extraction).state == "completed" and job_row(root, review_job).state == "completed"
 
 
 # ---------------------------------------------------------------------------
@@ -685,7 +724,9 @@ def _driver(root: Path, log: Path, failpoint: str | None = None, skip: int = 0) 
     return subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
 
 
-REFERENCE_APPLICATIONS = ["build_episode", "extract_claims", "review_claims", "service", "update_task"]
+# Three reviews since Task 9: the scenario's own review job, plus the reviews the seed claim's and the
+# extraction's applications scheduled for their candidates (the replacement's at its superseding revision).
+REFERENCE_APPLICATIONS = ["build_episode", "extract_claims", "review_claims", "review_claims", "review_claims", "service", "update_task"]
 
 
 @pytest.mark.parametrize("failpoint", list(failpoints.WORKER))
@@ -781,7 +822,9 @@ def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
     assert counted.returncode == 0, counted.stderr
     reference = osc.normalized(reference_root)
     assert sorted(reference["boundaries"]) == [("new_session", "pending"), ("new_session", "pending"), ("pivot_prefix", "confirmed"), ("single_active_task", "linked")]
-    assert reference["applications"] == ["update_task"] and reference["decisions"] == [("update_task", "split", "apply", "admitted")]
+    # Since Task 9 the lifecycle's unfixed failures also make debounce triggers due; their extractions answer no-op.
+    assert reference["applications"].count("update_task") == 1 and set(reference["applications"]) == {"update_task", "extract_claims"}
+    assert reference["decisions"] == [("update_task", "split", "apply", "admitted")]
     assert len(reference["tasks"]) == 3 and sorted(status for _rev, status, _body in reference["tasks"]) == ["active", "active", "linked"]
     hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
     mine = [(r, s_) for name, r, s_ in hits if name == failpoint]
@@ -800,9 +843,10 @@ def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
         assert restart.returncode == 0, restart.stderr
         assert osc.normalized(root) == reference, (failpoint, rep)
         calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        per_job = {j: calls.count(j) for j in set(calls)}
         if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
-            assert len(calls) <= 1, "a persisted proposal was re-requested from the model"
-        assert len(calls) <= 2  # at most the killed launch and one relaunch of the single model job
+            assert max(per_job.values(), default=0) <= 1, "a persisted proposal was re-requested from the model"
+        assert max(per_job.values(), default=0) <= 2  # at most the killed launch and one relaunch per model job
 
 
 # ---------------------------------------------------------------------------
@@ -849,7 +893,68 @@ def test_lineage_merge_crash_matches_reference(tmp_path, failpoint):
         assert restart.returncode == 0, restart.stderr
         assert (osc.normalized(root), lsc.lineage_state(root)) == reference, (failpoint, rep)
         calls = log.read_text(encoding="utf-8").split() if log.exists() else []
-        assert len(calls) <= 2  # at most the killed launch and one relaunch of the single revalidation job
+        assert max((calls.count(j) for j in set(calls)), default=0) <= 2  # at most the killed launch and one relaunch per model job
+
+
+# ---------------------------------------------------------------------------
+# Claim admission, review application and failure debounce under kill/restart (Task 9)
+
+ADMISSION_MATRIX = [*failpoints.ADMISSION, failpoints.REQUEST_AFTER_BATCH, failpoints.REDUCE_AFTER_APPLY, *failpoints.WORKER]
+
+
+@pytest.mark.parametrize("failpoint", ADMISSION_MATRIX)
+def test_claim_admission_crash_matches_reference(tmp_path, failpoint):
+    """Killed while a failure trigger is examined, an extraction is admitted and its review scheduled, or a review applies.
+
+    The spooled segment's failure becomes due by count and its rerun pair
+    resolves (trigger pass in the ingest transaction); the extraction's
+    application admits an observed fact, writes five candidates and schedules
+    their one review batch atomically; the review job persists its batch, then
+    its verdicts admit two candidates, refuse a duplicated pair, record a
+    revise-free capacity reject and leave one missing, with per-candidate
+    outcomes. The reference run logs each failpoint hit with whether any of
+    that work was outstanding; each repetition kills at one of those hits
+    (first, middle, last), the killed store must differ from the reference, and
+    the restarted store must equal it: jobs, applications, operations,
+    decisions, claim heads with strength, basis and verdicts, review outcomes,
+    batches, review requests and priorities, triggers and the trigger cursor.
+    """
+    import admission_scenarios as asc
+
+    reference_root = asc.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = (osc.normalized(reference_root), asc.admission_state(reference_root))
+    state = reference[1]
+    by_text = {c[0]: c for c in state["claims"]}
+    claims = asc.CRASH_CLAIMS
+    assert by_text[claims["obs"]][2:5] == ("active", "supported", "observed")
+    assert by_text[claims["inf1"]][2:4] == ("active", "supported") and by_text[claims["inf2"]][2:4] == ("active", "supported")
+    assert by_text[claims["decl"]][2:] == ("candidate", "weak", "user_declared", "reject", ("review_capacity",))
+    assert {o[2] for o in state["outcomes"]} == {"admitted", "duplicate", "capacity", "missing"} and state["batches"] == (1, [5])
+    assert state["priorities"] == ["correction_or_declaration"] and state["review_requests"] == [("extracted", 0, True)]
+    assert sorted((t[3], t[4]) for t in state["triggers"] if "crash" in t[0]) == [("due", "count"), ("resolved", None)]
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+    assert mine, f"{failpoint} is never reached while admission, review or the trigger pass is outstanding"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = asc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert (osc.normalized(root), asc.admission_state(root)) != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert osc.normalized(root) == reference[0], (failpoint, rep)
+        assert asc.admission_state(root) == reference[1], (failpoint, rep)
+        calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        per_job = {j: calls.count(j) for j in set(calls)}
+        if failpoint in (failpoints.JOB_AFTER_PROPOSAL, failpoints.APPLY_AFTER_GROUP, failpoints.REVIEW_AFTER_SCHEDULE, failpoints.REVIEW_AFTER_ASSESSMENT, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE):
+            assert max(per_job.values(), default=0) <= 1, "a persisted proposal was re-requested from the model"
+        assert max(per_job.values(), default=0) <= 2  # at most the killed launch and one relaunch per model job
+        assert {s for _, s in ws.state(root)["usage"]} == {"charged"}
 
 
 # ---------------------------------------------------------------------------
@@ -888,7 +993,8 @@ def test_provider_path_crash_matches_reference(tmp_path, failpoint):
     assert counted.returncode == 0, counted.stderr
     reference = osc.normalized(reference_root)
     reference_extra = ps.extra_state(reference_root)
-    assert sorted(reference["applications"]) == ["build_episode", "review_claims", "service", "update_task"]
+    # Since Task 9 the episode checkpoint and the lifecycle's unfixed failures also schedule extractions (no-op answers).
+    assert {"build_episode", "review_claims", "service", "update_task"} <= set(reference["applications"]) <= {"build_episode", "review_claims", "service", "update_task", "extract_claims"}
     assert reference_extra["review_batches"] == (1, 1) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
     assert "Continue from the last checkpoint." in reference_extra["next_actions"]
     assert wh_wait(lambda: not _alive_pids(tmp_path / "reference.pids"))
