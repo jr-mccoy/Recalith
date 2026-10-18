@@ -674,11 +674,15 @@ def test_resume_coalesces_overdue_jobs(root):
             break
         launches.append(len(backend.calls) - before)
     assert launches and set(launches) == {1}  # one call per scheduling opportunity
-    assert len(backend.calls) == 6 and sorted(j for p, j in backend.calls if p == "extract_claims") == sorted(extractions)
+    # The ten revalidations coalesced into one; it names no live claim with a recheck a model could settle, so the
+    # planner cancels it without a call (Task 10, decision 0012). The five extractions launch one at a time.
+    assert len(backend.calls) == 5 and sorted(j for p, j in backend.calls if p == "extract_claims") == sorted(extractions)
     with db.open_store(ws.context(root), readonly=True) as store, store.read() as view:
         states = view.execute("SELECT kind, state, COUNT(*) FROM jobs WHERE kind IN ('revalidate', 'maintenance') GROUP BY kind, state").fetchall()
+        codes = sorted(json.loads(b)["last_error_code"] for (b,) in view.execute("SELECT body FROM jobs WHERE kind = 'revalidate'").fetchall())
         days = {r[0] for r in view.execute("SELECT utc_day FROM provider_usage").fetchall()}
-    assert sorted(states) == [("maintenance", "completed", 2), ("revalidate", "cancelled", 9), ("revalidate", "completed", 1)]
+    assert sorted(states) == [("maintenance", "completed", 2), ("revalidate", "cancelled", 10)]
+    assert codes == ["coalesced"] * 9 + ["revalidation_settled"]
     assert days == {"2026-10-19"}
 
 
@@ -852,17 +856,24 @@ def test_typed_reduction_crash_matches_reference(tmp_path, failpoint):
 # ---------------------------------------------------------------------------
 # Root-class merges at ingestion under kill/restart (Task 8)
 
-LINEAGE_MATRIX = [failpoints.INGEST_BEGIN, failpoints.ROOTS_AFTER_MERGE, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK, *failpoints.WORKER]
+# Since Task 10 the merge's revalidation needs no model: the planner settles it (``planner.after_schedule``), so the
+# model-launch points (reservation, proposal persistence) are never reached while it is outstanding.
+MODEL_LAUNCH = (failpoints.JOB_AFTER_RESERVE, failpoints.PROPOSAL_BEFORE_COMMIT, failpoints.JOB_AFTER_PROPOSAL)
+LINEAGE_MATRIX = [
+    failpoints.INGEST_BEGIN, failpoints.ROOTS_AFTER_MERGE, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK,
+    failpoints.PLANNER_AFTER_SCHEDULE, *(f for f in failpoints.WORKER if f not in MODEL_LAUNCH),
+]
 
 
 @pytest.mark.parametrize("failpoint", LINEAGE_MATRIX)
 def test_lineage_merge_crash_matches_reference(tmp_path, failpoint):
-    """Killed while a segment that merges two counted root classes is ingested, or while its revalidation runs.
+    """Killed while a segment that merges two counted root classes is ingested, or while its revalidation is settled.
 
     Live claims cite two separate classes; the spooled segment's bridging
-    event merges them (aliases, moved members and tokens, guidance epoch) and
-    enqueues one revalidation job for the two affected claims in the same
-    ingestion transaction; the worker then runs that job. The reference run
+    event merges them (aliases, moved members and tokens, guidance epoch),
+    recomputes their strength and enqueues one revalidation job for the two
+    affected claims in the same ingestion transaction; the planner then
+    settles that job without a model call (Task 10). The reference run
     logs every failpoint hit with whether the merge or the revalidation was
     still outstanding; each repetition kills at one of those hits only, the
     killed store must differ from the reference, and the restarted store must
@@ -878,7 +889,9 @@ def test_lineage_merge_crash_matches_reference(tmp_path, failpoint):
     reference = (osc.normalized(reference_root), lsc.lineage_state(reference_root))
     state = reference[1]
     assert state["aliases"] == [("m-x", "m-b"), ("m-y", "m-b")] and state["revalidate"] == [sorted(["Both suites pass.", "Suite a passes."])]
-    assert ("revalidate", "completed") in reference[0]["jobs"] and all(e[0] != "m-say" for e in state["events"])
+    # Task 10 (decision 0012): the merge recomputes strength in its ingestion transaction; its revalidation needs no
+    # model and is settled by the planner (cancelled, ``revalidation_settled``) without a call.
+    assert ("revalidate", "cancelled") in reference[0]["jobs"] and all(e[0] != "m-say" for e in state["events"])
     hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
     mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
     assert mine, f"{failpoint} is never reached while the merge or its revalidation is outstanding"
@@ -1023,3 +1036,65 @@ def wh_wait(predicate, timeout: float = 15) -> bool:
     import worker_hosts as wh
 
     return bool(wh.wait_for(predicate, timeout))
+
+
+# ---------------------------------------------------------------------------
+# FailureRecheck, dependency changes and revalidation under kill/restart (Task 10)
+
+# ``planner.after_schedule`` is exercised by the lineage matrix (it settles the merge's revalidation there).
+REVISION_MATRIX = [
+    failpoints.RECHECK_AFTER_MARK, failpoints.REVALIDATE_AFTER_SETTLE, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.REVIEW_AFTER_ASSESSMENT, failpoints.REVIEW_AFTER_SCHEDULE, *failpoints.WORKER,
+]
+
+
+@pytest.mark.parametrize("failpoint", REVISION_MATRIX)
+def test_revision_crash_matches_reference(tmp_path, failpoint):
+    """Killed while ingestion records a FailureRecheck or a dependency change, or while the revalidation and its review apply.
+
+    The spooled segment's passing ``test_mid`` rerun and dependency ``Write``
+    mark the admitted lesson (and, transitively, the fact depending on it)
+    ``needs_revalidation`` with its counter-observation as context, in the
+    ingestion transaction; the passing ``test_long`` rerun defers a recheck of
+    the lesson still under review, which its supported review promotes in the
+    activation's transaction. The revalidation revises the ``test_mid``
+    lesson with a retry condition (reviewed again), keeps the fact and
+    retires the ``test_long`` lesson; the planner settles nothing else. The
+    reference run logs each failpoint hit with whether any of that work was
+    outstanding, owed work without a record included; each repetition kills
+    at one of those hits (first, middle, last), the killed store must differ
+    from the reference, and the restarted store must equal it: jobs,
+    applications, operations, claims (status, freshness, strength, retry
+    conditions, context), rechecks and their outcomes, revision audits,
+    artifact writes and the guidance epoch.
+    """
+    import consolidation_scenarios as csc
+
+    reference_root = csc.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = (osc.normalized(reference_root), csc.revision_state(reference_root))
+    state = reference[1]
+    by_text = {c[0]: c for c in state["claims"]}
+    assert by_text[csc.CRASH["mid"]][1:5] == ("active", "current", "supported", (csc.RETRY,))
+    assert by_text[csc.CRASH["suite"]][1:3] == ("active", "current") and by_text[csc.CRASH["long"]][1] == "archived"
+    outcomes = {(c[0], c[1], c[3], c[4]) for c in state["rechecks"]}
+    assert (csc.CRASH["mid"], "later_success", "cleared", "revised") in outcomes and (csc.CRASH["mid"], "dependency_changed", "cleared", "revised") in outcomes
+    assert (csc.CRASH["suite"], "dependency_changed", "cleared", "kept") in outcomes and (csc.CRASH["long"], "later_success", "cleared", "retired") in outcomes
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+    assert mine, f"{failpoint} is never reached while revision work is outstanding"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = csc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert (osc.normalized(root), csc.revision_state(root)) != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert osc.normalized(root) == reference[0], (failpoint, rep)
+        assert csc.revision_state(root) == reference[1], (failpoint, rep)
+        calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        assert max((calls.count(j) for j in set(calls)), default=0) <= 2  # at most the killed launch and one relaunch per model job
+        assert {s for _, s in ws.state(root)["usage"]} == {"charged"}

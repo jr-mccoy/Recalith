@@ -251,6 +251,8 @@ class ClaimRevision(StrictModel):
     freshness: Literal["current", "needs_revalidation", "unknown"]
     supports: list[EvidenceLink] = Field(default_factory=list)
     contradicts: list[EvidenceLink] = Field(default_factory=list)
+    # Counter-observations (FailureRecheck, decision 0012): context only, never support or contradiction.
+    context: list[EvidenceLink] = Field(default_factory=list)
     evidence_availability: Literal["available", "capsule_only", "expired", "redacted"]
     effective_from: UtcTime | None = None
     effective_until: UtcTime | None = None
@@ -271,7 +273,7 @@ class ClaimRevision(StrictModel):
     def _policy_shape(self) -> "ClaimRevision":
         if self.status in CONTENT_FREE_STATUSES:
             # Forgotten/quarantined heads are content-free markers.
-            if self.proposition or self.procedure or self.failure or self.supports or self.contradicts or self.proposition_key is not None:
+            if self.proposition or self.procedure or self.failure or self.supports or self.contradicts or self.context or self.proposition_key is not None:
                 raise ValueError("quarantined/forgotten claim heads carry no content")
         elif not self.proposition:
             raise ValueError("a servable claim needs a proposition")
@@ -285,6 +287,8 @@ class ClaimRevision(StrictModel):
             raise ValueError("failure lessons are always volatile")
         if self.basis == "observed" and self.status not in CONTENT_FREE_STATUSES and not any(link.mapping for link in self.supports):
             raise ValueError("observed basis requires a registered deterministic evidence mapping")
+        if any(link.relation != "context" for link in self.context):
+            raise ValueError("counter-observations are context links")
         if self.strength == "corroborated" and self.contradicts:
             raise ValueError("corroboration is blocked by an unresolved contradiction")
         if self.status == "active" and self.basis == "inferred" and (self.review_assessment is None or self.review_assessment.verdict != "supported"):

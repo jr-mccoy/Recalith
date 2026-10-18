@@ -172,6 +172,15 @@ def test_prepared_requests_cover_every_model_purpose(tmp_path):
         "revalidate": [claim],
     }
     other_installation = wks.Project(tmp_path, "other")
+    # A revalidation prepares a request only for a pending recheck a model can settle (decision 0012); this one
+    # names a later passing result as its observation, which the request must show and its read set name.
+    observed = p.events("tool_finished")[-1]["id"]
+    with db.open_store(ctx) as store, store.transaction() as txn:
+        txn.execute(
+            "INSERT INTO claim_rechecks (recheck_id, claim_id, claim_revision, reason, event_id, detail, state, created_at) VALUES (?, ?, ?, 'review_due', ?, '{}', 'pending', ?)",
+            (derived_id("rchk", [claim.id]), claim.id, claim.revision, observed, now),
+        )
+        txn.mutated(serving_relevant=False)
     for purpose, refs in cases.items():
         job = get_job(p, enqueue(p, purpose, refs))
         request = requests.prepare_model_request(ctx, job, now=now)
@@ -214,6 +223,7 @@ def test_prepared_requests_cover_every_model_purpose(tmp_path):
             assert {e.event_id for e in request.events} == {ev.link.ref.id for ev in request.review_batch.evidence_index}
         if purpose == "revalidate":
             assert request.claims[0].claim_id == claim.id and request.events
+            assert observed in {e.event_id for e in request.events} and RecordRef(kind="event", id=observed, revision=1) in request.read_set.entity_revisions
         assert ModelRequest.model_validate_json(raw) == request
 
 

@@ -9,8 +9,12 @@ so the same sequence is valid on the hook path. Operational failures return a
 ``ingest_ready`` commits each segment's events, environment observations,
 root-class memberships (decision 0010), cursor proposals and follow-on
 ``ingest`` job in one transaction, then removes the segment. A root-class merge
-that can lower a live claim's independent-root count enqueues that claim's
-revalidation in the same transaction. A crash after commit but before removal replays harmlessly: the
+that can lower a live claim's independent-root count recomputes its strength
+and enqueues its revalidation in the same transaction; so do a FailureRecheck
+(a certified later success of a failure lesson's action family), a changed
+dependency and a source conflict, which also set ``needs_revalidation`` and
+suppress caution before any model call (``controller.revalidate``, decision
+0012). A crash after commit but before removal replays harmlessly: the
 events are duplicates and the job's idempotency key already exists.
 
 ``ingest_ready``'s ``limit`` bounds the number of *segments* handled in one
@@ -195,18 +199,15 @@ def _session_lifecycle(txn: Any, env: EventEnvelope) -> None:
         txn.execute("UPDATE sessions SET state = 'ended', ended_at = ? WHERE session_id = ? AND state != 'ended'", (env.occurred_at or env.recorded_at, env.session_id))
 
 
-REVALIDATION_BATCH = 8
+def _revise(txn: Any, ctx: InstallationContext, merged: dict[str, RecordRef], marked: list[str], *, now: str) -> None:
+    """Merged classes recompute strength; every affected claim gets one coalesced revalidation (protected pool)."""
+    from recalith.controller import revalidate
 
-
-def _enqueue_revalidation(txn: Any, claims: list[RecordRef]) -> None:
-    """Merged root classes can lower these claims' counts: revalidate them (coalesced, protected pool)."""
-    if not claims:
-        return
-    from recalith import prompts
-    from recalith.controller import jobs
-
-    for i in range(0, len(claims), REVALIDATION_BATCH):
-        jobs.enqueue(txn, kind="revalidate", input_refs=claims[i : i + REVALIDATION_BATCH], now=utc_now(), prompt_version=prompts.CURRENT["revalidate"], coalesce=True)
+    if merged:
+        revalidate.after_merge(txn, ctx, [merged[k] for k in sorted(merged)], now=now)
+    claims = sorted(set(merged) | set(marked))
+    if claims:
+        revalidate.enqueue(txn, claims, now=now)
 
 
 def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
@@ -233,20 +234,29 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
             registration_gaps: list[str] = []
             try:
                 with store.transaction() as txn:
+                    from recalith.controller import revalidate as revision  # deferred: revision builds on the capture pipeline
+
                     failpoints.hit(failpoints.INGEST_BEGIN)
+                    now = utc_now()
                     inserted: list[EventEnvelope] = []
-                    revalidate: dict[str, RecordRef] = {}
+                    merged: dict[str, RecordRef] = {}
+                    marked: list[str] = []
                     for env in segment.envelopes:
                         sources.ensure_session(txn, ctx, session_id=env.session_id, adapter_id=env.adapter_id, host_session_id=env.host_session_id, started_at=env.occurred_at)
-                        outcome, _ = repository.insert_event(txn, ctx, env)
+                        outcome, ident = repository.insert_event(txn, ctx, env)
                         counts[outcome] += 1
                         if outcome == "inserted":
                             inserted.append(env)
-                            provenance.observe_event(txn, ctx, env)
+                            observations = provenance.observe_event(txn, ctx, env)
                             registered = lineage.register_event(txn, env)
                             if registered is not None:
-                                revalidate.update((ref.id, ref) for ref in registered.affected_claims)
+                                merged.update((ref.id, ref) for ref in registered.affected_claims)
+                            marked += revision.on_ingested(txn, ctx, env, observations=observations, now=now)
                             _session_lifecycle(txn, env)
+                        elif outcome == "conflict":
+                            original = txn.one("SELECT original_event_id FROM source_conflicts WHERE conflict_id = ?", (ident,))
+                            if original is not None:
+                                revision.on_conflict(txn, ctx, original[0], ident, now=now)
                     for registration in segment.source_registrations:
                         refused = sources.register_proposal(txn, ctx, registration)
                         if refused:
@@ -258,7 +268,7 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                         refs = [RecordRef(kind="event", id=e.event_id, revision=1) for e in inserted]
                         job_id, created = repository.enqueue_job(txn, kind="ingest", input_refs=refs)
                         job_id = job_id if created else None
-                    _enqueue_revalidation(txn, [revalidate[k] for k in sorted(revalidate)])
+                    _revise(txn, ctx, merged, [c for c in marked if revision.model_pending(txn, c)], now=now)
                     failpoints.hit(failpoints.INGEST_BEFORE_COMMIT)
             except RecalithError as exc:
                 if exc.code not in QUARANTINE_CODES:

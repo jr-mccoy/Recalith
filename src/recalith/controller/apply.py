@@ -79,7 +79,7 @@ from recalith.contracts.operations import (
     UndoPreview,
     UpdateTaskPayload,
 )
-from recalith.controller import admission, jobs, review
+from recalith.controller import admission, jobs, review, revalidate
 from recalith.core import lineage, policy
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
@@ -194,6 +194,13 @@ class _Run:
     source: str = "proposal"  # proposal (model) | service | reduction (typed reducer)
     review_queue: list[review.Queued] = field(default_factory=list)  # candidates this application wrote
     provenance: Any = None  # the response's adapter-appended ResponseProvenance (model proposals only)
+    read_set: ReadSet | None = None  # what the proposal consulted (a revalidation settles only what it read)
+    revalidate_claims: set[str] = field(default_factory=set)  # claims whose activation now owes a revalidation
+    decided: dict[str, str] = field(default_factory=dict)  # claim -> operation kind that changed it (revalidation jobs)
+
+    @property
+    def revalidating(self) -> bool:
+        return self.job is not None and self.job.kind == "revalidate"
 
 
 class _Writer:
@@ -363,7 +370,8 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
     supports = [link for link in op.evidence if link.relation == "supports"]
     contradicts = [link for link in op.evidence if link.relation == "contradicts"]
     context = [link for link in op.evidence if link.relation == "context"]
-    klass = policy.review_class(kind=typed.kind, basis=typed.basis, dependencies=typed.dependencies)
+    _refused, dependencies = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, op.evidence)  # admission refused a mismatch
+    klass, _why = revalidate.review_class(run.txn, kind=typed.kind, basis=typed.basis, dependencies=dependencies)
     failure = typed.failure
     if failure is not None:
         _reason, derived = admission.derive_failure(run.txn, supports)  # admission already refused an underivable body
@@ -385,12 +393,13 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         freshness="current",
         supports=supports,
         contradicts=contradicts,
+        context=context,
         evidence_availability="available",
         effective_from=typed.effective_from,
         effective_until=typed.effective_until,
         recorded_at=run.now,
         review_due_at=format_utc(policy.review_due(parse_utc(run.now), klass)),
-        dependencies=typed.dependencies,
+        dependencies=dependencies,
         review_class=klass,
         procedure=typed.procedure,
         failure=failure,
@@ -411,15 +420,16 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
             return "duplicate_existing"  # same proposition, scope, conditions and root classes: one effect
         data = _new_claim_revision(old, now=run.now)
         data["supports"], data["contradicts"] = supports_out, contradicts_out
+        data["context"], _ = _merge_links(old.get("context") or [], context)
         _supported_at(data, when)
         _strength(run, data)
-        ref = _write_claim_revision(run, head.revision, data, change, context=context)
+        ref = _write_claim_revision(run, head.revision, data, change)
         run.resolution.locals[op.local_ref] = ref
         _queue(run, ref, data)
         return "duplicate_new_evidence"
     if candidate.status == "active":
         candidate = candidate.model_copy(update={"strength": admission.assign_strength(run.txn, candidate.model_dump(mode="json"))})
-    ref = records.write_claim(run.txn, candidate, context=context)
+    ref = records.write_claim(run.txn, candidate)
     run.created.add(("claim", candidate.claim_id))
     run.resolution.locals[op.local_ref] = ref
     change.record(ref, None)
@@ -430,9 +440,12 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
 def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayload, change: _Change) -> str | None:
     revision, data = _head_body(run.txn, "claim", typed.claim_ref.id)
     if typed.relation == "context":
-        context = [link for link in op.evidence]
+        merged, added = _merge_links(data.get("context") or [], op.evidence)
+        if not added:
+            return "duplicate_evidence"
         data = _new_claim_revision(data, now=run.now)
-        _write_claim_revision(run, revision, data, change, context=context)
+        data["context"] = merged  # counter-observations: never support, never contradiction
+        _write_claim_revision(run, revision, data, change)
         return None
     if typed.relation == "supports":
         merged, added, when = _new_support(run, data, op.evidence)
@@ -441,6 +454,7 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
         data = _new_claim_revision(data, now=run.now)
         data["supports"] = merged
         _supported_at(data, when)
+        _refresh_failure(run, data)
     else:
         merged, added = _merge_links(data["contradicts"], op.evidence)
         if not added:
@@ -453,6 +467,15 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
     return None
 
 
+def _refresh_failure(run: _Run, data: dict[str, Any]) -> None:
+    """A failure lesson's code-derived index fields follow its latest supporting failure (decision 0011)."""
+    if data.get("kind") != "failure_lesson" or data.get("failure") is None:
+        return
+    _reason, derived = admission.derive_failure(run.txn, [EvidenceLink.model_validate(i) for i in data["supports"]])
+    if derived is not None:
+        data["failure"] = {**data["failure"], **derived}
+
+
 def _revise_claim(run: _Run, op: ProposedOperation, typed: ReviseClaimPayload, change: _Change) -> str | None:
     revision, data = _head_body(run.txn, "claim", typed.claim_ref.id)
     data = _new_claim_revision(data, now=run.now)
@@ -463,12 +486,23 @@ def _revise_claim(run: _Run, op: ProposedOperation, typed: ReviseClaimPayload, c
                 data[name] = [v.model_dump(mode="json") for v in value]
             else:
                 data[name] = value.model_dump(mode="json") if hasattr(value, "model_dump") else value
+    if typed.dependencies is not None:
+        supports = [EvidenceLink.model_validate(i) for i in data["supports"]]
+        _refused, data["dependencies"] = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, supports)
+    if typed.retry_conditions is not None:
+        data["failure"] = {**data["failure"], "retry_conditions": [r.model_dump(mode="json") for r in typed.retry_conditions]}
     # Altered content needs a fresh review: the revision is an unreviewed candidate.
     data["status"], data["strength"], data["review_assessment"] = "candidate", "weak", None
-    data["review_class"] = policy.review_class(kind=data["kind"], basis=data["basis"], dependencies=data["dependencies"])
+    data["review_class"], _why = revalidate.review_class(run.txn, kind=data["kind"], basis=data["basis"], dependencies=data["dependencies"], claim_id=typed.claim_ref.id)
     data["review_due_at"] = format_utc(policy.review_due(parse_utc(run.now), data["review_class"]))
+    if run.revalidating:
+        data["freshness"] = revalidate.revision_freshness(run.txn, typed.claim_ref.id, run.read_set)  # answers the revalidation it read
+        run.decided[typed.claim_ref.id] = op.kind
     supports = [link for link in op.evidence if link.relation == "supports"]
     data["supports"], _ = _merge_links(data["supports"], supports)
+    data.setdefault("context", [])
+    data["context"], _ = _merge_links(data["context"], [link for link in op.evidence if link.relation == "context"])
+    _refresh_failure(run, data)
     ref = _write_claim_revision(run, revision, data, change)
     _queue(run, ref, data)
     return None
@@ -488,19 +522,63 @@ def _assess_claim(run: _Run, op: ProposedOperation, typed: AssessClaimPayload, c
     data = _new_claim_revision(data, now=run.now)
     data["review_assessment"] = assessment.model_dump(mode="json")
     capacity = typed.verdict == "reject" and typed.objections == [review.CAPACITY]
+    deferred: list[dict[str, Any]] = []
+    targets: list[tuple[str, int]] = []
     if typed.verdict == "supported":
         data["status"] = "active"
+        deferred = revalidate.apply_deferred(run.txn, typed.candidate_ref.id, data, now=run.now)  # rechecks recorded while it was a candidate
+        targets = revalidate.pending_supersessions(run.txn, typed.candidate_ref.id)
     elif typed.verdict == "reject" and not capacity:
         data["status"] = "archived"  # not admitted; archiving asserts no falsity
+        revalidate.withdraw_supersessions(run.txn, typed.candidate_ref.id, now=run.now)
+    applied = []
+    for target_id, target_revision in targets:
+        head = records.head(run.txn, "claim", target_id)
+        if head is not None and head[0] == target_revision and head[1] in ("active", "disputed", "candidate"):
+            data["supersedes"] = [*data["supersedes"], RecordRef(kind="claim", id=target_id, revision=target_revision).model_dump(mode="json")]
+            applied.append(target_id)
+        else:
+            revalidate.decide_supersession(run.txn, typed.candidate_ref.id, target_id, "stale", now=run.now)  # the target moved meanwhile
+            run.revalidate_claims.update({target_id, typed.candidate_ref.id})
     _strength(run, data)
-    _write_claim_revision(run, revision, data, change)
+    ref = _write_claim_revision(run, revision, data, change)
+    for target_id in applied:
+        # The explicit replacement and its target's supersession commit together, with the activation.
+        t_rev, t_data = _head_body(run.txn, "claim", target_id)
+        t_data = _new_claim_revision(t_data, now=run.now)
+        t_data["status"] = "superseded"
+        t_data["superseded_by"] = [*t_data["superseded_by"], ref.model_dump(mode="json")]
+        _cap_strength(t_data)
+        _write_claim_revision(run, t_rev, t_data, change)
+        if records.add_relation(run.txn, ref.id, target_id, "supersedes"):
+            change.relation(ref.id, target_id, "supersedes")
+        revalidate.decide_supersession(run.txn, typed.candidate_ref.id, target_id, "applied", now=run.now)
+        revalidate.withdraw_target(run.txn, target_id, now=run.now)
+    if deferred:
+        run.revalidate_claims.update(revalidate.promote_deferred(run.txn, deferred, revision=ref.revision, now=run.now))
     return None
 
 
 def _change_status(run: _Run, op: ProposedOperation, typed: ChangeClaimStatusPayload, change: _Change) -> str | None:
     revision, data = _head_body(run.txn, "claim", typed.claim_ref.id)
+    if typed.status == "superseded" and run.ctx.actor.kind != "operator" and data["status"] in ("active", "disputed"):
+        replacement = run.resolution.locals[typed.replacement_local_ref] if typed.replacement_local_ref else typed.replacement_ref
+        assert replacement is not None
+        head = records.head(run.txn, "claim", replacement.id)
+        if head is not None and head[1] == "candidate":
+            # Held until the replacement's own review activates it (admission: replacement_pending_review).
+            revalidate.record_pending_supersession(run.txn, replacement_id=replacement.id, target=typed.claim_ref, operation_id=operation_id(run.scope_id, run.digest, op.local_ref), now=run.now)
+            change.entries.append({"pending_supersession": [replacement.id, typed.claim_ref.id]})
+            change.serving = False
+            return "replacement_pending_review"
     data = _new_claim_revision(data, now=run.now)
     data["status"] = typed.status
+    if run.revalidating:
+        run.decided[typed.claim_ref.id] = op.kind
+        if typed.status == "disputed":
+            data["freshness"] = revalidate.revision_freshness(run.txn, typed.claim_ref.id, run.read_set)
+    data.setdefault("context", [])
+    data["context"], _ = _merge_links(data["context"], [link for link in op.evidence if link.relation == "context"])
     data["supports"], _ = _merge_links(data["supports"], [link for link in op.evidence if link.relation == "supports"])
     data["contradicts"], _ = _merge_links(data["contradicts"], [link for link in op.evidence if link.relation == "contradicts"])
     _cap_strength(data)
@@ -510,6 +588,9 @@ def _change_status(run: _Run, op: ProposedOperation, typed: ChangeClaimStatusPay
         assert replacement is not None
         data["superseded_by"] = [*data["superseded_by"], replacement.model_dump(mode="json")]
     old_ref = _write_claim_revision(run, revision, data, change)
+    if typed.status != "disputed":
+        revalidate.withdraw_supersessions(run.txn, typed.claim_ref.id, now=run.now)  # a retired replacement replaces nothing
+        revalidate.withdraw_target(run.txn, typed.claim_ref.id, now=run.now)
     if replacement is not None:
         r_rev, r_data = _head_body(run.txn, "claim", replacement.id)
         old_pointer = RecordRef(kind="claim", id=old_ref.id, revision=revision).model_dump(mode="json")
@@ -779,7 +860,7 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         decided[ref] = AdmissionDecision(local_ref=ref, outcome="reject", reason_code=reason, resolved_operation_id=None)
     for gi, group in enumerate(plan.groups):
         group_id = derived_id("grp", [run.scope_id, run.digest, group[0].local_ref])
-        snapshot = (dict(run.resolution.locals), dict(run.resolution.base), set(run.created), len(run.review_queue))
+        snapshot = (dict(run.resolution.locals), dict(run.resolution.base), set(run.created), len(run.review_queue), set(run.revalidate_claims), dict(run.decided))
         run.txn.execute("SAVEPOINT apply_group")
         group_decisions: list[AdmissionDecision] = []
         group_ids: list[str] = []
@@ -811,7 +892,7 @@ def _run_groups(run: _Run, response: ModelResponse) -> tuple[list[AdmissionDecis
         except _GroupFailed as failed:
             run.txn.execute("ROLLBACK TO apply_group")
             run.txn.execute("RELEASE apply_group")
-            run.resolution.locals, run.resolution.base, run.created, queued = snapshot
+            run.resolution.locals, run.resolution.base, run.created, queued, run.revalidate_claims, run.decided = snapshot
             del run.review_queue[queued:]
             for op in group:
                 code = failed.reason if op.local_ref == failed.local_ref else "group_rejected"
@@ -886,9 +967,11 @@ def _requeue(run: _Run, response: ModelResponse, read_set: ReadSet, reason: str)
         }
     )
     key = digest_of(["reevaluate", current.idempotency_key, signature])
-    new_job, _created = jobs.enqueue(
-        run.txn, kind=current.kind, input_refs=refs, now=run.now, prompt_version=current.prompt_version, review_priority=current.review_priority, coalesce=True, idempotency=key,
-    )
+    new_job = _requeue_revalidation(run, current) if current.kind == "revalidate" else None
+    if new_job is None:
+        new_job, _created = jobs.enqueue(
+            run.txn, kind=current.kind, input_refs=refs, now=run.now, prompt_version=current.prompt_version, review_priority=current.review_priority, coalesce=True, idempotency=key,
+        )
     run.txn.execute(
         "INSERT OR IGNORE INTO operations (operation_id, job_id, proposal_id, atomic_group_id, actor, kind, inputs, changed, reason, causal_root, store_revision, created_at, local_ref, proposal_digest) VALUES (?, ?, ?, NULL, ?, ?, ?, '[]', NULL, ?, ?, ?, ?, ?)",
         (
@@ -900,6 +983,19 @@ def _requeue(run: _Run, response: ModelResponse, read_set: ReadSet, reason: str)
     result = ApplyResult(operation_ids=[], changed_refs=[], decisions=_all(response, "requeue", reason), store_revision=run.txn.next_store_revision, requeued_job_ids=[new_job])
     _write_application(run, APPLICATION_KIND, result, app_id=operation_id(run.scope_id, run.digest, APPLY_REF))
     return result
+
+
+def _requeue_revalidation(run: _Run, current: Job) -> str | None:
+    """A stale revalidation joins the claims' current revalidation (coalesced with any newer recheck's job)."""
+    claim_ids = [r.id for r in current.input_refs if r.kind == "claim"]
+    if current.priority != jobs.BAND_REVALIDATION or not any(revalidate.pending(run.txn, c) for c in claim_ids):
+        return None
+    revalidate.enqueue(run.txn, claim_ids, now=run.now)
+    for claim_id in claim_ids:
+        row = run.txn.one("SELECT job_id FROM claim_rechecks WHERE claim_id = ? AND state = 'pending' AND job_id IS NOT NULL ORDER BY created_at DESC LIMIT 1", (claim_id,))
+        if row is not None and row[0] != current.job_id:
+            return row[0]
+    return None
 
 
 def _apply(run: _Run, response: ModelResponse, read_set: ReadSet | None, *, kind: str) -> ApplyResult:
@@ -916,6 +1012,13 @@ def _apply(run: _Run, response: ModelResponse, read_set: ReadSet | None, *, kind
         if run.job is not None and run.job.kind == "review_claims":
             run.resolution.review = review.scope_for(run.txn, run.job, response)
         decisions, operation_ids, changed = _run_groups(run, response)
+        if run.revalidating:
+            assert run.job is not None and read_set is not None
+            settled = revalidate.settle(run.txn, run.ctx, run.job, read_set, decided=run.decided, now=run.now)
+            changed = [*changed, *settled.refs]
+            run.serving = run.serving or settled.serving
+        if run.revalidate_claims:
+            revalidate.enqueue(run.txn, sorted(run.revalidate_claims), now=run.now)
         if run.resolution.review is not None:
             review.record_outcomes(run.txn, run.resolution.review, response, decisions, now=run.now)
         if run.review_queue:
@@ -958,7 +1061,7 @@ def apply_proposal(ctx: InstallationContext, job: Job, response: ModelResponse, 
                 if persisted_digest != digest:
                     raise RecalithError("policy_refused", "the response is not the job's persisted proposal")
                 depth_root = _depth(txn, job.job_id)[1]
-                run = _Run(ctx=ctx, txn=txn, scope_id=job.job_id, digest=digest, now=now, job=current, proposal_id=current.proposal_ref, causal_root=depth_root, provenance=persisted.provenance)
+                run = _Run(ctx=ctx, txn=txn, scope_id=job.job_id, digest=digest, now=now, job=current, proposal_id=current.proposal_ref, causal_root=depth_root, provenance=persisted.provenance, read_set=read_set)
                 result = _apply(run, persisted, read_set, kind=APPLICATION_KIND)
                 failpoints.hit(failpoints.JOB_BEFORE_COMPLETE_COMMIT)
         except RecalithError as exc:
@@ -1029,7 +1132,7 @@ def apply_in_transaction(
     if done is not None:
         return done
     source = "reduction" if kind == REDUCTION_KIND else "service"
-    run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id, source=source)
+    run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id, source=source, read_set=read_set)
     return _apply(run, response, read_set, kind=kind)
 
 
@@ -1071,6 +1174,8 @@ def _compute_undo_all(q: Any, operation_id_: str) -> tuple[list[UndoChange], lis
     for entry in entries:
         if "boundary" in entry:
             continue  # restored with the bindings it decided (below)
+        if "pending_supersession" in entry:
+            continue  # a held supersession changed no record (it is withdrawn when its replacement retires)
         if "binding" in entry:
             event_id, before, after = entry["binding"], entry["before"], entry["after"]
             head = bindings.binding_head(q, event_id)

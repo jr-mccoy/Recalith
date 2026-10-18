@@ -66,6 +66,15 @@ ROOTS_AFTER_MERGE = "roots.after_merge"
 REVIEW_AFTER_SCHEDULE = "review.after_schedule"
 REVIEW_AFTER_ASSESSMENT = "review.after_assessment"
 TRIGGERS_AFTER_PASS = "triggers.after_pass"
+# Revision (Task 10): inside the ingestion transaction after a FailureRecheck or a
+# dependency change wrote a claim's needs_revalidation revision (its recheck row,
+# the transitive dependents, the revalidation job and the segment commit
+# pending); inside a revalidation job's application after its claims' rechecks
+# are settled (outcomes, review scheduling and job completion pending); inside
+# the planner's transaction after it settled or scheduled work (before commit).
+RECHECK_AFTER_MARK = "recheck.after_mark"
+REVALIDATE_AFTER_SETTLE = "revalidate.after_settle"
+PLANNER_AFTER_SCHEDULE = "planner.after_schedule"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -77,7 +86,8 @@ REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
 PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
 LINEAGE = (ROOTS_AFTER_MERGE,)
 ADMISSION = (REVIEW_AFTER_SCHEDULE, REVIEW_AFTER_ASSESSMENT, TRIGGERS_AFTER_PASS)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION
+REVISION = (RECHECK_AFTER_MARK, REVALIDATE_AFTER_SETTLE, PLANNER_AFTER_SCHEDULE)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

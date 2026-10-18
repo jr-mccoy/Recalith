@@ -11,12 +11,14 @@ validates every operation again before anything applies.
 
 Changing any text here requires a new version string, so a persisted
 ``ReviewBatch.prompt_digest`` and a job's pinned version keep meaning one text.
-The extraction and review instructions are package-data files
-(``extract_v1.md``, ``review_v1.md``; decision 0011), loaded here and digested
-separately: a claim's ``ModelProvenance`` pins its extraction prompt digest, a
-``ReviewBatch`` its review prompt digest, and ``tests/integration/
-test_claim_admission.py`` pins both texts by golden digest so an edit without a
-new version fails.
+The extraction, review and revalidation instructions are package-data files
+(``extract_v1.md``, ``review_v1.md``, decision 0011; ``revalidate_v1.md``,
+decision 0012), loaded here and digested separately: a claim's
+``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
+``ReviewBatch`` its review prompt digest, and the golden-digest tests in
+``tests/integration/test_claim_admission.py`` and
+``tests/integration/test_consolidation.py`` fail on an edit without a new
+version.
 """
 
 from __future__ import annotations
@@ -63,10 +65,7 @@ INSTRUCTIONS: dict[str, str] = {
     ),
     "extract_claims@1": _file("extract_v1.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
-    "revalidate@1": (
-        "Recheck each claim against its current evidence and dependencies. Return revise_claim, change_claim_status or "
-        "attach_evidence only where the evidence requires it; otherwise return a no_op_reason. " + _COMMON
-    ),
+    "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
 }
 
 CURRENT: dict[str, str] = {

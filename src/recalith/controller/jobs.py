@@ -5,7 +5,9 @@ DATA_CONTRACTS §8 and SYSTEM_SPEC §6.2. Rules implemented here:
 * **Priority is assigned by code.** :func:`band_for` maps a job kind (and, for
   reviews, the code-assigned review priority) to the model scheduling order:
   (1) correction/declaration review, (2) ordinary review, (3) completed-attempt
-  episode work, (4) extraction and task narrative, (5) due revalidation. Ties
+  episode work, (4) extraction and task narrative, (5) due revalidation, (6)
+  broad consolidation (a revalidation job the planner enqueues with
+  ``priority=BAND_CONSOLIDATION``). Ties
   use oldest due time, then job ID. :func:`review_priority_for` derives the
   review priority from guarded provenance and candidate kind, never from a
   provider-supplied number; it grants scheduling order only, not authorship.
@@ -52,6 +54,7 @@ BAND_REVIEW = 2
 BAND_EPISODE = 3
 BAND_EXTRACTION = 4
 BAND_REVALIDATION = 5
+BAND_CONSOLIDATION = 6  # broad consolidation (SYSTEM_SPEC §6.2 item 6): revalidation jobs over candidate groups
 DETERMINISTIC_BANDS = {"ingest": 0, "compile_context": 1, "maintenance": 2, "export": 3}
 DETERMINISTIC_KINDS = frozenset(DETERMINISTIC_BANDS)
 MODEL_KINDS = frozenset(MODEL_JOB_KINDS)
@@ -166,12 +169,15 @@ def enqueue(
     idempotency: str | None = None,
     review_priority: str | None = None,
     trigger_ref: str | None = None,
+    priority: int | None = None,
 ) -> tuple[str, bool]:
     """Create a job once per idempotency key; priority and pool are computed here.
 
     ``review_priority`` lets a re-evaluation inherit the code-assigned priority
     of the review job it replaces; a new review job derives it from its candidates.
     """
+    if priority is not None and (kind != "revalidate" or priority not in (BAND_REVALIDATION, BAND_CONSOLIDATION)):
+        raise RecalithError("invalid_schema", "only revalidation chooses between the revalidation and consolidation bands")
     if kind == "review_claims" and not review_candidates and review_priority is None:
         raise RecalithError("invalid_schema", "a review job names its candidates so code can assign its priority")
     if kind == "review_claims":
@@ -192,7 +198,7 @@ def enqueue(
         policy_revision=meta.policy_revision,
         prompt_version=prompt_version,
         idempotency_key=key,
-        priority=band_for(kind, review_priority),
+        priority=band_for(kind, review_priority) if priority is None else priority,
         due_at=due_at or now,
         attempt=0,
         budget_pool=pool_for(kind),

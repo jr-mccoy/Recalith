@@ -514,14 +514,18 @@ def test_active_reviewed_claims_stay_valid_in_later_requests(p):
 
 
 def test_active_guidance_is_superseded_only_by_reviewed_guidance(p):
-    """SYSTEM_SPEC §7.2: an extraction cannot retire active guidance with an unreviewed replacement."""
+    """SYSTEM_SPEC §7.2: an extraction cannot retire active guidance with an unreviewed replacement.
+
+    Since Task 10 (decision 0012) the supersession is held until the replacement's own review activates it
+    (``test_consolidation.py::test_explicit_replacement_is_atomic``); until then the old guidance stays active.
+    """
     fail = fail_mid(p)
     old = adm.created_claim(adm.extract(p, [OP("o", "propose_claim", adm.claim("The old reading.", subject="old"), evidence=[adm.link(fail)])]))
     adm.admit(p, old)
     ref = osc.head_ref(p.root, "claim", old)
     retire = OP("retire", "change_claim_status", {"claim_ref": ref.model_dump(mode="json"), "status": "superseded", "replacement_local_ref": "new"}, depends_on=["new"], target=ref.model_dump(mode="json"), evidence=[adm.link(fail)])
-    refused = adm.extract(p, [OP("new", "propose_claim", adm.claim("The new reading.", subject="new"), evidence=[adm.link(fail)]), retire])
-    assert decisions(refused) == [("reject", "group_rejected"), ("reject", "replacement_requires_review")]
+    held = adm.extract(p, [OP("new", "propose_claim", adm.claim("The new reading.", subject="new"), evidence=[adm.link(fail)]), retire])
+    assert decisions(held) == [("candidate_only", "candidate_pending_review"), ("review_required", "replacement_pending_review")]
     assert adm.head(p, old)["status"] == "active"
     observed = OP("new", "propose_claim", adm.claim("`pytest -q test_mid.py` exited with code 1.", basis="observed", subject="new"), evidence=[adm.link(fail, mapping="tool.exit_code")])
     allowed = adm.extract(p, [observed, retire])

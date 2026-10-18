@@ -250,10 +250,12 @@ class ReviseClaimPayload(StrictModel):
     scope: Scope | None = None
     conditions: list[Condition] | None = None
     dependencies: list[DependencyRef] | None = None
+    # A failure lesson retained with an explicit retry condition (SYSTEM_SPEC §7.3, decision 0012).
+    retry_conditions: Annotated[list[SupportedText], Field(max_length=8)] | None = None
 
     @model_validator(mode="after")
     def _changes(self) -> "ReviseClaimPayload":
-        if all(getattr(self, f) is None for f in ("proposition", "proposition_key", "scope", "conditions", "dependencies")):
+        if all(getattr(self, f) is None for f in ("proposition", "proposition_key", "scope", "conditions", "dependencies", "retry_conditions")):
             raise ValueError("a revision changes at least one field")
         return self
 
