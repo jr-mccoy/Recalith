@@ -329,10 +329,11 @@ def outstanding(root: Path) -> str:
         extraction = conn.execute("SELECT state FROM jobs WHERE job_id = ?", (spec.get("extraction_job"),)).fetchone()
         reviews = conn.execute("SELECT COUNT(*) FROM jobs WHERE kind = 'review_claims' AND state NOT IN ('completed', 'cancelled', 'failed')").fetchone()[0]
         ready = any((root / ".recalith" / "spool" / "ready").glob("*.json"))
-        # A candidate is owed a review until a review job names its revision or an outcome (e.g. deferral) records it.
-        named = {(r["id"], r["revision"]) for (b,) in conn.execute("SELECT body FROM jobs WHERE kind = 'review_claims'").fetchall() for r in json.loads(b)["input_refs"]}
-        named |= set(conn.execute("SELECT claim_id, claim_revision FROM review_outcomes").fetchall())
-        owed = any((c, r) not in named for c, r in conn.execute("SELECT claim_id, revision FROM claim_heads WHERE status = 'candidate'").fetchall())
+        # A candidate is owed a review until a review job names it or an outcome (e.g. deferral) records it. An
+        # assessment-only revision (revise, capacity) is never re-reviewed, so the match is by claim, not revision.
+        named = {r["id"] for (b,) in conn.execute("SELECT body FROM jobs WHERE kind = 'review_claims'").fetchall() for r in json.loads(b)["input_refs"]}
+        named |= {c for (c,) in conn.execute("SELECT claim_id FROM review_outcomes").fetchall()}
+        owed = any(c not in named for (c,) in conn.execute("SELECT claim_id FROM claim_heads WHERE status = 'candidate'").fetchall())
         busy = ready or reduced < latest or examined < reduced or extraction is None or extraction[0] != "completed" or reviews > 0 or owed
         return "1" if busy else "0"
     except sqlite3.Error:
