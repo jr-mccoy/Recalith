@@ -155,6 +155,8 @@ def _view_candidates(q: Any, ctx: InstallationContext, cands: _Cands, workspace_
         if purpose == "pre_action" and not _actionable(cand):
             continue
         claims.append(cand)
+    # Priority, never record-ID order: action-family claims (the only caution candidates), disputes, then the rest by static score.
+    claims.sort(key=lambda c: (0 if c.get("family") else 1 if c["group"] == "conflict" else 2, -c.get("base", 0.0), c["ref"]["id"]))
     if task_id is not None:
         if purpose != "pre_action":
             task = search.task_candidate(q, task_id)

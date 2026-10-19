@@ -186,6 +186,23 @@ def test_packet_budget_is_enforced(p):
         _assert_shape(packet)
 
 
+def test_views_keep_caution_candidates_ahead_of_the_cap(p):
+    """A view's bounded claim list keeps action-family lessons first: never record-ID order (CI run 55 regression)."""
+    template = cs.lesson(p)
+    fact = cs.fact(p, "The fixture database settings live in dep.txt.", subject="fixture settings")
+    rs.corpus(p, fact, 60, proposition="Fixture note {i}: the fixture database keeps its settings in dep.txt.")  # synthetic, all bound to the task
+    last = rs.seed(p, template, proposition="Rerunning test_mid without the fixture value fails (sorted last).", claim_id="claim_ffffffff-ffff-4fff-bfff-ffffffffffff",
+                   proposition_key={"subject": "sorted last", "predicate": "fails_without_fix"})  # synthetic: the largest possible claim ID
+    rs.publish(p)
+    act = rs.mid_action(p)
+    for purpose in ("prompt", "pre_action", "session_start"):
+        with db.open_store(p.ctx, readonly=True) as store:
+            view = next(v for v in rc.views(store) if v["purpose"] == purpose and v["task_id"] == _task(p))
+        assert last in [c["ref"]["id"] for c in view["body"]["candidates"]], purpose
+    hooked = rs.hook(p, rs.query(p, "prompt", text="fixture database settings", act=act, task=_task(p)), substitute_pre_action=True)["packet"]
+    assert rs.advice(hooked, last) == "caution" and 0 < hooked["pre_action_substitution_tokens"] <= 400
+
+
 def test_receipt_does_not_invalidate_guidance_cache(p):
     """Receipt, queue and lease bookkeeping advance only the store revision: views stay valid and identical (§5.1.1, A41)."""
     lesson = cs.lesson(p)
