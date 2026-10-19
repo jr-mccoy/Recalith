@@ -49,6 +49,18 @@ elif mode == "compile":
         ctx = entry.load_context(case["root"], "claude_code")
         packets.append(fc.hook_compile_context(ctx, case["query"], deadline=time.monotonic() + 2))
     print(json.dumps({"packets": packets}))
+elif mode == "deliver":
+    from recalith.fast import entry, failpoints
+    outputs = []
+    for case in json.loads(sys.stdin.read()):
+        if case.get("failpoint"):
+            failpoints.arm(case["failpoint"], failpoints.DISK_FULL)
+        out = io.BytesIO()
+        rc = entry.main(case["argv"], stdin=io.BytesIO(case["stdin"].encode("utf-8")), env=dict(os.environ, **case.get("env", {})), stdout=out)
+        failpoints.disarm_all()
+        assert rc == 0, case
+        outputs.append(out.getvalue().decode("utf-8"))
+    print(json.dumps({"outputs": outputs}))
 else:
     from recalith.fast import entry, failpoints
     for case in json.loads(sys.stdin.read()):
@@ -83,10 +95,11 @@ def _assert_clean(report: dict, *, allowed: tuple = ()) -> None:
     assert not [m for m in report["baseline"] if m.split(".")[0] in ("pydantic", "packaging", "sqlite3")]
 
 
-@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
+@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
 def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     report = _run_probe(["package", module])
-    _assert_clean(report)
+    # The read-only snapshot modules (and the delivery branch on them) may import sqlite3; nothing else may.
+    _assert_clean(report, allowed=("sqlite3", "_sqlite3") if module in ("recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence") else ())
     if module in ("recalith", "recalith.fast"):
         assert [m for m in report["new"] if m.startswith("recalith")] == (["recalith"] if module == "recalith" else ["recalith", "recalith.fast"])
 
@@ -185,6 +198,53 @@ def test_hook_context_compiler_is_stdlib_and_read_only(tmp_path):
         assert all("mode=ro" in a and "immutable" not in a for a in connects), connects
         assert not [m for m in rep["new"] if m.startswith(("recalith.retrieval", "recalith.storage", "recalith.contracts", "recalith.controller"))]
     assert {e for e, _ in report["audit"]} == {"sqlite3.connect", "sqlite3.connect/handle"}  # snapshots and the fresh fence only
+
+
+def test_hook_delivery_branch_is_stdlib_and_read_only(tmp_path):
+    """The delivery branch (Task 12b) on real payloads: stdlib and ``recalith.fast`` only, SQLite read-only, no other effect (A58).
+
+    A controlled test manifest enables every delivery path; the replayed
+    session emits a session-start lookup, a prompt, a pre-action caution, the
+    overlay update, a compaction restoration and the session end, plus a
+    disk-full receipt spool. The only SQLite effect is ``sqlite3.connect`` on
+    ``mode=ro`` URIs; no socket, subprocess (autostart off) or exec; no
+    Pydantic, ``packaging``, service, CLI, storage, retrieval or contracts
+    module. Receipts go to the spool, never to SQLite.
+    """
+    sys.path.insert(0, str(ROOT / "tests" / "integration"))
+    import delivery_scenarios as ds
+
+    p, ids = ds.project(tmp_path)
+    host = ds.fresh_session(70)
+    pre, post = ds.call_records(ds.MID, "imp", session=host)
+    records = [ds.in_session(ds.record("SessionStart"), host), ds.wks.variant(ds.record("UserPromptSubmit"), session=host, prompt="Fix test_mid's fixture."), pre, post,
+               ds.in_session(ds.record("PreCompact"), host), ds.in_session(ds.record("SessionStart", n=1), host), ds.in_session(ds.record("SessionEnd"), host)]
+    cases = [{"argv": ["--project", str(p.root), "claude_code", "--event", r["event"]], "stdin": p.replay.prepare(r).decode("utf-8")} for r in records]
+    pre2, _ = ds.call_records(ds.MID, "imp2", session=ds.fresh_session(71))
+    cases.append({"argv": ["--project", str(p.root), "claude_code", "--event", pre2["event"]], "stdin": p.replay.prepare(pre2).decode("utf-8"), "failpoint": "spool.fsync"})
+    env = cf.child_env(RECALITH_TEST_AUDIT=json.dumps(AUDIT_EVENTS))
+    proc = subprocess.run([sys.executable, "-I", "-c", PROBE, "deliver"], input=json.dumps(cases), capture_output=True, text=True, encoding="utf-8", env=env, timeout=120, check=False)
+    assert proc.returncode == 0, proc.stderr[-3000:]
+    lines = proc.stdout.strip().splitlines()
+    outputs, report = json.loads(lines[-2])["outputs"], json.loads(lines[-1])
+    _assert_clean(report, allowed=("sqlite3", "_sqlite3"))
+    connects = [args for event, args in report["audit"] if event == "sqlite3.connect"]
+    assert connects and all("mode=ro" in a and "immutable" not in a for a in connects), connects
+    assert not [m for m in report["new"] if m.startswith(("recalith.retrieval", "recalith.storage", "recalith.contracts", "recalith.controller", "recalith.service", "recalith.cli", "recalith.capture"))]
+    assert "recalith.fast.delivery" in report["new"]
+    emitted = [o for o in outputs if o]
+    assert len(emitted) >= 3 and ids["lesson"] in "".join(emitted)  # prompt/pre-action/restoration reached stdout
+    for out in emitted:
+        assert set(json.loads(out)) == {"hookSpecificOutput"}
+
+
+def test_capture_only_hooks_never_import_the_delivery_branch(tmp_path):
+    """With delivery off (the default manifest) the hook imports neither SQLite nor the delivery branch."""
+    replay = cf.Replay(tmp_path)
+    cases = [{"argv": ["--project", str(replay.root), "claude_code", "--event", r["event"]], "stdin": replay.prepare(r).decode("utf-8")} for r in cf.records("lifecycle")[:9]]
+    report = _run_probe(["entry"], json.dumps(cases))
+    _assert_clean(report)
+    assert not {"recalith.fast.delivery", "recalith.fast.cache", "sqlite3"} & set(report["new"])
 
 
 LAYER_PROBE = r"""

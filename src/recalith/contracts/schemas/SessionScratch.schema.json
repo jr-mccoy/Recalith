@@ -154,21 +154,88 @@
           "title": "Attempt Id",
           "type": "string"
         },
+        "emitted_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Emitted At"
+        },
         "estimated_tokens": {
           "minimum": 0,
           "title": "Estimated Tokens",
           "type": "integer"
         },
+        "fence_store_revision": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Fence Store Revision",
+          "type": "integer"
+        },
+        "fenced_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fenced At"
+        },
+        "generated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generated At"
+        },
+        "guidance_epoch": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Guidance Epoch",
+          "type": "integer"
+        },
+        "in_flight_change": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "In Flight Change"
+        },
         "items": {
           "items": {
             "$ref": "#/$defs/EmittedItem"
           },
+          "maxItems": 64,
           "title": "Items",
           "type": "array"
         },
         "packet_digest": {
           "title": "Packet Digest",
           "type": "string"
+        },
+        "policy_revision": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Policy Revision",
+          "type": "integer"
         },
         "purpose": {
           "enum": [
@@ -181,6 +248,23 @@
           "title": "Purpose",
           "type": "string"
         },
+        "receipt_spooled": {
+          "default": false,
+          "title": "Receipt Spooled",
+          "type": "boolean"
+        },
+        "restoration_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restoration Key"
+        },
         "state": {
           "enum": [
             "reserved",
@@ -190,9 +274,46 @@
           "title": "State",
           "type": "string"
         },
+        "substitution_tokens": {
+          "default": 0,
+          "maximum": 400,
+          "minimum": 0,
+          "title": "Substitution Tokens",
+          "type": "integer"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Id"
+        },
         "time": {
           "title": "Time",
           "type": "string"
+        },
+        "tombstone_epoch": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tombstone Epoch",
+          "type": "integer"
+        },
+        "trigger_event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trigger Event Id"
         }
       },
       "required": [
@@ -254,6 +375,18 @@
   "$id": "recalith:contracts/SessionScratch",
   "additionalProperties": false,
   "properties": {
+    "compaction_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Compaction Key"
+    },
     "emitted_tokens": {
       "minimum": 0,
       "title": "Emitted Tokens",
@@ -289,6 +422,20 @@
       "minimum": 0,
       "title": "Reserved Tokens",
       "type": "integer"
+    },
+    "restoration_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Restoration Tokens",
+      "type": "integer"
+    },
+    "restored": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Restored",
+      "type": "array"
     },
     "scratch_schema": {
       "const": 1,

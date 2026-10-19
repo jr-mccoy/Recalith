@@ -603,6 +603,17 @@ def context(ctx: InstallationContext, query: ContextQuery) -> ContextPacket:
     return retrieval_compile.compile_context(ctx, query)
 
 
+def record_delivery(ctx: InstallationContext, packet: ContextPacket, session_id: str, **kw: Any):
+    """DATA_CONTRACTS §11: spool a ``DeliveryReceipt`` for a packet this caller delivered; worker ingestion owns the row.
+
+    The hook path never calls this: it uses the stdlib
+    ``recalith.fast.delivery.hook_record_delivery`` (DATA_CONTRACTS §2.3).
+    """
+    from recalith.retrieval import delivery
+
+    return delivery.record_delivery(ctx, packet, session_id, **kw)
+
+
 def search(ctx: InstallationContext, text: str, *, history: bool = False, limit: int | None = None) -> dict[str, Any]:
     """``recalith search QUERY [--history]``: current eligible items via ``retrieve``; ``--history`` adds retired claims."""
     from recalith.retrieval import search as retrieval_search

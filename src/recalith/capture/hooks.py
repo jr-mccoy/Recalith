@@ -7,10 +7,12 @@ The manifest holds identifiers, registered absolute local paths, root
 identities, the policy revision, per adapter the host version recorded at
 integration time, and (context_schema 2, decision 0006) whether the hook may
 start this installation's worker plus the exact route key names that worker
-may carry for its selected provider route. Delivery stays disabled in
-capture-only builds. Task 13's ``integrate`` command calls
-:func:`write_hook_context` (enabling worker autostart); until then tests and
-the fixture tooling call it directly, and autostart stays off unless asked.
+may carry for its selected provider route, and (context_schema 3, decision
+0015) per adapter the delivery paths whose injection is installed. Delivery
+stays off unless a caller passes ``delivery_paths`` explicitly: only
+controlled test manifests do in this build; Task 13's ``integrate`` command
+enables certified paths (and worker autostart) for a real host. Until then
+tests and the fixture tooling call :func:`write_hook_context` directly.
 """
 
 from __future__ import annotations
@@ -35,11 +37,13 @@ def write_hook_context(
     host_version: str | None,
     worker_autostart: bool | None = None,
     worker_route_keys: Sequence[str] | None = None,
+    delivery_paths: Sequence[str] | None = None,
 ) -> Path:
     """Create or update the manifest entry for ``adapter_id``; other adapters are kept.
 
-    ``worker_autostart``/``worker_route_keys`` of None keep the current values
-    (autostart off and no route keys for a new manifest).
+    ``worker_autostart``/``worker_route_keys``/``delivery_paths`` of None keep
+    the current values (autostart off, no route keys and no delivery for a new
+    manifest); ``delivery_paths=[]`` turns delivery off.
     """
     if adapter_id not in CAPTURE_ADAPTERS:
         raise RecalithError("capability_unavailable", f"no capture adapter {adapter_id!r} in this build")
@@ -51,17 +55,21 @@ def write_hook_context(
         try:
             current = json.loads(path.read_text(encoding="utf-8"))
             if entry.valid_context_manifest(current) and current["installation_id"] == ctx.installation_id:
-                adapters = current["adapters"]
+                adapters = {name: {"host_version": a["host_version"], "delivery_enabled": a["delivery_enabled"], "delivery_paths": list(a.get("delivery_paths") or [])} for name, a in current["adapters"].items()}
                 worker = dict(current.get("worker") or worker)
         except (OSError, ValueError):
             adapters = {}
-    adapters[adapter_id] = {"host_version": host_version, "delivery_enabled": False}
+    previous = adapters.get(adapter_id, {}).get("delivery_paths", [])
+    paths = sorted(set(previous if delivery_paths is None else delivery_paths), key=entry.DELIVERY_PATHS.index) if set(previous if delivery_paths is None else delivery_paths) <= set(entry.DELIVERY_PATHS) else None
+    if paths is None:
+        raise RecalithError("invalid_schema", "unknown delivery path")
+    adapters[adapter_id] = {"host_version": host_version, "delivery_enabled": bool(paths), "delivery_paths": paths}
     if worker_autostart is not None:
         worker["autostart"] = bool(worker_autostart)
     if worker_route_keys is not None:
         worker["route_keys"] = list(worker_route_keys)
     manifest = {
-        "context_schema": 2,
+        "context_schema": 3,
         "project_id": ctx.project_id,
         "installation_id": ctx.installation_id,
         "workspace_id": ctx.workspace_id,

@@ -261,6 +261,33 @@ def pending_work(root: Path) -> str:
 def main(argv: list[str]) -> int:
     """``ROOT CALLS_LOG [FAILPOINT SKIP | count HITS_LOG]``: optionally kill at one failpoint hit, or log every hit."""
     root, calls_log = Path(argv[1]), Path(argv[2])
+    import delivery_scenarios as delivery
+
+    delivery_spec = delivery.scenario(root)  # Task 12b: hooks deliver (reserve, fence, emit, receipt), then the worker accounts
+    if delivery_spec is not None:
+        if len(argv) > 3 and argv[3] == "count":
+            hits_path = Path(argv[4])
+
+            def record_delivery_hit(name: str) -> None:
+                with open(hits_path, "a", encoding="utf-8") as fh:
+                    fh.write(f"{name} {delivery.outstanding(root)}\n")
+
+            for name in (*failpoints.DELIVERY, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT):
+                failpoints.arm(name, record_delivery_hit, times=10**6)
+        elif len(argv) > 3:
+            failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
+        delivery.run_script(root, delivery_spec)
+        ctx = context(root)
+        w = worker.Worker(ctx, model=runtime(FakeBackend(log=calls_log)), owner=f"driver:{new_id('act')[4:12]}")
+        lock = process_env.InstallationLock(root)
+        assert lock.try_acquire(), "another worker holds the installation"
+        try:
+            w.startup()
+            drain(w)
+        finally:
+            w.close()
+            lock.release()
+        return 0
     import cli_scenarios as cli
 
     cli_spec = cli.scenario(root)  # Task 12a: guarded service writes, retried as a whole after a kill

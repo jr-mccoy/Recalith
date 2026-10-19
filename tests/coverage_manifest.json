@@ -929,7 +929,9 @@
             "tests/integration/test_retrieval.py::test_scope_filter_runs_before_limit",
             "tests/integration/test_retrieval.py::test_current_query_excludes_retired_claims",
             "tests/integration/test_retrieval.py::test_linked_placeholder_redirects_and_supplies_nothing_actionable",
-            "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus"
+            "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus",
+            "tests/integration/test_delivery.py::test_counts_only_emitted_revisions",
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
           ],
           "platforms": [
             "linux",
@@ -937,7 +939,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 11 slice: retired/quarantined/forgotten and out-of-scope records excluded before caps (service, views, live-filtered fallback rows); a linked placeholder redirects to its target and supplies no actionable context. Explicit history mode and session suppression are Task 12a/12b."
+          "notes": "Task 11 slice: retired/quarantined/forgotten and out-of-scope records excluded before caps (service, views, live-filtered fallback rows); a linked placeholder redirects to its target and supplies no actionable context. Explicit history mode and session suppression are Task 12a/12b. Task 12b: the delivery branch emits only fenced, servable heads; receipts carry exactly the emitted (record, revision, condition digest) items; a changed revision resurfaces labeled revision_change; real hook processes on real 2.1.301 payloads. Explicit history remains the Task 12a `search --history`."
         }
       ]
     },
@@ -965,7 +967,9 @@
           "tests": [
             "tests/integration/test_retrieval.py::test_correction_before_the_fence_excludes_old_guidance",
             "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
-            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch"
+            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
+            "tests/integration/test_delivery.py::test_correction_before_fence_removes_guidance",
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
           ],
           "platforms": [
             "linux",
@@ -973,7 +977,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 11 slice: packet-level final fence (service recompile/degraded; hook fresh-snapshot fence with fenced_at timing; stale views never served). Delivery-side bounding of in-flight emission and receipts are Task 12b; forget is Task 16."
+          "notes": "Task 11 slice: packet-level final fence (service recompile/degraded; hook fresh-snapshot fence with fenced_at timing; stale views never served). Delivery-side bounding of in-flight emission and receipts are Task 12b; forget is Task 16. Task 12b: a correction through the real guarded CLI (`recalith correct` subprocess, provisioned fixture token) committed after the reservation and before the final fence: nothing emitted, the reservation withdrawn, the next delivery excludes the old text; one committed after the fence and before stdout is emitted and recorded `in_flight_change` with fence/emission times, never claimed retractable. Forget is Task 16."
         }
       ]
     },
@@ -997,7 +1001,12 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_retrieval.py::test_packet_budget_is_enforced"
+            "tests/integration/test_retrieval.py::test_packet_budget_is_enforced",
+            "tests/integration/test_delivery.py::test_condition_aware_suppression",
+            "tests/integration/test_delivery.py::test_prompt_substitution_is_one_shared_allowance",
+            "tests/integration/test_delivery.py::test_compaction_restores_once",
+            "tests/integration/test_delivery.py::test_open_question_is_delivered_once_per_session",
+            "tests/integration/test_delivery.py::test_zero_budget_and_deadline_shedding"
           ],
           "platforms": [
             "linux",
@@ -1005,7 +1014,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 11 slice: the compiler's one shared 400 substitution allowance (1,400 total, no bonus without a caution, restoration ≤2,000, caller maximum binding). Suppression and session charging are Task 12b."
+          "notes": "Task 11 slice: the compiler's one shared 400 substitution allowance (1,400 total, no bonus without a caution, restoration ≤2,000, caller maximum binding). Suppression and session charging are Task 12b. Task 12b: unchanged delivery suppressed by (record, revision, condition digest, purpose class); a changed consulted dependency or revision resurfaces, the branch name alone does not; one shared ≤400 substitution per prompt when pre-action injection is not installed (≤1,400, no bonus without a caution, no per-caution multiplier); complete session charging; restoration ≤2,000 including cautions, charged outside the unchanged allowance; questions once per session."
         }
       ]
     },
@@ -1029,14 +1038,19 @@
             "full"
           ],
           "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_delivery.py::test_compaction_restores_once",
+            "tests/integration/test_delivery.py::test_prompt_substitution_is_one_shared_allowance",
+            "tests/integration/test_delivery.py::test_delivery_stays_gated"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": true
+          "requires_live_host": true,
+          "notes": "Task 12b mechanics only: start/prompt/pre-action/restoration delivery paths gated per path in a controlled manifest and a certified host version; missing compact path restores on the next prompt; missing pre-action path substitutes on the prompt. Real nonce certification of start/prompt (required) and pre-action/compaction (optional) is Task 13 and needs a certified route (B1); not a pass."
         },
         {
           "variant": "full_only",
@@ -1572,7 +1586,10 @@
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
             "tests/integration/test_retrieval.py::test_receipt_does_not_invalidate_guidance_cache",
             "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
-            "tests/integration/test_worker.py::test_projection_crash_matches_reference"
+            "tests/integration/test_worker.py::test_projection_crash_matches_reference",
+            "tests/integration/test_delivery.py::test_receipts_are_bookkeeping_and_views_stay_valid",
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account",
+            "tests/integration/test_worker.py::test_delivery_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -1580,7 +1597,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 slice: worker applications, a service writer and a snapshot reader run concurrently; store revisions stay gapless and unique, guidance epoch advances exactly once per serving-relevant commit, bookkeeping-only commits leave it unchanged, every snapshot is internally consistent, and a concurrent write to a consulted claim requeues the worker. Packet invalidation and served-item consistency belong to Task 12b. Task 11: guidance changes invalidate views/packets, receipt-only revisions do not; views are written with the epochs of the snapshot they render. Packet invalidation at delivery is Task 12b."
+          "notes": "Task 5 slice: worker applications, a service writer and a snapshot reader run concurrently; store revisions stay gapless and unique, guidance epoch advances exactly once per serving-relevant commit, bookkeeping-only commits leave it unchanged, every snapshot is internally consistent, and a concurrent write to a consulted claim requeues the worker. Packet invalidation and served-item consistency belong to Task 12b. Task 11: guidance changes invalidate views/packets, receipt-only revisions do not; views are written with the epochs of the snapshot they render. Packet invalidation at delivery is Task 12b. Task 12b: receipt ingestion advances only the store revision (the guidance epoch and views stay valid; the next hook serves the same view); the delivery kill/restart matrix keeps the accounting invariants."
         }
       ]
     },
@@ -2233,9 +2250,11 @@
       "required_behavior": "Additional IPC deadline/host variants",
       "blocking": true,
       "owning_tasks": [
-        "3b",
+        "11",
         "13",
-        "14"
+        "14",
+        "3b",
+        "12b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2259,7 +2278,15 @@
             "tests/integration/test_retrieval.py::test_store_snapshot_unavailable_degrades",
             "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
             "tests/integration/test_retrieval.py::test_bounded_live_dependency_check",
-            "tests/platform/test_hook_imports.py::test_hook_context_compiler_is_stdlib_and_read_only"
+            "tests/platform/test_hook_imports.py::test_hook_context_compiler_is_stdlib_and_read_only",
+            "tests/integration/test_delivery.py::test_zero_budget_and_deadline_shedding",
+            "tests/integration/test_delivery.py::test_crashed_worker_wal_never_repaired_by_the_hook",
+            "tests/integration/test_delivery.py::test_live_worker_mid_checkpoint",
+            "tests/integration/test_delivery.py::test_session_start_without_binding_uses_workspace_lookup",
+            "tests/platform/test_hook_imports.py::test_hook_delivery_branch_is_stdlib_and_read_only",
+            "tests/platform/test_hook_imports.py::test_capture_only_hooks_never_import_the_delivery_branch",
+            "tests/platform/test_session_scratch.py::test_lock_timeout_skips_delivery_never_capture",
+            "tests/platform/test_session_scratch.py::test_unsupported_lock_disables_scratch_delivery"
           ],
           "platforms": [
             "linux",
@@ -2267,7 +2294,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13."
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13. Task 12b (delivery side): zero allowance (ordinary context withheld, a caution still charged), an elapsed deadline and a slow filesystem (300 ms fsync) shed delivery with no reservation while capture stays durable; a crashed writer's WAL with present/missing/unreadable SHM and a live writer checkpointing in a loop: deliver or degrade at once, never a checkpoint, recovery write or wait; the session-start lookup without a binding is workspace-only; the delivery import audit (stdlib and recalith.fast only, mode=ro SQLite, no socket/subprocess) and capture-only hooks never import it; native lock timeouts on each OS. The unreadable-SHM variant skips as root and on Windows."
         },
         {
           "variant": "full_only",
@@ -2306,14 +2333,24 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_delivery.py::test_concurrent_hooks_preserve_budget",
+            "tests/integration/test_delivery.py::test_failure_overlay_precedes_ingestion",
+            "tests/integration/test_delivery.py::test_emission_crash_is_uncertain",
+            "tests/platform/test_session_scratch.py::test_lock_is_exclusive_across_processes_and_bounded",
+            "tests/platform/test_session_scratch.py::test_eviction_never_resets_totals",
+            "tests/platform/test_session_scratch.py::test_resumed_session_recovers_accounting_from_receipts",
+            "tests/platform/test_session_scratch.py::test_receipts_owed_are_respooled_and_settled_before_discard",
+            "tests/integration/test_worker.py::test_delivery_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 12b: concurrent in-process and real-process hooks of one session (one lock, no lost reservation, no double emission, the allowance holds); the next matching pre-action sees the typed failure from scratch before ingestion and a later success downgrades the caution; a hook killed after reservation, after stdout or after the receipt leaves an uncertain still-charged attempt (or the emitted receipt wins), never a double count or a lost charge; eviction never resets totals; resumed sessions recover from durable receipts; the delivery kill/restart matrix."
         }
       ]
     },
@@ -2823,7 +2860,8 @@
             "tests/integration/test_cli.py::test_json_stdout_is_one_object",
             "tests/integration/test_cli.py::test_observe_not_captured_returns_7",
             "tests/integration/test_cli.py::test_degraded_capability_returns_8",
-            "tests/integration/test_cli.py::test_jobs_retry_and_unavailable_forms"
+            "tests/integration/test_cli.py::test_jobs_retry_and_unavailable_forms",
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
           ],
           "platforms": [
             "linux",
@@ -2831,7 +2869,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 12a: JSON stdout is exactly one object for success, partial capability and every error class; `observe` returns 7 when durability was not acknowledged (valid input) and lists accepted event IDs otherwise; status/doctor and degraded context packets return 8 with registered reasons; unavailable forms return 4 naming their owner. Packet `why` reason codes are validated by the strict ContextItem (Task 11). Host hooks' nonblocking delivery branch is Task 12b."
+          "notes": "Task 12a: JSON stdout is exactly one object for success, partial capability and every error class; `observe` returns 7 when durability was not acknowledged (valid input) and lists accepted event IDs otherwise; status/doctor and degraded context packets return 8 with registered reasons; unavailable forms return 4 naming their owner. Packet `why` reason codes are validated by the strict ContextItem (Task 11). Host hooks' nonblocking delivery branch is Task 12b. Task 12b: real hook processes with delivery always exit 0 with empty stdout or exactly one `hookSpecificOutput` envelope (additional context only, never a decision or a block); every emitted item's first why is a registered reason code."
         }
       ]
     },

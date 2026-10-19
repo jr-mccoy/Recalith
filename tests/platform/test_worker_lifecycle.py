@@ -478,6 +478,8 @@ def test_schema_one_manifest_still_captures_without_autostart(tmp_path):
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest.pop("worker")
     manifest["context_schema"] = 1
+    for adapter in manifest["adapters"].values():
+        adapter.pop("delivery_paths")  # context_schema 3 (decision 0015) added it; schemas 1–2 never had it
     path.write_text(json.dumps(manifest), encoding="utf-8")
     assert entry.load_context(str(replayer.root), "claude_code")["worker_autostart"] is False
     reply, _ = hook(replayer, wh.start_record(), tmp_path)

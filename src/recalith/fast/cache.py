@@ -172,22 +172,33 @@ def _claim_values(conn: sqlite3.Connection, cand: dict) -> dict:
     return out
 
 
-def _decide_all(conn, ctx: dict, cands: list, query: dict, environment: dict, *, deadline: float, live: bool) -> tuple:
+def restored_ids(conn: sqlite3.Connection, session_id: str, extra=()) -> frozenset:
+    """Records this session's emitted receipts (durable, plus the caller's not yet ingested) delivered: a restoration's input."""
+    out = set(extra)
+    for (items,) in conn.execute("SELECT items FROM deliveries WHERE session_id = ? AND state = 'emitted' ORDER BY rowid DESC LIMIT 256", (session_id,)).fetchall():
+        try:
+            out.update(i.get("record_id") for i in json.loads(items) if isinstance(i, dict))
+        except ValueError:
+            continue
+    return frozenset(out)
+
+
+def _decide_all(conn, ctx: dict, cands: list, query: dict, environment: dict, *, deadline: float, live: bool, restore_ids=frozenset()) -> tuple:
     family = fc.action_family(query["workspace_id"], query.get("action"))
     query_terms = set(fc.terms(query.get("text") or ""))
     budget = fc.DependencyBudget(deadline)
     entries = []
     for cand in cands:
         values = _claim_values(conn, cand) if live else {k: v["value"] for k, v in (cand.get("claim_values") or {}).items()}
-        entry = fc.decide(cand, query, environment, family=family, query_terms=query_terms, workspace_root=ctx["workspace_root"], budget=budget, claim_values=values)
+        entry = fc.decide(cand, query, environment, family=family, query_terms=query_terms, workspace_root=ctx["workspace_root"], budget=budget, claim_values=values, restore_ids=restore_ids)
         if entry is not None:
             entries.append(entry)
     reasons = (["deadline_dependency_unknown"] if budget.skipped else []) + (["dependency_check_bounded"] if budget.exceeded else [])
     return fc.order(entries), reasons
 
 
-def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_action: bool = False) -> dict:
-    """``{"packet", "source", "fence"}``: the hook-side compile under the shared deadline (no emission)."""
+def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_action: bool = False, restore_ids=frozenset()) -> dict:
+    """``{"packet", "source", "fence", "keys", ...}``: the hook-side compile under the shared deadline (no emission)."""
     from recalith.fast import fence
 
     purpose = query["purpose"]
@@ -211,7 +222,7 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
         view = json.loads(row[0]) if row else None
         if view is not None and _epochs(view) == live_epochs:
             source, cands, packet_meta = "view", view["candidates"], {k: view[k] for k in ("store_revision", "guidance_epoch", "policy_revision", "tombstone_epoch")}
-            environment = dict(query.get("environment") or view.get("environment") or {})
+            environment = {**(view.get("environment") or {}), **(query.get("environment") or {})}
         else:
             reasons.append("view_stale" if view is not None else "view_missing")
             if deadline - time.monotonic() < fc.FALLBACK_MIN_REMAINING:
@@ -224,9 +235,10 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
                 bodies = []
             tombstoned = _tombstoned(conn, min((b["tombstone_epoch"] for b in bodies), default=meta["tombstone_epoch"]))
             cands = [b["candidate"] for b in bodies if _live_candidate(conn, b["candidate"], b, tombstoned)]
-            environment = dict(query.get("environment") or (bodies[0].get("environment") if bodies else {}) or {})
+            environment = {**((bodies[0].get("environment") if bodies else None) or {}), **(query.get("environment") or {})}
             source, packet_meta = "fallback", {k: meta[k] for k in ("store_revision", "guidance_epoch", "policy_revision", "tombstone_epoch")}
-        entries, dep_reasons = _decide_all(conn, ctx, cands, q, environment, deadline=deadline, live=source == "fallback")
+        restore = restored_ids(conn, query["session_id"], restore_ids) if purpose == "compact_restore" else frozenset()
+        entries, dep_reasons = _decide_all(conn, ctx, cands, q, environment, deadline=deadline, live=source == "fallback", restore_ids=restore)
         reasons += dep_reasons
     except sqlite3.Error:
         return {"packet": fc.empty_packet(ctx, purpose, None, ["store_snapshot_unavailable"]), "source": None, "fence": None}
@@ -234,11 +246,14 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
         close(conn)
     assembled = fc.assemble(purpose, [e["item"] for e in entries], max_estimated_tokens=query.get("max_estimated_tokens"), substitute_pre_action=substitute_pre_action)
     packet = fc.packet(ctx, purpose, packet_meta, assembled, reasons)
+    keyed = {id(e["item"]): e["key"] for e in entries}
+    keys = [keyed[id(item)] for item in assembled["items"]]
     if not is_valid("ContextPacket", packet):
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["packet_invalid"]), "source": source, "fence": None}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["packet_invalid"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"]}
     if deadline - time.monotonic() < fc.FENCE_TAIL / 2:
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["deadline_delivery_skipped"]), "source": source, "fence": None}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["deadline_delivery_skipped"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"]}
     result = fence.check(ctx["root"], packet, deadline=deadline)
     if not result["ok"]:
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + [result["reason"]]), "source": source, "fence": result}
-    return {"packet": packet, "source": source, "fence": result}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + [result["reason"]]), "source": source, "fence": result, "keys": [], "environment": environment, "task_id": q["task_id"]}
+    # ``keys`` (aligned with the packet items) are the suppression identities the delivery branch accounts.
+    return {"packet": packet, "source": source, "fence": result, "keys": keys, "environment": environment, "task_id": q["task_id"]}

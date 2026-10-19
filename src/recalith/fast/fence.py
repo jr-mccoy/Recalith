@@ -9,7 +9,7 @@ still at the served revision in a servable state. It is the delivery
 linearization point: a correction, forget, recheck or retirement committed
 before it excludes the old guidance. A change committed after it may race with
 output that has already started, which cannot be retracted; the timing is
-returned so tests (and Task 12b receipts) record it rather than claim
+returned so tests and delivery receipts record it rather than claim
 otherwise. The fence never waits for a lock and never repairs the store: an
 unavailable snapshot fails closed (``store_snapshot_unavailable``).
 """
@@ -24,8 +24,15 @@ from recalith.fast.wire import utc_now
 SERVABLE = {"claim": ("claim_heads", "claim_id", "status", ("candidate", "active", "disputed")), "task": ("task_heads", "task_id", "status", ("active", "paused", "completed")), "episode": ("episode_heads", "episode_id", "state", ("open", "settled"))}
 
 
-def check(root: str, packet: dict, *, deadline: float) -> dict:
-    """``{"ok", "reason", "fenced_at", "fence_ms"}`` for ``packet`` against a fresh snapshot."""
+def check(root: str, packet: dict, *, deadline: float, overlay_ids=frozenset()) -> dict:
+    """``{"ok", "reason", "fenced_at", "fence_ms"}`` for ``packet`` against a fresh snapshot.
+
+    ``overlay_ids`` names event items the delivery branch took from the session
+    overlay (typed outcomes captured but possibly not yet ingested): such an
+    event may still be absent from the store, but once ingested it must hold
+    available evidence like any other event item; the equal tombstone epoch
+    fences forgetting for both (decision 0015).
+    """
     started = time.monotonic()
     out = {"ok": False, "reason": None, "fenced_at": None, "fence_ms": None}
     try:
@@ -51,6 +58,8 @@ def check(root: str, packet: dict, *, deadline: float) -> dict:
                     return out
             elif ref["kind"] == "event":
                 row = conn.execute("SELECT payload_state FROM events WHERE event_id = ?", (ref["id"],)).fetchone()
+                if row is None and ref["id"] in overlay_ids:
+                    continue
                 if row is None or row[0] != "available":
                     out["reason"] = "fence_record_changed"
                     return out

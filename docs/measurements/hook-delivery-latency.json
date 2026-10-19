@@ -1,0 +1,193 @@
+{
+  "environment": {
+    "antivirus_indexer": "none observed (Linux container)",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "filesystem": "ext4",
+    "logical_cpus": 4,
+    "machine": "x86_64",
+    "os_page_cache": "not dropped (no privilege in this environment); warm OS cache throughout",
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "power_mode": "unknown (cloud container)",
+    "python": "3.13.16",
+    "python_build": "main Oct  1 2026 15:40:24"
+  },
+  "measured_at": "2026-10-19T19:49:18Z",
+  "measurement": "the real hook entry with its delivery branch (capture, compile, session lock, reservation, final fence, stdout, receipt spool, mark) in fresh python -I processes",
+  "regimes": {
+    "fallback_pre_action": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "delivery_states": {
+        "emitted": 500
+      },
+      "entry_to_exit": {
+        "max_ms": 55.69,
+        "mean_ms": 27.4,
+        "n": 500,
+        "p50_ms": 26.19,
+        "p95_ms": 33.48,
+        "p99_ms": 37.13
+      },
+      "sample_reply": {
+        "degradations": [],
+        "delivery": {
+          "attempt_id": "att_ceaba920-5556-4770-b1ce-86c6fcb58b13",
+          "degraded": [
+            "view_stale"
+          ],
+          "estimated_tokens": 197,
+          "fence_ms": 1.389,
+          "in_flight_change": false,
+          "items": 1,
+          "purpose": "pre_action",
+          "restoration_key": null,
+          "source": "fallback",
+          "state": "emitted",
+          "substitution_tokens": 0,
+          "suppressed": 0
+        },
+        "elapsed_ms": 27.35
+      },
+      "stdout_bytes_max": 673,
+      "wall_spawn_to_exit": {
+        "max_ms": 120.43,
+        "mean_ms": 83.61,
+        "n": 500,
+        "p50_ms": 81.85,
+        "p95_ms": 100.83,
+        "p99_ms": 109.7
+      }
+    },
+    "suppressed_pre_action": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "delivery_states": {
+        "emitted": 1,
+        "none": 499
+      },
+      "entry_to_exit": {
+        "max_ms": 50.09,
+        "mean_ms": 16.04,
+        "n": 500,
+        "p50_ms": 14.8,
+        "p95_ms": 20.21,
+        "p99_ms": 23.19
+      },
+      "sample_reply": {
+        "degradations": [],
+        "delivery": {
+          "degraded": [],
+          "purpose": "pre_action",
+          "reason": "nothing_to_deliver",
+          "state": "none",
+          "suppressed": 1
+        },
+        "elapsed_ms": 14.09
+      },
+      "stdout_bytes_max": 673,
+      "wall_spawn_to_exit": {
+        "max_ms": 171.64,
+        "mean_ms": 69.98,
+        "n": 500,
+        "p50_ms": 66.88,
+        "p95_ms": 86.46,
+        "p99_ms": 93.86
+      }
+    },
+    "warm_pre_action": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "delivery_states": {
+        "emitted": 500
+      },
+      "entry_to_exit": {
+        "max_ms": 40.38,
+        "mean_ms": 24.58,
+        "n": 500,
+        "p50_ms": 23.59,
+        "p95_ms": 31.38,
+        "p99_ms": 33.34
+      },
+      "sample_reply": {
+        "degradations": [],
+        "delivery": {
+          "attempt_id": "att_42df6559-78ba-41de-a591-684db7275a3b",
+          "degraded": [],
+          "estimated_tokens": 197,
+          "fence_ms": 1.144,
+          "in_flight_change": false,
+          "items": 1,
+          "purpose": "pre_action",
+          "restoration_key": null,
+          "source": "view",
+          "state": "emitted",
+          "substitution_tokens": 0,
+          "suppressed": 0
+        },
+        "elapsed_ms": 23.966
+      },
+      "stdout_bytes_max": 673,
+      "wall_spawn_to_exit": {
+        "max_ms": 115.35,
+        "mean_ms": 78.04,
+        "n": 500,
+        "p50_ms": 75.24,
+        "p95_ms": 97.05,
+        "p99_ms": 100.86
+      }
+    },
+    "warm_prompt": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "delivery_states": {
+        "emitted": 500
+      },
+      "entry_to_exit": {
+        "max_ms": 63.12,
+        "mean_ms": 24.55,
+        "n": 500,
+        "p50_ms": 23.64,
+        "p95_ms": 30.15,
+        "p99_ms": 32.86
+      },
+      "sample_reply": {
+        "degradations": [],
+        "delivery": {
+          "attempt_id": "att_069cc0f4-4e83-4676-8dce-40ee3ba207ff",
+          "degraded": [],
+          "estimated_tokens": 185,
+          "fence_ms": 1.205,
+          "in_flight_change": false,
+          "items": 1,
+          "purpose": "prompt",
+          "restoration_key": null,
+          "source": "view",
+          "state": "emitted",
+          "substitution_tokens": 0,
+          "suppressed": 0
+        },
+        "elapsed_ms": 21.29
+      },
+      "stdout_bytes_max": 956,
+      "wall_spawn_to_exit": {
+        "max_ms": 114.24,
+        "mean_ms": 79.44,
+        "n": 500,
+        "p50_ms": 77.05,
+        "p95_ms": 95.72,
+        "p99_ms": 100.39
+      }
+    }
+  },
+  "scope": "Task 12b compile and local emission timing against the shared 250 ms soft deadline; not a delivery certification (Task 13: no host reads the output), not live recall quality (B1)",
+  "store": {
+    "admitted": [
+      "failure lesson on pytest -q test_mid.py (file dependency)",
+      "fact"
+    ],
+    "manifest": "controlled test manifest with every delivery path enabled",
+    "real_payloads": "Claude Code 2.1.301 lifecycle session through the real adapter; per-trial variants (new tool-use IDs, host sessions, prompt texts)",
+    "synthetic_corpus_claim_heads": 10000
+  },
+  "tool": "tools/measure_delivery_latency.py"
+}
