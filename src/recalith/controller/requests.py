@@ -324,19 +324,30 @@ def same_batch(a: ReviewBatch, b: ReviewBatch) -> bool:
 
 
 def _select_revalidate(view: Any, job: Job, now: str) -> Selection:
+    """The claims, their cited evidence and the observations behind their pending rechecks (decision 0012).
+
+    The recheck observations (a later success, a dependency change) are read
+    first and named in the read set: a result settles a recheck only when it
+    read that observation and the still-current claim revision. A job with
+    nothing a model can settle is cancelled without a call.
+    """
+    from recalith.controller import revalidate  # deferred: revalidation builds on these helpers
+
     refs = [r for r in job.input_refs if r.kind == "claim"]
     if not refs:
         raise PrepareFailed("request_input_missing", final=True, message="a revalidation job names its claims")
     sel = Selection()
-    claims = [c for c in (_head(view, "claim", r.id) for r in refs[:MAX_CLAIMS]) if c is not None]
+    claims = [c for c in (_head(view, "claim", r.id) for r in refs[:MAX_CLAIMS]) if c is not None and c.status in revalidate.LIVE]
     if not claims:
         raise NothingToPrepare("revalidation_targets_gone")
+    if not revalidate.needs_model(view, job):
+        raise NothingToPrepare(revalidate.SETTLED)
     sel.claims = [_claim_for_request(c) for c in claims]
+    observed = list(dict.fromkeys([*(r.id for r in job.input_refs if r.kind == "event"), *revalidate.request_events(view, [c.claim_id for c in claims])]))
+    sel.add_events(observed)
+    sel.extra_refs = [RecordRef(kind="event", id=e, revision=1) for e in observed]
     for claim in claims:
-        sel.add_events(_link_events([*claim.supports, *claim.contradicts]))
-    for ref in job.input_refs:
-        if ref.kind == "event":
-            sel.add_events([ref.id])
+        sel.add_events(_link_events([*claim.supports, *claim.contradicts, *claim.context]))
     return sel
 
 
@@ -403,13 +414,15 @@ def _assemble(view: Any, ctx: InstallationContext, job: Job, sel: Selection, *, 
     episodes, claims = list(sel.episodes), list(sel.claims)
     schema = output_schema(job.kind)
     limits = limits_for(job.kind, timeout_seconds)
+    protected = {r.id for r in sel.extra_refs if r.kind == "event"}
     while True:
         consulted = ([records.ref_of(sel.task)] if sel.task is not None else []) + [records.ref_of(e) for e in episodes] + [records.ref_of(c) for c in claims]
+        consulted += [RecordRef(kind="event", id=e.event_id, revision=1) for _seq, e in events if e.event_id in protected]
         read_set = ReadSet(entity_revisions=consulted, workspace_id=ctx.workspace_id, policy_revision=policy_revision, tombstone_epoch=tombstone_epoch)
         if sel.batch is not None:
             read_set = read_set.model_copy(update={"entity_revisions": list(dict.fromkeys([*consulted, *sel.batch.read_set.entity_revisions]))})
         shown = sorted(events, key=lambda pair: pair[0])
-        allowed = consulted + [RecordRef(kind="event", id=e.event_id, revision=1) for _seq, e in shown]
+        allowed = list(dict.fromkeys(consulted + [RecordRef(kind="event", id=e.event_id, revision=1) for _seq, e in shown]))
         data = {
             "request_schema": 1, "job_id": job.job_id, "purpose": job.kind, "prompt_version": job.prompt_version, "instruction_text": instruction,
             "events": [e.model_dump(mode="json") for _seq, e in shown], "episodes": [e.model_dump(mode="json") for e in episodes],
@@ -423,7 +436,7 @@ def _assemble(view: Any, ctx: InstallationContext, job: Job, sel: Selection, *, 
         if len(events) > 1:
             # Bulky successful output goes first; user requests and failed or interrupted results last.
             sizes = [len(canonical_json(e.model_dump(mode="json"))) for _seq, e in events]
-            events.pop(max(range(len(events)), key=lambda i: (not _keep(events[i][1]), sizes[i], i)))
+            events.pop(max(range(len(events)), key=lambda i: (events[i][1].event_id not in protected, not _keep(events[i][1]), sizes[i], i)))
         elif len(episodes) > 1:
             episodes.pop()
         elif len(claims) > (len(sel.batch.candidate_refs) if sel.batch is not None else 1):

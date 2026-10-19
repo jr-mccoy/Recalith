@@ -273,7 +273,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 10: Consolidation and autonomous revision
 
-**Files:** Create `controller/{planner,revalidate}.py`, `prompts/revalidate_v1.md`, `tests/integration/test_consolidation.py`.
+**Files:** Create `controller/{planner,revalidate}.py`, `prompts/revalidate_v1.md`, `tests/integration/test_consolidation.py`. The task also added `storage/migrations/0006.sql` (schema 6: `claim_rechecks`, `pending_supersessions`, `intent_questions`, `artifact_writes`, `planner_state`), `ClaimRevision.context` and `ReviseClaimPayload.retry_conditions`, FailureRecheck/dependency/source-conflict hooks in `capture.pipeline.ingest_ready`, the revalidation settle, held supersessions and deferred rechecks in `controller/apply.py`, dependency resolution and the invalidation/declaration gates in `controller/admission.py`, the revalidation request read set in `controller/requests.py`, the consolidation band (`jobs.BAND_CONSOLIDATION`), the planner in the worker's deterministic poll, the `failpoints.REVISION` family, ID prefixes `rchk`/`qst`, the test builders `tests/integration/consolidation_scenarios.py` and the matrix `test_revision_crash_matches_reference` (decision 0012).
 
 **Interfaces:** Produce `revalidate_dependents(ctx, changes: Sequence[DependencyChange]) -> list[Id]`. Planner creates existing Job types; it cannot create arbitrary executables.
 

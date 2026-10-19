@@ -59,7 +59,7 @@ from recalith.contracts.common import Actor, InstallationContext, canonical_json
 from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_tokens
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
-from recalith.controller import apply, budgets, jobs, launch, triggers
+from recalith.controller import apply, budgets, jobs, launch, planner, triggers
 from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
@@ -309,6 +309,7 @@ class Worker:
         self._last_poll_mono: float | None = None
         self._last_poll_at: str | None = None
         self._last_poll_worked = False
+        self._last_poll_seconds: float | None = None
         self._interval = float(self.config.worker.active_poll_seconds)
         self.max_clock_jump = 0.0
         self.reaped: list[dict[str, Any]] = []
@@ -346,6 +347,7 @@ class Worker:
             worked |= self._run_deterministic()
             worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
             worked |= bool(triggers.sweep(self.store, now=now))
+            worked |= bool(planner.run(self.store, self.ctx, now=now))
             if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None
@@ -467,6 +469,7 @@ class Worker:
                 "last_poll_at": self._last_poll_at,
                 "last_poll_wall": self._last_poll_wall,
                 "last_poll_worked": self._last_poll_worked,
+                "last_poll_seconds": self._last_poll_seconds,
                 "ipc_wake": "unavailable_in_preview",
             },
             "spawn": self.spawn.independence(),
@@ -543,6 +546,13 @@ class Worker:
         self.state = "running" if (worked or busy) else "idle"
         return worked
 
+    def cadence_wait(self, started: float) -> float:
+        """The rest of this poll's interval: the 1 s / 5 s cadence runs from poll start, so a slow poll
+        (fsync'd transactions, the status write) does not lengthen every idle cycle by its own duration."""
+        elapsed = max(0.0, self.clock.monotonic() - started)
+        self._last_poll_seconds = elapsed
+        return max(0.0, self._interval - elapsed)
+
     def _sleep(self, seconds: float) -> None:
         give_up = self.clock.monotonic() + seconds
         while not self.stop_requested():
@@ -574,9 +584,10 @@ class Worker:
             if self.lane is not None:
                 self.lane.start()
             while not self.stop_requested():
+                started = self.clock.monotonic()
                 self.poll_once()
                 self.write_status()
-                self._sleep(self._interval)
+                self._sleep(self.cadence_wait(started))
             self.state = "stopping"
             self.write_status()
             if self.lane is not None:

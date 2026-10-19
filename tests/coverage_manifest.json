@@ -373,7 +373,8 @@
             "tests/integration/test_capture_recovery.py::test_crash_failpoints_match_reference_run",
             "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate",
             "tests/platform/test_capture_only_claude.py::test_duplicate_and_changed_host_events",
-            "tests/platform/test_capture_only_claude.py::test_real_payload_kill_matches_reference"
+            "tests/platform/test_capture_only_claude.py::test_real_payload_kill_matches_reference",
+            "tests/integration/test_consolidation.py::test_source_conflict_suspends_dependent_guidance"
           ],
           "platforms": [
             "linux",
@@ -381,7 +382,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Dedup and conflict rows on service and fast producers (crash matrix runs both); claim-level caution suspension needs claims (Tasks 5/10)."
+          "notes": "Dedup and conflict rows on service and fast producers (crash matrix runs both); claim-level caution suspension needs claims (Tasks 5/10). Task 10: a conflicting payload under an existing source key marks the live guidance citing the original event needs_revalidation (no caution, no model job; a keep never settles it)."
         }
       ]
     },
@@ -695,7 +696,9 @@
           "status": "in_progress",
           "tests": [
             "tests/unit/test_conditions.py::test_same_proposition_in_different_scopes_is_not_a_global_contradiction",
-            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation"
+            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation",
+            "tests/integration/test_consolidation.py::test_scoped_truths_coexist_without_conflict",
+            "tests/integration/test_consolidation.py::test_success_under_different_conditions_is_context_not_contradiction"
           ],
           "platforms": [
             "linux",
@@ -703,7 +706,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: per-scope version and branch predicates evaluate independently; keeping both claims active and contradiction handling are Tasks 10/11."
+          "notes": "Task 8 slice: per-scope version and branch predicates evaluate independently; keeping both claims active and contradiction handling are Tasks 10/11. Task 10: same-key claims under certainly disjoint branch/version conditions form no consolidation group, stay active, raise no question; a success under other conditions is context, not contradiction. Packet composition is Task 11."
         }
       ]
     },
@@ -730,7 +733,10 @@
           "tests": [
             "tests/integration/test_operations.py::test_correction_invalidates_and_creates_candidate_in_one_transaction",
             "tests/integration/test_operations.py::test_replacement_and_retirement_commit_together",
-            "tests/integration/test_operations.py::test_undo_preview_and_apply_append_compensation"
+            "tests/integration/test_operations.py::test_undo_preview_and_apply_append_compensation",
+            "tests/integration/test_consolidation.py::test_explicit_replacement_is_atomic",
+            "tests/integration/test_consolidation.py::test_declared_decision_is_replaced_only_by_a_reviewed_declaration",
+            "tests/integration/test_consolidation.py::test_rejected_or_stale_replacement_leaves_guidance"
           ],
           "platforms": [
             "linux",
@@ -738,7 +744,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Mechanics slice (Task 5): an operator-actor service write invalidates the expected target and creates a candidate replacement in one transaction with today's budget exhausted and no model call; guidance epoch advances; a stale expected revision fails atomically; agents cannot apply. The guarded `correct` transport is Task 12a; the replacement's separate review is Tasks 9/10; delivery suppression is 12b."
+          "notes": "Mechanics slice (Task 5): an operator-actor service write invalidates the expected target and creates a candidate replacement in one transaction with today's budget exhausted and no model call; guidance epoch advances; a stale expected revision fails atomically; agents cannot apply. The guarded `correct` transport is Task 12a; the replacement's separate review is Tasks 9/10; delivery suppression is 12b. Task 10: a replacement of active guidance is held until its own review; activation and supersession commit in one transaction; a decision is replaced only by a reviewed declaration. The guarded correct transport is Task 12a, delivery suppression 12b."
         }
       ]
     },
@@ -766,7 +772,9 @@
             "tests/integration/test_operations.py::test_changed_read_set_requeues",
             "tests/integration/test_operations.py::test_changed_consulted_record_requeues_but_unrelated_change_does_not",
             "tests/integration/test_operations.py::test_reevaluation_is_bounded",
-            "tests/integration/test_operations.py::test_stale_target_revision_never_overwrites"
+            "tests/integration/test_operations.py::test_stale_target_revision_never_overwrites",
+            "tests/integration/test_consolidation.py::test_keep_settles_only_what_the_result_read",
+            "tests/integration/test_consolidation.py::test_revalidation_result_is_fenced_and_bounded"
           ],
           "platforms": [
             "linux",
@@ -774,7 +782,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5: a changed `file:` fingerprint, consulted record or stale target applies nothing and queues one coalesced re-evaluation job (bounded at 3 per chain, then `reevaluation_limit`); an unrelated change does not invalidate. Task 10 revalidation remains."
+          "notes": "Task 5: a changed `file:` fingerprint, consulted record or stale target applies nothing and queues one coalesced re-evaluation job (bounded at 3 per chain, then `reevaluation_limit`); an unrelated change does not invalidate. Task 10 revalidation remains. Task 10: a dependency change during a revalidation requeues its stale result into the claim's current revalidation (bounded); nothing is overwritten."
         }
       ]
     },
@@ -807,7 +815,9 @@
             "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
             "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect",
             "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
-            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference"
+            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference",
+            "tests/integration/test_consolidation.py::test_revalidation_result_is_fenced_and_bounded",
+            "tests/integration/test_worker.py::test_revision_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -815,7 +825,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference."
         }
       ]
     },
@@ -837,14 +847,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_consolidation.py::test_derived_writes_do_not_loop",
+            "tests/integration/test_consolidation.py::test_unknown_conflict_remains_visible"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 10: revalidation and consolidation revisions start no extraction, review or revalidation; a self-citation adds no support; consolidation records are content-keyed so a group's own revisions never re-trigger it; derived revisions keep their causal root. Extraction/review loop guards are Task 9."
         }
       ]
     },
@@ -1584,14 +1598,26 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_consolidation.py::test_success_caps_existing_failure_before_model_call",
+            "tests/integration/test_consolidation.py::test_cross_session_success_matches_action_family",
+            "tests/integration/test_consolidation.py::test_old_or_unknown_order_success_does_not_assert_contradiction",
+            "tests/integration/test_consolidation.py::test_dependency_free_failure_with_empty_conditions_never_cautions",
+            "tests/integration/test_consolidation.py::test_success_under_different_conditions_is_context_not_contradiction",
+            "tests/integration/test_consolidation.py::test_unknown_working_directory_never_matches",
+            "tests/integration/test_consolidation.py::test_capture_time_orders_only_live_hooks",
+            "tests/integration/test_consolidation.py::test_candidate_lesson_defers_its_recheck_to_activation",
+            "tests/integration/test_consolidation.py::test_result_that_did_not_read_the_counter_observation_settles_nothing",
+            "tests/integration/test_worker.py::test_revision_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 10: FailureRecheck in the ingestion transaction (no budget, no backend): context counter-observation, needs_revalidation, guidance epoch, coalesced protected revalidation; cross-session family match; known older replay and duplicates nothing; ambiguous order order_unknown; unknown family/cwd and other package directories never match; different conditions not a contradiction; dependency-free lesson never cautions; clearing needs the counter-observation in the read set. Recorded proposals; live revalidation quality unavailable (B1)."
         }
       ]
     },
@@ -1613,14 +1639,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_consolidation.py::test_user_intent_conflict_asks_one_question",
+            "tests/integration/test_consolidation.py::test_consolidation_prioritizes_current_conflicts"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 10: two live conflicting user declarations open one question (deduplicated, no invented resolution, nothing blocks) and one consolidation job; the question resolves when one is superseded. Serving it once per session in a packet is Tasks 11/12b."
         }
       ]
     },
@@ -1904,14 +1934,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_consolidation.py::test_review_classes_and_due_times"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 10: deterministic review classes (transitive claim dependencies, missing and cyclic volatile, dependency-free declarations stable) with 30/180-day due times; a due review schedules revalidation without changing freshness; a keep moves the next review a full period on."
         }
       ]
     },
@@ -2362,7 +2395,11 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation"
+            "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation",
+            "tests/integration/test_consolidation.py::test_branch_merge_with_unchanged_dependencies_keeps_applicability",
+            "tests/integration/test_consolidation.py::test_changed_dependency_marks_for_revalidation",
+            "tests/integration/test_consolidation.py::test_missing_dependency_value_is_unknown",
+            "tests/integration/test_consolidation.py::test_written_after_evidence_dependency_resolves_unknown"
           ],
           "platforms": [
             "linux",
@@ -2370,7 +2407,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11."
+          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11. Task 10: code-resolved fingerprints; a merge with unchanged dependencies keeps caution on every branch; a certified write marks dependents (transitively) needs_revalidation and suppresses caution on any branch; explicit branch_ref still applies; a dependency-preserving change does nothing. Packet delivery is Tasks 11/12b."
         }
       ]
     },

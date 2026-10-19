@@ -50,7 +50,7 @@ ID_PREFIXES = frozenset(
         "proj", "inst", "ws", "sess", "task", "ep", "claim", "job", "op", "dlv",
         "evt", "evt_imp", "conf", "root", "batch", "cap", "bnd", "bind", "att",
         "trig", "act", "tok", "src", "prop", "grp", "upg", "bkp", "exp", "imp",
-        "frg", "rev", "seg", "obs", "rsv", "inv", "item", "evd",
+        "frg", "rev", "seg", "obs", "rsv", "inv", "item", "evd", "rchk", "qst",
     }
 )
 _UUID4 = r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"

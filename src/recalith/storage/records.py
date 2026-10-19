@@ -163,7 +163,8 @@ def write_episode(txn: Txn, episode: Episode) -> RecordRef:
 
 
 def _claim_links(claim: ClaimRevision, context: Iterable[EvidenceLink]) -> list[EvidenceLink]:
-    return [*claim.supports, *claim.contradicts, *context, *_structured_links({"procedure": claim.procedure.model_dump(mode="json") if claim.procedure else None, "failure": claim.failure.model_dump(mode="json") if claim.failure else None})]
+    extra = [link for link in context if link not in claim.context]
+    return [*claim.supports, *claim.contradicts, *claim.context, *extra, *_structured_links({"procedure": claim.procedure.model_dump(mode="json") if claim.procedure else None, "failure": claim.failure.model_dump(mode="json") if claim.failure else None})]
 
 
 def write_claim(txn: Txn, claim: ClaimRevision, *, context: Iterable[EvidenceLink] = ()) -> RecordRef:

@@ -84,6 +84,7 @@ from recalith.working import tasks as working_tasks
 
 APPLY = "apply"
 CANDIDATE = "candidate_only"
+REVIEW_REQUIRED = "review_required"
 REJECT = "reject"
 REQUEUE = "requeue"
 
@@ -112,7 +113,7 @@ class Verdict:
 
     @property
     def admitted(self) -> bool:
-        return self.outcome in (APPLY, CANDIDATE)
+        return self.outcome in (APPLY, CANDIDATE, REVIEW_REQUIRED)
 
 
 def _ok(outcome: str = APPLY, reason: str = "admitted") -> Verdict:
@@ -657,6 +658,7 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
             or (failure_refusal(q, [link for link in op.evidence if link.relation == "supports"], typed.failure.model_dump(mode="json")) if typed.failure is not None else None)
             or _procedure_refusal(q, typed)
             or scope_refusal(q, typed.scope, op.evidence)
+            or _dependency_refusal(q, ctx, typed.dependencies, op.evidence)
         )
         if reason is not None:
             return _no(reason)
@@ -694,6 +696,11 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
             return _no(reason)
         if (reason := mapping_refusal(q, op.evidence)) is not None:
             return _no(reason)
+        body = records.body(q, "claim", typed.claim_ref.id, typed.claim_ref.revision) or {}
+        if typed.retry_conditions is not None and body.get("kind") != "failure_lesson":
+            return _no("retry_conditions_require_failure_lesson")
+        if typed.dependencies is not None and (reason := _dependency_refusal(q, ctx, typed.dependencies, [EvidenceLink.model_validate(i) for i in body.get("supports") or []])) is not None:
+            return _no(reason)
         return _ok(CANDIDATE, "revision_pending_review")
     assert isinstance(typed, ChangeClaimStatusPayload)
     if typed.status == status:
@@ -702,17 +709,38 @@ def check_operation(q: Any, ctx: InstallationContext, op: ProposedOperation, *, 
         return _no("status_transition_refused")
     if typed.status in policy.STATUS_NEEDS_EVIDENCE and not op.evidence:
         return _no("evidence_required")
+    if typed.status == "invalidated" and not any(link.relation == "contradicts" for link in op.evidence):
+        return _no("invalidation_requires_contradiction")  # direct refutation is cited as such; a later success alone is context
+    if ctx.actor.kind != "operator" and typed.status in ("invalidated", "archived") and status in ("active", "disputed"):
+        body = records.body(q, "claim", subject.id, subject.revision) or {}  # type: ignore[union-attr]
+        if body.get("basis") == "user_declared" and body.get("kind") in ("decision", "preference"):
+            return _no("declaration_requires_user_intent")  # only the user (or a reviewed replacement declaration) retires a declared intent
     if typed.status == "superseded":
         replacement = _replacement(q, typed, resolution)
         if isinstance(replacement, Verdict):
             return replacement
         if replacement is not None and replacement.id == subject.id:  # type: ignore[union-attr]
             return _no("replacement_is_target")
-        if replacement is not None and status == "active" and ctx.actor.kind != "operator":
+        if replacement is not None and status in ("active", "disputed") and ctx.actor.kind != "operator":
             current = records.head(q, "claim", replacement.id)
-            if current is None or current[1] != "active":
-                return _no("replacement_requires_review")  # active guidance is replaced only by reviewed (or observed) guidance
+            if current is None or current[1] not in ("active", "candidate"):
+                return _no("replacement_requires_review")
+            if current[1] == "candidate":
+                # Active guidance is replaced only by reviewed (or observed) guidance: an unreviewed replacement holds the
+                # supersession until its own review activates it, and both then commit together (decision 0012).
+                return Verdict(REVIEW_REQUIRED, "replacement_pending_review")
+            target_body = records.body(q, "claim", subject.id, subject.revision) or {}  # type: ignore[union-attr]
+            if target_body.get("basis") == "user_declared" and target_body.get("kind") in ("decision", "preference"):
+                new_body = records.body(q, "claim", replacement.id, current[0]) or {}
+                if new_body.get("basis") != "user_declared" or new_body.get("kind") != target_body.get("kind"):
+                    return _no("declaration_requires_user_intent")  # a decision is replaced only by a reviewed user decision
     return _ok()
+
+
+def _dependency_refusal(q: Any, ctx: InstallationContext, dependencies: Sequence[Any], evidence: Sequence[EvidenceLink]) -> str | None:
+    from recalith.controller import revalidate  # deferred: the dependency index builds on these gates
+
+    return revalidate.resolve_dependencies(q, ctx, dependencies, evidence)[0]
 
 
 def _procedure_refusal(q: Any, typed: ProposeClaimPayload) -> str | None:
