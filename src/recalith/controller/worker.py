@@ -60,6 +60,7 @@ from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_t
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
 from recalith.controller import apply, budgets, jobs, launch, planner, triggers
+from recalith.retrieval import compile as projection
 from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
@@ -348,6 +349,7 @@ class Worker:
             worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
             worked |= bool(triggers.sweep(self.store, now=now))
             worked |= bool(planner.run(self.store, self.ctx, now=now))
+            worked |= bool(projection.refresh_projection(self.store, self.ctx, now=now))
             if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None

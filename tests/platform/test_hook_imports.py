@@ -30,12 +30,24 @@ seen = []
 def audit(event, args):
     if event.startswith(tuple(json.loads(os.environ["RECALITH_TEST_AUDIT"]))):
         cmd = args[1] if event == "subprocess.Popen" else None
-        seen.append([event, (cmd if isinstance(cmd, str) else [str(a) for a in cmd]) if cmd is not None else None])
+        if event == "sqlite3.connect":
+            seen.append([event, str(args[0])])
+        else:
+            seen.append([event, (cmd if isinstance(cmd, str) else [str(a) for a in cmd]) if cmd is not None else None])
 sys.addaudithook(audit)
 import importlib
 mode = sys.argv[1]
 if mode == "package":
     importlib.import_module(sys.argv[2])
+elif mode == "compile":
+    import time
+    from recalith.fast import entry
+    from recalith.fast import context as fc
+    packets = []
+    for case in json.loads(sys.stdin.read()):
+        ctx = entry.load_context(case["root"], "claude_code")
+        packets.append(fc.hook_compile_context(ctx, case["query"], deadline=time.monotonic() + 2))
+    print(json.dumps({"packets": packets}))
 else:
     from recalith.fast import entry, failpoints
     for case in json.loads(sys.stdin.read()):
@@ -63,14 +75,14 @@ def _assert_clean(report: dict, *, allowed: tuple = ()) -> None:
     assert offenders == [], f"non-stdlib modules imported by the hook path: {offenders}"
     forbidden = [m for m in report["new"] if any(m == f or m.startswith(f + ".") for f in FORBIDDEN_MODULES if f not in allowed)]
     assert forbidden == [], f"forbidden modules on the hook path: {forbidden}"
-    effects = [e for e, _ in report["audit"] if e != "subprocess.Popen" or "subprocess" not in allowed]
+    effects = [e for e, _ in report["audit"] if not (e == "subprocess.Popen" and "subprocess" in allowed) and not (e.startswith("sqlite3.connect") and "sqlite3" in allowed)]
     assert effects == [], f"forbidden runtime effects on the hook path: {report['audit']}"
     # Interpreter/site start-up (e.g. a uv ``_virtualenv`` .pth hook) is outside the
     # entry's control, but must not pull in heavy packages either.
     assert not [m for m in report["baseline"] if m.split(".")[0] in ("pydantic", "packaging", "sqlite3")]
 
 
-@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
+@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
 def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     report = _run_probe(["package", module])
     _assert_clean(report)
@@ -139,3 +151,36 @@ def test_hook_worker_start_is_the_only_process_effect(tmp_path):
         assert wh.wait_running(replay.root), "the started worker never came up"
     finally:
         wh.stop_worker(replay.root)
+
+
+def test_hook_context_compiler_is_stdlib_and_read_only(tmp_path):
+    """The hook compiler (views, fallback, fence) imports only stdlib and ``recalith.fast`` and opens SQLite read-only (A58).
+
+    Real payloads, a published projection (warm views), then a stale one
+    (fallback rows) and a missing store (degraded). The only SQLite effect is
+    ``sqlite3.connect`` on a ``mode=ro`` URI (never ``immutable=1``); no
+    socket, subprocess or exec; no Pydantic, ``packaging``, service, storage or
+    retrieval module.
+    """
+    sys.path.insert(0, str(ROOT / "tests" / "integration"))
+    import consolidation_scenarios as cs
+    import retrieval_scenarios as rs
+
+    p = rs.project(tmp_path)
+    cs.lesson(p)
+    rs.publish(p)
+    act = rs.mid_action(p)
+    warm = rs.query(p, act=act).model_dump(mode="json")
+    prompt = rs.query(p, "prompt", text="fixture test_mid", act=act).model_dump(mode="json")
+    cases = [{"root": str(p.root), "query": warm}, {"root": str(p.root), "query": prompt}]
+    report = _run_probe(["compile"], json.dumps(cases))
+    cs.fact(p, "A later fact makes the views stale.", subject="later")
+    stale = _run_probe(["compile"], json.dumps(cases))
+    (p.root / ".recalith" / "state" / "memory.sqlite").rename(p.root / "moved.sqlite")
+    gone = _run_probe(["compile"], json.dumps(cases[:1]))
+    for rep in (report, stale, gone):
+        _assert_clean(rep, allowed=("sqlite3", "_sqlite3"))
+        connects = [args for event, args in rep["audit"] if event == "sqlite3.connect"]
+        assert all("mode=ro" in a and "immutable" not in a for a in connects), connects
+        assert not [m for m in rep["new"] if m.startswith(("recalith.retrieval", "recalith.storage", "recalith.contracts", "recalith.controller"))]
+    assert {e for e, _ in report["audit"]} == {"sqlite3.connect", "sqlite3.connect/handle"}  # snapshots and the fresh fence only

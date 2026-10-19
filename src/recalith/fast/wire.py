@@ -438,7 +438,38 @@ def _rule_scratch(v: dict, path: str, run: _Run) -> None:
         run.fail(path, "session scratch exceeds 128 KiB")
 
 
+REASON_CODES = frozenset({
+    "task_continuity", "exact_action_match", "dependency_match", "path_match", "lexical_match", "explicit_query",
+    "conflict", "revision_change", "compaction_restore", "recent_observation", "tentative_context",
+})
+
+
+def _rule_item(v: dict, path: str, run: _Run) -> None:
+    why = v.get("why")
+    if isinstance(why, list) and why and why[0] not in REASON_CODES:
+        run.fail(path, "why[0] must be a registered ReasonCode")
+    if v.get("advice") == "caution" and (v.get("applicability") != "true" or v.get("freshness") != "current"):
+        run.fail(path, "caution requires applicability 'true' and current freshness")
+    if v.get("applicability") == "false":
+        run.fail(path, "inapplicable items are excluded, never delivered")
+
+
+def _rule_packet(v: dict, path: str, run: _Run) -> None:
+    sub, est = v.get("pre_action_substitution_tokens"), v.get("estimated_tokens")
+    if not isinstance(sub, int) or not isinstance(est, int) or isinstance(sub, bool):
+        return
+    if sub:
+        if v.get("purpose") != "prompt":
+            run.fail(path, "only an ordinary prompt packet takes the pre-action substitution allowance")
+        elif not any(isinstance(i, dict) and i.get("advice") == "caution" for i in v.get("items") or []):
+            run.fail(path, "no substitution allowance without an eligible caution")
+    if sub > est:
+        run.fail(path, "substitution is part of, not added to, the packet estimate")
+
+
 RULES = {
+    "ContextItem._advice_gates": _rule_item,
+    "ContextPacket._substitution": _rule_packet,
     "ActionDescriptor._unknown_stays_unknown": _rule_action,
     "ToolAssertion._shape": _rule_assertion,
     "TextChunk._exact": _rule_chunk,

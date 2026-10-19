@@ -43,6 +43,8 @@ MODELS = {
     "Segment": events.Segment,
     "CaptureReceipt": events.CaptureReceipt,
     "SessionScratch": context.SessionScratch,
+    "ContextQuery": context.ContextQuery,
+    "ContextPacket": context.ContextPacket,
 }
 FIELD_CHECKS = {
     common._check_id: "id",

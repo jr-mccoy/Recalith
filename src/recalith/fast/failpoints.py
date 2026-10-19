@@ -76,6 +76,14 @@ RECHECK_AFTER_MARK = "recheck.after_mark"
 REVALIDATE_AFTER_SETTLE = "revalidate.after_settle"
 PLANNER_AFTER_SCHEDULE = "planner.after_schedule"
 
+# Task 11 (decision 0013): inside the projection step's index transaction after
+# the lexical/structural rows and the covered store revision are written
+# (commit pending); inside the view publication transaction after the views and
+# their epochs are written (commit pending); after that publication committed.
+INDEX_AFTER_REFRESH = "index.after_refresh"
+VIEWS_BEFORE_COMMIT = "views.before_commit"
+VIEWS_AFTER_PUBLISH = "views.after_publish"
+
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
@@ -87,7 +95,8 @@ PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
 LINEAGE = (ROOTS_AFTER_MERGE,)
 ADMISSION = (REVIEW_AFTER_SCHEDULE, REVIEW_AFTER_ASSESSMENT, TRIGGERS_AFTER_PASS)
 REVISION = (RECHECK_AFTER_MARK, REVALIDATE_AFTER_SETTLE, PLANNER_AFTER_SCHEDULE)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION
+RETRIEVAL = (INDEX_AFTER_REFRESH, VIEWS_BEFORE_COMMIT, VIEWS_AFTER_PUBLISH)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)
