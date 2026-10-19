@@ -181,23 +181,28 @@ def _rows(view: Any, sql: str, params: tuple) -> list[tuple]:
 
 def resolve(store: Store, ctx: InstallationContext, key: str, *, executable_identity: str | None = None, workspace_id: str | None = None) -> ResolvedValue:
     """Resolve one environment key for a query; anything uncertain is unknown."""
-    workspace_id = workspace_id or ctx.workspace_id
     with store.read() as view:
-        policy_revision = view.execute("SELECT policy_revision FROM installation_meta WHERE singleton = 1").fetchone()[0]
-        if key in PLATFORM_KEYS:
-            rows = _rows(view, "SELECT observation_id, value FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'adapter_platform' AND freshness = 'current' ORDER BY observed_at DESC, observation_id LIMIT 1", (workspace_id, key))
-            return ResolvedValue(key, rows[0][1], "platform", (rows[0][0],)) if rows else ResolvedValue(key, None, "missing")
-        if key not in RUNTIME_KEYS:
-            return ResolvedValue(key, None, "missing")
-        declared = _rows(view, "SELECT observation_id, value, config_revision FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'operator_config' ORDER BY observed_at DESC", (workspace_id, key))
-        current_declared = [(oid, v) for oid, v, rev in declared if rev == policy_revision]
-        exe_rows = _rows(view, "SELECT executable_id, identity, fingerprint, fingerprint_changed_at FROM executables WHERE workspace_id = ?", (workspace_id,))
-        executables = {r[0]: r for r in exe_rows}
-        tool_rows = _rows(
-            view,
-            "SELECT observation_id, value, executable_id, executable_fingerprint, observed_at, freshness FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'certified_tool' ORDER BY observed_at DESC, observation_id",
-            (workspace_id, key),
-        )
+        return resolve_in(view, ctx, key, executable_identity=executable_identity, workspace_id=workspace_id)
+
+
+def resolve_in(view: Any, ctx: InstallationContext, key: str, *, executable_identity: str | None = None, workspace_id: str | None = None) -> ResolvedValue:
+    """:func:`resolve` inside the caller's read snapshot or transaction."""
+    workspace_id = workspace_id or ctx.workspace_id
+    policy_revision = view.execute("SELECT policy_revision FROM installation_meta WHERE singleton = 1").fetchone()[0]
+    if key in PLATFORM_KEYS:
+        rows = _rows(view, "SELECT observation_id, value FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'adapter_platform' AND freshness = 'current' ORDER BY observed_at DESC, observation_id LIMIT 1", (workspace_id, key))
+        return ResolvedValue(key, rows[0][1], "platform", (rows[0][0],)) if rows else ResolvedValue(key, None, "missing")
+    if key not in RUNTIME_KEYS:
+        return ResolvedValue(key, None, "missing")
+    declared = _rows(view, "SELECT observation_id, value, config_revision FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'operator_config' ORDER BY observed_at DESC", (workspace_id, key))
+    current_declared = [(oid, v) for oid, v, rev in declared if rev == policy_revision]
+    exe_rows = _rows(view, "SELECT executable_id, identity, fingerprint, fingerprint_changed_at FROM executables WHERE workspace_id = ?", (workspace_id,))
+    executables = {r[0]: r for r in exe_rows}
+    tool_rows = _rows(
+        view,
+        "SELECT observation_id, value, executable_id, executable_fingerprint, observed_at, freshness FROM environment_observations WHERE workspace_id = ? AND key = ? AND source_kind = 'certified_tool' ORDER BY observed_at DESC, observation_id",
+        (workspace_id, key),
+    )
     latest: dict[str, tuple] = {}
     for row in tool_rows:
         if row[2] is not None and row[2] not in latest:
@@ -246,5 +251,11 @@ def resolve(store: Store, ctx: InstallationContext, key: str, *, executable_iden
 
 def environment_values(store: Store, ctx: InstallationContext) -> dict[str, str]:
     """The query's EnvironmentValues: only resolved keys; absent means unknown."""
-    resolved = (resolve(store, ctx, key) for key in PLATFORM_KEYS + RUNTIME_KEYS)
+    with store.read() as view:
+        return environment_values_in(view, ctx)
+
+
+def environment_values_in(view: Any, ctx: InstallationContext, *, workspace_id: str | None = None) -> dict[str, str]:
+    """:func:`environment_values` inside the caller's read snapshot or transaction (one consistent read)."""
+    resolved = (resolve_in(view, ctx, key, workspace_id=workspace_id) for key in PLATFORM_KEYS + RUNTIME_KEYS)
     return {r.key: r.value for r in resolved if r.value is not None}

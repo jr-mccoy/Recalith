@@ -1,0 +1,137 @@
+{
+  "environment": {
+    "antivirus_indexer": "none observed (Linux container)",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+    "filesystem": "ext4",
+    "logical_cpus": 4,
+    "machine": "x86_64",
+    "os_page_cache": "not dropped (no privilege in this environment); warm OS cache throughout",
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "power_mode": "unknown (cloud container)",
+    "python": "3.13.16",
+    "python_build": "main Oct  1 2026 15:40:24"
+  },
+  "measured_at": "2026-10-19T05:01:17Z",
+  "measurement": "hook-side context compilation (views or bounded fallback, live checks, budget, fresh fence) in fresh python -I processes; nothing emitted",
+  "regimes": {
+    "fallback_pre_action": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "entry_to_fenced_packet": {
+        "max_ms": 65.2,
+        "mean_ms": 31.32,
+        "n": 500,
+        "p50_ms": 28.84,
+        "p95_ms": 42.25,
+        "p99_ms": 52.41
+      },
+      "sample_reply": {
+        "advice": [
+          "caution",
+          "context"
+        ],
+        "compile_ms": 26.832,
+        "degraded": [
+          "view_stale"
+        ],
+        "fence_ms": 1.055,
+        "items": 2,
+        "remaining_ms": 223.162,
+        "source": "fallback",
+        "tokens": 306
+      },
+      "sources": {
+        "fallback": 500
+      },
+      "wall_spawn_to_exit": {
+        "max_ms": 125.23,
+        "mean_ms": 63.46,
+        "n": 500,
+        "p50_ms": 59.47,
+        "p95_ms": 82.94,
+        "p99_ms": 107.89
+      }
+    },
+    "warm_pre_action": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "entry_to_fenced_packet": {
+        "max_ms": 58.3,
+        "mean_ms": 28.56,
+        "n": 500,
+        "p50_ms": 26.71,
+        "p95_ms": 38.59,
+        "p99_ms": 44.64
+      },
+      "sample_reply": {
+        "advice": [
+          "caution",
+          "context"
+        ],
+        "compile_ms": 32.575,
+        "degraded": [],
+        "fence_ms": 1.068,
+        "items": 2,
+        "remaining_ms": 217.419,
+        "source": "view",
+        "tokens": 300
+      },
+      "sources": {
+        "view": 500
+      },
+      "wall_spawn_to_exit": {
+        "max_ms": 104.39,
+        "mean_ms": 60.51,
+        "n": 500,
+        "p50_ms": 57.62,
+        "p95_ms": 78.38,
+        "p99_ms": 90.28
+      }
+    },
+    "warm_prompt": {
+      "deadline_ms": 250,
+      "degraded_trials": 0,
+      "entry_to_fenced_packet": {
+        "max_ms": 54.63,
+        "mean_ms": 29.31,
+        "n": 500,
+        "p50_ms": 27.73,
+        "p95_ms": 38.18,
+        "p99_ms": 41.65
+      },
+      "sample_reply": {
+        "advice": [
+          "context"
+        ],
+        "compile_ms": 26.1,
+        "degraded": [],
+        "fence_ms": 1.115,
+        "items": 8,
+        "remaining_ms": 223.892,
+        "source": "view",
+        "tokens": 919
+      },
+      "sources": {
+        "view": 500
+      },
+      "wall_spawn_to_exit": {
+        "max_ms": 109.42,
+        "mean_ms": 61.23,
+        "n": 500,
+        "p50_ms": 58.86,
+        "p95_ms": 77.62,
+        "p99_ms": 85.05
+      }
+    }
+  },
+  "scope": "Task 11 compile latency against the shared 250 ms hook deadline; not a delivery certification (Tasks 12b/13), not live recall quality (B1)",
+  "store": {
+    "admitted": [
+      "failure lesson on pytest -q test_mid.py (file dependency)",
+      "fact"
+    ],
+    "real_payloads": "Claude Code 2.1.301 lifecycle session through the real adapter",
+    "synthetic_corpus_claim_heads": 10000
+  },
+  "tool": "tools/measure_compile_latency.py"
+}

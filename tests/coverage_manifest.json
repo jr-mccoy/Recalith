@@ -36,7 +36,8 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_installations.py::test_two_installations_have_separate_ids_and_databases"
+            "tests/integration/test_installations.py::test_two_installations_have_separate_ids_and_databases",
+            "tests/integration/test_retrieval.py::test_two_installations_never_cross"
           ],
           "platforms": [
             "linux",
@@ -44,7 +45,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Storage-level isolation; retrieval-level A01 is Task 11."
+          "notes": "Storage-level isolation; retrieval-level A01 is Task 11. Task 11: retrieval-level isolation in both compilers (service compile_context and the hook views/fallback), in both directions; a foreign workspace query is refused (service) or degraded empty (hook). Storage isolation from Task 2."
         }
       ]
     },
@@ -698,7 +699,8 @@
             "tests/unit/test_conditions.py::test_same_proposition_in_different_scopes_is_not_a_global_contradiction",
             "tests/unit/test_conditions.py::test_branch_ref_is_an_explicit_predicate_not_an_annotation",
             "tests/integration/test_consolidation.py::test_scoped_truths_coexist_without_conflict",
-            "tests/integration/test_consolidation.py::test_success_under_different_conditions_is_context_not_contradiction"
+            "tests/integration/test_consolidation.py::test_success_under_different_conditions_is_context_not_contradiction",
+            "tests/integration/test_retrieval.py::test_branch_and_version_scoped_claims_coexist"
           ],
           "platforms": [
             "linux",
@@ -706,7 +708,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: per-scope version and branch predicates evaluate independently; keeping both claims active and contradiction handling are Tasks 10/11. Task 10: same-key claims under certainly disjoint branch/version conditions form no consolidation group, stay active, raise no question; a success under other conditions is context, not contradiction. Packet composition is Task 11."
+          "notes": "Task 8 slice: per-scope version and branch predicates evaluate independently; keeping both claims active and contradiction handling are Tasks 10/11. Task 10: same-key claims under certainly disjoint branch/version conditions form no consolidation group, stay active, raise no question; a success under other conditions is context, not contradiction. Packet composition is Task 11. Task 11: packets keep branch- and version-scoped claims with one proposition key in their own scope (branch_ref and PEP 440 conditions), unknown branch → both as context, no conflict item."
         }
       ]
     },
@@ -884,7 +886,9 @@
           "status": "in_progress",
           "tests": [
             "tests/unit/test_conditions.py::test_unknown_condition_cannot_caution",
-            "tests/unit/test_conditions.py::test_scope_precedes_similarity"
+            "tests/unit/test_conditions.py::test_scope_precedes_similarity",
+            "tests/integration/test_retrieval.py::test_unknown_applicability_is_context_never_caution",
+            "tests/integration/test_retrieval.py::test_hook_and_service_decisions_agree"
           ],
           "platforms": [
             "linux",
@@ -892,7 +896,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: unknown applicability yields at most context (advice_for, ContextItem validator); scope is decided before similarity (in_scope). Packet composition is Task 11."
+          "notes": "Task 8 slice: unknown applicability yields at most context (advice_for, ContextItem validator); scope is decided before similarity (in_scope). Packet composition is Task 11. Task 11: unknown applicability is at most context in packets; the hook reuses a precomputed PEP 440 result only for the exact consulted value (declared runtime), otherwise unknown."
         }
       ]
     },
@@ -915,14 +919,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_retrieval.py::test_scope_filter_runs_before_limit",
+            "tests/integration/test_retrieval.py::test_current_query_excludes_retired_claims",
+            "tests/integration/test_retrieval.py::test_linked_placeholder_redirects_and_supplies_nothing_actionable",
+            "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 11 slice: retired/quarantined/forgotten and out-of-scope records excluded before caps (service, views, live-filtered fallback rows); a linked placeholder redirects to its target and supplies no actionable context. Explicit history mode and session suppression are Task 12a/12b."
         }
       ]
     },
@@ -946,14 +956,19 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_retrieval.py::test_correction_before_the_fence_excludes_old_guidance",
+            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
+            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 11 slice: packet-level final fence (service recompile/degraded; hook fresh-snapshot fence with fenced_at timing; stale views never served). Delivery-side bounding of in-flight emission and receipts are Task 12b; forget is Task 16."
         }
       ]
     },
@@ -975,14 +990,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_retrieval.py::test_packet_budget_is_enforced"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 11 slice: the compiler's one shared 400 substitution allowance (1,400 total, no bonus without a caution, restoration ≤2,000, caller maximum binding). Suppression and session charging are Task 12b."
         }
       ]
     },
@@ -1182,7 +1200,8 @@
             "tests/integration/test_worker.py::test_budget_exhaustion_blocks_launch_but_not_capture",
             "tests/integration/test_worker.py::test_declaration_cannot_bypass_exhausted_budget",
             "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
-            "tests/integration/test_worker.py::test_input_estimate_limits_and_model_input_cap"
+            "tests/integration/test_worker.py::test_input_estimate_limits_and_model_input_cap",
+            "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus"
           ],
           "platforms": [
             "linux",
@@ -1190,7 +1209,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4: exhausted call/input/output pools start no invocation and leave a visible waiting reason; hook capture and deterministic ingestion continue. Deterministic retrieval does not exist until Task 11."
+          "notes": "Task 4: exhausted call/input/output pools start no invocation and leave a visible waiting reason; hook capture and deterministic ingestion continue. Deterministic retrieval does not exist until Task 11. Task 11: deterministic retrieval uses no model or budget (compile paths never touch the queue or reservations)."
         }
       ]
     },
@@ -1538,7 +1557,10 @@
             "tests/integration/test_operations.py::test_worker_and_service_writer_keep_consistent_revisions",
             "tests/integration/test_operations.py::test_bookkeeping_does_not_advance_guidance_epoch",
             "tests/integration/test_operations.py::test_concurrent_writer_on_the_consulted_claim_requeues_the_worker",
-            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
+            "tests/integration/test_retrieval.py::test_receipt_does_not_invalidate_guidance_cache",
+            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
+            "tests/integration/test_worker.py::test_projection_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -1546,7 +1568,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 slice: worker applications, a service writer and a snapshot reader run concurrently; store revisions stay gapless and unique, guidance epoch advances exactly once per serving-relevant commit, bookkeeping-only commits leave it unchanged, every snapshot is internally consistent, and a concurrent write to a consulted claim requeues the worker. Packet invalidation and served-item consistency belong to Task 12b."
+          "notes": "Task 5 slice: worker applications, a service writer and a snapshot reader run concurrently; store revisions stay gapless and unique, guidance epoch advances exactly once per serving-relevant commit, bookkeeping-only commits leave it unchanged, every snapshot is internally consistent, and a concurrent write to a consulted claim requeues the worker. Packet invalidation and served-item consistency belong to Task 12b. Task 11: guidance changes invalidate views/packets, receipt-only revisions do not; views are written with the epochs of the snapshot they render. Packet invalidation at delivery is Task 12b."
         }
       ]
     },
@@ -2218,7 +2240,12 @@
             "tests/platform/test_hook_imports.py::test_each_fast_module_and_package_initializer_is_stdlib_only",
             "tests/platform/test_hook_imports.py::test_fast_entry_imports_only_stdlib_and_fast",
             "tests/platform/test_hook_imports.py::test_hook_worker_start_is_the_only_process_effect",
-            "tests/platform/test_worker_lifecycle.py::test_worker_start_is_shed_under_deadline_pressure"
+            "tests/platform/test_worker_lifecycle.py::test_worker_start_is_shed_under_deadline_pressure",
+            "tests/integration/test_retrieval.py::test_hook_reads_are_read_only",
+            "tests/integration/test_retrieval.py::test_store_snapshot_unavailable_degrades",
+            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
+            "tests/integration/test_retrieval.py::test_bounded_live_dependency_check",
+            "tests/platform/test_hook_imports.py::test_hook_context_compiler_is_stdlib_and_read_only"
           ],
           "platforms": [
             "linux",
@@ -2226,7 +2253,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only)."
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13."
         },
         {
           "variant": "full_only",
@@ -2399,7 +2426,10 @@
             "tests/integration/test_consolidation.py::test_branch_merge_with_unchanged_dependencies_keeps_applicability",
             "tests/integration/test_consolidation.py::test_changed_dependency_marks_for_revalidation",
             "tests/integration/test_consolidation.py::test_missing_dependency_value_is_unknown",
-            "tests/integration/test_consolidation.py::test_written_after_evidence_dependency_resolves_unknown"
+            "tests/integration/test_consolidation.py::test_written_after_evidence_dependency_resolves_unknown",
+            "tests/integration/test_retrieval.py::test_failure_recheck_and_dependency_change_remove_caution",
+            "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_is_checked_live",
+            "tests/integration/test_retrieval.py::test_dependency_free_lesson_never_cautions"
           ],
           "platforms": [
             "linux",
@@ -2407,7 +2437,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11. Task 10: code-resolved fingerprints; a merge with unchanged dependencies keeps caution on every branch; a certified write marks dependents (transitively) needs_revalidation and suppresses caution on any branch; explicit branch_ref still applies; a dependency-preserving change does nothing. Packet delivery is Tasks 11/12b."
+          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11. Task 10: code-resolved fingerprints; a merge with unchanged dependencies keeps caution on every branch; a certified write marks dependents (transitively) needs_revalidation and suppresses caution on any branch; explicit branch_ref still applies; a dependency-preserving change does nothing. Packet delivery is Tasks 11/12b. Task 11: changed or missing dependencies suppress caution in packets regardless of branch (captured write, or the bounded live check for an uncaptured edit); a dependency-free lesson never cautions."
         }
       ]
     },
@@ -2668,14 +2698,21 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_retrieval.py::test_every_delivery_row_reaches_the_compiler",
+            "tests/integration/test_retrieval.py::test_candidates_are_tentative_only_for_the_bound_task_or_exact_action",
+            "tests/integration/test_retrieval.py::test_intent_question_is_one_conflict_item",
+            "tests/integration/test_retrieval.py::test_warning_contains_cause_and_retry_condition",
+            "tests/integration/test_retrieval.py::test_hook_and_service_decisions_agree"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 11: every §8.2 row in both compilers with registered reason codes; expired/redacted support (field or live payload state) omitted; tentative and conflict labels preserved. Deterministic mechanics with recorded proposals and synthetic store states for Task 15/16 writes; awaiting CI on all three platforms and the Task 18 gate."
         }
       ]
     },

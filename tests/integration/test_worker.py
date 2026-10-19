@@ -1121,3 +1121,55 @@ def test_revision_crash_matches_reference(tmp_path, failpoint):
         calls = log.read_text(encoding="utf-8").split() if log.exists() else []
         assert max((calls.count(j) for j in set(calls)), default=0) <= 2  # at most the killed launch and one relaunch per model job
         assert {s for _, s in ws.state(root)["usage"]} == {"charged"}
+
+
+PROJECTION_MATRIX = [*failpoints.RETRIEVAL, failpoints.INGEST_AFTER_COMMIT, failpoints.JOB_BEFORE_COMPLETE_COMMIT, failpoints.JOB_AFTER_COMPLETE]
+
+
+@pytest.mark.parametrize("failpoint", PROJECTION_MATRIX)
+def test_projection_crash_matches_reference(tmp_path, failpoint):
+    """Killed while the projection step reindexes or publishes views (or while the work that moves the epochs commits).
+
+    The Task 10 revision scenario, built without any projection: nothing is
+    indexed or published when the driver starts, and every application the
+    driver runs (FailureRecheck and dependency marking at ingestion, review
+    activation, revalidation) advances the guidance epoch again. The reference
+    run logs each failpoint hit with whether the index lagged the store
+    revision, the views lagged the epochs, or Task 10 work was unfinished;
+    each repetition kills at one of those hits (first, middle, last), the
+    killed store must differ from the reference, and the restarted store must
+    equal it: the Task 10 state, the projection (index terms and documents,
+    views and fallback rows with IDs normalized; both current) and the packets
+    the service and the hook compile from it for the real ``test_mid`` action.
+    """
+    import consolidation_scenarios as csc
+    import retrieval_scenarios as rsc
+
+    def snapshot(root):
+        return (osc.normalized(root), csc.revision_state(root), rsc.projection_state(root), rsc.packets(root))
+
+    reference_root = rsc.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = snapshot(reference_root)
+    projection = reference[2]
+    assert projection["current"] and projection["views"] and projection["terms"]
+    service_items, source, hook_items = reference[3]
+    assert source == "view" and service_items and hook_items  # the final views serve the final state
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+    assert mine, f"{failpoint} is never reached while projection work is outstanding"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = rsc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert snapshot(root) != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        got = snapshot(root)
+        assert got[0] == reference[0] and got[1] == reference[1], (failpoint, rep)
+        assert got[2] == reference[2], (failpoint, rep)
+        assert got[3] == reference[3], (failpoint, rep)

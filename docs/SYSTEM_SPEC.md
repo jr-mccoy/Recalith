@@ -361,7 +361,7 @@ The model may propose values in this schema. It cannot introduce executable expr
 5. Rank for task relevance, specificity, supported usefulness, freshness, and diversity. Memory popularity is not truth.
 6. Assemble a bounded packet with per-item explanations and omitted-count metadata.
 
-Lexical retrieval uses SQLite FTS5 when available and a deterministic token-index fallback otherwise. Exact identifiers and paths retain structural indexes. Semantic retrieval is disposable and optional; no claim may exist only as a vector. Reranking with a model is permitted asynchronously when time permits. Synchronous hooks never wait for a model.
+Lexical retrieval uses SQLite FTS5 when available and a deterministic token-index fallback otherwise (the same tokenizer feeds both; the worker maintains the disposable index after commits, readers cover its lag from live heads, decision 0013). Exact identifiers and paths retain structural indexes. Semantic retrieval is disposable and optional; no claim may exist only as a vector. Reranking with a model is permitted asynchronously when time permits. Synchronous hooks never wait for a model.
 
 ### 8.2 Delivery contract
 
@@ -382,7 +382,7 @@ Context eligibility is also explicit. All rows require project/task eligibility,
 | Disputed | Any | Accessible conflicting evidence | One bounded `conflict` item with both sides and uncertainty |
 | Superseded/invalidated/forgotten/quarantined/archived | Any | Any | Omit from automatic guidance; history access obeys retention/forget rules |
 
-A fresh typed tool outcome in the session overlay may be delivered as `context` with its exact result and coverage; it is not a durable claim and never becomes `caution` merely from an exit code. Weak/candidate content is never repeated merely to encourage eventual acceptance. Unknown applicability may be contextual only under this table and never supplies a caution.
+Weak means weak strength as well as candidate status: both are labeled tentative. Caution's action-specific match is the query action's exact action family, or action conditions (`action_kind`, `tool`, `path`) that all evaluate true; a disputed claim's conflict item shows its support and its contradiction; an open intent question is one conflict item with its declarations folded into it; the bound task's latest certified results are a separate group of recent observations (decision 0013). A fresh typed tool outcome in the session overlay may be delivered as `context` with its exact result and coverage; it is not a durable claim and never becomes `caution` merely from an exit code. Weak/candidate content is never repeated merely to encourage eventual acceptance. Unknown applicability may be contextual only under this table and never supplies a caution.
 
 The engine records emitted IDs and revisions, not merely candidates retrieved. Unchanged warnings are suppressed after delivery unless relevant conditions change. Post-compaction delivery may repeat necessary active facts because the prior context may have been removed; it is marked as a restoration rather than new support.
 

@@ -271,17 +271,22 @@ def main(argv: list[str]) -> int:
     import consolidation_scenarios as revision
 
     revision_spec = revision.scenario(root)  # Task 10: FailureRecheck, dependency changes, revalidation and its review
+    import retrieval_scenarios as retrieval
+
+    retrieval_spec = retrieval.scenario(root)  # Task 11: the projection (index and views) over the Task 10 scenario
     if len(argv) > 3 and argv[3] == "count":
         hits = Path(argv[4])
         if lineage_spec:
             import lineage_scenarios as lineage_s
 
         def record_hit(name: str) -> None:
-            state = provider.outstanding(root) if spec else lineage_s.outstanding(root) if lineage_spec else admission.outstanding(root) if admission_spec else revision.outstanding(root) if revision_spec else pending_work(root)
+            state = retrieval.outstanding(root) if retrieval_spec else provider.outstanding(root) if spec else lineage_s.outstanding(root) if lineage_spec else admission.outstanding(root) if admission_spec else revision.outstanding(root) if revision_spec else pending_work(root)
             with open(hits, "a", encoding="utf-8") as fh:
                 fh.write(f"{name} {state}\n")
 
         names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER + failpoints.ADMISSION + failpoints.REVISION
+        if retrieval_spec:
+            names += failpoints.RETRIEVAL
         if lineage_spec or revision_spec:
             names += failpoints.LINEAGE + (failpoints.INGEST_BEGIN, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT, failpoints.INGEST_AFTER_UNLINK)
         for name in names:
