@@ -384,6 +384,26 @@ def release(txn: Txn, job: Job, *, reason: str | None = None) -> Job:
     return released
 
 
+RETRYABLE_STATES = frozenset({"failed"})
+
+
+def retry(txn: Txn, job_id: str, *, now: str) -> Job:
+    """The explicit retry of a ``failed`` job (operator ``recalith jobs retry``).
+
+    The job is pending and due now with a fresh backoff sequence; its lease
+    generation is kept, so any result of an earlier attempt stays fenced. A
+    completed, cancelled or still-live job is not retried.
+    """
+    current = get_job(txn, job_id)
+    if current is None:
+        raise RecalithError("invalid_schema", "no such job in this installation")
+    if current.state not in RETRYABLE_STATES:
+        raise RecalithError("policy_refused", f"only a failed job can be retried (this one is {current.state})")
+    retried = current.model_copy(update={"state": "pending", "due_at": now, "attempt": 0, "lease_owner": None, "lease_until": None, "last_error_code": None})
+    _save(txn, retried)
+    return retried
+
+
 def renew(store: Store, job: Job, *, now: str, config: BudgetConfig) -> Job:
     with fenced(store, job, now=now) as txn:
         renewed = _current(txn, job).model_copy(update={"lease_until": _plus(now, lease_seconds(job.kind, config))})

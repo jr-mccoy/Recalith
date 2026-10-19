@@ -197,6 +197,7 @@ class _Run:
     read_set: ReadSet | None = None  # what the proposal consulted (a revalidation settles only what it read)
     revalidate_claims: set[str] = field(default_factory=set)  # claims whose activation now owes a revalidation
     decided: dict[str, str] = field(default_factory=dict)  # claim -> operation kind that changed it (revalidation jobs)
+    review_origin: str | None = None  # the guarded operator transport's origin for its candidates (operator_correction)
 
     @property
     def revalidating(self) -> bool:
@@ -338,6 +339,8 @@ def _queue(run: _Run, ref: RecordRef, data: dict[str, Any]) -> None:
         return
     if run.source == "proposal" or run.ctx.actor.kind != "operator":
         origin = "extracted"
+    elif run.review_origin is not None:
+        origin = run.review_origin
     else:
         origin = "typed_declaration" if data.get("basis") == "user_declared" else "operator_declaration"
     run.review_queue.append(review.Queued(ref=ref, claim_kind=data["kind"], basis=data["basis"], origin=origin))
@@ -1115,6 +1118,7 @@ def apply_in_transaction(
     submission_id: str,
     now: str,
     kind: str = REDUCTION_KIND,
+    review_origin: str | None = None,
 ) -> ApplyResult:
     """Apply typed operations inside a write transaction the caller already holds.
 
@@ -1122,7 +1126,10 @@ def apply_in_transaction(
     revision checks, atomic groups, deterministic operation IDs, the
     ``@apply`` record, the epochs), used by the deterministic reducer inside
     its fenced ingest job so typed reduction and job completion commit
-    together. ``kind`` is ``apply_reduction`` for the reducer.
+    together. ``kind`` is ``apply_reduction`` for the reducer. The guarded
+    operator transport (Task 12a) applies a correction with ``kind``
+    ``apply_service`` and ``review_origin="operator_correction"`` so its
+    replacement's review is recorded as a correction (same review path).
     """
     if not policy.allowed_kinds(ctx.actor):
         raise RecalithError("policy_refused", "this actor cannot apply memory operations")
@@ -1132,7 +1139,9 @@ def apply_in_transaction(
     if done is not None:
         return done
     source = "reduction" if kind == REDUCTION_KIND else "service"
-    run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id, source=source, read_set=read_set)
+    if review_origin is not None and review_origin not in ("operator_declaration", "operator_correction", "typed_declaration"):
+        raise ValueError("unknown review origin")
+    run = _Run(ctx=ctx, txn=txn, scope_id=submission_id, digest=digest, now=now, job=None, proposal_id=None, causal_root=submission_id, source=source, read_set=read_set, review_origin=review_origin)
     return _apply(run, response, read_set, kind=kind)
 
 

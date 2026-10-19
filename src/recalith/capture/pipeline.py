@@ -210,6 +210,48 @@ def _revise(txn: Any, ctx: InstallationContext, merged: dict[str, RecordRef], ma
         revalidate.enqueue(txn, claims, now=now)
 
 
+def ingest_in_transaction(txn: Any, ctx: InstallationContext, envelopes: Sequence[EventEnvelope], *, now: str) -> tuple[dict[str, int], str | None]:
+    """Commit envelopes inside the caller's write transaction, exactly as segment ingestion does.
+
+    Inserts each event once (duplicate vs ``source_conflicts``), records its
+    session, environment observations and root-class membership, runs the
+    FailureRecheck/dependency/conflict revision hooks, and enqueues the one
+    idempotent ``ingest`` job for the newly inserted events. ``ingest_ready``
+    uses it per segment; the guarded operator service uses it for the
+    declaration/correction event it applies in the same transaction.
+    Returns the per-outcome counts and the created ``ingest`` job (or None).
+    """
+    from recalith.controller import revalidate as revision  # deferred: revision builds on the capture pipeline
+
+    counts = {"inserted": 0, "duplicate": 0, "conflict": 0}
+    inserted: list[EventEnvelope] = []
+    merged: dict[str, RecordRef] = {}
+    marked: list[str] = []
+    for env in envelopes:
+        sources.ensure_session(txn, ctx, session_id=env.session_id, adapter_id=env.adapter_id, host_session_id=env.host_session_id, started_at=env.occurred_at)
+        outcome, ident = repository.insert_event(txn, ctx, env)
+        counts[outcome] += 1
+        if outcome == "inserted":
+            inserted.append(env)
+            observations = provenance.observe_event(txn, ctx, env)
+            registered = lineage.register_event(txn, env)
+            if registered is not None:
+                merged.update((ref.id, ref) for ref in registered.affected_claims)
+            marked += revision.on_ingested(txn, ctx, env, observations=observations, now=now)
+            _session_lifecycle(txn, env)
+        elif outcome == "conflict":
+            original = txn.one("SELECT original_event_id FROM source_conflicts WHERE conflict_id = ?", (ident,))
+            if original is not None:
+                revision.on_conflict(txn, ctx, original[0], ident, now=now)
+    job_id = None
+    if inserted:
+        refs = [RecordRef(kind="event", id=e.event_id, revision=1) for e in inserted]
+        job_id, created = repository.enqueue_job(txn, kind="ingest", input_refs=refs)
+        job_id = job_id if created else None
+    _revise(txn, ctx, merged, [c for c in marked if revision.model_pending(txn, c)], now=now)
+    return counts, job_id
+
+
 def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
     """Commit ready segments to the store, then remove them."""
     dirs = spool.SpoolDirs(ctx.root)
@@ -230,45 +272,17 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
                 spool.quarantine_segment(dirs, path, "foreign")
                 spool.record_gap(dirs, code="segment_quarantined", reason="foreign_installation", event_count=len(segment.envelopes), at=utc_now())
                 continue
-            counts = {"inserted": 0, "duplicate": 0, "conflict": 0}
             registration_gaps: list[str] = []
             try:
                 with store.transaction() as txn:
-                    from recalith.controller import revalidate as revision  # deferred: revision builds on the capture pipeline
-
                     failpoints.hit(failpoints.INGEST_BEGIN)
-                    now = utc_now()
-                    inserted: list[EventEnvelope] = []
-                    merged: dict[str, RecordRef] = {}
-                    marked: list[str] = []
-                    for env in segment.envelopes:
-                        sources.ensure_session(txn, ctx, session_id=env.session_id, adapter_id=env.adapter_id, host_session_id=env.host_session_id, started_at=env.occurred_at)
-                        outcome, ident = repository.insert_event(txn, ctx, env)
-                        counts[outcome] += 1
-                        if outcome == "inserted":
-                            inserted.append(env)
-                            observations = provenance.observe_event(txn, ctx, env)
-                            registered = lineage.register_event(txn, env)
-                            if registered is not None:
-                                merged.update((ref.id, ref) for ref in registered.affected_claims)
-                            marked += revision.on_ingested(txn, ctx, env, observations=observations, now=now)
-                            _session_lifecycle(txn, env)
-                        elif outcome == "conflict":
-                            original = txn.one("SELECT original_event_id FROM source_conflicts WHERE conflict_id = ?", (ident,))
-                            if original is not None:
-                                revision.on_conflict(txn, ctx, original[0], ident, now=now)
+                    counts, job_id = ingest_in_transaction(txn, ctx, segment.envelopes, now=utc_now())
                     for registration in segment.source_registrations:
                         refused = sources.register_proposal(txn, ctx, registration)
                         if refused:
                             registration_gaps.append(refused)
                     for proposal in segment.cursor_proposals:
                         sources.apply_cursor(txn, proposal.source_id, proposal.cursor)
-                    job_id = None
-                    if inserted:
-                        refs = [RecordRef(kind="event", id=e.event_id, revision=1) for e in inserted]
-                        job_id, created = repository.enqueue_job(txn, kind="ingest", input_refs=refs)
-                        job_id = job_id if created else None
-                    _revise(txn, ctx, merged, [c for c in marked if revision.model_pending(txn, c)], now=now)
                     failpoints.hit(failpoints.INGEST_BEFORE_COMMIT)
             except RecalithError as exc:
                 if exc.code not in QUARANTINE_CODES:

@@ -32,6 +32,7 @@ from recalith.contracts.common import Actor, InstallationContext, new_id, utc_no
 from recalith.contracts.config import ProjectConfig
 from recalith.core.paths import canonical, private_mkdir, root_identity, same_location
 from recalith.errors import RecalithError
+from recalith.fast import failpoints
 from recalith.storage import db
 
 DIR = ".recalith"
@@ -252,18 +253,24 @@ def _engine_lock() -> str:
     )
 
 
-def _local_toml(installation_id: str, workspace_id: str, root: Path) -> str:
-    return dump_toml(
-        {
-            "local_schema": 1,
-            "installation_id": installation_id,
-            "workspace_id": workspace_id,
-            "workspace_root": str(root),
-            "root_identity": root_identity(root),
-            "created_at": utc_now(),
-        },
-        header="Private installation identity for this machine (never tracked).",
-    )
+LOCAL_HEADER = "Private installation identity for this machine (never tracked)."
+# Operator-token verifier tables in local.toml (SYSTEM_SPEC §13.1; decision 0014).
+VERIFIERS = "operator_verifiers"
+REVOKED = "operator_revoked"
+
+
+def _local_toml(installation_id: str, workspace_id: str, root: Path, *, verifiers: Mapping[str, str] | None = None) -> str:
+    data: dict[str, Any] = {
+        "local_schema": 1,
+        "installation_id": installation_id,
+        "workspace_id": workspace_id,
+        "workspace_root": str(root),
+        "root_identity": root_identity(root),
+        "created_at": utc_now(),
+    }
+    if verifiers:
+        data[VERIFIERS] = dict(verifiers)
+    return dump_toml(data, header=LOCAL_HEADER)
 
 
 def _context(layout: Layout, local: Mapping[str, Any], meta: db.Meta, actor: Actor) -> InstallationContext:
@@ -280,11 +287,15 @@ def _context(layout: Layout, local: Mapping[str, Any], meta: db.Meta, actor: Act
     )
 
 
-def initialize_installation(root: Path, config: ProjectConfig) -> InstallationContext:
+def initialize_installation(root: Path, config: ProjectConfig, *, operator_verifiers: Mapping[str, str] | None = None) -> InstallationContext:
     """Create a new private installation in ``root``; never overwrites a live store.
 
     The returned context carries a neutral controller actor; callers resolve
     the installation again with the actor their guarded transport assigned.
+    ``operator_verifiers`` (token ID → one-way verifier) are installed in the
+    same ``local.toml`` write that completes the installation, including when
+    this call completes an interrupted init, so a token-provisioned first init
+    never ends with an installation that lacks its verifier.
     """
     if not Path(root).is_dir():
         raise RecalithError("invalid_schema", "project root must be an existing directory")
@@ -297,7 +308,7 @@ def initialize_installation(root: Path, config: ProjectConfig) -> InstallationCo
     if layout.db.exists():
         if layout.local_toml.exists():
             raise RecalithError("policy_refused", "an installation already exists here; init never resets memory")
-        _complete_interrupted_init(layout)
+        _complete_interrupted_init(layout, verifiers=operator_verifiers)
         return resolve_installation(root, actor=INITIALIZER)
     require_local_filesystem(root)
     private_mkdir(layout.base)
@@ -327,12 +338,13 @@ def initialize_installation(root: Path, config: ProjectConfig) -> InstallationCo
     if os.name != "nt":
         os.chmod(tmp_db, 0o600)
     os.replace(tmp_db, layout.db)
+    failpoints.hit(failpoints.INIT_AFTER_STORE)
     # local.toml is written last: its presence marks a complete installation.
-    _atomic_write(layout.local_toml, _local_toml(installation_id, workspace_id, root), private=True)
+    _atomic_write(layout.local_toml, _local_toml(installation_id, workspace_id, root, verifiers=operator_verifiers), private=True)
     return resolve_installation(root, actor=INITIALIZER)
 
 
-def _complete_interrupted_init(layout: Layout) -> None:
+def _complete_interrupted_init(layout: Layout, *, verifiers: Mapping[str, str] | None = None) -> None:
     """Finish an init that crashed after the store rename but before local.toml."""
     conn = db.connect(layout.db, readonly=True)
     try:
@@ -342,7 +354,7 @@ def _complete_interrupted_init(layout: Layout) -> None:
         conn.close()
     if row is None or not same_location(row[1], layout.root):
         raise RecalithError("policy_refused", "a store without local identity exists here and does not belong to this root")
-    _atomic_write(layout.local_toml, _local_toml(meta.installation_id, row[0], layout.root), private=True)
+    _atomic_write(layout.local_toml, _local_toml(meta.installation_id, row[0], layout.root, verifiers=verifiers), private=True)
 
 
 def _read_local(layout: Layout) -> dict[str, Any]:
@@ -431,7 +443,7 @@ def rebind_installation(root: Path, *, actor: Actor) -> InstallationContext:
     finally:
         conn.close()
     updated = dict(local, workspace_root=str(root), root_identity=root_identity(root))
-    _atomic_write(layout.local_toml, dump_toml(updated, header="Private installation identity for this machine (never tracked)."), private=True)
+    _atomic_write(layout.local_toml, dump_toml(updated, header=LOCAL_HEADER), private=True)
     return resolve_installation(root, actor=actor)
 
 
@@ -454,3 +466,41 @@ def discard_copied_private_state(root: Path, *, actor: Actor) -> None:
     layout.local_toml.unlink()
     for name in PRIVATE_DIRS:
         shutil.rmtree(layout.base / name, ignore_errors=True)
+
+
+# --------------------------------------------------------------------------
+# Operator-token verifiers (installation-local; no global registry)
+
+
+def operator_tokens(root: Path) -> tuple[dict[str, str], dict[str, str]]:
+    """The installation's ``(verifiers, revoked)`` maps from ``local.toml``."""
+    local = _read_local(Layout(canonical(root)))
+    verifiers = local.get(VERIFIERS) or {}
+    revoked = local.get(REVOKED) or {}
+    if not isinstance(verifiers, dict) or not isinstance(revoked, dict):
+        raise RecalithError("invalid_schema", "local.toml operator-token tables are malformed")
+    return {str(k): str(v) for k, v in verifiers.items()}, {str(k): str(v) for k, v in revoked.items()}
+
+
+def update_operator_tokens(root: Path, *, register: Mapping[str, str] | None = None, revoke: str | None = None) -> None:
+    """Register verifiers and/or record a revocation with one atomic ``local.toml`` replace.
+
+    Revocation is permanent for this installation: a revoked token ID is never
+    registered again. The caller has already passed the operator guard.
+    """
+    layout = Layout(canonical(root))
+    local = _read_local(layout)
+    verifiers, revoked = operator_tokens(layout.root)
+    for token_id, verifier in (register or {}).items():
+        if token_id in revoked:
+            raise RecalithError("policy_refused", "this operator token was revoked for this installation")
+        verifiers[token_id] = verifier
+    if revoke is not None:
+        revoked[revoke] = utc_now()
+        verifiers.pop(revoke, None)
+    updated = {k: v for k, v in local.items() if k not in (VERIFIERS, REVOKED)}
+    if verifiers:
+        updated[VERIFIERS] = verifiers
+    if revoked:
+        updated[REVOKED] = revoked
+    _atomic_write(layout.local_toml, dump_toml(updated, header=LOCAL_HEADER), private=True)

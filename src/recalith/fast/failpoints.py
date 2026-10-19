@@ -41,6 +41,15 @@ JOB_AFTER_COMPLETE = "job.after_complete"
 PROPOSAL_BEFORE_COMMIT = "proposal.before_commit"
 APPLY_AFTER_GROUP = "apply.after_group"
 SERVICE_BEFORE_COMMIT = "service.before_commit"
+# Guarded operator service (Task 12a): inside a declaration/correction
+# transaction after its operator event was inserted (application, review
+# scheduling and commit pending); after that transaction committed (the result
+# not yet reported to the caller); inside ``init`` after the new store was
+# renamed into place, before ``local.toml`` (with any operator-token verifier)
+# marks the installation complete.
+SERVICE_AFTER_EVENT = "service.after_event"
+SERVICE_AFTER_COMMIT = "service.after_commit"
+INIT_AFTER_STORE = "init.after_store"
 # Typed reduction and binding application (Task 6): inside an ingest job's
 # fenced transaction after the reducer's first application (bindings and
 # typed facts written, later passes, episodes and job completion pending);
@@ -89,7 +98,7 @@ CAPTURE = (
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
 )
 WORKER = (JOB_AFTER_LEASE, JOB_AFTER_RESERVE, PROPOSAL_BEFORE_COMMIT, JOB_AFTER_PROPOSAL, APPLY_AFTER_GROUP, JOB_BEFORE_COMPLETE_COMMIT, JOB_AFTER_COMPLETE)
-SERVICE = (SERVICE_BEFORE_COMMIT,)
+SERVICE = (SERVICE_AFTER_EVENT, SERVICE_BEFORE_COMMIT, SERVICE_AFTER_COMMIT, INIT_AFTER_STORE)
 REDUCTION = (REDUCE_AFTER_APPLY, BINDING_AFTER_REBIND)
 PROVIDER = (REQUEST_AFTER_BATCH, PROVIDER_AFTER_SPAWN)
 LINEAGE = (ROOTS_AFTER_MERGE,)

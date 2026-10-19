@@ -261,6 +261,23 @@ def pending_work(root: Path) -> str:
 def main(argv: list[str]) -> int:
     """``ROOT CALLS_LOG [FAILPOINT SKIP | count HITS_LOG]``: optionally kill at one failpoint hit, or log every hit."""
     root, calls_log = Path(argv[1]), Path(argv[2])
+    import cli_scenarios as cli
+
+    cli_spec = cli.scenario(root)  # Task 12a: guarded service writes, retried as a whole after a kill
+    if cli_spec is not None:
+        if len(argv) > 3 and argv[3] == "count":
+            hits_path = Path(argv[4])
+
+            def record_service_hit(name: str) -> None:
+                with open(hits_path, "a", encoding="utf-8") as fh:
+                    fh.write(f"{name} {cli.outstanding(root)}\n")
+
+            for name in (*failpoints.SERVICE, failpoints.REVIEW_AFTER_SCHEDULE):
+                failpoints.arm(name, record_service_hit, times=10**6)
+        elif len(argv) > 3:
+            failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
+        cli.run_script(root, cli_spec)
+        return 0
     import provider_scenarios as provider
 
     spec = provider.scenario(root)

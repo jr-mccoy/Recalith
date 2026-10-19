@@ -297,7 +297,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 12a: Public service and CLI contracts
 
-**Files:** Create `src/recalith/service.py`, `src/recalith/cli/{main,inspect,mutate,operator_guard}.py`, `src/recalith/__main__.py`, and `tests/integration/test_cli.py`.
+**Files:** Create `src/recalith/service.py`, `src/recalith/cli/{main,inspect,mutate,operator_guard}.py`, `src/recalith/__main__.py`, and `tests/integration/test_cli.py`. The task also added `src/recalith/cli/__init__.py`, `capture.pipeline.ingest_in_transaction` (the ingestion helper the guarded writes reuse), `apply_in_transaction(..., review_origin=)`, `jobs.retry`, operator-token verifier tables in `local.toml` (`core.identity.operator_tokens`/`update_operator_tokens`, `initialize_installation(..., operator_verifiers=)`), the failpoints `service.after_event`, `service.after_commit` and `init.after_store`, the builders `tests/integration/cli_scenarios.py`, the kill/restart matrix `test_service_write_crash_matches_reference` and the layering audits in `tests/platform/test_hook_imports.py` (decision 0014; no schema change).
 
 **Interfaces:** Produce `declare(ctx: InstallationContext, kind: str, statement: str, scope: Scope) -> ApplyResult` under the operator-only policy and expose implemented domain operations through the exact CLI forms in DATA_CONTRACTS, including `declare`, `correct`, `integrate --remove`, operator token-file forms, and exit codes 6/7/8. Service results never print and never import a host entry point.
 
