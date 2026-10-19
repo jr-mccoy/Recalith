@@ -11,6 +11,7 @@ probes a runtime (SYSTEM_SPEC §5.1.1).
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -184,3 +185,33 @@ def test_hook_context_compiler_is_stdlib_and_read_only(tmp_path):
         assert all("mode=ro" in a and "immutable" not in a for a in connects), connects
         assert not [m for m in rep["new"] if m.startswith(("recalith.retrieval", "recalith.storage", "recalith.contracts", "recalith.controller"))]
     assert {e for e, _ in report["audit"]} == {"sqlite3.connect", "sqlite3.connect/handle"}  # snapshots and the fresh fence only
+
+
+LAYER_PROBE = r"""
+import importlib, json, sys
+importlib.import_module(sys.argv[1])
+print(json.dumps(sorted(m for m in sys.modules if m.startswith("recalith"))))
+"""
+
+
+@pytest.mark.parametrize("module", ["recalith.service", "recalith.controller.worker", "recalith.retrieval.compile", "recalith.capture.pipeline", "recalith.controller.apply"])
+def test_service_and_domain_import_no_cli_or_host_entry(module):
+    """Task 12a layering: the domain and the service import no CLI module; the service imports no host entry point."""
+    out = subprocess.run([sys.executable, "-I", "-c", LAYER_PROBE, module], capture_output=True, text=True, encoding="utf-8", timeout=120, check=True)
+    loaded = set(json.loads(out.stdout))
+    assert not {m for m in loaded if m == "recalith.cli" or m.startswith("recalith.cli.") or m == "recalith.__main__"}, module
+    if module == "recalith.service":
+        assert not loaded & {"recalith.fast.entry", "recalith.fast.claude_capture", "recalith.fast.context"}
+
+
+def test_no_domain_module_names_the_cli():
+    """Static check: only the CLI package and ``recalith.__main__`` import ``recalith.cli``."""
+    offenders = []
+    for path in (ROOT / "src" / "recalith").rglob("*.py"):
+        rel = path.relative_to(ROOT / "src" / "recalith").as_posix()
+        if rel.startswith("cli/") or rel == "__main__.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if re.search(r"^\s*(from\s+recalith\.cli\b|import\s+recalith\.cli\b|from\s+recalith\s+import\s+.*\bcli\b)", text, re.MULTILINE):
+            offenders.append(rel)
+    assert offenders == []

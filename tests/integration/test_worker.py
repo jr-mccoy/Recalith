@@ -1173,3 +1173,49 @@ def test_projection_crash_matches_reference(tmp_path, failpoint):
         assert got[0] == reference[0] and got[1] == reference[1], (failpoint, rep)
         assert got[2] == reference[2], (failpoint, rep)
         assert got[3] == reference[3], (failpoint, rep)
+
+
+SERVICE_MATRIX = [*failpoints.SERVICE, failpoints.REVIEW_AFTER_SCHEDULE]
+
+
+@pytest.mark.parametrize("failpoint", SERVICE_MATRIX)
+def test_service_write_crash_matches_reference(tmp_path, failpoint):
+    """Killed inside a guarded operator write (Task 12a), then the operator re-runs the same commands: one effect each.
+
+    The session is a token-provisioned first init of a fresh checkout, a typed
+    declaration, a correction of an admitted declaration (real 2.1.301
+    lifecycle payloads; the target admitted through a recorded review) and a
+    retry of a failed job. The reference run logs every failpoint hit with
+    whether some command's effect was still owed (judged from the effects
+    themselves: the verifier that verifies the token, the claim citing the
+    declaration event and its review, the invalidated target and its
+    correction review, the job no longer failed); each repetition kills at one
+    of those hits (first, middle, last), the killed state must differ from the
+    reference, and after the re-run it must equal it.
+    """
+    import cli_scenarios as cs
+
+    reference_root = cs.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = cs.service_state(reference_root)
+    assert reference["init"]["verifies"] and ("operator_correction", 0) in reference["reviews"] and ("typed_declaration", 0) in reference["reviews"]
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while an operator command is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = cs.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert _comparable(cs.service_state(root)) != _comparable(reference), "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert _comparable(cs.service_state(root)) == _comparable(reference), (failpoint, rep)
+
+
+def _comparable(state: dict) -> dict:
+    """Event IDs derive from the installation ID: compare kinds and counts, everything else exactly."""
+    return {**state, "events": sorted(kind for _event, kind in state["events"])}

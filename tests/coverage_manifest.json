@@ -719,7 +719,8 @@
       "blocking": true,
       "owning_tasks": [
         "5",
-        "10"
+        "10",
+        "12a"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -738,7 +739,10 @@
             "tests/integration/test_operations.py::test_undo_preview_and_apply_append_compensation",
             "tests/integration/test_consolidation.py::test_explicit_replacement_is_atomic",
             "tests/integration/test_consolidation.py::test_declared_decision_is_replaced_only_by_a_reviewed_declaration",
-            "tests/integration/test_consolidation.py::test_rejected_or_stale_replacement_leaves_guidance"
+            "tests/integration/test_consolidation.py::test_rejected_or_stale_replacement_leaves_guidance",
+            "tests/integration/test_cli.py::test_correction_invalidates_atomically_and_queues_review",
+            "tests/integration/test_cli.py::test_correction_makes_held_supersession_stale",
+            "tests/integration/test_worker.py::test_service_write_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -746,7 +750,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Mechanics slice (Task 5): an operator-actor service write invalidates the expected target and creates a candidate replacement in one transaction with today's budget exhausted and no model call; guidance epoch advances; a stale expected revision fails atomically; agents cannot apply. The guarded `correct` transport is Task 12a; the replacement's separate review is Tasks 9/10; delivery suppression is 12b. Task 10: a replacement of active guidance is held until its own review; activation and supersession commit in one transaction; a decision is replaced only by a reviewed declaration. The guarded correct transport is Task 12a, delivery suppression 12b."
+          "notes": "Mechanics slice (Task 5): an operator-actor service write invalidates the expected target and creates a candidate replacement in one transaction with today's budget exhausted and no model call; guidance epoch advances; a stale expected revision fails atomically; agents cannot apply. The guarded `correct` transport is Task 12a; the replacement's separate review is Tasks 9/10; delivery suppression is 12b. Task 10: a replacement of active guidance is held until its own review; activation and supersession commit in one transaction; a decision is replaced only by a reviewed declaration. The guarded correct transport is Task 12a, delivery suppression 12b. Task 12a: the guarded `recalith correct` transport (real CLI subprocess, token caller) invalidates in one transaction (store revision and guidance epoch +1), the next compile_context packet excludes the old guidance, the replacement's review is queued as `operator_correction` with no model call, a stale --expected-revision is exit 3 with nothing applied, a held Task 10 supersession of the target goes stale, and a retried command has one effect (kill/restart matrix). Delivery-side suppression and in-flight bounds are Task 12b."
         }
       ]
     },
@@ -819,7 +823,8 @@
             "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
             "tests/integration/test_worker.py::test_provider_path_crash_matches_reference",
             "tests/integration/test_consolidation.py::test_revalidation_result_is_fenced_and_bounded",
-            "tests/integration/test_worker.py::test_revision_crash_matches_reference"
+            "tests/integration/test_worker.py::test_revision_crash_matches_reference",
+            "tests/integration/test_worker.py::test_service_write_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -827,7 +832,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule)."
         }
       ]
     },
@@ -1237,7 +1242,11 @@
           "tests": [
             "tests/unit/test_lineage.py::test_hostile_quoted_instruction_gains_no_authority",
             "tests/unit/test_lineage.py::test_same_user_declarations_collapse_into_one_authority_class",
-            "tests/unit/test_lineage.py::test_memory_echo_cannot_confirm"
+            "tests/unit/test_lineage.py::test_memory_echo_cannot_confirm",
+            "tests/integration/test_cli.py::test_operator_declaration_is_not_agent_authority",
+            "tests/integration/test_cli.py::test_observe_not_captured_returns_7",
+            "tests/integration/test_cli.py::test_agent_channel_cannot_declare_or_forget",
+            "tests/integration/test_cli.py::test_read_only_forms_need_no_guard"
           ],
           "platforms": [
             "linux",
@@ -1245,7 +1254,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: repository text is a tool/artifact observation, a quoted instruction stays the single user actor, an assistant paraphrase is no root and cannot borrow the user's root, the host task notification has no user authority, and captured content changes no policy, provider route or configuration. Guarded transports are Task 12a; Codex/generic adapters Task 14."
+          "notes": "Task 8 slice: repository text is a tool/artifact observation, a quoted instruction stays the single user actor, an assistant paraphrase is no root and cannot borrow the user's root, the host task notification has no user authority, and captured content changes no policy, provider route or configuration. Guarded transports are Task 12a; Codex/generic adapters Task 14. Task 12a: an agent's `observe` is an untrusted external generic_observation that is never a declaration root; only the guarded CLI assigns an operator actor (channel=cli alone never does; host_agent/adapter/mcp actors are refused by the service itself); marked callers cannot reach any administrative form."
         }
       ]
     },
@@ -1256,7 +1265,8 @@
       "blocking": true,
       "owning_tasks": [
         "2",
-        "13"
+        "13",
+        "12a"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -1271,7 +1281,9 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_installations.py::test_path_escape_is_refused",
-            "tests/platform/test_paths.py"
+            "tests/platform/test_paths.py",
+            "tests/integration/test_cli.py::test_scope_paths_cannot_escape_the_workspace",
+            "tests/integration/test_cli.py::test_missing_or_revoked_token_returns_6"
           ],
           "platforms": [
             "linux",
@@ -1279,7 +1291,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Linux: case-insensitive variant skipped (no casefold filesystem); macOS/Windows CI exercise it. Host integration paths are Task 13."
+          "notes": "Linux: case-insensitive variant skipped (no casefold filesystem); macOS/Windows CI exercise it. Host integration paths are Task 13. Task 12a: declaration scope paths are portable workspace-relative paths (traversal, absolute and drive paths refused as invalid input; Unicode and spaces kept); a token file reached through a symlink is refused without use."
         }
       ]
     },
@@ -2014,7 +2026,8 @@
         "2",
         "3b",
         "13",
-        "14"
+        "14",
+        "12a"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2031,7 +2044,8 @@
             "tests/integration/test_installations.py::test_missing_runtime_launcher_is_explicit_and_downloads_nothing",
             "tests/integration/test_installations.py::test_tracked_files_are_exactly_the_portable_ones",
             "tests/platform/test_capture_only_claude.py::test_missing_runtime_is_nonblocking",
-            "tests/platform/test_capture_only_claude.py::test_provisioned_runtime_launcher_reaches_the_fast_entry"
+            "tests/platform/test_capture_only_claude.py::test_provisioned_runtime_launcher_reaches_the_fast_entry",
+            "tests/integration/test_cli.py::test_agent_channel_cannot_declare_or_forget"
           ],
           "platforms": [
             "linux",
@@ -2039,7 +2053,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13."
+          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13. Task 12a: the provisioned project launcher (sh `.recalith/bin/recalith`, `recalith.cmd` on Windows) runs the real guarded CLI in the refusal matrix."
         },
         {
           "variant": "full_only",
@@ -2337,7 +2351,11 @@
             "tests/integration/test_claim_admission.py::test_regions_are_newline_independent_and_use_code_points",
             "tests/integration/test_worker.py::test_claim_admission_crash_matches_reference",
             "tests/integration/test_claim_admission.py::test_assessment_is_bound_to_the_snapshot_digest",
-            "tests/integration/test_claim_admission.py::test_active_reviewed_claims_stay_valid_in_later_requests"
+            "tests/integration/test_claim_admission.py::test_active_reviewed_claims_stay_valid_in_later_requests",
+            "tests/integration/test_cli.py::test_declared_preference_stays_candidate_until_supported_review",
+            "tests/integration/test_cli.py::test_operator_declaration_is_not_agent_authority",
+            "tests/integration/test_cli.py::test_human_terminal_and_token_workflow",
+            "tests/integration/test_cli.py::test_statement_with_credential_is_not_recorded"
           ],
           "platforms": [
             "linux",
@@ -2345,7 +2363,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 9 slice: the operator service route gets no bypass (candidate, typed-declaration priority, not admitted while budget-paused, admitted only by a supported review); fenced, quoted, attached, email, diff and uncertain pasted spans (tracebacks, logs, terminal output, indented code, CRLF) are never declarations, by span intersection without a first-person heuristic; the review request strips proposal reasons and self-confidence and keeps exact evidence; missing, duplicate, foreign and stale verdicts never activate while valid ones apply; revise carries objections only; review_capacity keeps a weak candidate and schedules nothing. The guarded recalith declare transport and its operator_declaration event are Task 12a."
+          "notes": "Task 9 slice: the operator service route gets no bypass (candidate, typed-declaration priority, not admitted while budget-paused, admitted only by a supported review); fenced, quoted, attached, email, diff and uncertain pasted spans (tracebacks, logs, terminal output, indented code, CRLF) are never declarations, by span intersection without a first-person heuristic; the review request strips proposal reasons and self-confidence and keeps exact evidence; missing, duplicate, foreign and stale verdicts never activate while valid ones apply; revise carries objections only; review_capacity keeps a weak candidate and schedules nothing. The guarded recalith declare transport and its operator_declaration event are Task 12a. Task 12a: the guarded `recalith declare` records an exact operator_declaration and a weak user_declared candidate whose review is queued at the declaration band (origin typed_declaration); an exhausted budget leaves it waiting_budget and the candidate unadmitted; only a recorded supported review through the Task 9 path activates it. Live review quality is B1."
         }
       ]
     },
@@ -2800,14 +2818,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_cli.py::test_json_stdout_is_one_object",
+            "tests/integration/test_cli.py::test_observe_not_captured_returns_7",
+            "tests/integration/test_cli.py::test_degraded_capability_returns_8",
+            "tests/integration/test_cli.py::test_jobs_retry_and_unavailable_forms"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 12a: JSON stdout is exactly one object for success, partial capability and every error class; `observe` returns 7 when durability was not acknowledged (valid input) and lists accepted event IDs otherwise; status/doctor and degraded context packets return 8 with registered reasons; unavailable forms return 4 naming their owner. Packet `why` reason codes are validated by the strict ContextItem (Task 11). Host hooks' nonblocking delivery branch is Task 12b."
         }
       ]
     },
@@ -2834,7 +2858,24 @@
           "tests": [
             "tests/platform/test_worker_lifecycle.py::test_registered_start_needs_no_operator_cli",
             "tests/platform/test_hook_imports.py::test_hook_worker_start_is_the_only_process_effect",
-            "tests/platform/test_worker_lifecycle.py::test_internal_worker_entry_refuses_marked_or_foreign_callers"
+            "tests/platform/test_worker_lifecycle.py::test_internal_worker_entry_refuses_marked_or_foreign_callers",
+            "tests/integration/test_cli.py::test_agent_channel_cannot_declare_or_forget",
+            "tests/integration/test_cli.py::test_guarded_forms_cover_the_contract",
+            "tests/integration/test_cli.py::test_refusal_audit_is_content_free",
+            "tests/integration/test_cli.py::test_unmarked_noninteractive_refusal",
+            "tests/integration/test_cli.py::test_human_terminal_and_token_workflow",
+            "tests/integration/test_cli.py::test_audit_failure_still_refuses",
+            "tests/integration/test_cli.py::test_disk_full_audit_still_refuses",
+            "tests/integration/test_cli.py::test_preinit_refusal_creates_no_store",
+            "tests/integration/test_cli.py::test_preinit_token_bootstraps_without_tty",
+            "tests/integration/test_cli.py::test_fixture_token_initializes_noninteractively",
+            "tests/integration/test_cli.py::test_noninteractive_cannot_mint_token",
+            "tests/integration/test_cli.py::test_missing_or_revoked_token_returns_6",
+            "tests/integration/test_cli.py::test_marked_ide_tty_plus_token_still_refused",
+            "tests/integration/test_cli.py::test_registered_hook_starts_worker_without_operator_cli",
+            "tests/integration/test_cli.py::test_terminal_without_controlling_terminal_is_noninteractive",
+            "tests/integration/test_cli.py::test_root_refuses_token_owned_by_another_user",
+            "tests/platform/test_hook_imports.py::test_service_and_domain_import_no_cli_or_host_entry"
           ],
           "platforms": [
             "linux",
@@ -2842,7 +2883,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 permitted-start control only: a host-marked hook starts the worker through the registered internal path (audited single Popen of recalith.controller.worker, never the recalith CLI); the internal entry refuses marked or foreign callers. CLI refusal, tokens and audit diagnostics are Task 12a."
+          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host)."
         }
       ]
     }
