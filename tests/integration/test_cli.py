@@ -522,7 +522,7 @@ def test_registered_hook_starts_worker_without_operator_cli(tmp_path):
         "seen = []\n"
         "def hook(event, args):\n"
         "    if event == 'subprocess.Popen':\n"
-        "        seen.append([str(a) for a in args[1]])\n"
+        "        seen.append(args[1] if isinstance(args[1], str) else [str(a) for a in args[1]])\n"
         "sys.addaudithook(hook)\n"
         "from recalith.fast import entry\n"
         f"sys.argv = ['entry', '--project', {str(r)!r}, 'claude_code', '--event', 'SessionStart']\n"
@@ -540,9 +540,13 @@ def test_registered_hook_starts_worker_without_operator_cli(tmp_path):
             if spawned:
                 break
         assert spawned, "the hook never started the worker"
-        (argv,) = spawned
-        assert argv[1:4] == ["-I", "-m", "recalith.controller.worker"]  # the internal entry, never the operator CLI
-        assert not any(a in ("recalith", "recalith.cli.main") or a.endswith(("bin/recalith", "recalith.cmd")) for a in argv)
+        (cmd,) = spawned
+        # The audit event carries the argument list on POSIX and the command-line string on Windows.
+        line = subprocess.list2cmdline(cmd) if isinstance(cmd, list) else cmd
+        if isinstance(cmd, list):
+            assert cmd[1:4] == ["-I", "-m", "recalith.controller.worker"]  # the internal entry, never the operator CLI
+        assert " -I -m recalith.controller.worker --project " in line
+        assert " -m recalith " not in f"{line} " and "recalith.cli" not in line and "bin/recalith" not in line.replace("\\", "/") and "recalith.cmd" not in line
         status = wh.wait_running(r)
         assert status and status["spawn"]["spawned_by"] == "hook"
         assert status["environment"]["host_markers_present"] == [] and status["environment"]["role_marker"] == cs.context(r).installation_id
