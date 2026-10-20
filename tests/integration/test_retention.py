@@ -120,9 +120,11 @@ def test_unreferenced_payloads_expire_at_180_days(tmp_path):
         report = sweep(p, moment)
         assert report.expired == [] and rsn.states(p) == {e: "available" for e in rsn.states(p)}
     epoch = rsn.meta(p).guidance_epoch
-    # One second into day 181 for the oldest event: it expires (it is unreferenced), nothing younger does.
-    report = sweep(p, rsn.plus(first, days=180, seconds=1))
-    assert ev["session_start"] in report.expired and expired(p, ev["session_start"])
+    # One second into day 181 for the oldest event: it expires (it is unreferenced). Younger events may
+    # expire in the same sweep when the fixture was captured within one second, so expiry is counted
+    # across both sweeps below rather than per sweep.
+    early = sweep(p, rsn.plus(first, days=180, seconds=1))
+    assert ev["session_start"] in early.expired and expired(p, ev["session_start"])
     # Day 181 for every event.
     report = sweep(p, rsn.day(p, 181))
     assert available(p, *(ev[r] for r in PINNED_ROLES))
@@ -133,7 +135,8 @@ def test_unreferenced_payloads_expire_at_180_days(tmp_path):
     with p.view() as v:
         pinned = retention.pinned_events(v)
     assert {e for e, s in rsn.states(p).items() if s == "expired"} == set(rsn.states(p)) - pinned
-    assert report.expired and set(report.expired) <= set(rsn.states(p)) - pinned
+    assert not set(early.expired) & set(report.expired)  # each payload is reported once, by the sweep that expired it
+    assert set(early.expired) | set(report.expired) == set(rsn.states(p)) - pinned
     # Retention alone lowers nothing: every claim keeps status, strength, freshness and availability; the lesson still cautions.
     assert rsn.guidance(p) == before
     assert caution_ids(p) == cautions
