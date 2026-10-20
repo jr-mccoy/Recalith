@@ -58,6 +58,18 @@
       "title": "Fence Store Revision",
       "type": "integer"
     },
+    "fenced_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fenced At"
+    },
     "generated_at": {
       "title": "Generated At",
       "type": "string"
@@ -73,10 +85,23 @@
       "title": "Host Id",
       "type": "string"
     },
+    "in_flight_change": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "In Flight Change"
+    },
     "items": {
       "items": {
         "$ref": "#/$defs/EmittedItem"
       },
+      "maxItems": 64,
       "title": "Items",
       "type": "array"
     },
@@ -106,6 +131,18 @@
       "title": "Purpose",
       "type": "string"
     },
+    "restoration_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Restoration Key"
+    },
     "session_id": {
       "title": "Session Id",
       "type": "string"
@@ -133,6 +170,18 @@
       "minimum": 0,
       "title": "Tombstone Epoch",
       "type": "integer"
+    },
+    "trigger_event_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trigger Event Id"
     }
   },
   "required": [

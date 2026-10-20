@@ -116,7 +116,7 @@ class DeliveryReceipt(StrictModel):
     session_id: Id
     task_id: Id | None
     packet_digest: Digest
-    items: list[EmittedItem]
+    items: Annotated[list[EmittedItem], Field(max_length=64)]
     purpose: Purpose
     fence_store_revision: NonNegative
     guidance_epoch: NonNegative
@@ -127,11 +127,24 @@ class DeliveryReceipt(StrictModel):
     estimated_tokens: NonNegative
     pre_action_substitution_tokens: Annotated[int, Field(ge=0, le=MAX_SUBSTITUTION)]
     state: Literal["emitted", "uncertain"]
+    # Task 12b (decision 0015): the compaction cycle a restoration answers (restore once per key), the
+    # captured event whose hook delivered, when the final fence held, and whether a fresh snapshot right
+    # after the stdout flush saw the epochs move (output already in flight; never retractable; null: not checked).
+    restoration_key: Id | None = None
+    trigger_event_id: Id | None = None
+    fenced_at: UtcTime | None = None
+    in_flight_change: bool | None = None
 
     @model_validator(mode="after")
     def _emission(self) -> "DeliveryReceipt":
         if (self.state == "emitted") != (self.emitted_at is not None):
             raise ValueError("only emitted receipts carry an emission time")
+        if self.state == "uncertain" and self.in_flight_change is not None:
+            raise ValueError("only an emitted receipt reports the post-emission check")
+        if self.restoration_key is not None and self.purpose != "compact_restore":
+            raise ValueError("only a restoration packet carries a restoration key")
+        if self.pre_action_substitution_tokens > self.estimated_tokens:
+            raise ValueError("substitution is part of, not added to, the packet estimate")
         return self
 
 
@@ -161,11 +174,26 @@ class ResolvedEvidence(StrictModel):
 class ScratchEntry(StrictModel):
     attempt_id: Id
     packet_digest: Digest
-    items: list[EmittedItem]
+    items: Annotated[list[EmittedItem], Field(max_length=64)]
     state: Literal["reserved", "emitted", "uncertain"]
     purpose: Purpose
     estimated_tokens: NonNegative
     time: UtcTime
+    # Task 12b (decision 0015): what a later hook needs to spool this attempt's receipt (an uncertain
+    # one after a crash), and whether its receipt reached the spool.
+    substitution_tokens: Annotated[int, Field(ge=0, le=MAX_SUBSTITUTION)] = 0
+    task_id: Id | None = None
+    restoration_key: Id | None = None
+    trigger_event_id: Id | None = None
+    generated_at: UtcTime | None = None
+    fence_store_revision: NonNegative = 0
+    guidance_epoch: NonNegative = 0
+    policy_revision: Revision = 1
+    tombstone_epoch: NonNegative = 0
+    receipt_spooled: bool = False
+    emitted_at: UtcTime | None = None
+    fenced_at: UtcTime | None = None
+    in_flight_change: bool | None = None
 
 
 class ScratchOutcome(StrictModel):
@@ -188,9 +216,16 @@ class SessionScratch(StrictModel):
     emitted_tokens: NonNegative
     outcomes: Annotated[list[ScratchOutcome], Field(max_length=SESSION_SCRATCH_OUTCOMES)] = Field(default_factory=list)
     entries: Annotated[list[ScratchEntry], Field(max_length=SESSION_SCRATCH_ENTRIES)] = Field(default_factory=list)
+    # Task 12b (decision 0015): the restoration portion of ``reserved_tokens`` (charged outside the
+    # unchanged-memory allowance), the open compaction cycle and the cycles already restored (once each).
+    restoration_tokens: NonNegative = 0
+    compaction_key: Id | None = None
+    restored: Annotated[list[Id], Field(max_length=32)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _bounded(self) -> "SessionScratch":
         if len(canonical_json(self.model_dump(mode="json"))) > SESSION_SCRATCH_CAP:
             raise ValueError("session scratch exceeds 128 KiB")
+        if self.restoration_tokens > self.reserved_tokens or self.emitted_tokens > self.reserved_tokens:
+            raise ValueError("restoration and emitted tokens are parts of the reserved total")
         return self

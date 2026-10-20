@@ -8,10 +8,14 @@ optional update and never affects durable capture, which has already finished
 when the overlay runs. A platform without a supported lock primitive disables
 the scratch capability instead of writing unlocked.
 
-In capture-only builds (Task 3b) the only writer is the post-tool typed
-outcome overlay: an outcome references the original event ID and the
-normalized action, never a model paraphrase. Delivery entries, token
-reservations and fences arrive with Task 12b.
+Writers: the post-tool typed outcome overlay (an outcome references the
+original event ID and the normalized action, never a model paraphrase), the
+compaction notes that open a restoration cycle, and the delivery branch
+(``recalith.fast.delivery``, Task 12b), which holds the lock from its
+pre-emission reservation through the stdout flush, the receipt spool and the
+emitted mark. Totals never reset: pruning removes only entries whose receipts
+the worker has durably accounted, and an epoch mismatch clears the overlay's
+content, never the counters (decision 0015).
 """
 
 from __future__ import annotations
@@ -96,6 +100,10 @@ class SessionLock:
             self.fd = None
 
 
+MAX_ENTRIES = LIMITS["SESSION_SCRATCH_ENTRIES"]
+MAX_RESTORED = 32
+
+
 def empty_scratch(session_id: str, policy_revision: int) -> dict:
     return {
         "scratch_schema": 1,
@@ -109,7 +117,32 @@ def empty_scratch(session_id: str, policy_revision: int) -> dict:
         "emitted_tokens": 0,
         "outcomes": [],
         "entries": [],
+        "restoration_tokens": 0,
+        "compaction_key": None,
+        "restored": [],
     }
+
+
+def load(root, session_id: str, policy_revision: int) -> tuple:
+    """``(scratch, state)`` under the caller's lock: ``state`` is ``present``, ``absent`` or ``invalid``.
+
+    An invalid file is never trusted: the caller starts from an empty scratch
+    and floors its totals with the durable receipts (decision 0015).
+    """
+    if not os.path.exists(scratch_path(root, session_id)):
+        return empty_scratch(session_id, policy_revision), "absent"
+    value = read_scratch(root, session_id)
+    if value is None:
+        return empty_scratch(session_id, policy_revision), "invalid"
+    return value, "present"
+
+
+def write(root, scratch: dict) -> None:
+    """Validate and atomically replace the scratch (the caller holds the session lock)."""
+    errors, value = validate("SessionScratch", scratch)
+    if errors:
+        raise ValueError("session scratch would be invalid")
+    _write_atomic(scratch_path(root, scratch["session_id"]), canonical_json(value))
 
 
 def read_scratch(root, session_id: str) -> dict | None:
@@ -162,7 +195,7 @@ def record_outcome(root, session_id: str, outcome: dict, *, policy_revision: int
     try:
         if not lock.acquire(min(LOCK_WAIT_SECONDS, remaining)):
             return "scratch_lock_timeout"
-        scratch = read_scratch(root, session_id) or empty_scratch(session_id, policy_revision)
+        scratch, _state = load(root, session_id, policy_revision)
         outcomes = [o for o in scratch["outcomes"] if o["event_id"] != outcome["event_id"]] + [outcome]
         scratch["outcomes"] = outcomes[-MAX_OUTCOMES:]
         scratch["state_revision"] += 1
@@ -173,6 +206,37 @@ def record_outcome(root, session_id: str, outcome: dict, *, policy_revision: int
         _write_atomic(scratch_path(root, session_id), canonical_json(scratch))
         return "updated"
     except OSError:
+        return "scratch_io_error"
+    finally:
+        lock.release()
+
+
+def note_compaction(root, session_id: str, *, key: str, phase: str, policy_revision: int, deadline: float) -> str:
+    """Open a restoration cycle for a captured compaction (SYSTEM_SPEC §8.2; decision 0015).
+
+    ``pre`` (a host-confirmed compaction is starting) always opens a new cycle
+    keyed by its event ID; ``post``/``context_restored`` open one only when no
+    cycle is open, so the events of one compaction share one key and the
+    restoration happens once. Returns ``updated`` or a content-free degradation.
+    """
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        return "deadline_overlay_skipped"
+    if not locking_supported():
+        return "scratch_lock_unsupported"
+    lock = SessionLock(root, session_id)
+    try:
+        if not lock.acquire(min(LOCK_WAIT_SECONDS, remaining)):
+            return "scratch_lock_timeout"
+        scratch, _state = load(root, session_id, policy_revision)
+        if phase == "pre" or scratch["compaction_key"] is None:
+            if scratch["compaction_key"] == key:
+                return "updated"
+            scratch["compaction_key"] = key
+            scratch["state_revision"] += 1
+            write(root, scratch)
+        return "updated"
+    except (OSError, ValueError):
         return "scratch_io_error"
     finally:
         lock.release()

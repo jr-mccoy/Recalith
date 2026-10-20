@@ -45,6 +45,7 @@ MODELS = {
     "SessionScratch": context.SessionScratch,
     "ContextQuery": context.ContextQuery,
     "ContextPacket": context.ContextPacket,
+    "DeliveryReceipt": context.DeliveryReceipt,
 }
 FIELD_CHECKS = {
     common._check_id: "id",

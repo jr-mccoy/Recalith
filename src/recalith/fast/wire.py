@@ -436,6 +436,19 @@ def _rule_segment(v: dict, path: str, run: _Run) -> None:
 def _rule_scratch(v: dict, path: str, run: _Run) -> None:
     if len(canonical_json(v)) > LIMITS["SESSION_SCRATCH_CAP"]:
         run.fail(path, "session scratch exceeds 128 KiB")
+    if v["restoration_tokens"] > v["reserved_tokens"] or v["emitted_tokens"] > v["reserved_tokens"]:
+        run.fail(path, "restoration and emitted tokens are parts of the reserved total")
+
+
+def _rule_delivery_receipt(v: dict, path: str, run: _Run) -> None:
+    if (v["state"] == "emitted") != (v["emitted_at"] is not None):
+        run.fail(path, "only emitted receipts carry an emission time")
+    if v["state"] == "uncertain" and v["in_flight_change"] is not None:
+        run.fail(path, "only an emitted receipt reports the post-emission check")
+    if v["restoration_key"] is not None and v["purpose"] != "compact_restore":
+        run.fail(path, "only a restoration packet carries a restoration key")
+    if v["pre_action_substitution_tokens"] > v["estimated_tokens"]:
+        run.fail(path, "substitution is part of, not added to, the packet estimate")
 
 
 REASON_CODES = frozenset({
@@ -479,4 +492,5 @@ RULES = {
     "CaptureReceipt._shape": _rule_receipt,
     "Segment._bounded_and_owned": _rule_segment,
     "SessionScratch._bounded": _rule_scratch,
+    "DeliveryReceipt._emission": _rule_delivery_receipt,
 }

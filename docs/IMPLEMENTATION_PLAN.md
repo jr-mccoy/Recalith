@@ -309,7 +309,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 ### Task 12b: Delivery accounting, session overlay, and corrections
 
-**Files:** Create `src/recalith/retrieval/delivery.py`, extend `fast/{session,context,fence,entry}.py`, add `fast/delivery.py`, and create `tests/integration/test_delivery.py`, `tests/platform/test_session_scratch.py`.
+**Files:** Create `src/recalith/retrieval/delivery.py`, extend `fast/{session,context,fence,entry}.py`, add `fast/delivery.py`, and create `tests/integration/test_delivery.py`, `tests/platform/test_session_scratch.py`. The task also added `storage/migrations/0008.sql` (schema 8: receipt columns on `deliveries`, one outcome link per delivery/label/observation), receipt/scratch contract fields with generated `DeliveryReceipt` wire validators, `context_schema` 3 manifests with per-adapter `delivery_paths` (`capture.hooks.write_hook_context(..., delivery_paths=)`), receipt accounting and outcome links in `capture.pipeline.ingest_in_transaction`, `service.record_delivery`, the `failpoints.DELIVERY` family, the builders `tests/integration/delivery_scenarios.py`, the kill/restart matrix `test_delivery_crash_matches_reference` and the delivery import audits in `tests/platform/test_hook_imports.py` (decision 0015).
 
 **Interfaces:** Produce service `record_delivery(ctx, packet: ContextPacket, session_id: Id) -> DeliveryReceipt` by receipt spooling, plus the primitive `hook_compile_context`/`hook_record_delivery` and delivery branch of `handle_hook`. Worker ingestion owns database accounting.
 

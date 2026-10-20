@@ -1219,3 +1219,60 @@ def test_service_write_crash_matches_reference(tmp_path, failpoint):
 def _comparable(state: dict) -> dict:
     """Event IDs derive from the installation ID: compare kinds and counts, everything else exactly."""
     return {**state, "events": sorted(kind for _event, kind in state["events"])}
+
+
+DELIVERY_MATRIX = [*failpoints.DELIVERY, failpoints.INGEST_BEFORE_COMMIT, failpoints.INGEST_AFTER_COMMIT]
+UNCERTAIN_AFTER_KILL = {failpoints.DELIVERY_AFTER_RESERVE, failpoints.DELIVERY_AFTER_FENCE, failpoints.DELIVERY_AFTER_EMIT}
+
+
+@pytest.mark.parametrize("failpoint", DELIVERY_MATRIX)
+def test_delivery_crash_matches_reference(tmp_path, failpoint):
+    """Killed inside a hook's delivery (Task 12b) or the receipt ingestion, then the host goes on and the worker drains.
+
+    The session is a variant host session over real 2.1.301 records with
+    delivery enabled in a controlled manifest: start, a prompt, a failing
+    ``pytest -q test_mid.py`` (caution, then the overlay failure), its rerun,
+    a compaction and its restoration, another prompt. The reference run logs
+    every failpoint hit with whether delivery accounting was owed, judged from
+    the effects (an unresolved reservation, an attempt with neither a spooled
+    receipt nor an accounting row, a receipt not yet accounted), never from a
+    scratch flag alone; each repetition kills at one of those hits (first,
+    middle, last). The killed state must differ from the reference; after the
+    host's remaining hooks and a worker drain the memory state must equal it
+    and every accounting invariant must hold: no reservation left, every
+    attempt accounted once with its charge, scratch and accounted totals
+    equal, no emitted row without stdout, no stdout without a charge, no
+    receipt left unaccounted. A hook killed before its receipt was spooled
+    leaves an uncertain, still-charged attempt.
+    """
+    import delivery_scenarios as dsc
+
+    reference_root = dsc.crash_project(tmp_path, "reference")
+    hits_log = tmp_path / "reference.hits"
+    counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    reference = dsc.delivery_state(reference_root)
+    assert reference["hooks_run"] == len(dsc.scenario(reference_root)["script"])
+    assert all(v == 0 for v in reference["invariants"].values()), reference["invariants"]
+    assert dsc.killed_attempt_states(reference_root).count("emitted") >= 3 and "uncertain" not in dsc.killed_attempt_states(reference_root)
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while delivery accounting is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = dsc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        killed = dsc.delivery_state(root)
+        assert killed != reference, "the kill must land before the work under test is complete"
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        got = dsc.delivery_state(root)
+        assert got["memory"] == reference["memory"], (failpoint, rep)
+        assert got["invariants"] == reference["invariants"], (failpoint, rep, got["invariants"])
+        states = dsc.killed_attempt_states(root)
+        if failpoint in UNCERTAIN_AFTER_KILL:
+            assert states.count("uncertain") == 1, (failpoint, rep, states)  # charged, never counted as emitted
+        else:
+            assert "uncertain" not in states, (failpoint, rep, states)  # the spooled emitted receipt wins

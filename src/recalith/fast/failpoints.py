@@ -93,6 +93,18 @@ INDEX_AFTER_REFRESH = "index.after_refresh"
 VIEWS_BEFORE_COMMIT = "views.before_commit"
 VIEWS_AFTER_PUBLISH = "views.after_publish"
 
+# Delivery (Task 12b, decision 0015), all inside the hook while it holds the
+# session lock: the reservation is written to scratch (fence, stdout, receipt
+# and mark pending); the final fence held (stdout pending); stdout was written
+# and flushed (receipt and mark pending); the emitted receipt was spooled (the
+# scratch mark pending); the scratch entry is marked emitted (lock release
+# pending).
+DELIVERY_AFTER_RESERVE = "delivery.after_reserve"
+DELIVERY_AFTER_FENCE = "delivery.after_fence"
+DELIVERY_AFTER_EMIT = "delivery.after_emit"
+DELIVERY_AFTER_RECEIPT = "delivery.after_receipt"
+DELIVERY_AFTER_MARK = "delivery.after_mark"
+
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
@@ -105,7 +117,8 @@ LINEAGE = (ROOTS_AFTER_MERGE,)
 ADMISSION = (REVIEW_AFTER_SCHEDULE, REVIEW_AFTER_ASSESSMENT, TRIGGERS_AFTER_PASS)
 REVISION = (RECHECK_AFTER_MARK, REVALIDATE_AFTER_SETTLE, PLANNER_AFTER_SCHEDULE)
 RETRIEVAL = (INDEX_AFTER_REFRESH, VIEWS_BEFORE_COMMIT, VIEWS_AFTER_PUBLISH)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL
+DELIVERY = (DELIVERY_AFTER_RESERVE, DELIVERY_AFTER_FENCE, DELIVERY_AFTER_EMIT, DELIVERY_AFTER_RECEIPT, DELIVERY_AFTER_MARK)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

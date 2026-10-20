@@ -7,8 +7,9 @@ so the same sequence is valid on the hook path. Operational failures return a
 ``not_captured`` receipt; nothing is raised to the host.
 
 ``ingest_ready`` commits each segment's events, environment observations,
-root-class memberships (decision 0010), cursor proposals and follow-on
-``ingest`` job in one transaction, then removes the segment. A root-class merge
+root-class memberships (decision 0010), delivery receipts' accounting rows and
+outcome links (decision 0015), cursor proposals and follow-on ``ingest`` job
+in one transaction, then removes the segment. A root-class merge
 that can lower a live claim's independent-root count recomputes its strength
 and enqueues its revalidation in the same transaction; so do a FailureRecheck
 (a certified later success of a failure lesson's action family), a changed
@@ -222,6 +223,7 @@ def ingest_in_transaction(txn: Any, ctx: InstallationContext, envelopes: Sequenc
     Returns the per-outcome counts and the created ``ingest`` job (or None).
     """
     from recalith.controller import revalidate as revision  # deferred: revision builds on the capture pipeline
+    from recalith.retrieval import delivery  # deferred: delivery accounting builds on the capture pipeline
 
     counts = {"inserted": 0, "duplicate": 0, "conflict": 0}
     inserted: list[EventEnvelope] = []
@@ -239,6 +241,10 @@ def ingest_in_transaction(txn: Any, ctx: InstallationContext, envelopes: Sequenc
                 merged.update((ref.id, ref) for ref in registered.affected_claims)
             marked += revision.on_ingested(txn, ctx, env, observations=observations, now=now)
             _session_lifecycle(txn, env)
+            if env.kind == "memory_delivered":
+                delivery.account(txn, ctx, env, now=now)  # receipts become accounting rows here, never in a hook
+            elif env.kind in ("tool_finished", "assistant_message"):
+                delivery.link_outcomes(txn, ctx, env, now=now)
         elif outcome == "conflict":
             original = txn.one("SELECT original_event_id FROM source_conflicts WHERE conflict_id = ?", (ident,))
             if original is not None:

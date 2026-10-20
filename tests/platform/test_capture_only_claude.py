@@ -96,7 +96,7 @@ def test_capture_only_real_lifecycle(replay, tmp_path):
     replies = {name: cf.replay(replay, name, tmp_path) for name in ("lifecycle", "subagent", "denied", "secret_and_resume")}
     for name, scenario_replies in replies.items():
         for record, reply in zip(cf.records(name), scenario_replies, strict=True):
-            assert reply["delivery"] == {"state": "unavailable", "reason": "capture_only_build"}  # never a placeholder context
+            assert reply["delivery"] == {"state": "unavailable", "reason": "delivery_not_enabled"}  # never a placeholder context (no delivery paths in this manifest)
             assert reply["host_output"] is None and reply["delivery_attempt_id"] is None and reply["emitted_receipt"] is None
             if record["event"] in claude_capture.ROLES:
                 assert reply["receipt"]["status"] == "accepted", (name, record["event"], reply)

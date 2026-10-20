@@ -1,29 +1,32 @@
-"""Hook entry point: capture-only fast path (DATA_CONTRACTS §2.3; SYSTEM_SPEC §5.1).
+"""Hook entry point: capture, registered worker start and delivery (DATA_CONTRACTS §2.3; SYSTEM_SPEC §5.1).
 
     python -I -m recalith.fast.entry --project ROOT claude_code [--event NAME]
 
 The project's hook launcher (``.recalith/bin/recalith-hook``) runs this with
 the pinned interpreter. It imports only the standard library and
-``recalith.fast``; it never opens SQLite, calls a model, touches the network
-or probes a runtime. The one process it may launch is this installation's
-worker, through the registered internal start path
-(:func:`recalith.fast.process_env.ensure_worker`), after capture, only when
-the manifest enables autostart and no worker holds the installation lock, and
-without waiting for it. It always exits 0 with empty stdout: the host's
-nonblocking empty success. Operational failures become content-free gap
-records in ``spool/gaps/`` for health, never a blocked or failed host step.
+``recalith.fast``; it never writes SQLite (delivery reads use read-only
+snapshots), calls a model, touches the network or probes a runtime. The one
+process it may launch is this installation's worker, through the registered
+internal start path (:func:`recalith.fast.process_env.ensure_worker`), after
+capture, only when the manifest enables autostart and no worker holds the
+installation lock, and without waiting for it. It always exits 0. Its stdout
+is empty, or exactly one host context envelope (additional context only:
+never a permission decision, a block or a rewritten tool call) when the
+manifest enables delivery for this path (Task 12b; Task 13 certifies paths).
+Operational failures become content-free gap records in ``spool/gaps/`` and
+reply degradations, never a blocked or failed host step.
 
 One monotonic soft deadline starts at entry + 250 ms and is shared by every
 substep. Durable capture has priority: once publication has begun it is never
 abandoned because time ran out, and the receipt then reports
 ``capture_deadline_overrun``. Python's clock cannot interrupt a blocked
 ``fsync``/rename; the deadline schedules optional work, it does not bound
-storage latency. After capture the optional work in this build is, in
-priority order, the worker start (shed with ``deadline_worker_start_skipped``
-below 30 ms of remaining time), the post-tool typed-outcome overlay and
-pruning abandoned scratch at session start. Delivery is advertised
-unavailable and no context is emitted (Task 12b adds delivery; Task 13
-certifies it).
+storage latency. After capture come, in priority order, the delivery branch
+(``recalith.fast.delivery``: compile, session reservation, final fence,
+emission, receipt; its reservation and fence are mandatory for any output),
+the worker start (shed with ``deadline_worker_start_skipped`` below 30 ms of
+remaining time), the post-tool typed-outcome overlay (shed first:
+``deadline_overlay_skipped``) and pruning abandoned scratch at session start.
 """
 
 from __future__ import annotations
@@ -44,7 +47,8 @@ SEGMENT_MARGIN = 4 * 1024
 MAX_HOOK_INPUT = 4 * 1024 * 1024
 CURATOR_MARKER = process_env.CURATOR_MARKER
 ADAPTERS = ("claude_code",)
-DELIVERY_UNAVAILABLE = {"state": "unavailable", "reason": "capture_only_build"}
+DELIVERY_UNAVAILABLE = {"state": "unavailable", "reason": "delivery_not_enabled"}
+DELIVERY_PATHS = ("session_start", "prompt", "pre_action", "compact_restore")
 PRUNE_MIN_REMAINING = 0.100
 
 
@@ -52,10 +56,15 @@ PRUNE_MIN_REMAINING = 0.100
 # HookContextWire: read from the validated local manifest, never from input
 #
 # context_schema 2 adds ``worker = {autostart, route_keys}`` (decision 0006);
-# a schema-1 manifest still captures, with worker autostart off.
+# a schema-1 manifest still captures, with worker autostart off. context_schema
+# 3 adds each adapter's ``delivery_paths`` (decision 0015): the purposes whose
+# injection is installed; delivery stays off unless ``delivery_enabled`` and a
+# path are both set, and only for a certified host version. Schemas 1 and 2
+# still capture, with delivery off.
 
 MANIFEST_V1_KEYS = frozenset({"context_schema", "project_id", "installation_id", "workspace_id", "root", "workspace_root", "root_identity", "workspace_root_identity", "policy_revision", "adapters"})
 MANIFEST_V2_KEYS = MANIFEST_V1_KEYS | {"worker"}
+MANIFEST_V3_KEYS = MANIFEST_V2_KEYS
 
 
 def _identity_of(path: str) -> str:
@@ -87,6 +96,9 @@ def load_context(root: str, adapter_id: str) -> dict:
         raise WireError("installation_relocated", "the recorded installation root is unavailable") from None
     adapter = raw["adapters"][adapter_id]
     worker = raw.get("worker") or {"autostart": False, "route_keys": []}
+    delivery_enabled, delivery_reason = bool(adapter["delivery_enabled"] and adapter.get("delivery_paths")), "delivery_not_enabled"
+    if delivery_enabled and adapter["host_version"] not in claude_capture.CERTIFIED_VERSIONS:
+        delivery_enabled, delivery_reason = False, "host_version_uncertified"  # conservative mode: capture only
     return {
         "project_id": raw["project_id"],
         "installation_id": raw["installation_id"],
@@ -98,7 +110,9 @@ def load_context(root: str, adapter_id: str) -> dict:
         "policy_revision": raw["policy_revision"],
         "adapter_id": adapter_id,
         "host_version": adapter["host_version"],
-        "delivery_enabled": False,  # capture-only build: never enabled, whatever the manifest says
+        "delivery_enabled": delivery_enabled,
+        "delivery_paths": list(adapter.get("delivery_paths") or []) if delivery_enabled else [],
+        "delivery_reason": None if delivery_enabled else delivery_reason,
         "worker_autostart": worker["autostart"],
         "worker_route_keys": list(worker["route_keys"]),
     }
@@ -107,11 +121,11 @@ def load_context(root: str, adapter_id: str) -> dict:
 def valid_context_manifest(raw) -> bool:
     if not isinstance(raw, dict) or type(raw.get("context_schema")) is not int:
         return False
-    if (raw["context_schema"], set(raw)) not in ((1, MANIFEST_V1_KEYS), (2, MANIFEST_V2_KEYS)):
+    if (raw["context_schema"], set(raw)) not in ((1, MANIFEST_V1_KEYS), (2, MANIFEST_V2_KEYS), (3, MANIFEST_V3_KEYS)):
         return False
     if type(raw["policy_revision"]) is not int or raw["policy_revision"] < 1:
         return False
-    if raw["context_schema"] == 2 and not valid_worker_section(raw["worker"]):
+    if raw["context_schema"] >= 2 and not valid_worker_section(raw["worker"]):
         return False
     for key, prefix in (("project_id", "proj_"), ("installation_id", "inst_"), ("workspace_id", "ws_")):
         if not (isinstance(raw[key], str) and raw[key].startswith(prefix) and is_id(raw[key])):
@@ -126,11 +140,26 @@ def valid_context_manifest(raw) -> bool:
     if not isinstance(adapters, dict):
         return False
     for name, entry in adapters.items():
-        if name not in ADAPTERS or not isinstance(entry, dict) or set(entry) != {"host_version", "delivery_enabled"}:
-            return False
-        if not (entry["host_version"] is None or (isinstance(entry["host_version"], str) and 1 <= len(entry["host_version"]) <= 64)) or entry["delivery_enabled"] is not False:
+        if name not in ADAPTERS or not valid_adapter_entry(entry, raw["context_schema"]):
             return False
     return True
+
+
+def valid_adapter_entry(entry, schema: int) -> bool:
+    """Schemas 1–2: ``{host_version, delivery_enabled: false}``; schema 3 adds ``delivery_paths`` (empty unless enabled)."""
+    if not isinstance(entry, dict):
+        return False
+    keys = {"host_version", "delivery_enabled"} | ({"delivery_paths"} if schema == 3 else set())
+    if set(entry) != keys or type(entry["delivery_enabled"]) is not bool:
+        return False
+    if not (entry["host_version"] is None or (isinstance(entry["host_version"], str) and 1 <= len(entry["host_version"]) <= 64)):
+        return False
+    if schema < 3:
+        return entry["delivery_enabled"] is False
+    paths = entry["delivery_paths"]
+    if not isinstance(paths, list) or len(set(paths)) != len(paths) or not all(isinstance(x, str) and x in DELIVERY_PATHS for x in paths):
+        return False
+    return entry["delivery_enabled"] or not paths
 
 
 def valid_worker_section(worker) -> bool:
@@ -286,28 +315,37 @@ def _start_worker(ctx: dict, reply: dict, *, deadline: float, inherited) -> None
         reply["degradations"].append(status)
 
 
-def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None) -> dict:
-    """Capture branch of DATA_CONTRACTS §2.3 ``handle_hook``; returns ``HookReplyWire``.
+COMPACTION_PHASES = frozenset({"pre", "post", "context_restored"})
+
+
+def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None, emit=None) -> dict:
+    """DATA_CONTRACTS §2.3 ``handle_hook``; returns ``HookReplyWire``.
 
     ``inherited`` is the hook's own environment, the source for the worker's
-    fresh allowlisted environment; it is never modified.
+    fresh allowlisted environment; it is never modified. ``emit`` writes and
+    flushes the host output (stdout in a real hook); without it nothing is
+    delivered.
     """
-    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": [], "worker": None}
+    delivery = {"state": "none"} if ctx.get("delivery_enabled") else {"state": "unavailable", "reason": ctx.get("delivery_reason") or "delivery_not_enabled"}
+    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": delivery, "degradations": [], "worker": None}
     for gap in request.get("coverage_gaps", []):
         _gap(ctx, gap["code"], gap["reason"])
         if gap["code"] not in reply["degradations"]:
             reply["degradations"].append(gap["code"])
+    accepted = False
     if request.get("events"):
         produced = request.get("_scrubbed_in_process", set())
         scrubbed = frozenset(env["event_id"] for env in request["events"] if id(env) in produced)
         receipt = hook_capture(ctx, request["events"], source_registrations=request.get("source_registrations", ()), deadline=deadline, scrubbed_in_process=scrubbed)
         reply["receipt"] = receipt
         reply["degradations"].extend(receipt["coverage"].get("degraded", []))
-    # Capture has finished (acknowledged or not): only now may the worker start.
+        accepted = receipt["status"] == "accepted"
+    if ctx.get("delivery_enabled") and request.get("events"):
+        _delivery_branch(ctx, request, reply, accepted=accepted, deadline=deadline, emit=emit)
+    # Capture (and delivery) have finished: only now may the worker start.
     _start_worker(ctx, reply, deadline=deadline, inherited=inherited)
     if request.get("events"):
-        receipt = reply["receipt"]
-        if receipt["status"] != "accepted":
+        if not accepted:
             reply["degradations"].append("capture_not_acknowledged")
             return reply
         role = request.get("event_role")
@@ -317,19 +355,49 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None) ->
             if status != "updated":
                 reply["degradations"].append(status)
         elif role == "end":
-            status = session.discard(ctx["root"], first["session_id"], deadline=deadline)
-            if status != "discarded":
-                reply["degradations"].append(status)
+            settled = "settled"
+            if ctx.get("delivery_enabled"):
+                from recalith.fast import delivery
+
+                settled = delivery.settle(ctx, first["session_id"], first["host_session_id"], deadline=deadline)  # receipts before discarding
+            if settled != "settled":
+                reply["degradations"].append(settled)  # keep the scratch: its receipts are still owed
+            else:
+                status = session.discard(ctx["root"], first["session_id"], deadline=deadline)
+                if status != "discarded":
+                    reply["degradations"].append(status)
         elif role == "session_start" and deadline - time.monotonic() > PRUNE_MIN_REMAINING:
             session.prune_abandoned(ctx["root"])
     return reply
+
+
+def _delivery_branch(ctx: dict, request: dict, reply: dict, *, accepted: bool, deadline: float, emit) -> None:
+    """Compaction notes, then one delivery (``recalith.fast.delivery``); imported only when delivery is enabled."""
+    from recalith.fast import delivery
+
+    first = request["events"][0]
+    if accepted and first["kind"] == "compaction" and first["payload"].get("phase") in COMPACTION_PHASES:
+        status = session.note_compaction(ctx["root"], first["session_id"], key=first["event_id"], phase=first["payload"]["phase"], policy_revision=ctx["policy_revision"], deadline=deadline)
+        if status != "updated":
+            reply["degradations"].append(status)
+    try:
+        result = delivery.deliver(ctx, request, deadline=deadline, emit=emit)
+    except Exception:  # noqa: BLE001 - delivery never fails the hook
+        result = {"state": "skipped", "reason": "delivery_internal_error"}
+    reply["host_output"] = result.pop("host_output", None)
+    reply["emitted_receipt"] = result.pop("receipt", None) if result.get("state") == "emitted" else None
+    reply["delivery_attempt_id"] = result.get("attempt_id")
+    reply["delivery"] = result
+    for code in [result.get("reason")] if result.get("state") in ("skipped", "fenced_out", "uncertain") else []:
+        if code and code not in reply["degradations"]:
+            reply["degradations"].append(code)
 
 
 # --------------------------------------------------------------------------
 # Process entry
 
 
-def run(root: str, adapter_id: str, data: bytes, *, registered_event: str | None, env, deadline: float) -> dict:
+def run(root: str, adapter_id: str, data: bytes, *, registered_event: str | None, env, deadline: float, emit=None) -> dict:
     """Everything after argument parsing; returns the ``HookReplyWire``."""
     base = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": dict(DELIVERY_UNAVAILABLE), "degradations": [], "worker": None}
     if env.get(CURATOR_MARKER):
@@ -359,7 +427,7 @@ def run(root: str, adapter_id: str, data: bytes, *, registered_event: str | None
         _gap(ctx, "not_captured", exc.code)
         base["degradations"].append(exc.code)
         return base
-    return handle_hook(ctx, normalize_request(ctx, request), deadline=deadline, inherited=env)
+    return handle_hook(ctx, normalize_request(ctx, request), deadline=deadline, inherited=env, emit=emit)
 
 
 def _parse_args(argv: list) -> tuple:
@@ -383,7 +451,15 @@ def _parse_args(argv: list) -> tuple:
     return root, adapter, event, reply_file
 
 
-def main(argv: list | None = None, *, stdin=None, env=None) -> int:
+def _stdout_writer(stream):
+    def emit(data: bytes) -> None:
+        stream.write(data)
+        stream.flush()
+
+    return emit
+
+
+def main(argv: list | None = None, *, stdin=None, env=None, stdout=None) -> int:
     start = time.monotonic()
     deadline = start + SOFT_DEADLINE_SECONDS
     reply = None
@@ -392,7 +468,8 @@ def main(argv: list | None = None, *, stdin=None, env=None) -> int:
         stream = stdin if stdin is not None else sys.stdin.buffer
         data = stream.read(MAX_HOOK_INPUT + 1)
         if root and adapter:
-            reply = run(os.path.realpath(root), adapter, data, registered_event=event, env=os.environ if env is None else env, deadline=deadline)
+            emit = _stdout_writer(stdout if stdout is not None else sys.stdout.buffer)
+            reply = run(os.path.realpath(root), adapter, data, registered_event=event, env=os.environ if env is None else env, deadline=deadline, emit=emit)
     except Exception:  # noqa: BLE001 - a hook never fails the host
         reply = {"degradations": ["hook_internal_error"]}
     if reply_file:

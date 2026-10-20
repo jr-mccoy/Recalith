@@ -377,7 +377,7 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
     assert wh.wait_running(replay.root)
     idle = worker.read_status(replay.root)["poll"]["idle_seconds"]
     assert idle == 5 and worker.read_status(replay.root)["poll"]["ipc_wake"] == "unavailable_in_preview"
-    latencies, from_spawn, polls = [], [], []
+    latencies, from_spawn, polls, trials = [], [], [], []
     for trial in range(PHASES):
         settled = wh.wait_for(lambda: (lambda s: s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None)(worker.read_status(replay.root)), 30)
         assert settled, "worker never returned to idle polling"
@@ -389,16 +389,30 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
         data = wh.unique_prompt(replay, trial)
         record = wh.prompt_record()
         spawned = time.monotonic()
+        spawned_wall = time.time()
         trial_reply, wall = hook(replay, record, tmp_path, data=data, name=f"trial-{trial}")
         acked = spawned + wall
+        acked_wall = spawned_wall + wall
         event_id = trial_reply["receipt"]["event_ids"][0]
         assert wh.wait_for(lambda event_id=event_id: event_available(replay.root, event_id), 15, interval=0.01), f"trial {trial} never reached typed state"
         done = time.monotonic()
         latencies.append(done - acked)
         from_spawn.append(done - spawned)
-        polls.append((worker.read_status(replay.root) or {}).get("poll", {}).get("last_poll_seconds"))  # diagnostics: where the time goes
+        after = worker.read_status(replay.root) or {}
+        poll = after.get("poll", {})
+        polls.append(poll.get("last_poll_seconds"))  # diagnostics: where the time goes
+        # Where the time goes, per trial: the arrival's offset into the idle cycle, the hook's own wall time,
+        # when the latest poll (normally the ingesting one) started relative to the acknowledgment, and any poll
+        # error or clock jump the worker counted. A long ``poll_after_ack`` with short polls means the poll grid,
+        # not the poll, was late.
+        trials.append({
+            "phase": round(phase, 3), "hook_wall": round(wall, 3), "latency": round(done - acked, 3),
+            "poll_after_ack": round(poll["last_poll_wall"] - acked_wall, 3) if isinstance(poll.get("last_poll_wall"), float) else None,
+            "since_settled_poll": round(acked_wall - settled["poll"]["last_poll_wall"], 3), "polls": (after.get("counters") or {}).get("polls"),
+            "errors": (after.get("counters") or {}).get("errors"), "last_error": after.get("last_error"), "clock_jump": after.get("max_clock_jump_seconds"),
+        })
     p95 = statistics.quantiles(latencies, n=20, method="inclusive")[18]
-    report = {"phases": PHASES, "p50": statistics.median(latencies), "p95": p95, "max": max(latencies), "p95_from_hook_spawn": statistics.quantiles(from_spawn, n=20, method="inclusive")[18], "poll_seconds": [round(x, 3) if isinstance(x, float) else x for x in polls]}
+    report = {"phases": PHASES, "p50": statistics.median(latencies), "p95": p95, "max": max(latencies), "p95_from_hook_spawn": statistics.quantiles(from_spawn, n=20, method="inclusive")[18], "poll_seconds": [round(x, 3) if isinstance(x, float) else x for x in polls], "trials": trials}
     print("typed-state latency (s):", json.dumps({k: round(v, 3) if isinstance(v, float) else v for k, v in report.items()}))
     assert p95 <= 5.0, report
     assert max(latencies) <= idle + 1.0, report  # one idle interval plus bounded processing
@@ -478,6 +492,8 @@ def test_schema_one_manifest_still_captures_without_autostart(tmp_path):
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest.pop("worker")
     manifest["context_schema"] = 1
+    for adapter in manifest["adapters"].values():
+        adapter.pop("delivery_paths")  # context_schema 3 (decision 0015) added it; schemas 1–2 never had it
     path.write_text(json.dumps(manifest), encoding="utf-8")
     assert entry.load_context(str(replayer.root), "claude_code")["worker_autostart"] is False
     reply, _ = hook(replayer, wh.start_record(), tmp_path)

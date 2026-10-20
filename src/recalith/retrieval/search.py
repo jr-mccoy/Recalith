@@ -468,11 +468,12 @@ def neighbors(q: Any, claim_ids: Sequence[str]) -> dict[str, str]:
 
 
 def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int = CANDIDATE_LIMIT) -> Gathered:
-    """Everything retrieval decides inside one read snapshot ``q`` (the query environment too, when the caller gave none)."""
+    """Everything retrieval decides inside one read snapshot ``q`` (the query environment too, merged under the caller's values)."""
     meta = meta_of(q)
     if q.execute("SELECT 1 FROM workspaces WHERE workspace_id = ?", (query.workspace_id,)).fetchone() is None:
         raise RecalithError("foreign_installation", "the query names a workspace this installation does not own")
-    environment = dict(query.environment) if query.environment else provenance.environment_values_in(q, ctx, workspace_id=query.workspace_id)
+    # The caller's values (a hook's adapter platform facts) override the resolved ones key by key (decision 0015).
+    environment = {**provenance.environment_values_in(q, ctx, workspace_id=query.workspace_id), **query.environment}
     degraded: list[str] = []
     task_id, notes = resolve_task(q, query.task_id, query.workspace_id, session_id=query.session_id)
     degraded += notes

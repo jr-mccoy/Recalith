@@ -311,7 +311,7 @@ def _registration(ctx: dict, host_session_id: str, path, *, expected_name: str, 
 
 
 def map_hook(ctx: dict, payload: dict, *, registered_event: str | None = None, recorded_at: str | None = None) -> dict:
-    """Map one 2.1.301 hook payload to a capture-only ``HookRequestWire``.
+    """Map one 2.1.301 hook payload to a ``HookRequestWire`` (``delivery_enabled`` comes from the manifest, never the payload).
 
     Raises :class:`HookInputError` when the payload has no usable identity or
     comes from outside the registered workspace.
@@ -326,7 +326,7 @@ def map_hook(ctx: dict, payload: dict, *, registered_event: str | None = None, r
     host_session = payload.get("session_id")
     if not isinstance(host_session, str) or not 1 <= len(host_session) <= 256 or not _SAFE_KEY.match(host_session):
         raise HookInputError("session_identity_missing")
-    request = {"event_role": ROLES.get(event, "unsupported"), "host_event": event, "delivery_enabled": False, "events": [], "raw_events": [], "source_registrations": [], "coverage_gaps": [], "query": None}
+    request = {"event_role": ROLES.get(event, "unsupported"), "host_event": event, "delivery_enabled": bool(ctx.get("delivery_enabled")), "events": [], "raw_events": [], "source_registrations": [], "coverage_gaps": [], "query": None}
     if event not in ROLES:
         request["coverage_gaps"].append({"code": "unsupported_host_event", "reason": event})
         return request
@@ -472,6 +472,20 @@ def _failure_result(mapper: Mapper, tool_name: str, error) -> tuple[int | None, 
             return int(match.group(1)), error[match.end():]
         mapper.warn("exit_code_unrecognized")
     return None, error
+
+
+# --------------------------------------------------------------------------
+# Delivery output (Task 12b; certification of each path is Task 13)
+
+# The hook events whose ``hookSpecificOutput.additionalContext`` reached the
+# outbound model request on 2.1.301 in the Task 0b request-capture probe (a
+# feasibility observation, never a delivery certification), by purpose.
+DELIVERY_EVENTS = {"session_start": "SessionStart", "prompt": "UserPromptSubmit", "pre_action": "PreToolUse", "compact_restore": "SessionStart"}
+
+
+def context_output(hook_event: str, text: str) -> dict:
+    """The nonblocking host context envelope: additional context only, never a permission decision or a block."""
+    return {"hookSpecificOutput": {"hookEventName": hook_event, "additionalContext": text}}
 
 
 # --------------------------------------------------------------------------

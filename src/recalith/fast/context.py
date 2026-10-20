@@ -56,8 +56,8 @@ TOKEN_ESTIMATE = "ceil(utf8_bytes/3)"
 LIVE = frozenset({"candidate", "active", "disputed"})
 SUFFICIENT_EVIDENCE = frozenset({"available", "capsule_only"})
 TRUE, FALSE, UNKNOWN = "true", "false", "unknown"
-REASON_ORDER = ("conflict", "exact_action_match", "dependency_match", "path_match", "task_continuity", "lexical_match", "explicit_query", "recent_observation")
-WEIGHTS = {"exact_action_match": 100.0, "path_match": 40.0, "dependency_match": 30.0, "task_continuity": 25.0, "conflict": 60.0, "recent_observation": 0.0}
+REASON_ORDER = ("conflict", "exact_action_match", "dependency_match", "path_match", "task_continuity", "lexical_match", "explicit_query", "compaction_restore", "recent_observation")
+WEIGHTS = {"exact_action_match": 100.0, "path_match": 40.0, "dependency_match": 30.0, "task_continuity": 25.0, "conflict": 60.0, "recent_observation": 0.0, "compaction_restore": 50.0}
 LEXICAL_WEIGHT = 10.0
 
 # --------------------------------------------------------------------------
@@ -401,9 +401,17 @@ def current_dependencies(dependencies: list, *, workspace_root: str, environment
 ITEM_FIELDS = ("ref", "text", "advice", "basis", "scope", "applicability", "freshness", "why", "evidence_refs", "conditions_text", "retry_text")
 
 
-def relevance(cand: dict, query: dict, *, query_terms, family, idf=None) -> dict:
-    """Query-dependent match reasons and score for one candidate (pure)."""
+def relevance(cand: dict, query: dict, *, query_terms, family, idf=None, restore_ids=frozenset()) -> dict:
+    """Query-dependent match reasons and score for one candidate (pure).
+
+    ``restore_ids`` (the delivery branch's restoration packet only) names the
+    records this session already received before a compaction removed them
+    from the agent's context: they are directly relevant to that one
+    restoration (decision 0015).
+    """
     reasons: dict = {}
+    if query.get("purpose") == "compact_restore" and cand.get("ref", {}).get("id") in restore_ids:
+        reasons["compaction_restore"] = "delivered earlier in this session; restored after compaction"
     if family is not None and cand.get("family") == family:
         reasons["exact_action_match"] = "same action family (workspace, directory, tool, argv)"
     paths = _query_paths(query) or []
@@ -547,14 +555,14 @@ def packet(ctx: dict, purpose: str, meta, assembled: dict, reasons, *, generated
     }
 
 
-def decide(cand: dict, query: dict, environment: dict, *, family, query_terms, workspace_root: str, budget: DependencyBudget, claim_values=None, idf=None):
+def decide(cand: dict, query: dict, environment: dict, *, family, query_terms, workspace_root: str, budget: DependencyBudget, claim_values=None, idf=None, restore_ids=frozenset()):
     """One candidate under one query: (entry or None). Mirrors the service path; used by the hook compiler."""
     if cand.get("evidence") not in (None, *SUFFICIENT_EVIDENCE):
         return None  # expired/redacted inadequate support never enters automatic context
     app = applicability(cand.get("scope") or {}, cand.get("conditions") or [], query, environment, cand.get("precomputed"))
     if app == FALSE:
         return None
-    match = relevance(cand, query, query_terms=query_terms, family=family, idf=idf)
+    match = relevance(cand, query, query_terms=query_terms, family=family, idf=idf, restore_ids=restore_ids)
     if not relevant(cand, match):
         return None
     if cand.get("ref", {}).get("kind") == "claim" and not cand.get("members"):  # a claim (disputed ones too); questions carry members
@@ -570,7 +578,58 @@ def decide(cand: dict, query: dict, environment: dict, *, family, query_terms, w
         advice, why_extra = cand.get("advice_ceiling", "context"), ()
     extra = [r for r in why_extra if r not in ("candidate",)]
     item = finish_item(cand, advice, app, match, query, extra)
-    return {"item": item, "score": match["score"], "rank_group": 0 if advice in ("caution", "conflict") else 1, "subject": cand.get("subject")}
+    key = suppression_identity(cand, item, query, environment, current if cand.get("ref", {}).get("kind") == "claim" and not cand.get("members") else {})
+    return {"item": item, "score": match["score"], "rank_group": 0 if advice in ("caution", "conflict") else 1, "subject": cand.get("subject"), "key": key}
+
+
+# --------------------------------------------------------------------------
+# Suppression identity (DATA_CONTRACTS §9; decision 0015)
+
+
+def _consulted(condition: dict, query: dict, environment: dict) -> list:
+    """What one condition actually read: its result plus the current value it compared (paths: the result only)."""
+    kind = condition["kind"]
+    value = None
+    if kind in ("environment_equals", "version_range"):
+        value = environment.get(condition["key"])
+    elif kind == "branch_ref":
+        value = query.get("branch_ref")
+    elif kind in ("action_kind", "tool"):
+        action = query.get("action") or {}
+        value = action.get("action_kind" if kind == "action_kind" else "tool")
+    return [kind, condition["key"], condition["value"], condition.get("upper"), bool(condition.get("exclude")), value]
+
+
+def condition_digest(cand: dict, item: dict, query: dict, environment: dict, current: dict) -> str:
+    """Digest of the conditions a delivery actually consulted (suppression keys; DATA_CONTRACTS §9).
+
+    It covers the advice and tri-state applicability as decided, each
+    condition's result and the current value it compared, each scope
+    dimension's result, the scope environment values, the bounded live
+    dependency values (an unknown one is ``None``, never a match for a known
+    one) and, for an open question, its members' revisions. A change of any of
+    these invalidates an old suppression match even while the record's own
+    revision is unchanged; an unreadable current condition cannot preserve an
+    old caution (the advice it yields differs).
+    """
+    precomputed = cand.get("precomputed") or {}
+    conditions = [[*_consulted(c, query, environment), evaluate_condition(c, query, environment, precomputed.get(str(i)))] for i, c in enumerate(cand.get("conditions") or [])]
+    scope = cand.get("scope") or {}
+    scope_env = sorted([k, environment.get(k)] for k in (scope.get("environment") or {}))
+    return digest_of([
+        "suppression", item["advice"], item["applicability"], item["freshness"], conditions,
+        scope_applicability(scope, query, environment), scope_env,
+        sorted([k, v] for k, v in (current or {}).items()), sorted([k, v] for k, v in (cand.get("member_revisions") or {}).items()),
+    ])
+
+
+def suppression_identity(cand: dict, item: dict, query: dict, environment: dict, current: dict) -> dict:
+    """``{record_id, revision, condition_digest}`` plus what the session overlay compares (action family, dependency paths)."""
+    ref = item["ref"]
+    return {
+        "record_id": ref["id"], "revision": ref["revision"], "condition_digest": condition_digest(cand, item, query, environment, current),
+        "family": cand.get("family"), "paths": sorted(d["key"] for d in cand.get("dependencies") or [] if d["kind"] == "file"),
+    }
 
 
 def _action_conditions_true(cand: dict, query: dict, environment: dict) -> bool:
