@@ -21,6 +21,11 @@ elapsed monotonic time (suspend/resume) is recorded and handled as one jump:
 recurring work is scheduled for the current slot only, overdue jobs run one at
 a time inside the daily budget.
 
+**Retention** (Task 15 core): each poll ends with the deterministic retention
+step (``privacy.retention.run``): interrupted backups are finished or cleaned,
+the latest tombstone-ledger copy follows the epoch, and at most hourly the
+pin-aware sweep, bounded backup retention and abandoned-scratch settlement run.
+
 **Model jobs.** A job is leased only when due and its smallest reservation
 fits; the exact reservation (request estimate + purpose allowance) is made in
 a fenced transaction *before* the launch; the raw wire and the decoded body
@@ -60,6 +65,7 @@ from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_t
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
 from recalith.controller import apply, budgets, jobs, launch, planner, triggers
+from recalith.privacy import retention
 from recalith.retrieval import compile as projection
 from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
@@ -350,6 +356,7 @@ class Worker:
             worked |= bool(triggers.sweep(self.store, now=now))
             worked |= bool(planner.run(self.store, self.ctx, now=now))
             worked |= bool(projection.refresh_projection(self.store, self.ctx, now=now))
+            worked |= bool(retention.run(self.store, self.ctx, self.config, now=now))
             if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None
@@ -445,8 +452,9 @@ class Worker:
             with self.store.read() as view:
                 queue = jobs.queue_summary(view, now=now)
                 budget = budgets.summary(view, budgets.utc_day(now), self.config.budgets)
+                kept = retention.last_report(view)
         except RecalithError as exc:
-            queue, budget = {"error": exc.code}, {"error": exc.code}
+            queue, budget, kept = {"error": exc.code}, {"error": exc.code}, {"error": exc.code}
         env = self.environment
         markers = [k for k in process_env.HOST_MARKERS if k in env]
         waiting = queue.get("by_state", {}).get("waiting_budget", 0) if isinstance(queue.get("by_state"), dict) else 0
@@ -488,6 +496,7 @@ class Worker:
             "last_error": self.last_error,
             "queue": queue,
             "budget": budget,
+            "retention": kept,
         }
 
     def write_status(self, extra: Mapping[str, Any] | None = None) -> None:

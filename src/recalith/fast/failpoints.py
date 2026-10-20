@@ -2,7 +2,8 @@
 
 Production code calls :func:`hit` at named points around spool temp write,
 flush, rename, cursor advance, database begin/commit, job lease, budget
-reservation, proposal persistence and job completion. Nothing is armed
+reservation, proposal persistence, job completion, retention expiry and
+backup completion. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -105,6 +106,25 @@ DELIVERY_AFTER_EMIT = "delivery.after_emit"
 DELIVERY_AFTER_RECEIPT = "delivery.after_receipt"
 DELIVERY_AFTER_MARK = "delivery.after_mark"
 
+# Retention (Task 15 core, decision 0016): after a sweep selected its age-eligible
+# candidates in a read snapshot (the expiry transaction and its in-transaction pin
+# recheck pending); inside the expiry transaction after the payloads were dropped
+# and the audit written (commit pending); after that commit.
+RETENTION_AFTER_SELECT = "retention.after_select"
+RETENTION_BEFORE_COMMIT = "retention.before_commit"
+RETENTION_AFTER_COMMIT = "retention.after_commit"
+# Backup (Task 15 core): the snapshot was copied into the staging directory (ledger,
+# manifest and verification pending); the manifest was written (verification and
+# publication pending); the verified staging directory was renamed to the output
+# (the ``backups`` row and the latest ledger copy pending); the row committed (the
+# latest ledger copy and the journal removal pending); an aged backup's files were
+# deleted (its row still says ``verified``).
+BACKUP_AFTER_SNAPSHOT = "backup.after_snapshot"
+BACKUP_AFTER_MANIFEST = "backup.after_manifest"
+BACKUP_AFTER_PUBLISH = "backup.after_publish"
+BACKUP_AFTER_RECORD = "backup.after_record"
+BACKUP_AFTER_PRUNE = "backup.after_prune"
+
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
     CURSOR_WRITE, CURSOR_AFTER_WRITE, INGEST_BEGIN, INGEST_BEFORE_COMMIT, INGEST_AFTER_COMMIT, INGEST_AFTER_UNLINK,
@@ -118,7 +138,9 @@ ADMISSION = (REVIEW_AFTER_SCHEDULE, REVIEW_AFTER_ASSESSMENT, TRIGGERS_AFTER_PASS
 REVISION = (RECHECK_AFTER_MARK, REVALIDATE_AFTER_SETTLE, PLANNER_AFTER_SCHEDULE)
 RETRIEVAL = (INDEX_AFTER_REFRESH, VIEWS_BEFORE_COMMIT, VIEWS_AFTER_PUBLISH)
 DELIVERY = (DELIVERY_AFTER_RESERVE, DELIVERY_AFTER_FENCE, DELIVERY_AFTER_EMIT, DELIVERY_AFTER_RECEIPT, DELIVERY_AFTER_MARK)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY
+RETENTION = (RETENTION_AFTER_SELECT, RETENTION_BEFORE_COMMIT, RETENTION_AFTER_COMMIT)
+BACKUP = (BACKUP_AFTER_SNAPSHOT, BACKUP_AFTER_MANIFEST, BACKUP_AFTER_PUBLISH, BACKUP_AFTER_RECORD, BACKUP_AFTER_PRUNE)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

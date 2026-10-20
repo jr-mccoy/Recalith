@@ -606,6 +606,52 @@ def provenance_events(q: Any, link: EvidenceLink) -> set[str]:
     return walk.reached
 
 
+# Why a walk could not follow a link: the evidence it needs is gone, not merely ineligible as a root.
+LOST_REASONS = frozenset({"missing", "payload_unavailable", "record_unavailable"})
+SUFFICIENT_PAYLOAD = "available"
+
+
+def support_events(q: Any, link: EvidenceLink) -> tuple[set[str], bool]:
+    """Every event one link's lineage needs (the cited event, its derivation and forwarding chain, its roots), and
+    whether something on the way is already gone (Task 15, decision 0016).
+
+    The walk is the counting walk (:class:`_Walk`): support links inside
+    records, locators, derivation and forwarding, cycles cut. A registered root
+    is reached without reading its payload, so the caller checks payload states.
+    """
+    walk = _Walk(q)
+    walk.link(link)
+    events = set(walk.reached) | set(walk.unregistered) | set(link.root_event_ids)
+    if link.ref.kind == "event":
+        events.add(link.ref.id)
+    return events, any(reason in LOST_REASONS for reason in walk.ineligible.values())
+
+
+def chain_available(q: Any, link: EvidenceLink) -> bool:
+    """Whether every payload one link's lineage needs is still available (an incomplete walk proves no loss)."""
+    events, lost = support_events(q, link)
+    if lost:
+        return False
+    ids = sorted(events)
+    for chunk in _chunks(ids):
+        marks = ",".join("?" for _ in chunk)
+        rows = q.execute(f"SELECT payload_state, payload IS NOT NULL FROM events WHERE event_id IN ({marks})", tuple(chunk)).fetchall()  # noqa: S608
+        if len(rows) != len(chunk) or any(state != SUFFICIENT_PAYLOAD or not present for state, present in rows):
+            return False
+    return True
+
+
+def forwarded_events(q: Any, event_id: str) -> list[str]:
+    """The tool results a forwarding result relays (empty when it forwards nothing or its payload is gone)."""
+    env, _missing = _envelope(q, event_id)
+    if env is None:
+        return []
+    obs = classify(env)
+    if obs.reason != "forwarded_content":
+        return []
+    return _Walk(q)._forwarded(env, obs)  # noqa: SLF001 - the same resolution counting uses
+
+
 # --------------------------------------------------------------------------
 # Counting
 

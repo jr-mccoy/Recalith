@@ -32,8 +32,6 @@ MAX_SCOPE_BYTES = 64 * 1024
 LATER = {
     "integrate": "Task 13 (Claude Code integration)",
     "integrate_remove": "Task 13 (Claude Code integration)",
-    "backup": "Task 15 (core backup)",
-    "restore": "Tasks 15/16 (verified backup and suppression-aware restore)",
     "export": "Task 15 full (portable transfers; full release)",
     "import": "Task 15 full (portable transfers; full release)",
     "import_breadcrumbs": "Task 15 full (Breadcrumbs importer; full release)",
@@ -129,6 +127,10 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
         return out.success(service.undo_apply(ctx, args.operation_id, preview_digest=args.preview_digest).model_dump(mode="json"))
     if k == "jobs_retry":
         return out.success(service.retry_job(ctx, args.job_id))
+    if k == "backup":
+        return out.success(service.submit_backup(ctx, Path(args.output)).report())
+    if k == "restore":
+        service.restore(ctx, Path(args.path), expected_digest=args.expected_digest)  # verifies, then answers Task 16
     if k.startswith("worker_"):
         if args.mode == "session":
             raise service.unavailable("session worker mode", "the full release (Task 4 full)")

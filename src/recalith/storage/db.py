@@ -20,7 +20,7 @@ from typing import Any, Iterator, Sequence
 from recalith.contracts.common import InstallationContext, ReadSet, RecordRef, utc_now
 from recalith.errors import RecalithError
 
-SCHEMA_VERSION = 8  # 0008: delivery accounting (decision 0015)
+SCHEMA_VERSION = 9  # 0009: retention pins and verified backups (decision 0016)
 MIN_SQLITE = (3, 37, 0)  # STRICT tables
 BUSY_TIMEOUT_MS = 250
 STATE_DB = Path("state") / "memory.sqlite"

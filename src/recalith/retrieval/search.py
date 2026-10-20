@@ -66,6 +66,7 @@ RECHECK_LABEL = {
     "order_unknown": "a run of the same action succeeded in uncertain order",
     "dependency_changed": "a dependency changed",
     "source_conflict": "its source is in conflict",
+    "support_lost": "some of its evidence is no longer available",
 }
 
 

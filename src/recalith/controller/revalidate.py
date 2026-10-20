@@ -6,8 +6,10 @@ or repeated cause records nothing twice: a certified later success of a
 failure lesson's action family (FailureRecheck ``later_success``), the same
 with ambiguous chronology (``order_unknown``), a changed dependency
 (``dependency_changed``, also transitively through claim dependencies), an
-unresolved source conflict (``source_conflict``), a due review
-(``review_due``) or a consolidation group (``consolidation``). The first four
+unresolved source conflict (``source_conflict``), required evidence that is no
+longer available (``support_lost``, Task 15: a forgetting override or a
+reactivation over expired support), a due review (``review_due``) or a
+consolidation group (``consolidation``). The first five
 set ``needs_revalidation`` on live guidance and suppress caution at once
 (:func:`mark`): a new claim revision with the counter-observation attached as
 ``context`` (never support, never ``contradicts``), the guidance epoch
@@ -71,9 +73,10 @@ from recalith.storage.db import Store, Txn, open_store
 
 LIVE = frozenset({"candidate", "active", "disputed"})
 GUIDANCE = frozenset({"active", "disputed"})
-FRESHNESS_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "source_conflict"})
-# Reasons a model can settle. A source conflict waits for a new authoritative observation.
-MODEL_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "review_due", "consolidation"})
+FRESHNESS_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "source_conflict", "support_lost"})
+# Reasons a model can settle. A source conflict waits for a new authoritative observation. A ``support_lost`` keep
+# never restores strength or availability: strength counts only support that is still available (Task 15).
+MODEL_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "review_due", "consolidation", "support_lost"})
 RECHECK_REF = "@recheck"
 SETTLE_REF = "@settle"
 RECHECK_KIND = "recheck"

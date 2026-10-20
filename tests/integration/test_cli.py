@@ -763,10 +763,15 @@ def test_jobs_retry_and_unavailable_forms(root, tmp_path, tok):
     again = cs.cli(root, "--json", "--operator-token-file", str(tok), "jobs", "retry", job_id)
     assert again.code == 6  # only a failed job is retried
     forms = _forms(tmp_path)
-    for name in ("forget_apply", "backup", "restore", "export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
+    for name in ("forget_apply", "export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
         result = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms[name])
         assert result.code == 4 and result.obj["error"] == "capability_unavailable", (name, result.stdout)
         assert "Task" in result.obj["message"] or "full release" in result.obj["message"]
+    # Task 15 core: backup works behind the guard; restore verifies first (something that is no backup is rejected, exit 2).
+    made = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms["backup"])
+    assert made.code == 0 and made.obj["result"]["manifest"]["artifact_type"] == "backup", made.stdout
+    rejected = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms["restore"])
+    assert rejected.code == 2 and "backup verification failed" in rejected.obj["message"], rejected.stdout
 
 
 def test_worker_start_and_stop_through_the_guarded_cli(root, tmp_path, tok):

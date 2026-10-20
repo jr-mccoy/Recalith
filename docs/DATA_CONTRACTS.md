@@ -345,7 +345,7 @@ Implement ordered SQL migrations with explicit indexes. JSON fields use canonica
 | `evidence_links` | Owner record revision, source reference, relation, root identities |
 | `evidence_capsules` | Capsule ID, exact preserved content, lineage, digest |
 | `dependencies` | Claim revision, dependency kind/key/fingerprint; index by dependency key and by claim-dependency record (schema 6) |
-| `claim_rechecks` | Why a claim needs revalidation: claim, reason, triggering observation, state, outcome code, job, causal root (schema 6, decision 0012); IDs and codes only |
+| `claim_rechecks` | Why a claim needs revalidation: claim, reason, triggering observation, state, outcome code, job, causal root (schema 6, decision 0012); schema 9 adds the reason `support_lost` (decision 0016); IDs and codes only |
 | `pending_supersessions` | Explicit replacements of active guidance held until the replacement's review: replacement, target and its revision, state (schema 6) |
 | `intent_questions` | One content-free open question per unresolved conflict of user declarations (claim IDs, proposition key, state) (schema 6) |
 | `artifact_writes` | Certified writes/deletions by workspace path and commit sequence: the file dependency index's change source (schema 6) |
@@ -358,13 +358,14 @@ Implement ordered SQL migrations with explicit indexes. JSON fields use canonica
 | `privacy_operations` | Purge/cleanup/backup phase, remaining work, protected new epoch, and resumable status |
 | `deliveries`, `outcome_links` | Emitted revisions, session budget accounting, subsequent evidence; schema 8 adds the receipt's host, restoration key, trigger event, fence time, in-flight change and receipt event, and one link per (delivery, label, observed events) (decision 0015). Rows are written only by receipt ingestion |
 | `tombstones` | Suppression targets, source digests, epoch; no prose |
-| `imports`, `exports`, `backups` | Artifact IDs/digests, origins, schemas, privacy/retention metadata |
+| `imports`, `exports`, `backups` | Artifact IDs/digests, origins, schemas, privacy/retention metadata; schema 9 adds the backup's published `location`, `manifest_digest` and `bytes` (decision 0016) |
+| `retention_state` | The worker's retention step: last sweep time, its content-free report (counts, cutoffs, `RetentionSummary`) and the tombstone epoch of the latest ledger copy (schema 9, decision 0016) |
 | `provider_usage` | Invocation reservations, actual/estimated usage, errors, provider/model IDs |
 | `context_views` | Pre-rendered bounded item bodies keyed by workspace/task/purpose, source snapshot revision, guidance/policy/tombstone epochs, precomputed condition results and exact consulted input fingerprints; direct fallback still filters live heads and applicability |
 | `lexical_index` / FTS tables | Disposable candidate index tied to store revision: word terms and structural keys (`path:`, `family:`, `tool:`, `subject:`) per indexed head; `lexical_fts` (FTS5, created at runtime only when detected; rowid = the `retrieval_docs` rowid) (decision 0013) |
 | `projection_state`, `retrieval_docs` | Lexical backend, the store revision the index covers and the epochs the views were built from; one row per indexed live head with status, workspace/task scope and terms (schema 7, decision 0013). Projections never advance the store revision or the guidance epoch; their rows render servable records and participate in forgetting |
 
-Migration 1 creates the full minimal schema; later tasks populate features incrementally. Each table carrying record bodies must participate in forgetting. Store backups include the tombstone ledger; a separate latest ledger copy enables suppression after restore of an older backup.
+Migration 1 creates the full minimal schema; later tasks populate features incrementally. Each table carrying record bodies must participate in forgetting. Store backups include the tombstone ledger; a separate latest ledger copy enables suppression after restore of an older backup. Task 15 core (decision 0016): an event payload expires to `payload = NULL`, `payload_state = 'expired'` (metadata kept; source-conflict bodies about it dropped) only when it is strictly older than its retention window by `recorded_at`, outside every live owner's evidence chain and not needed by unfinished work, decided inside the expiry transaction; `forgotten` is set only by the forgetting override. A backup is a directory of `memory.sqlite` (a consistent snapshot, rollback-journal file), `ledger.json` (the snapshot's tombstone ledger: `{ledger_schema: 1, project_id, installation_id, tombstone_epoch, store_revision, tombstones: [{tombstone_id, epoch, target_ids, source_digests, deletion_scope, created_at}]}`) and `manifest.json` (`ArtifactManifest`, schemas `{database, event, ledger, manifest}`); the backup digest is the SHA-256 of `manifest.json`; the latest ledger copy is `.recalith/state/ledger.json` in the same shape.
 
 ## 11. Component interfaces
 
@@ -425,7 +426,15 @@ correct(ctx: InstallationContext, claim_id: Id, *, expected_revision: int, state
 preview_forget(ctx: InstallationContext, selector: ForgetSelector) -> ForgetPreview
 apply_forget(ctx: InstallationContext, request: ForgetRequest) -> ForgetResult
 backup(ctx: InstallationContext, destination: Path) -> ArtifactManifest
+    # Task 15 core (decision 0016): operator only; storage.backup.create(ctx, destination, *, store=, now=) -> BackupResult
+    # (manifest, manifest_digest, location, bytes) writes, verifies, publishes and records it; storage.backup.verify(path, *,
+    # expected_digest=, ctx=) raises invalid_schema with a reason code; recover/prune finish interrupted and age out old backups.
+    # Retention: privacy.retention.sweep(store, ctx, *, now=, config=) -> Report; pins(q) / pinned_events(q); summary(...) ->
+    # RetentionSummary; release_payloads(txn, ctx, event_ids, *, now, state="forgotten") is the forgetting override Task 16 calls;
+    # support_lost/reconcile downgrade claims whose required evidence is gone; run(store, ctx, config, *, now) is the worker step.
 restore(ctx: InstallationContext, source: Path, *, expected_digest: Digest) -> RestoreResult
+    # Preview before Task 16: verifies first (a backup that does not verify is invalid_schema with its reason code) and then
+    # answers capability_unavailable naming Task 16; the live store is never touched.
 export_memory(ctx: InstallationContext, selection: ExportSelection, destination: Path) -> ArtifactManifest
 import_memory(ctx: InstallationContext, source: Path, *, expected_digest: Digest) -> ImportResult
 import_breadcrumbs(ctx: InstallationContext, source: Path) -> ImportResult
@@ -498,7 +507,7 @@ Apply marker refusal before feature dispatch or child-environment construction. 
 
 These are same-user friction controls, not identity authentication. The verified bootstrap entry point exposes pre-init token/init forms without requiring a global engine. Existing-store init is refused rather than resetting memory. In an IDE terminal carrying a host marker, use an OS terminal launched outside the host-agent tree; the error explains that route, with no marker-clearing override. `RECALITH_WORKER_INSTALLATION` and `RECALITH_CURATOR_INSTALLATION` identify only the corresponding engine-owned child roles; host markers include tested `CLAUDECODE`/`CLAUDE_CODE_CHILD_SESSION` and only verified equivalents for later hosts. A healthy existing-store audit captures content-free refused-attempt telemetry; before a store exists, return bounded refusal metadata without creating a store solely to log it. Audit failure still refuses the requested operation.
 
-Stdin forms (decision 0014): `observe --stdin` takes `{source_event_key, text, host_session_id?, occurred_at?}` or `{observations: [...]}` (1–64), captured as untrusted `generic_observation` events; `context --stdin` takes `{text?, action?, environment?, max_estimated_tokens?, branch_ref?}` with purpose/session/task from the flags. In preview `status` and `doctor` exit 8 (`health_composition_unavailable`, Task 17) and report `autonomous_ready: false`; forms owned by later tasks pass the guard and then return 4 naming their owner. The guard's interactive test is: POSIX standard input is a terminal and `/dev/tty` opens (a controlling terminal exists); Windows standard input is a console input handle (`GetConsoleMode`), never `isatty` alone.
+Stdin forms (decision 0014): `observe --stdin` takes `{source_event_key, text, host_session_id?, occurred_at?}` or `{observations: [...]}` (1–64), captured as untrusted `generic_observation` events; `context --stdin` takes `{text?, action?, environment?, max_estimated_tokens?, branch_ref?}` with purpose/session/task from the flags. In preview `status` and `doctor` exit 8 (`health_composition_unavailable`, Task 17) and report `autonomous_ready: false`; forms owned by later tasks pass the guard and then return 4 naming their owner. `backup --output PATH` (Task 15 core, decision 0016) creates a new directory (never replacing an existing path; inside the project checkout only under `.recalith/`) and prints `{manifest, manifest_digest, location, bytes}`; `restore PATH --expected-digest DIGEST` verifies and rejects a backup that does not verify with exit 2 before Task 16's apply phase exists (a verified one answers 4); `status` reports the last retention sweep under `retention`. The guard's interactive test is: POSIX standard input is a terminal and `/dev/tty` opens (a controlling terminal exists); Windows standard input is a console input handle (`GetConsoleMode`), never `isatty` alone.
 
 Internal registered adapter/controller calls use their own restricted actors for normal automatic operation; hook worker startup uses the registered internal spawn function and never the `worker` CLI (A73 permitted-start control); they cannot call `declare`, `correct`, or privacy/administrative methods by supplying an operator DTO. This is a service policy boundary tested through real public entry points, not a claim that Python code is inaccessible to the same OS user.
 

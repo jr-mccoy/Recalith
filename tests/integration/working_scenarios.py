@@ -122,11 +122,12 @@ class Project:
     def events(self, kind: str | None = None, session: str | None = None) -> list[dict[str, Any]]:
         with self.view() as v:
             rows = v.execute("SELECT event_id, kind, session_id, payload, commit_sequence FROM events ORDER BY commit_sequence").fetchall()
-        out = [{"id": r[0], "kind": r[1], "session_id": r[2], "payload": json.loads(r[3]), "seq": r[4]} for r in rows]
+        # An expired or forgotten payload (Tasks 15/16) is None; its metadata row stays.
+        out = [{"id": r[0], "kind": r[1], "session_id": r[2], "payload": json.loads(r[3]) if r[3] is not None else None, "seq": r[4]} for r in rows]
         return [e for e in out if (kind is None or e["kind"] == kind) and (session is None or e["session_id"] == session)]
 
     def event(self, kind: str, *, call: str | None = None, text: str | None = None, n: int = 0) -> dict[str, Any]:
-        found = [e for e in self.events(kind) if (call is None or e["payload"].get("tool_call_id") == call) and (text is None or text in (e["payload"].get("text") or ""))]
+        found = [e for e in self.events(kind) if (call is None or (e["payload"] or {}).get("tool_call_id") == call) and (text is None or text in ((e["payload"] or {}).get("text") or ""))]
         return found[n]
 
     def binding(self, event_id: str) -> dict[str, Any] | None:

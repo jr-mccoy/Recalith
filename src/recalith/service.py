@@ -44,6 +44,7 @@ from recalith.contracts.config import ProjectConfig
 from recalith.contracts.context import ContextItem, ContextPacket, ContextQuery
 from recalith.contracts.events import CaptureReceipt, EventEnvelope
 from recalith.contracts.operations import ApplyResult, ProposedOperation, UndoPreview
+from recalith.contracts.transfers import ArtifactManifest
 from recalith.controller import apply, jobs
 from recalith.core import identity
 from recalith.errors import RecalithError
@@ -405,6 +406,43 @@ def revoke_token(root: Path, token_id: str) -> None:
 
 
 # --------------------------------------------------------------------------
+# Backup and the verification a restore runs first (Task 15 core, decision 0016)
+
+
+def submit_backup(ctx: InstallationContext, destination: Path, *, now: str | None = None):
+    """``recalith backup --output PATH``: a consistent, verified backup with the tombstone ledger (operator)."""
+    from recalith.storage import backup as storage_backup
+
+    require_operator(ctx, "backup")
+    return storage_backup.create(ctx, Path(destination), now=now)
+
+
+def backup(ctx: InstallationContext, destination: Path) -> ArtifactManifest:
+    """DATA_CONTRACTS §11: the verified backup's manifest (see :func:`submit_backup`)."""
+    return submit_backup(ctx, destination).manifest
+
+
+def restore(ctx: InstallationContext, source: Path, *, expected_digest: str):
+    """``recalith restore``: verify first (digest, files, snapshot, schema, ledger) without touching the live store.
+
+    A backup that does not verify is rejected (``invalid_schema``, exit 2)
+    with its reason code. Applying a verified backup under maintenance with
+    the newer suppression ledger is Task 16 and stays unavailable here.
+    """
+    from recalith.storage import backup as storage_backup
+
+    require_operator(ctx, "restore")
+    if not isinstance(expected_digest, str) or len(expected_digest) != 64 or any(c not in "0123456789abcdef" for c in expected_digest):
+        raise RecalithError("invalid_schema", "--expected-digest is the 64-character SHA-256 of the backup's manifest")
+    verified = storage_backup.verify(Path(source), expected_digest=expected_digest, ctx=ctx)
+    raise RecalithError(
+        "capability_unavailable",
+        f"the backup verified (schema {verified.manifest.schemas['database']}, tombstone epoch {verified.manifest.tombstone_epoch}, store revision {verified.meta['store_revision']}); "
+        "applying a restore is not available in this build (owned by Task 16: suppression-aware restore)",
+    )
+
+
+# --------------------------------------------------------------------------
 # Worker control (the guarded public transport; the hook never uses it)
 
 
@@ -644,10 +682,13 @@ def status(ctx: InstallationContext, *, inherited: Mapping[str, str]) -> dict[st
     from recalith.controller import worker as worker_module
     from recalith.providers import base as provider_base
 
+    from recalith.privacy import retention
+
     with open_store(ctx, readonly=True) as store:
         meta = store.meta()
         with store.read() as view:
             queue = jobs.queue_summary(view, now=utc_now())
+            kept = retention.last_report(view)
     route = provider_base.route_status(provider_base.load_provider_config(ctx.root), installation_id=ctx.installation_id, inherited=inherited, observe=False)
     worker_state = worker_module.read_status(ctx.root) or {}
     running = process_env.worker_running(str(ctx.root))
@@ -658,6 +699,7 @@ def status(ctx: InstallationContext, *, inherited: Mapping[str, str]) -> dict[st
         "jobs": queue,
         "capture": pipeline.capture_health(ctx),
         "inference": {"state": route.state, "reasons": route.reasons},
+        "retention": kept,
         "health": {"state": "unavailable", "reason_codes": ["health_composition_unavailable"], "owner": "task_17"},
         "autonomous_ready": False,
         "readiness": "not_evaluated",

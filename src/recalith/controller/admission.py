@@ -255,6 +255,8 @@ def check_link(q: Any, link: EvidenceLink) -> str | None:
     for root in roots_needed:
         if q.execute("SELECT 1 FROM events WHERE event_id = ?", (root,)).fetchone() is None:
             return "root_missing"
+    if not lineage.chain_available(q, link):
+        return "evidence_unavailable"  # an expired or forgotten payload anywhere on the chain (Task 15 pin recheck)
     return None
 
 
@@ -536,7 +538,8 @@ def assign_strength(q: Any, data: dict[str, Any]) -> str:
     """
     if data.get("status") not in ("active", "disputed"):
         return "weak"
-    supports = [EvidenceLink.model_validate(item) for item in data.get("supports") or []]
+    # Only support whose whole chain is still available counts: lost support never counts, and nothing else lowers it.
+    supports = [link for link in (EvidenceLink.model_validate(item) for item in data.get("supports") or []) if lineage.chain_available(q, link)]
     contradicts = [EvidenceLink.model_validate(item) for item in data.get("contradicts") or []]
     found = lineage.resolve(q, [*supports, *contradicts], proposition_key=data.get("proposition_key"))
     if not found.support_classes:
