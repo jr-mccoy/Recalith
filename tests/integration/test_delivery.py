@@ -156,8 +156,48 @@ def test_concurrent_hooks_preserve_budget(built, monkeypatch):
         outs.append(out)
     sc = ds.scratch(p, p.sid(C))
     emitted_c = [o for o in outs if o]
-    assert len(emitted_c) == len([e for e in sc["entries"] if e["state"] == "emitted"]) == 1
-    assert ids["lesson"] in ds.context_text(emitted_c[0]) and sc["reserved_tokens"] == sum(e["estimated_tokens"] for e in sc["entries"])
+    replies = [json.loads(path.read_text(encoding="utf-8"))["delivery"] for _proc, _rec, path in procs]
+    entries_c = [e for e in sc["entries"] if e["state"] == "emitted"]
+    assert len(emitted_c) == len(entries_c) == len([r for r in replies if r["state"] == "emitted"]) >= 1
+    keys_c = [(i["record_id"], i["revision"], i["condition_digest"]) for e in entries_c for i in e["items"]]
+    assert len(keys_c) == len(set(keys_c))  # never the same caution under the same condition twice
+    # One emission per distinct condition. A racing hook whose 50 ms dependency budget ran out (a loaded host)
+    # downgrades the caution, and an unknown dependency never matches a checked one (SYSTEM_SPEC §5.1): that
+    # emission is a different delivery and must say so; at most one hook emits the checked caution.
+    checked = [r for r in replies if r["state"] == "emitted" and "deadline_dependency_unknown" not in r.get("degraded", [])]
+    assert len(checked) <= 1
+    assert all(ids["lesson"] in ds.context_text(o) for o in emitted_c) and sc["reserved_tokens"] == sum(e["estimated_tokens"] for e in sc["entries"])
+
+
+def test_unknown_dependency_caution_is_a_distinct_delivery(built, monkeypatch):
+    """A hook whose dependency budget is spent downgrades the caution under its own suppression key (A59, SYSTEM_SPEC §5.1).
+
+    Synthetic timing: the budget's stop time is set in the past, as on a
+    loaded host. The downgraded caution and the checked caution are each
+    emitted once; a repeat of either is suppressed.
+    """
+    p, ids = built
+    real = fc.DependencyBudget.__init__
+
+    def starved(self, deadline=None, **kw):
+        real(self, deadline, **kw)
+        self.stop = 0.0
+
+    def run(n: int, *, spent: bool):
+        monkeypatch.setattr(fc.DependencyBudget, "__init__", starved if spent else real)
+        return ds.hook(p, _pre(C, f"dep{n}"))
+
+    first, out1 = run(0, spent=True)
+    assert first["delivery"]["state"] == "emitted" and "deadline_dependency_unknown" in first["delivery"]["degraded"]
+    checked, out2 = run(1, spent=False)
+    assert checked["delivery"]["state"] == "emitted" and "deadline_dependency_unknown" not in checked["delivery"]["degraded"]
+    assert ids["lesson"] in _texts(out1) and ids["lesson"] in _texts(out2)
+    for n, spent in ((2, False), (3, True)):
+        again, out = run(n, spent=spent)
+        assert again["delivery"]["state"] == "none" and again["delivery"]["suppressed"] == 1 and out == []
+    entries = [e for e in ds.scratch(p, p.sid(C))["entries"] if e["state"] == "emitted"]
+    digests = [i["condition_digest"] for e in entries for i in e["items"] if i["record_id"] == ids["lesson"]]
+    assert len(entries) == 2 and len(set(digests)) == 2
 
 
 def wks_prompt(session: str, text: str):

@@ -350,7 +350,9 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None, em
             return reply
         role = request.get("event_role")
         first = request["events"][0]
-        if role == "post_tool" and first["kind"] == "tool_finished":
+        if role == "post_tool" and first["kind"] == "tool_finished" and (session.maintenance_active(ctx["root"]) or session.suppressed(ctx["root"], first["event_id"])):
+            reply["degradations"].append("overlay_suppressed")  # privacy maintenance, or a replay of a forgotten source
+        elif role == "post_tool" and first["kind"] == "tool_finished":
             status = session.record_outcome(ctx["root"], first["session_id"], session.outcome_from_envelope(first), policy_revision=ctx["policy_revision"], deadline=deadline)
             if status != "updated":
                 reply["degradations"].append(status)

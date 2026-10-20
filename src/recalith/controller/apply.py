@@ -134,11 +134,17 @@ def persist_proposal(store: Store, job: Job, response: ModelResponse, read_set: 
     proposal_id = proposal_id_for(job.job_id, digest, read_set)
     retention = format_utc(parse_utc(now) + _days(PROPOSAL_RETENTION_DAYS))
     with jobs.fenced(store, job, now=now) as txn:
+        # A response prepared before a forget committed may restate what was forgotten (citing it or not): its
+        # body is never stored and it is re-evaluated against the current store in this transaction (decision 0017).
+        late = read_set.tombstone_epoch != txn.meta.tombstone_epoch
         txn.execute(
             "INSERT OR IGNORE INTO proposals (proposal_id, job_id, input_digest, read_set_digest, body, retention_after, proposal_digest, read_set) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (proposal_id, job.job_id, job.input_digest, digest_of(read_set.model_dump(mode="json")), response.model_dump_json(), retention, digest, canonical_json(read_set).decode()),
+            (proposal_id, job.job_id, job.input_digest, digest_of(read_set.model_dump(mode="json")), None if late else response.model_dump_json(), retention, digest, canonical_json(read_set).decode()),
         )
-        jobs.set_proposal(txn, job, proposal_id)
+        current = jobs.set_proposal(txn, job, proposal_id)
+        if late:
+            run = _Run(ctx=store.ctx, txn=txn, scope_id=job.job_id, digest=digest, now=now, job=current, proposal_id=proposal_id, causal_root=_depth(txn, job.job_id)[1], read_set=read_set)
+            _requeue(run, response, read_set, "tombstone_epoch_changed")
         failpoints.hit(failpoints.PROPOSAL_BEFORE_COMMIT)
     failpoints.hit(failpoints.JOB_AFTER_PROPOSAL)
     return proposal_id
@@ -934,9 +940,10 @@ def _write_application(run: _Run, kind: str, result: ApplyResult, *, app_id: str
 
 def stored_result(q: Any, app_id: str) -> ApplyResult | None:
     row = q.execute("SELECT inputs FROM operations WHERE operation_id = ?", (app_id,)).fetchone()
-    if row is None:
-        return None
-    return ApplyResult.model_validate(json.loads(row[0])["result"])
+    data = json.loads(row[0]) if row is not None else {}
+    if "result" not in data:
+        return None  # absent, or purged by forgetting (it then applies nothing new: its job is cancelled)
+    return ApplyResult.model_validate(data["result"])
 
 
 def _depth(q: Any, job_id: str) -> tuple[int, str]:

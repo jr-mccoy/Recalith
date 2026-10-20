@@ -55,6 +55,7 @@ from recalith.working.tasks import Ev
 # controller, whatever transport resolved the context it was given.
 REDUCER_ACTOR = Actor(kind="controller", id="typed-reducer", channel="worker")
 EXTRA_EVENTS = 200  # beyond the job's own events, at most this many others per pass
+PURGED = ("forgotten", "quarantined")
 EVENTS_PER_OP = 128
 PATCHES_PER_OP = 256
 ADMITTED = frozenset({"apply", "candidate_only"})
@@ -141,7 +142,8 @@ class Reduction:
         target = max(through, min(latest, cursor + EXTRA_EVENTS))
         if target <= cursor:
             return
-        rows = self.txn.execute(f"SELECT {tasks.EVENT_COLUMNS} FROM events WHERE commit_sequence > ? AND commit_sequence <= ? ORDER BY commit_sequence", (cursor, target)).fetchall()  # noqa: S608
+        # A forgotten event is never reduced: nothing new may derive from it (decision 0017).
+        rows = self.txn.execute(f"SELECT {tasks.EVENT_COLUMNS} FROM events WHERE commit_sequence > ? AND commit_sequence <= ? AND payload_state != 'forgotten' ORDER BY commit_sequence", (cursor, target)).fetchall()  # noqa: S608
         for row in rows:
             ev = tasks.ev_from_row(row)
             self.events[ev.event_id] = ev
@@ -167,8 +169,17 @@ class Reduction:
             return self.pass_tasks.get(other.event_id)
         return bindings.bound_partner_task(self.txn, ev)
 
+    def purged(self, task_id: str | None) -> bool:
+        """A forgotten or content-free quarantined task takes no new events (decision 0017)."""
+        if task_id is None or any(c["task_id"] == task_id for c in self.created):
+            return False
+        head = records.head(self.txn, "task", task_id)
+        return head is not None and head[1] in PURGED
+
     def new_session(self, ev: Ev) -> segment.SessionState:
         hint = self.resolve(ev.task_hint) if ev.task_hint else None
+        if hint is not None and self.purged(hint):
+            hint = None
         if hint is not None and records.task_workspace(self.txn, hint) == self.ctx.workspace_id:
             state = segment.SessionState(session_id=ev.session_id, task_id=hint, origin="host_binding", continuity="none")
             self.sessions[ev.session_id] = state
@@ -192,8 +203,15 @@ class Reduction:
             return
         state = self.session(ev.session_id) or self.new_session(ev)
         current = self.resolve(state.task_id) or state.task_id
+        if self.purged(current):
+            # The session's task was forgotten or quarantined: later events open a new provisional task.
+            self.sessions.pop(ev.session_id, None)
+            state = self.new_session(ev)
+            current = state.task_id
         state.task_id = current
         task_id = self.partner_task(ev) or current
+        if task_id != current and self.purged(task_id):
+            task_id = current  # a late result of a forgotten call belongs to the session's current task
         self.touched.add(task_id)
         draft = self.draft(task_id)
         if draft is not None:
@@ -287,7 +305,7 @@ class Reduction:
         result = apply.apply_in_transaction(self.txn, self.ctx, operations, read_set=read_set, submission_id=submission, now=self.now)
         refused = [d for d in result.decisions if d.outcome not in ADMITTED]
         if refused:
-            raise RecalithError("invalid_result", f"typed reduction was refused: {refused[0].local_ref} {refused[0].reason_code}")
+            raise RecalithError("policy_refused", f"typed reduction was refused: {refused[0].local_ref} {refused[0].reason_code}")
         if self.applications == 1:
             failpoints.hit(failpoints.REDUCE_AFTER_APPLY)
         return result

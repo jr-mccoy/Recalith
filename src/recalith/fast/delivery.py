@@ -419,6 +419,8 @@ def deliver(ctx: dict, request: dict, *, deadline: float, emit) -> dict:
         return _result("unavailable", purpose, reason="path_not_installed")
     if emit is None:
         return _result("unavailable", purpose, reason="no_output_channel")
+    if session.maintenance_active(root):
+        return _result("skipped", purpose, reason="maintenance_in_progress")  # forget/restore pauses delivery (decision 0017)
     if deadline - time.monotonic() < fc.FENCE_TAIL:
         return _result("skipped", purpose, reason="deadline_delivery_skipped")
     if not session.locking_supported():
@@ -457,6 +459,9 @@ def deliver(ctx: dict, request: dict, *, deadline: float, emit) -> dict:
 
 def _locked(ctx, request, purpose, query, compiled, reasons, *, session_id, host_session_id, substitute, deadline, emit) -> dict:
     root = ctx["root"]
+    if session.maintenance_active(root):
+        # Rechecked under the session lock: privacy maintenance cleans this scratch under the same lock.
+        return _result("skipped", purpose, reason="maintenance_in_progress", degraded=reasons)
     scratch, state = session.load(root, session_id, ctx["policy_revision"])
     if state == "invalid":
         reasons.append("scratch_invalid")

@@ -19,6 +19,7 @@ from recalith.cli.main import Form, Output, project_root
 from recalith.errors import EXIT_CODES, RecalithError
 
 MAX_STDIN_BYTES = 1024 * 1024
+MAX_SELECTOR_BYTES = 1024 * 1024
 CONTEXT_FIELDS = frozenset({"text", "action", "environment", "max_estimated_tokens", "branch_ref"})
 
 
@@ -32,11 +33,28 @@ def read_stdin_json() -> Any:
         raise RecalithError("invalid_schema", "stdin is not a UTF-8 JSON value") from None
 
 
+def read_selector(path: str):
+    """A ``ForgetSelector`` file: bounded, strict, enumerated identifiers only (never executable text)."""
+    from pydantic import ValidationError
+
+    from recalith.contracts.privacy import ForgetSelector
+
+    try:
+        with open(path, "rb") as fh:
+            raw = fh.read(MAX_SELECTOR_BYTES + 1)
+    except OSError:
+        raise RecalithError("invalid_schema", "the --selector file cannot be read") from None
+    if len(raw) > MAX_SELECTOR_BYTES:
+        raise RecalithError("invalid_schema", "the --selector file exceeds 1 MiB")
+    try:
+        return ForgetSelector.model_validate(json.loads(raw.decode("utf-8")))
+    except (UnicodeDecodeError, ValueError, ValidationError):
+        raise RecalithError("invalid_schema", "the --selector file is not a valid ForgetSelector") from None
+
+
 def run(args: argparse.Namespace, form: Form, out: Output, environ: Mapping[str, str]) -> int:
     root = project_root(args)
     c = args.command
-    if c == "forget":
-        raise service.unavailable("forget --preview", "Task 16")
     if c == "doctor" and args.full_integrity:
         raise service.unavailable("doctor --full-integrity (the revision chain)", "the full release")
     actor = service.OBSERVER if c == "observe" else service.READER
@@ -74,4 +92,6 @@ def run(args: argparse.Namespace, form: Form, out: Output, environ: Mapping[str,
         return out.success(service.list_jobs(ctx, limit=args.limit))
     if c == "undo":
         return out.success(service.undo_preview(ctx, args.operation_id).model_dump(mode="json"))
+    if c == "forget":
+        return out.success(service.preview_forget(ctx, read_selector(args.selector)).model_dump(mode="json"))
     raise RecalithError("invalid_schema", "unknown command")

@@ -633,7 +633,7 @@ def test_backup_contains_current_ledger(tmp_path):
 
 
 def test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected(tmp_path):
-    """``recalith backup`` through the real guarded CLI; ``restore`` verifies first and rejects corrupt copies (A40)."""
+    """``recalith backup`` through the real guarded CLI; ``restore`` verifies first, rejects corrupt copies (A40), restores a good one."""
     p = cs.project(tmp_path, "cli-retention")  # the real lifecycle session, reduced
     cs.lesson(p)
     root = p.root
@@ -652,10 +652,8 @@ def test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected(tmp_path):
     # An existing output is never overwritten.
     again = cli.cli(root, "--json", "--operator-token-file", str(tok), "backup", "--output", str(out))
     assert again.code == 2 and again.obj["error"] == "invalid_schema"
-    # Restore verifies before anything else: a good backup verifies (applying it is Task 16), corrupt copies are rejected.
+    # Restore verifies before anything else: corrupt copies are rejected and the live store is never touched.
     before = (cli.tree(root), cli.store_rows(root))
-    good = cli.cli(root, "--json", "--operator-token-file", str(tok), "restore", str(out), "--expected-digest", result["manifest_digest"])
-    assert good.code == 4 and "verified" in good.obj["message"] and "Task 16" in good.obj["message"]
     cases = {
         "backup_file_digest_mismatch": rsn.corrupt_copy(out, tmp_path / "corrupt-db"),
         "backup_file_digest_mismatch ": rsn.corrupt_copy(out, tmp_path / "corrupt-ledger", member="ledger.json", offset=5),
@@ -678,6 +676,9 @@ def test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected(tmp_path):
     wrong = cli.cli(root, "--json", "--operator-token-file", str(tok), "restore", str(out), "--expected-digest", "0" * 64)
     assert wrong.code == 2 and "backup_digest_mismatch" in wrong.obj["message"]
     assert (cli.tree(root), cli.store_rows(root)) == before  # the live store is never touched
+    # The verified backup restores (Task 16: suppression-aware restore; test_restore owns its behavior).
+    good = cli.cli(root, "--json", "--operator-token-file", str(tok), "restore", str(out), "--expected-digest", result["manifest_digest"])
+    assert good.code == 0 and good.obj["result"]["restored_revision"] >= 1, good.stdout + good.stderr
 
 
 def test_unsupported_schema_is_refused(tmp_path):

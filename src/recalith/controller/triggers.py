@@ -195,8 +195,8 @@ def run(txn: Any, *, now: str) -> int:
     for row in rows:
         ev = _event(row)
         last = ev.seq
-        if not ev.relevant:
-            continue
+        if row[3] is None or not ev.relevant:
+            continue  # a forgotten payload is never examined (decision 0017); an expired one is below this cursor
         head = bindings.binding_head(txn, ev.event_id)
         task_id = tasks.resolve_task(txn, head["task_id"]) if head is not None else None
         if task_id is not None:

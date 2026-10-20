@@ -77,7 +77,7 @@ def test_json_stdout_is_one_object(root, tmp_path, tok):
         (["--json", "show", "claim_00000000-0000-4000-8000-000000000000"], 2),
         (["--json", "claims", "--status", "nonsense"], 2),
         (["--json", "declare", "decision", "--statement", STATEMENT], 2),  # syntax: missing --scope
-        (["--json", "forget", "--selector", str(tmp_path / "sel.json"), "--preview"], 4),
+        (["--json", "forget", "--selector", str(tmp_path / "sel.json"), "--preview"], 2),  # Task 16: a missing selector file is invalid input
         (["--json", "declare", "decision", "--statement", STATEMENT, "--scope", str(scope_file(tmp_path))], 6),  # no terminal, no token
     ]
     for args, expected in cases:
@@ -763,7 +763,7 @@ def test_jobs_retry_and_unavailable_forms(root, tmp_path, tok):
     again = cs.cli(root, "--json", "--operator-token-file", str(tok), "jobs", "retry", job_id)
     assert again.code == 6  # only a failed job is retried
     forms = _forms(tmp_path)
-    for name in ("forget_apply", "export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
+    for name in ("export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
         result = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms[name])
         assert result.code == 4 and result.obj["error"] == "capability_unavailable", (name, result.stdout)
         assert "Task" in result.obj["message"] or "full release" in result.obj["message"]
@@ -772,6 +772,9 @@ def test_jobs_retry_and_unavailable_forms(root, tmp_path, tok):
     assert made.code == 0 and made.obj["result"]["manifest"]["artifact_type"] == "backup", made.stdout
     rejected = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms["restore"])
     assert rejected.code == 2 and "backup verification failed" in rejected.obj["message"], rejected.stdout
+    # Task 16: forget runs behind the guard; a selector that names nothing is invalid input (test_forgetting owns the behavior).
+    empty = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms["forget_apply"])
+    assert empty.code == 2 and empty.obj["error"] == "invalid_schema", empty.stdout
 
 
 def test_worker_start_and_stop_through_the_guarded_cli(root, tmp_path, tok):

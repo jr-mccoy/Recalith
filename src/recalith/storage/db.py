@@ -20,7 +20,7 @@ from typing import Any, Iterator, Sequence
 from recalith.contracts.common import InstallationContext, ReadSet, RecordRef, utc_now
 from recalith.errors import RecalithError
 
-SCHEMA_VERSION = 9  # 0009: retention pins and verified backups (decision 0016)
+SCHEMA_VERSION = 10  # 0010: forgetting and suppression-aware restore (decision 0017)
 MIN_SQLITE = (3, 37, 0)  # STRICT tables
 BUSY_TIMEOUT_MS = 250
 STATE_DB = Path("state") / "memory.sqlite"
@@ -187,6 +187,20 @@ class Store:
 
     def meta(self) -> Meta:
         return read_meta(self._conn)
+
+    def checkpoint(self) -> bool:
+        """Fold the WAL into the database file and truncate it (best effort; never inside a transaction).
+
+        Forgetting runs it after its purge so the purged pages leave the WAL
+        once no reader still needs them; a busy reader leaves it for later.
+        """
+        if self.readonly or self._conn.in_transaction:
+            return False
+        try:
+            busy, _log, _done = self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        except sqlite3.Error:
+            return False
+        return busy == 0
 
     @contextlib.contextmanager
     def read(self) -> Iterator["_ReadView"]:

@@ -146,7 +146,8 @@ def response(ops: list[dict[str, Any]], *, purpose: str = "extract_claims", no_o
 
 def read_set(root: Path, refs: list[RecordRef] | None = None, fingerprints: dict[str, str] | None = None) -> ReadSet:
     ctx = context(root)
-    return ReadSet(entity_revisions=refs or [], workspace_id=ctx.workspace_id, fingerprints=fingerprints or {}, policy_revision=1, tombstone_epoch=0)
+    epoch = meta(root).tombstone_epoch  # prepared now: the current tombstone epoch (0 until a forget)
+    return ReadSet(entity_revisions=refs or [], workspace_id=ctx.workspace_id, fingerprints=fingerprints or {}, policy_revision=1, tombstone_epoch=epoch)
 
 
 def head_ref(root: Path, kind: str, record_id: str) -> RecordRef:

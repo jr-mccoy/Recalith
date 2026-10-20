@@ -406,6 +406,31 @@ def resolve_installation(root: Path, *, actor: Actor) -> InstallationContext:
     return _context(layout, local, meta, actor)
 
 
+def resolve_for_restore(root: Path, *, actor: Actor, installation_id: str, project_id: str, policy_revision: int = 1) -> InstallationContext:
+    """The installation of ``root`` when its store file is gone, for a restore only (Task 16, decision 0017).
+
+    The identity comes from this checkout's own ``local.toml`` and
+    ``project.toml``; a verified backup must name exactly that installation and
+    project. Moved and copied checkouts are refused as in
+    :func:`resolve_installation`, and nothing opens or creates a store here.
+    """
+    root = canonical(root)
+    layout = Layout(root)
+    if not layout.project_toml.exists():
+        raise RecalithError("capability_unavailable", "no .recalith/project.toml at this root")
+    config = load_project_config(layout)
+    local = _read_local(layout)
+    if _classify_location(layout, local) != "same":
+        raise RecalithError("installation_relocated", "the project moved or was copied; rebind it before restoring")
+    if layout.db.exists():
+        return resolve_installation(root, actor=actor)
+    if local["installation_id"] != installation_id or config.project_id != project_id:
+        raise RecalithError("foreign_installation", "the backup belongs to another installation")
+    meta = db.Meta(project_id=project_id, installation_id=installation_id, engine_version=__version__, schema_version=db.SCHEMA_VERSION, release_profile=config.release_profile,
+                   store_revision=0, guidance_epoch=0, policy_revision=policy_revision, tombstone_epoch=0)
+    return _context(layout, local, meta, actor)
+
+
 def rebind_installation(root: Path, *, actor: Actor) -> InstallationContext:
     """Operator rebind after a move. Copies are refused, never adopted."""
     if actor.kind != "operator":

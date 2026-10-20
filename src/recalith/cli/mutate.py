@@ -38,7 +38,6 @@ LATER = {
     "upgrade": "Task 17 full (local upgrades; full release)",
     "project_fork": "Task 2 full (project fork; full release)",
     "workspace_attach": "Task 2 full (workspace attachment; full release)",
-    "forget_apply": "Task 16 (intentional forgetting)",
     "doctor_probe": "Tasks 13/17 (host and provider probes through doctor)",
 }
 EXIT_CODE_NAMES = {2: "invalid_schema", 3: "revision_conflict", 4: "capability_unavailable", 5: "storage_failure", 6: "policy_refused"}
@@ -118,6 +117,8 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
     if k == "workspace_discard_copy":
         service.discard_copy(root, actor)
         return out.success({"discarded": True})
+    if k == "restore" and not identity.Layout(root).db.exists():
+        return out.success(service.restore_lost_store(root, actor, Path(args.path), expected_digest=args.expected_digest).model_dump(mode="json"))
     ctx = service.resolve(root, actor=actor)
     if k == "declare":
         return out.success(service.submit_declaration(ctx, args.kind, args.statement, _scope(args.scope)).report())
@@ -130,7 +131,17 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
     if k == "backup":
         return out.success(service.submit_backup(ctx, Path(args.output)).report())
     if k == "restore":
-        service.restore(ctx, Path(args.path), expected_digest=args.expected_digest)  # verifies, then answers Task 16
+        return out.success(service.restore(ctx, Path(args.path), expected_digest=args.expected_digest).model_dump(mode="json"))
+    if k == "forget_apply":
+        from recalith.cli.inspect import read_selector
+        from recalith.contracts.privacy import ForgetRequest
+
+        selector = read_selector(args.selector)
+        try:
+            request = ForgetRequest(selector=selector, preview_digest=args.preview_digest)
+        except ValidationError:
+            raise RecalithError("invalid_schema", "--preview-digest is the 64-character digest a forget preview printed") from None
+        return out.success(service.apply_forget(ctx, request).model_dump(mode="json"))
     if k.startswith("worker_"):
         if args.mode == "session":
             raise service.unavailable("session worker mode", "the full release (Task 4 full)")

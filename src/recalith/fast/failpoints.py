@@ -2,8 +2,8 @@
 
 Production code calls :func:`hit` at named points around spool temp write,
 flush, rename, cursor advance, database begin/commit, job lease, budget
-reservation, proposal persistence, job completion, retention expiry and
-backup completion. Nothing is armed
+reservation, proposal persistence, job completion, retention expiry,
+backup completion, forgetting and restore. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -124,6 +124,31 @@ BACKUP_AFTER_MANIFEST = "backup.after_manifest"
 BACKUP_AFTER_PUBLISH = "backup.after_publish"
 BACKUP_AFTER_RECORD = "backup.after_record"
 BACKUP_AFTER_PRUNE = "backup.after_prune"
+# Forgetting (Task 16, decision 0017): the maintenance marker is written (delivery
+# paused; the purge transaction pending); inside the purge transaction after the
+# tombstone, the purge and the persisted privacy operation are written (commit
+# pending); after that commit (file cleanup, ledger, backup, deletions and
+# reconstruction pending); after the external files were cleaned; after the
+# latest ledger copy was written; after the post-forget backup (verified or
+# failed) was recorded in the operation; after the affected older backups were
+# deleted; after the reconstruction jobs were queued (completion pending).
+FORGET_AFTER_MARKER = "forget.after_marker"
+FORGET_BEFORE_COMMIT = "forget.before_commit"
+FORGET_AFTER_COMMIT = "forget.after_commit"
+FORGET_AFTER_FILES = "forget.after_files"
+FORGET_AFTER_LEDGER = "forget.after_ledger"
+FORGET_AFTER_BACKUP = "forget.after_backup"
+FORGET_AFTER_DELETE = "forget.after_delete"
+FORGET_AFTER_RECONSTRUCT = "forget.after_reconstruct"
+# Restore (Task 16): the staged copy of the snapshot exists (suppression pending);
+# inside the staged store's transaction after the newer tombstones were applied
+# (commit pending); the staged store is complete and the journal says so (the
+# swap pending); the staged store replaced the live one (file cleanup, ledger
+# and backup policy pending).
+RESTORE_AFTER_STAGE = "restore.after_stage"
+RESTORE_BEFORE_COMMIT = "restore.before_commit"
+RESTORE_BEFORE_SWAP = "restore.before_swap"
+RESTORE_AFTER_SWAP = "restore.after_swap"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -140,7 +165,9 @@ RETRIEVAL = (INDEX_AFTER_REFRESH, VIEWS_BEFORE_COMMIT, VIEWS_AFTER_PUBLISH)
 DELIVERY = (DELIVERY_AFTER_RESERVE, DELIVERY_AFTER_FENCE, DELIVERY_AFTER_EMIT, DELIVERY_AFTER_RECEIPT, DELIVERY_AFTER_MARK)
 RETENTION = (RETENTION_AFTER_SELECT, RETENTION_BEFORE_COMMIT, RETENTION_AFTER_COMMIT)
 BACKUP = (BACKUP_AFTER_SNAPSHOT, BACKUP_AFTER_MANIFEST, BACKUP_AFTER_PUBLISH, BACKUP_AFTER_RECORD, BACKUP_AFTER_PRUNE)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP
+FORGET = (FORGET_AFTER_MARKER, FORGET_BEFORE_COMMIT, FORGET_AFTER_COMMIT, FORGET_AFTER_FILES, FORGET_AFTER_LEDGER, FORGET_AFTER_BACKUP, FORGET_AFTER_DELETE, FORGET_AFTER_RECONSTRUCT)
+RESTORE = (RESTORE_AFTER_STAGE, RESTORE_BEFORE_COMMIT, RESTORE_BEFORE_SWAP, RESTORE_AFTER_SWAP)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)
