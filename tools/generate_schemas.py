@@ -67,6 +67,7 @@ MODELS = {
     "ImportResult": transfers.ImportResult,
     "UpgradeResult": transfers.UpgradeResult,
     "HealthReport": health.HealthReport,
+    "HostCertification": health.HostCertification,
     "ProjectConfig": config.ProjectConfig,
     "ProviderConfig": config.ProviderConfig,
 }

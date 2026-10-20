@@ -387,7 +387,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Preview health/startup/recovery diagnostics run before the Task 13 release gate. Engine/schema upgrade, preview-to-full transition and chain diagnostics are full-only.
 
-**Files:** Create `operations/{health,upgrade,autostart}.py`, extend CLI, create `tests/integration/test_upgrade.py`, `tests/platform/test_autostart.py`, `tests/integration/test_health.py`.
+**Files:** Create `operations/{health,upgrade,autostart}.py`, extend CLI, create `tests/integration/test_upgrade.py`, `tests/platform/test_autostart.py`, `tests/integration/test_health.py`. The preview slice (decision 0018) creates `operations/{__init__,health,autostart}.py` (`autostart` reports the registered hook start and the full-only OS entries; it registers nothing), the `HostCertification` contract (`.recalith/host.json`, written by Task 13), the test builders `tests/integration/health_scenarios.py`, and the three test files; `operations/upgrade.py` belongs to the full slice and is not created (the plan-named upgrade tests are explicit pending skips in `test_upgrade.py`). No persisted step is added, so no new kill/restart family applies.
 
 **Interfaces:** Produce profile-aware `health(ctx) -> HealthReport`. Upgrade/restore use exclusive maintenance mode; installer writes only the selected project's runtime/owned integration entries.
 

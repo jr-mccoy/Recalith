@@ -1,0 +1,95 @@
+{
+  "$id": "recalith:contracts/HostCertification",
+  "additionalProperties": false,
+  "description": "The installation's host delivery/protection record (``.recalith/host.json``, private; decision 0018).\n\nTask 13's certification produces it (the nonce protocol per delivery\npath, the installed command deny rules, the private-path probe); health\nonly reads it. ``mode`` ``live`` is the only certification: a\nrequest-capture observation never makes a path healthy. The record binds\none installation and one exact host version; any other installation or\nversion makes it inapplicable.",
+  "properties": {
+    "certification_schema": {
+      "const": 1,
+      "title": "Certification Schema",
+      "type": "integer"
+    },
+    "certified_at": {
+      "title": "Certified At",
+      "type": "string"
+    },
+    "command_rules": {
+      "enum": [
+        "installed",
+        "unavailable"
+      ],
+      "title": "Command Rules",
+      "type": "string"
+    },
+    "delivery": {
+      "additionalProperties": {
+        "enum": [
+          "certified",
+          "failed",
+          "unavailable"
+        ],
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": [
+          "session_start",
+          "prompt",
+          "pre_action",
+          "compact_restore"
+        ]
+      },
+      "title": "Delivery",
+      "type": "object"
+    },
+    "host_id": {
+      "const": "claude_code",
+      "title": "Host Id",
+      "type": "string"
+    },
+    "host_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Host Version",
+      "type": "string"
+    },
+    "installation_id": {
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "live",
+        "request_capture"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "private_paths": {
+      "enum": [
+        "probed_supported",
+        "probed_limited",
+        "probed_unsupported",
+        "not_run"
+      ],
+      "title": "Private Paths",
+      "type": "string"
+    },
+    "report_digest": {
+      "title": "Report Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "certification_schema",
+    "installation_id",
+    "host_id",
+    "host_version",
+    "mode",
+    "certified_at",
+    "report_digest",
+    "delivery",
+    "command_rules",
+    "private_paths"
+  ],
+  "title": "HostCertification",
+  "type": "object"
+}

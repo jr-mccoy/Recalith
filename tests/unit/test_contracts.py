@@ -382,7 +382,13 @@ def health(profile="claude_preview", **states):
         else:
             caps[name] = capability("unavailable", reasons=["not_certified"])
     caps.update(states)
-    return {"release_profile": profile, "capabilities": caps, "worker_state": "idle", "retention_summary": {"pinned_payload_bytes": 0, "unpinned_payload_bytes": 0, "live_owner_count": 0, "free_disk_bytes": None, "deferred_compaction_count": 0}}
+    ready = all(caps[n]["state"] == "healthy" for n in REQUIRED_CAPABILITIES)
+    installation = {"project_id": new_id("proj"), "installation_id": new_id("inst"), "engine_version": "0.1.0.dev0", "pinned_engine_version": "0.1.0.dev0", "schema_version": 10, "supported_schema_version": 10, "schema_state": "current"}
+    return {
+        "release_profile": profile, "capabilities": caps, "worker_state": "idle", "readiness": "ready" if ready else "degraded", "checked_at": "2026-10-20T00:00:00.000000Z",
+        "installation": installation, "privacy_maintenance": {"state": "idle"},
+        "retention_summary": {"pinned_payload_bytes": 0, "unpinned_payload_bytes": 0, "live_owner_count": 0, "free_disk_bytes": None, "deferred_compaction_count": 0},
+    }
 
 
 def test_health_readiness_is_required_capabilities_only():
@@ -395,6 +401,33 @@ def test_health_readiness_is_required_capabilities_only():
     partial = health()
     del partial["capabilities"]["mcp"]
     rejects(HealthReport, {**partial, "autonomous_ready": True}, "every registered capability")
+
+
+
+def test_health_report_shape_rules():
+    """Decision 0018: readiness follows the verdict and the schema; retention is measured for a servable store."""
+    HealthReport.model_validate({**health(), "autonomous_ready": True})
+    rejects(HealthReport, {**health(), "readiness": "degraded", "autonomous_ready": True}, "readiness")
+    old = health(prompt_delivery=capability("unavailable", True, ["schema_migration_required"]))
+    old["installation"] = {**old["installation"], "schema_version": 9, "schema_state": "migration_required"}
+    rejects(HealthReport, {**old, "autonomous_ready": False}, "readiness")
+    HealthReport.model_validate({**old, "readiness": "unavailable", "retention_summary": None, "autonomous_ready": False})
+    rejects(HealthReport, {**health(), "retention_summary": None, "autonomous_ready": True}, "measured")
+    rejects(HealthReport, {**old, "installation": {**old["installation"], "schema_state": "current"}, "readiness": "unavailable", "autonomous_ready": False}, "supported schema")
+    rejects(HealthReport, {**old, "installation": {**old["installation"], "schema_version": 10}, "readiness": "unavailable", "retention_summary": None, "autonomous_ready": False}, "another schema")
+    unreadable = {**old, "installation": {**old["installation"], "schema_version": 10, "schema_state": "unreadable"}, "readiness": "unavailable", "retention_summary": None, "autonomous_ready": False}
+    HealthReport.model_validate(unreadable)  # a malformed store at the supported schema is reported unreadable
+    pending = {"state": "idle", "maintenance_marker": "active", "delivery_paused": True}
+    rejects(HealthReport, {**health(), "privacy_maintenance": pending, "autonomous_ready": True}, "pending")
+    rejects(HealthReport, {**health(), "privacy_maintenance": {"state": "pending", "maintenance_marker": "active"}, "autonomous_ready": True}, "paused")
+    from recalith.contracts.health import HostCertification
+
+    record = {"certification_schema": 1, "installation_id": new_id("inst"), "host_id": "claude_code", "host_version": "2.1.301", "mode": "live", "certified_at": "2026-10-20T00:00:00.000000Z",
+              "report_digest": "a" * 64, "delivery": {"session_start": "certified", "prompt": "certified", "pre_action": "unavailable", "compact_restore": "failed"}, "command_rules": "installed", "private_paths": "not_run"}
+    HostCertification.model_validate(record)
+    rejects(HostCertification, {**record, "delivery": {"session_start": "certified", "prompt": "certified"}}, "every delivery path")
+    rejects(HostCertification, {**record, "host_id": "codex"})
+    rejects(HostCertification, {**record, "extra": 1})
 
 
 def test_project_config_defaults_follow_profile():

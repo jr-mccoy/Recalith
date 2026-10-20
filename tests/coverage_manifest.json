@@ -70,7 +70,9 @@
           "description": "Independent pinned build/schema fixtures and recovery of A leave B untouched",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_installations.py::test_unknown_schema_cannot_write"
+            "tests/integration/test_installations.py::test_unknown_schema_cannot_write",
+            "tests/integration/test_upgrade.py::test_independent_pinned_builds_report_their_own_schema",
+            "tests/integration/test_upgrade.py::test_recovering_A_leaves_B_untouched"
           ],
           "platforms": [
             "linux",
@@ -78,7 +80,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Independent schema fixtures leave B writable; recovery of A arrives with Tasks 3/15/17."
+          "notes": "Independent schema fixtures leave B writable; recovery of A arrives with Tasks 3/15/17. Task 17 (decision 0018): independent pinned build/schema fixtures — A a genuine schema-9 store from the migration files 0001–0009 with an older engine.lock pin, B current; health reports each one's own schema and pin, A refuses writes and its worker exits without migrating, B is byte-identical and still writes. Recovery of A (an interrupted backup and a journaled restore made by real children killed with os._exit, recovered by A's real worker process) leaves B's every file, worker state and health report unchanged. Not passed: the full variant (live side-by-side upgrade, preview-to-full transition) is pending; plan-named upgrade tests are explicit pending skips."
         },
         {
           "variant": "full_only",
@@ -87,7 +89,10 @@
           ],
           "description": "Live side-by-side upgrade and in-place preview-to-full transition",
           "status": "pending",
-          "tests": [],
+          "tests": [
+            "tests/integration/test_upgrade.py::test_upgrade_A_leaves_B_running",
+            "tests/integration/test_upgrade.py::test_preview_to_full_preserves_live_evidence_and_ids"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -95,7 +100,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed."
         }
       ]
     },
@@ -122,7 +128,10 @@
           "tests": [
             "tests/integration/test_installations.py::test_clone_keeps_project_id_and_gets_new_installation",
             "tests/integration/test_installations.py::test_copy_never_starts_a_second_writer",
-            "tests/integration/test_installations.py::test_move_requires_operator_rebind"
+            "tests/integration/test_installations.py::test_move_requires_operator_rebind",
+            "tests/platform/test_autostart.py::test_copied_installation_does_not_autostart",
+            "tests/platform/test_autostart.py::test_moved_installation_does_not_autostart_until_rebound_and_reintegrated",
+            "tests/platform/test_autostart.py::test_recreated_checkout_keeps_the_hook_off"
           ],
           "platforms": [
             "linux",
@@ -130,7 +139,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Service-level; CLI transport for rebind/discard-copy is Task 12a."
+          "notes": "Service-level; CLI transport for rebind/discard-copy is Task 12a. Task 17: a copied, moved or recreated checkout never starts or adopts a worker through the real hook process (installation_relocated before capture or start, in the copy and the original); after a rebind the stale manifest keeps the hook off and health reports hook_context_relocated; the original's hook still starts its own worker (positive control)."
         },
         {
           "variant": "full_only",
@@ -279,7 +288,8 @@
       "blocking": true,
       "owning_tasks": [
         "3",
-        "3b"
+        "3b",
+        "17"
       ],
       "capability": "capture",
       "in_preview": true,
@@ -297,7 +307,8 @@
             "tests/integration/test_capture_recovery.py::test_real_file_size_limit_is_not_acknowledged",
             "tests/integration/test_capture_recovery.py::test_real_permission_failure_is_not_acknowledged",
             "tests/platform/test_capture_only_claude.py::test_hook_capture_failure_is_not_acknowledged",
-            "tests/platform/test_capture_only_claude.py::test_real_permission_failure_is_nonblocking"
+            "tests/platform/test_capture_only_claude.py::test_real_permission_failure_is_nonblocking",
+            "tests/integration/test_health.py::test_source_conflicts_and_capture_gaps_are_listed"
           ],
           "platforms": [
             "linux",
@@ -305,7 +316,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Service and hook capture paths: not_captured, no acknowledgment, content-free gap, host exit 0 with empty output. Health composition is Task 17. Real EACCES variants skip when run as root."
+          "notes": "Service and hook capture paths: not_captured, no acknowledgment, content-free gap, host exit 0 with empty output. Health composition is Task 17. Real EACCES variants skip when run as root. Task 17: health lists capture gaps; the A07 health test found that a broken spool ready directory also lost the gap record (SpoolDirs.ensure re-created every directory) — fixed: record_gap ensures only the gap directory."
         }
       ]
     },
@@ -1143,7 +1154,9 @@
             "tests/unit/test_provider_contract.py::test_unknown_capabilities_leave_the_worker_without_a_backend",
             "tests/unit/test_provider_contract.py::test_per_call_host_diagnostic_rechecks_isolation",
             "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
-            "tests/unit/test_provider_contract.py::test_certification_record_requires_a_complete_live_observation"
+            "tests/unit/test_provider_contract.py::test_certification_record_requires_a_complete_live_observation",
+            "tests/integration/test_health.py::test_missing_provider_is_degraded_not_ready",
+            "tests/integration/test_health.py::test_exhausted_budget_pools_are_reported"
           ],
           "platforms": [
             "linux",
@@ -1151,7 +1164,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain."
+          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain. Task 17: health names capability loss — a missing or request-capture-only route (B1) is inference unavailable and readiness degraded, never ready; a claude on PATH is not a route; capture stays live; exhausted pools degrade inference/admission with the pool named; status exits 8."
         }
       ]
     },
@@ -1579,7 +1592,10 @@
             "tests/integration/test_retention.py::test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected",
             "tests/integration/test_retention.py::test_interrupted_backup_never_verifies_and_is_recovered",
             "tests/integration/test_retention.py::test_unsupported_schema_is_refused",
-            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference"
+            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference",
+            "tests/integration/test_health.py::test_unsupported_schema_store_is_refused_and_preserved",
+            "tests/integration/test_health.py::test_schema9_backup_is_refused_and_live_store_preserved",
+            "tests/integration/test_health.py::test_corrupt_store_fails_the_integrity_check"
           ],
           "platforms": [
             "linux",
@@ -1587,7 +1603,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core (decision 0016): consistent snapshots through the SQLite backup interface, manifest digests, verification before publication and before any restore; the guarded `recalith backup` and the verifying first phase of `recalith restore` as real CLI children; corrupt, tampered, incomplete and schema-forged copies rejected with reason codes (exit 2) while the live store is byte-for-byte unchanged; a live store of another schema refuses the backup write; kill/restart at backup and retention failpoints never leaves an output that does not verify. Not passed: Task 17 owns the rest of A40 (upgrade/profile-transition rollback is full_only) and Task 16 the restore apply phase. Task 16: a verified backup of another installation is refused with nothing changed; the guarded restore applies a verified one."
+          "notes": "Task 15 core (decision 0016): consistent snapshots through the SQLite backup interface, manifest digests, verification before publication and before any restore; the guarded `recalith backup` and the verifying first phase of `recalith restore` as real CLI children; corrupt, tampered, incomplete and schema-forged copies rejected with reason codes (exit 2) while the live store is byte-for-byte unchanged; a live store of another schema refuses the backup write; kill/restart at backup and retention failpoints never leaves an output that does not verify. Not passed: Task 17 owns the rest of A40 (upgrade/profile-transition rollback is full_only) and Task 16 the restore apply phase. Task 16: a verified backup of another installation is refused with nothing changed; the guarded restore applies a verified one. Task 17: a genuine schema-9 live store reports migration_required, its guarded writes (CLI with a provisioned token, service) fail invalid_schema and its worker exits, the store byte-identical; a genuine schema-9 backup is rejected by the guarded restore (exit 2) with the live store unchanged; a malformed store is reported (quick_check failed / unreadable), never a crash. Interrupted upgrade/profile-transition rollback is full_only (pending)."
         },
         {
           "variant": "full_only",
@@ -1596,7 +1612,10 @@
           ],
           "description": "Interrupted upgrade/profile-transition rollback with current tombstones",
           "status": "pending",
-          "tests": [],
+          "tests": [
+            "tests/integration/test_upgrade.py::test_interrupted_upgrade_restores_previous_engine",
+            "tests/integration/test_upgrade.py::test_interrupted_profile_transition_restores_complete_state"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -1604,7 +1623,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed."
         }
       ]
     },
@@ -1784,7 +1804,10 @@
             "tests/platform/test_worker_lifecycle.py::test_installed_host_starts_a_worker_that_outlives_the_session",
             "tests/platform/test_worker_lifecycle.py::test_only_one_worker_per_installation",
             "tests/integration/test_worker.py::test_resume_coalesces_overdue_jobs",
-            "tests/integration/test_worker.py::test_typed_ingestion_runs_while_model_is_pending"
+            "tests/integration/test_worker.py::test_typed_ingestion_runs_while_model_is_pending",
+            "tests/platform/test_autostart.py::test_hook_started_worker_is_reported",
+            "tests/integration/test_health.py::test_running_worker_is_judged_from_its_own_record",
+            "tests/integration/test_health.py::test_worker_startup_and_recovery_checks"
           ],
           "platforms": [
             "linux",
@@ -1792,7 +1815,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17."
+          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17. Task 17: health composes the hook-started worker's own record (state, spawn independence, heartbeat), the registered hook start (preview's startup route; OS entries full-only) and pending recovery (interrupted backups, journaled restore, delayed ingestion). Live real-host termination is Task 13."
         },
         {
           "variant": "full_only",
@@ -1832,7 +1855,9 @@
           ],
           "description": "Complete case (transfer/capsule/MCP component)",
           "status": "pending",
-          "tests": [],
+          "tests": [
+            "tests/integration/test_health.py::test_deferred_features_are_explicit_not_passed"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -1840,7 +1865,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed."
         }
       ]
     },
@@ -1873,7 +1899,9 @@
             "tests/platform/test_capture_only_claude.py::test_unknown_transcript_records_and_host_fields_are_gaps",
             "tests/unit/test_provider_contract.py::test_unknown_capabilities_disable_backend",
             "tests/unit/test_provider_contract.py::test_per_call_host_diagnostic_rechecks_isolation",
-            "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation"
+            "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
+            "tests/integration/test_health.py::test_unknown_host_version_is_conservative",
+            "tests/integration/test_health.py::test_missing_required_prompt_is_not_ready"
           ],
           "platforms": [
             "linux",
@@ -1881,7 +1909,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it."
         },
         {
           "variant": "full_only",
@@ -1940,7 +1968,8 @@
       "required_behavior": "Original event remains immutable; each distinct conflicting digest has one separate conflict row and health entry; replay is idempotent",
       "blocking": true,
       "owning_tasks": [
-        "3"
+        "3",
+        "17"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -1954,7 +1983,8 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate"
+            "tests/integration/test_capture_recovery.py::test_overlapping_producers_deduplicate_and_conflicts_stay_separate",
+            "tests/integration/test_health.py::test_source_conflicts_and_capture_gaps_are_listed"
           ],
           "platforms": [
             "linux",
@@ -1962,7 +1992,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Conflict rows/health entry inputs via capture_health; HealthReport composition is Task 17."
+          "notes": "Conflict rows/health entry inputs via capture_health; HealthReport composition is Task 17. Task 17: one content-free health entry per distinct conflicting digest (HealthReport.source_conflicts) with the count; no payload text in the report."
         }
       ]
     },
@@ -2640,7 +2670,9 @@
           "description": "Private-path probe/coverage report; revision chain explicitly unavailable",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_integrity.py::test_preview_revision_chain_is_reserved_and_unpopulated"
+            "tests/integration/test_integrity.py::test_preview_revision_chain_is_reserved_and_unpopulated",
+            "tests/integration/test_health.py::test_private_path_report_is_not_isolation",
+            "tests/integration/test_health.py::test_deferred_features_are_explicit_not_passed"
           ],
           "platforms": [
             "linux",
@@ -2648,7 +2680,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17."
+          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13."
         },
         {
           "variant": "full_only",
@@ -2906,7 +2938,8 @@
       "blocking": true,
       "owning_tasks": [
         "12a",
-        "12b"
+        "12b",
+        "17"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2924,7 +2957,9 @@
             "tests/integration/test_cli.py::test_observe_not_captured_returns_7",
             "tests/integration/test_cli.py::test_degraded_capability_returns_8",
             "tests/integration/test_cli.py::test_jobs_retry_and_unavailable_forms",
-            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account",
+            "tests/integration/test_health.py::test_missing_required_prompt_is_not_ready",
+            "tests/integration/test_health.py::test_preview_ready_with_optional_delivery_unavailable"
           ],
           "platforms": [
             "linux",
@@ -2932,7 +2967,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 12a: JSON stdout is exactly one object for success, partial capability and every error class; `observe` returns 7 when durability was not acknowledged (valid input) and lists accepted event IDs otherwise; status/doctor and degraded context packets return 8 with registered reasons; unavailable forms return 4 naming their owner. Packet `why` reason codes are validated by the strict ContextItem (Task 11). Host hooks' nonblocking delivery branch is Task 12b. Task 12b: real hook processes with delivery always exit 0 with empty stdout or exactly one `hookSpecificOutput` envelope (additional context only, never a decision or a block); every emitted item's first why is a registered reason code."
+          "notes": "Task 12a: JSON stdout is exactly one object for success, partial capability and every error class; `observe` returns 7 when durability was not acknowledged (valid input) and lists accepted event IDs otherwise; status/doctor and degraded context packets return 8 with registered reasons; unavailable forms return 4 naming their owner. Packet `why` reason codes are validated by the strict ContextItem (Task 11). Host hooks' nonblocking delivery branch is Task 12b. Task 12b: real hook processes with delivery always exit 0 with empty stdout or exactly one `hookSpecificOutput` envelope (additional context only, never a decision or a block); every emitted item's first why is a registered reason code. Task 17: status/doctor exit 0 only when ready and 8 otherwise, naming the reasons of each required capability that is not healthy; health_composition_unavailable retired."
         }
       ]
     },
