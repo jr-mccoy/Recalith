@@ -357,7 +357,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Run the preview core slice before Task 16: consistent backups/ledger, default 180-day unpinned event retention, live-reference pins, and explicit missing-support downgrade handling. Capsule preservation and every transfer/importer feature are full-only.
 
-**Files:** Create `privacy/retention.py`, `storage/backup.py`, `transfers/{export,importer,breadcrumbs}.py`, `tests/integration/test_transfers.py`, `tests/integration/test_retention.py`.
+**Files:** Create `privacy/retention.py`, `storage/backup.py`, `transfers/{export,importer,breadcrumbs}.py`, `tests/integration/test_transfers.py`, `tests/integration/test_retention.py`. The preview core (decision 0016) also adds `privacy/__init__.py`, `storage/migrations/0009.sql` (schema 9), the test builders `tests/integration/retention_scenarios.py` and the kill/restart matrix `test_retention_backup_crash_matches_reference` (`failpoints.RETENTION`, `failpoints.BACKUP`); `transfers/*` and `test_transfers.py` belong to the full slice and are not created yet.
 
 **Interfaces:** Preview produces `backup` and pin-aware retention/ledger operations. Full adds `export_memory`, `import_memory`, `import_breadcrumbs`, and capsules using DATA_CONTRACTS signatures.
 

@@ -1276,3 +1276,60 @@ def test_delivery_crash_matches_reference(tmp_path, failpoint):
             assert states.count("uncertain") == 1, (failpoint, rep, states)  # charged, never counted as emitted
         else:
             assert "uncertain" not in states, (failpoint, rep, states)  # the spooled emitted receipt wins
+
+
+RETENTION_MATRIX = [*failpoints.RETENTION, *failpoints.BACKUP]
+
+
+@pytest.mark.parametrize("failpoint", RETENTION_MATRIX)
+def test_retention_backup_crash_matches_reference(tmp_path, failpoint):
+    """Killed inside a backup, the retention sweep or backup retention (Task 15 core), then the operator re-runs what did not complete.
+
+    Real owners over real 2.1.301 payloads (``retention_scenarios.build``) and
+    a synthetic tombstone (the ledger has content). The script: a backup taken
+    40 days before day 181, the worker at day 181 (a clock ahead of every
+    capture; no provider, B1) whose retention step expires the unpinned
+    payloads, deletes the aged backup and refreshes the ledger copy, and a
+    backup at day 181. A plain reference run gives the expected outcome; a
+    counting run of a fresh build logs each failpoint hit with whether work was
+    owed, judged from the effects (a payload the reference expired still
+    present, the aged backup still on disk or not marked deleted, the new
+    backup missing, unrecorded or not verifying by the test's own hashing, a
+    staging directory left, the ledger copy behind the store) and never from
+    ``retention_state``; each repetition kills at one of those hits (first,
+    middle, last). A kill never leaves an output that does not verify, a
+    pinned payload gone or a claim changed; after the re-run the state equals
+    the reference.
+    """
+    import retention_scenarios as rsc
+
+    reference_root = rsc.crash_project(tmp_path, "reference")
+    plain = _driver(reference_root, tmp_path / "reference.calls")
+    assert plain.returncode == 0, plain.stderr
+    reference = rsc.retention_state(reference_root)
+    expired_keys = [k for k, state, _null in reference["payloads"] if state == "expired"]
+    assert expired_keys and reference["audits"] == 1
+    assert reference["backups"] == [("new", "verified", 1), ("old", "deleted", 1)] and reference["files"] == {"old": False, "new": True, "partials": 0}
+    assert reference["ledger"] == (1, 1) and reference["new_backup"][:2] == (1, 1)
+    assert sorted(reference["new_backup"][2]) == sorted((k, s) for k, s, _null in reference["payloads"])  # the new snapshot holds the expiry
+    count_root = rsc.crash_project(tmp_path, "count")
+    rsc.expect(count_root, expired_keys)
+    hits_log = tmp_path / "count.hits"
+    counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    assert rsc.retention_state(count_root) == reference  # the scenario is deterministic
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while retention or backup work is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = rsc.crash_project(tmp_path, f"crash-{rep}")
+        rsc.expect(root, expired_keys)
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert rsc.retention_state(root) != reference, "the kill must land before the work under test is complete"
+        assert rsc.kill_invariants(root, reference) == [], (failpoint, rep)
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert rsc.retention_state(root) == reference, (failpoint, rep)

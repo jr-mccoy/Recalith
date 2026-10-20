@@ -1334,6 +1334,11 @@ def apply_undo(ctx: InstallationContext, operation_id_: str, *, preview_digest: 
                     source, target, relation = comp.relation
                     if records.remove_relation(txn, source, target, relation):
                         change.entries.append({"relation": [source, target, relation], "added": False})
+            # An undo never revives guidance over evidence that is gone: a reactivated claim whose support expired
+            # meanwhile is downgraded in this transaction (Task 15, decision 0016).
+            from recalith.privacy import retention
+
+            retention.reconcile(txn, ctx, [ref.id for ref, _restored in planned if ref.kind == "claim"], now=now)
             result = ApplyResult(operation_ids=[undo_id], changed_refs=change.refs, decisions=[], store_revision=txn.next_store_revision, requeued_job_ids=[])
             txn.execute(
                 "INSERT INTO operations (operation_id, job_id, proposal_id, atomic_group_id, actor, kind, inputs, changed, reason, causal_root, store_revision, created_at, local_ref, proposal_digest) VALUES (?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",

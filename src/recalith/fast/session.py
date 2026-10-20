@@ -265,19 +265,34 @@ def discard(root, session_id: str, *, deadline: float) -> str:
         lock.release()
 
 
+def owes_receipts(scratch: dict) -> bool:
+    """A reservation whose owner may have died, or an attempt whose receipt was never spooled."""
+    return any(e["state"] == "reserved" or not e.get("receipt_spooled", True) for e in scratch["entries"])
+
+
 def prune_abandoned(root, *, now: float | None = None, limit: int = PRUNE_BATCH) -> int:
-    """Delete at most ``limit`` scratch/lock files idle for more than 24 hours."""
+    """Delete at most ``limit`` scratch/lock files idle for more than 24 hours.
+
+    Scratch that still owes receipts (and its lock) is kept: the worker's
+    retention step settles it through the spool before it goes (Task 15).
+    """
     directory = sessions_dir(root)
     now = time.time() if now is None else now
     removed = 0
     try:
-        names = os.listdir(directory)
+        names = sorted(os.listdir(directory))
     except OSError:
         return 0
+    owed = set()
+    for name in names:
+        if name.endswith(".json"):
+            value = read_scratch(root, name[: -len(".json")])
+            if value is not None and owes_receipts(value):
+                owed.add(name[: -len(".json")])
     for name in names:
         if removed >= limit:
             break
-        if not name.endswith((".json", ".lock")):
+        if not name.endswith((".json", ".lock")) or name.rsplit(".", 1)[0] in owed:
             continue
         path = os.path.join(directory, name)
         try:
