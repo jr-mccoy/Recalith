@@ -405,7 +405,7 @@ def task_counts(q: Any, workspace_id: str) -> dict[str, int]:
     counts = {status: 0 for status in ("active", "paused", "completed", "abandoned", "linked")}
     for status, n in q.execute("SELECT status, COUNT(*) FROM task_heads WHERE workspace_id = ? GROUP BY status", (workspace_id,)).fetchall():
         counts[status] = n
-    return {"active": counts["active"], "paused": counts["paused"], "completed": counts["completed"], "abandoned": counts["abandoned"], "placeholders": counts["linked"], "nonredirected": sum(v for k, v in counts.items() if k != "linked")}
+    return {"active": counts["active"], "paused": counts["paused"], "completed": counts["completed"], "abandoned": counts["abandoned"], "placeholders": counts["linked"], "nonredirected": sum(v for k, v in counts.items() if k not in ("linked", "forgotten", "quarantined"))}
 
 
 def continuity_candidates(q: Any, workspace_id: str, *, exclude: Iterable[str], now: str, pause_hours: int) -> list[str]:

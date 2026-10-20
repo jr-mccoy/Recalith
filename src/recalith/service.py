@@ -74,8 +74,8 @@ WORKER_STOP_SECONDS = 15.0
 ADMITTED = frozenset({"apply", "candidate_only"})
 LIST_KINDS = {"tasks": "task", "episodes": "episode", "claims": "claim"}
 STATUSES = {
-    "task": ("active", "paused", "completed", "abandoned", "linked"),
-    "episode": ("open", "settled", "archived"),
+    "task": ("active", "paused", "completed", "abandoned", "linked", "quarantined", "forgotten"),
+    "episode": ("open", "settled", "archived", "quarantined", "forgotten"),
     "claim": ("candidate", "active", "disputed", "superseded", "invalidated", "archived", "quarantined", "forgotten"),
 }
 
@@ -170,6 +170,26 @@ def operator_event(ctx: InstallationContext, kind: str, payload: dict[str, Any],
         raise RecalithError("invalid_schema", "the operator event is invalid") from None
 
 
+def _live_key(ctx: InstallationContext, kind: str, key: str, *, store: Store | None = None) -> str:
+    """A submission's content key; re-keyed by the tombstone epoch once its event was forgotten (decision 0017).
+
+    The same command retried in one epoch keeps one identity (crash retries
+    stay idempotent); the same statement typed again after its declaration was
+    forgotten is a new statement, not a suppressed replay.
+    """
+    event_id = derived_id("evt", [ctx.installation_id, CLI_ADAPTER, f"{kind}:{key}"])
+    own = store is None
+    opened = store or open_store(ctx, readonly=True)
+    try:
+        with opened.read() as view:
+            hit = view.execute("SELECT epoch FROM tombstone_targets WHERE target_id = ?", (event_id,)).fetchone()
+            epoch = view.execute("SELECT tombstone_epoch FROM installation_meta WHERE singleton = 1").fetchone()[0]
+    finally:
+        if own:
+            opened.close()
+    return key if hit is None else digest_of([key, "after_forget", epoch])
+
+
 def _statement_link(event_id: str, statement: str, relation: str) -> dict[str, Any]:
     locator = {"field": "statement", "start": 0, "end": len(statement), "text_digest": hashlib.sha256(statement.encode("utf-8")).hexdigest()}
     return {"ref": {"kind": "event", "id": event_id, "revision": 1}, "relation": relation, "root_event_ids": [event_id], "locator": locator, "mapping": None}
@@ -245,7 +265,8 @@ def submit_declaration(ctx: InstallationContext, kind: str, statement: str, scop
         raise RecalithError("invalid_schema", "a typed declaration is a decision or a preference")
     statement = _exact_statement(statement)
     scope_json = scope.model_dump(mode="json")
-    env = operator_event(ctx, "operator_declaration", {"statement": statement, "declaration_kind": kind, "scope": scope_json}, key=digest_of([kind, statement, scope_json]))
+    key = _live_key(ctx, "operator_declaration", digest_of([kind, statement, scope_json]), store=store)
+    env = operator_event(ctx, "operator_declaration", {"statement": statement, "declaration_kind": kind, "scope": scope_json}, key=key)
 
     def build(_txn: Any, _duplicate: bool) -> tuple[list[ProposedOperation], list[RecordRef]]:
         payload = {"kind": kind, "proposition": statement, "proposition_key": declaration_key(kind, statement), "scope": scope_json, "conditions": [], "basis": "user_declared", "dependencies": []}
@@ -302,7 +323,8 @@ def submit_correction(ctx: InstallationContext, claim_id: str, *, expected_revis
     if not isinstance(expected_revision, int) or isinstance(expected_revision, bool) or expected_revision < 1:
         raise RecalithError("invalid_schema", "--expected-revision is a positive integer")
     target_ref = {"kind": "claim", "id": claim_id, "revision": expected_revision}
-    env = operator_event(ctx, "operator_correction", {"statement": statement, "target": target_ref}, key=digest_of([claim_id, expected_revision, statement]))
+    key = _live_key(ctx, "operator_correction", digest_of([claim_id, expected_revision, statement]), store=store)
+    env = operator_event(ctx, "operator_correction", {"statement": statement, "target": target_ref}, key=key)
 
     def build(txn: Any, duplicate: bool) -> tuple[list[ProposedOperation], list[RecordRef]]:
         head = records.head(txn, "claim", claim_id)
@@ -422,24 +444,52 @@ def backup(ctx: InstallationContext, destination: Path) -> ArtifactManifest:
     return submit_backup(ctx, destination).manifest
 
 
-def restore(ctx: InstallationContext, source: Path, *, expected_digest: str):
-    """``recalith restore``: verify first (digest, files, snapshot, schema, ledger) without touching the live store.
+def restore(ctx: InstallationContext, source: Path, *, expected_digest: str, stop_wait: float | None = None):
+    """``recalith restore``: verify first, then restore under exclusive maintenance with the newer tombstones applied first.
 
     A backup that does not verify is rejected (``invalid_schema``, exit 2)
-    with its reason code. Applying a verified backup under maintenance with
-    the newer suppression ledger is Task 16 and stays unavailable here.
+    with its reason code and nothing is touched. A verified one is staged,
+    suppressed with every tombstone newer than its snapshot (the live store's,
+    the latest ledger copy's) before anything serves it, and then replaces the
+    live store atomically (Task 16, decision 0017). Returns the ``RestoreResult``.
     """
-    from recalith.storage import backup as storage_backup
+    from recalith.privacy import forget
 
     require_operator(ctx, "restore")
     if not isinstance(expected_digest, str) or len(expected_digest) != 64 or any(c not in "0123456789abcdef" for c in expected_digest):
         raise RecalithError("invalid_schema", "--expected-digest is the 64-character SHA-256 of the backup's manifest")
-    verified = storage_backup.verify(Path(source), expected_digest=expected_digest, ctx=ctx)
-    raise RecalithError(
-        "capability_unavailable",
-        f"the backup verified (schema {verified.manifest.schemas['database']}, tombstone epoch {verified.manifest.tombstone_epoch}, store revision {verified.meta['store_revision']}); "
-        "applying a restore is not available in this build (owned by Task 16: suppression-aware restore)",
-    )
+    options = {} if stop_wait is None else {"stop_wait": stop_wait}
+    return forget.restore(ctx, Path(source), expected_digest=expected_digest, **options)
+
+
+def restore_lost_store(root: Path, actor: Actor, source: Path, *, expected_digest: str):
+    """``recalith restore`` when the live store file is gone: the checkout's own identity, the backup verified against it."""
+    from recalith.storage import backup as storage_backup
+
+    if actor.kind != "operator" or actor.channel != "cli":
+        raise RecalithError("policy_refused", "restore is an operator action of the guarded CLI transport")
+    verified = storage_backup.verify(Path(source), expected_digest=expected_digest)
+    ctx = identity.resolve_for_restore(Path(root), actor=actor, installation_id=verified.manifest.installation_id, project_id=verified.manifest.project_id, policy_revision=verified.meta["policy_revision"])
+    return restore(ctx, source, expected_digest=expected_digest)
+
+
+# --------------------------------------------------------------------------
+# Intentional forgetting (Task 16, decision 0017)
+
+
+def preview_forget(ctx: InstallationContext, selector: Any):
+    """DATA_CONTRACTS §11 ``preview_forget``: the dependency-aware, read-only preview (any actor)."""
+    from recalith.privacy import forget
+
+    return forget.preview_forget(ctx, selector)
+
+
+def apply_forget(ctx: InstallationContext, request: Any):
+    """DATA_CONTRACTS §11 ``apply_forget``: operator only; the digest-guarded purge and its persisted phases."""
+    from recalith.privacy import forget
+
+    require_operator(ctx, "forget --apply")
+    return forget.apply_forget(ctx, request)
 
 
 # --------------------------------------------------------------------------
@@ -585,8 +635,12 @@ def show(ctx: InstallationContext, record_id: str, *, revision: int | None = Non
                 raise RecalithError("invalid_schema", "no such record in this installation")
             rev = head[0] if revision is None else revision
             body = records.body(view, kind, record_id, rev)
+            if body is None and revision is None and head[1] in ("forgotten", "quarantined"):
+                # The content-free marker of a forgotten or quarantined head (DATA_CONTRACTS §5), never a reconstructed body.
+                epoch = view.execute("SELECT MAX(epoch) FROM tombstones").fetchone()[0]
+                return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": None, "content": head[1], "tombstone_epoch": epoch}
             if body is None:
-                raise RecalithError("invalid_schema", "no such revision")
+                raise RecalithError("invalid_schema", "no such revision, or its content was forgotten")
             return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": body}
         if prefix == "evt":
             row = view.execute("SELECT envelope, payload FROM events WHERE event_id = ?", (record_id,)).fetchone()

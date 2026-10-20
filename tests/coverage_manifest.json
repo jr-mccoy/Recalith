@@ -815,18 +815,19 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_worker.py::test_expired_lease_is_fenced",
-            "tests/integration/test_worker.py::test_same_owner_release_is_fenced_by_generation",
-            "tests/integration/test_worker.py::test_late_model_result_after_takeover_is_discarded",
-            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
-            "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
-            "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect",
-            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
-            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference",
             "tests/integration/test_consolidation.py::test_revalidation_result_is_fenced_and_bounded",
+            "tests/integration/test_operations.py::test_duplicate_proposal_has_one_effect",
+            "tests/integration/test_operations.py::test_expired_lease_applies_nothing_and_newer_applies_once",
+            "tests/integration/test_worker.py::test_expired_lease_is_fenced",
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference",
+            "tests/integration/test_worker.py::test_late_model_result_after_takeover_is_discarded",
+            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference",
+            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference",
             "tests/integration/test_worker.py::test_revision_crash_matches_reference",
+            "tests/integration/test_worker.py::test_same_owner_release_is_fenced_by_generation",
             "tests/integration/test_worker.py::test_service_write_crash_matches_reference",
-            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference"
+            "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -834,7 +835,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix."
         }
       ]
     },
@@ -967,11 +968,12 @@
           "description": "Applies in full to both profiles",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_retrieval.py::test_correction_before_the_fence_excludes_old_guidance",
-            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
-            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
             "tests/integration/test_delivery.py::test_correction_before_fence_removes_guidance",
-            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account",
+            "tests/integration/test_forgetting.py::test_forget_before_fence_excludes_and_after_fence_is_in_flight",
+            "tests/integration/test_retrieval.py::test_correction_before_the_fence_excludes_old_guidance",
+            "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
+            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades"
           ],
           "platforms": [
             "linux",
@@ -979,7 +981,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 11 slice: packet-level final fence (service recompile/degraded; hook fresh-snapshot fence with fenced_at timing; stale views never served). Delivery-side bounding of in-flight emission and receipts are Task 12b; forget is Task 16. Task 12b: a correction through the real guarded CLI (`recalith correct` subprocess, provisioned fixture token) committed after the reservation and before the final fence: nothing emitted, the reservation withdrawn, the next delivery excludes the old text; one committed after the fence and before stdout is emitted and recorded `in_flight_change` with fence/emission times, never claimed retractable. Forget is Task 16."
+          "notes": "Task 11 slice: packet-level final fence (service recompile/degraded; hook fresh-snapshot fence with fenced_at timing; stale views never served). Delivery-side bounding of in-flight emission and receipts are Task 12b; forget is Task 16. Task 12b: a correction through the real guarded CLI (`recalith correct` subprocess, provisioned fixture token) committed after the reservation and before the final fence: nothing emitted, the reservation withdrawn, the next delivery excludes the old text; one committed after the fence and before stdout is emitted and recorded `in_flight_change` with fence/emission times, never claimed retractable. Forget is Task 16. Task 16: a forget committed inside the hook before the final fence withdraws the reservation (fenced_out, nothing emitted); one committed after the fence is recorded in_flight_change on the receipt and its delivery row and never claimed retracted; delivery stays paused (maintenance_in_progress) until the owed scratch cleanup finishes (decision 0017)."
         }
       ]
     },
@@ -1370,17 +1372,18 @@
           "description": "Live-reference pins and unreferenced expiry at day 181; explicit loss/forget handling",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_retention.py::test_unreferenced_payloads_expire_at_180_days",
-            "tests/integration/test_retention.py::test_worker_expires_at_day_181_and_republishes",
-            "tests/integration/test_retention.py::test_referenced_roots_do_not_expire",
-            "tests/integration/test_retention.py::test_last_owner_release_allows_expiry",
-            "tests/integration/test_retention.py::test_pin_expiry_race_never_admits_missing_support",
-            "tests/integration/test_retention.py::test_forget_overrides_pin",
-            "tests/integration/test_retention.py::test_lost_support_after_undo_is_downgraded",
-            "tests/integration/test_retention.py::test_replayed_source_after_expiry_does_not_resurrect",
-            "tests/integration/test_retention.py::test_receipts_and_outcome_links_follow_delivery_retention",
+            "tests/integration/test_forgetting.py::test_forget_purges_all_derivatives",
             "tests/integration/test_retention.py::test_abandoned_scratch_is_settled_before_pruning",
             "tests/integration/test_retention.py::test_expired_support_leaves_projections_and_packets",
+            "tests/integration/test_retention.py::test_forget_overrides_pin",
+            "tests/integration/test_retention.py::test_last_owner_release_allows_expiry",
+            "tests/integration/test_retention.py::test_lost_support_after_undo_is_downgraded",
+            "tests/integration/test_retention.py::test_pin_expiry_race_never_admits_missing_support",
+            "tests/integration/test_retention.py::test_receipts_and_outcome_links_follow_delivery_retention",
+            "tests/integration/test_retention.py::test_referenced_roots_do_not_expire",
+            "tests/integration/test_retention.py::test_replayed_source_after_expiry_does_not_resurrect",
+            "tests/integration/test_retention.py::test_unreferenced_payloads_expire_at_180_days",
+            "tests/integration/test_retention.py::test_worker_expires_at_day_181_and_republishes",
             "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference"
           ],
           "platforms": [
@@ -1389,7 +1392,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core (decision 0016): pins over live owners' whole evidence chains (active/disputed/candidate claims incl. contradictions and context, active/paused tasks with their open working range, open episodes, transitive records through an archived intermediary, forwarded subagent results, merged/aliased classes) plus unfinished work; day-181 expiry (strictly older than 180 days by capture time) of eligible unpinned payloads only, in a transaction that recomputes the pin closure, reported (retention_expiry audit, RetentionSummary) and advancing the guidance epoch; retention alone lowers nothing; concurrent reference vs expiry (in-transaction recheck, chain-availability admission); last-owner release; delivery metadata 90 days; scratch settled before pruning; the forgetting override (release_payloads) is exercised by a synthetic caller until Task 16; real worker at a clock ahead of capture. Real 2.1.301 payloads and recorded proposals; synthetic: open episode, tombstones, merged-class adapter events. Not passed: the forget path end to end is Task 16 and the full_only capsule variant stays pending."
+          "notes": "Task 15 core (decision 0016): pins over live owners' whole evidence chains (active/disputed/candidate claims incl. contradictions and context, active/paused tasks with their open working range, open episodes, transitive records through an archived intermediary, forwarded subagent results, merged/aliased classes) plus unfinished work; day-181 expiry (strictly older than 180 days by capture time) of eligible unpinned payloads only, in a transaction that recomputes the pin closure, reported (retention_expiry audit, RetentionSummary) and advancing the guidance epoch; retention alone lowers nothing; concurrent reference vs expiry (in-transaction recheck, chain-availability admission); last-owner release; delivery metadata 90 days; scratch settled before pruning; the forgetting override (release_payloads) is exercised by a synthetic caller until Task 16; real worker at a clock ahead of capture. Real 2.1.301 payloads and recorded proposals; synthetic: open episode, tombstones, merged-class adapter events. Not passed: the forget path end to end is Task 16 and the full_only capsule variant stays pending. Task 16: the forget path end to end (release_payloads called by apply_forget)."
         },
         {
           "variant": "full_only",
@@ -1428,15 +1431,24 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_forgetting.py::test_apply_requires_the_current_preview_digest_and_the_guard",
+            "tests/integration/test_forgetting.py::test_forget_purges_all_derivatives",
+            "tests/integration/test_forgetting.py::test_interrupted_forget_resumes_before_delivery",
+            "tests/integration/test_forgetting.py::test_model_launches_pause_during_maintenance",
+            "tests/integration/test_forgetting.py::test_new_independent_statement_is_allowed",
+            "tests/integration/test_forgetting.py::test_old_job_cannot_resurrect_forgotten_source",
+            "tests/integration/test_forgetting.py::test_source_range_selects_by_capture_ordinal_and_spool",
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16."
+          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): the task's text (claims direct, multi-root and record-transitive, an episode, task revisions, proposal and operation bodies, views, the lexical index and FTS shadow tables, scratch, receipts, a spooled prompt, an older backup) is purged or content-free quarantined in one transaction through the real guarded CLI; a marker search over every table, file and retained backup finds nothing; jobs over forgotten input are cancelled, a late proposal is fenced or kept body-less, known source replay and an old spool segment are suppressed; persisted phases resume before delivery; the kill/restart matrix (failpoints.FORGET + RESTORE) converges with no forgotten text after the purge commit. Live certification not claimed."
         }
       ]
     },
@@ -1458,15 +1470,24 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_restore.py::test_interrupted_restore_is_recovered_before_the_worker_serves",
+            "tests/integration/test_restore.py::test_restore_applies_newer_tombstones",
+            "tests/integration/test_restore.py::test_restore_of_a_post_forget_backup_needs_no_reapplication",
+            "tests/integration/test_restore.py::test_restore_rejects_a_backup_of_another_installation",
+            "tests/integration/test_restore.py::test_restore_requires_exclusive_maintenance",
+            "tests/integration/test_restore.py::test_restore_uses_the_latest_ledger_copy_when_the_store_is_lost",
+            "tests/integration/test_restore.py::test_suppression_happens_before_the_restored_store_is_served",
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16."
+          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): restore of an operator's external copy of a pre-forget backup through the real guarded CLI applies every newer tombstone (live store, latest ledger copy) in memory before anything is written or served; the staged store holds no forgotten text at the swap; an interrupted restore is finished or discarded before the worker opens the store; affected recorded backups follow the deletion policy; the external copy itself is a reported limit."
         }
       ]
     },
@@ -1551,12 +1572,13 @@
           "description": "Corrupt backup rejected; unsupported schema writes refused; current live store preserved",
           "status": "in_progress",
           "tests": [
-            "tests/integration/test_retention.py::test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected",
-            "tests/integration/test_retention.py::test_unsupported_schema_is_refused",
-            "tests/integration/test_retention.py::test_backup_is_consistent",
-            "tests/integration/test_retention.py::test_interrupted_backup_never_verifies_and_is_recovered",
-            "tests/integration/test_retention.py::test_backup_retention_is_bounded",
+            "tests/integration/test_restore.py::test_restore_rejects_a_backup_of_another_installation",
             "tests/integration/test_retention.py::test_backup_files_are_private",
+            "tests/integration/test_retention.py::test_backup_is_consistent",
+            "tests/integration/test_retention.py::test_backup_retention_is_bounded",
+            "tests/integration/test_retention.py::test_guarded_cli_backup_verifies_and_corrupt_copy_is_rejected",
+            "tests/integration/test_retention.py::test_interrupted_backup_never_verifies_and_is_recovered",
+            "tests/integration/test_retention.py::test_unsupported_schema_is_refused",
             "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference"
           ],
           "platforms": [
@@ -1565,7 +1587,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core (decision 0016): consistent snapshots through the SQLite backup interface, manifest digests, verification before publication and before any restore; the guarded `recalith backup` and the verifying first phase of `recalith restore` as real CLI children; corrupt, tampered, incomplete and schema-forged copies rejected with reason codes (exit 2) while the live store is byte-for-byte unchanged; a live store of another schema refuses the backup write; kill/restart at backup and retention failpoints never leaves an output that does not verify. Not passed: Task 17 owns the rest of A40 (upgrade/profile-transition rollback is full_only) and Task 16 the restore apply phase."
+          "notes": "Task 15 core (decision 0016): consistent snapshots through the SQLite backup interface, manifest digests, verification before publication and before any restore; the guarded `recalith backup` and the verifying first phase of `recalith restore` as real CLI children; corrupt, tampered, incomplete and schema-forged copies rejected with reason codes (exit 2) while the live store is byte-for-byte unchanged; a live store of another schema refuses the backup write; kill/restart at backup and retention failpoints never leaves an output that does not verify. Not passed: Task 17 owns the rest of A40 (upgrade/profile-transition rollback is full_only) and Task 16 the restore apply phase. Task 16: a verified backup of another installation is refused with nothing changed; the guarded restore applies a verified one."
         },
         {
           "variant": "full_only",
@@ -1898,14 +1920,17 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_forgetting.py::test_archive_preserves_history_and_forget_removes_content"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 16: archive keeps every revision, show --revision and search --history; forget leaves a content-free head marker and a content-free tombstone."
         }
       ]
     },
@@ -2541,14 +2566,18 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_forgetting.py::test_forget_purges_all_derivatives",
+            "tests/integration/test_forgetting.py::test_surviving_root_derivative_is_quarantined_until_reviewed"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 16: the multi-root claim becomes a body-less quarantined head in the purge transaction (its marker revision has the forget audit's store revision), stays unserved while no backend exists (B1: the reconstruction extraction waits), and a recorded extraction over the surviving root plus its recorded review yields a new served claim; the placeholder stays quarantined."
         }
       ]
     },
@@ -2570,14 +2599,20 @@
             "full"
           ],
           "description": "Applies in full to both profiles",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_forgetting.py::test_failed_post_forget_backup_still_deletes_affected_backups",
+            "tests/integration/test_forgetting.py::test_forget_purges_all_derivatives",
+            "tests/integration/test_forgetting.py::test_post_forget_backup_verifies_before_old_ones_are_deleted",
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference"
+          ],
           "platforms": [
             "linux",
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 16: success — the post-forget backup is recorded and verifies before the affected older backup is deleted; failure (injected OSError at the snapshot) — backup_unavailable_after_forget, the affected backup is still deleted, an unaffected one stays, the purged store and the ledger stay."
         }
       ]
     },

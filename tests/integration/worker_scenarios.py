@@ -261,6 +261,23 @@ def pending_work(root: Path) -> str:
 def main(argv: list[str]) -> int:
     """``ROOT CALLS_LOG [FAILPOINT SKIP | count HITS_LOG]``: optionally kill at one failpoint hit, or log every hit."""
     root, calls_log = Path(argv[1]), Path(argv[2])
+    import forget_scenarios as forgetting
+
+    forget_spec = forgetting.scenario(root)  # Task 16: the guarded forget, worker drains, the restore of an older copy
+    if forget_spec is not None:
+        if len(argv) > 3 and argv[3] == "count":
+            hits_path = Path(argv[4])
+
+            def record_forget_hit(name: str) -> None:
+                with open(hits_path, "a", encoding="utf-8") as fh:
+                    fh.write(f"{name} {forgetting.outstanding(root)}\n")
+
+            for name in (*failpoints.FORGET, *failpoints.RESTORE):
+                failpoints.arm(name, record_forget_hit, times=10**6)
+        elif len(argv) > 3:
+            failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
+        forgetting.run_script(root, forget_spec)
+        return 0
     import retention_scenarios as retention
 
     retention_spec = retention.scenario(root)  # Task 15 core: backups, the day-181 retention step, bounded backup retention

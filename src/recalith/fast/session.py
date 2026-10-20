@@ -28,6 +28,7 @@ from recalith.fast import redact
 from recalith.fast.wire import LIMITS, canonical_json, validate
 
 SESSIONS_DIR = ("run", "sessions")
+MAINTENANCE_FILE = ("run", "maintenance.json")  # present while privacy maintenance (forget/restore) pauses delivery
 LOCK_WAIT_SECONDS = LIMITS["SESSION_LOCK_WAIT_MS"] / 1000
 MAX_OUTCOMES = LIMITS["SESSION_SCRATCH_OUTCOMES"]
 SCRATCH_CAP = LIMITS["SESSION_SCRATCH_CAP"]
@@ -51,6 +52,38 @@ def sessions_dir(root) -> str:
 
 def scratch_path(root, session_id: str) -> str:
     return os.path.join(sessions_dir(root), f"{session_id}.json")
+
+
+def maintenance_path(root) -> str:
+    return os.path.join(os.fspath(root), ".recalith", *MAINTENANCE_FILE)
+
+
+def maintenance_active(root) -> bool:
+    """Forgetting or a restore holds exclusive privacy maintenance: delivery is paused (decision 0017)."""
+    return os.path.exists(maintenance_path(root))
+
+
+LATEST_LEDGER = ("state", "ledger.json")
+LEDGER_READ_CAP = 8 * 1024 * 1024
+
+
+def suppressed(root, event_id: str) -> bool:
+    """Whether the latest tombstone ledger copy names ``event_id`` (a replay of forgotten content; decision 0017).
+
+    Read-only and bounded: an unreadable or oversized ledger counts as no
+    match here; ingestion still suppresses the event from the store's own
+    tombstone targets.
+    """
+    try:
+        with open(os.path.join(os.fspath(root), ".recalith", *LATEST_LEDGER), "rb") as fh:
+            data = fh.read(LEDGER_READ_CAP + 1)
+        if len(data) > LEDGER_READ_CAP:
+            return False
+        ledger = json.loads(data.decode("utf-8"))
+    except (OSError, ValueError):
+        return False
+    tombstones = ledger.get("tombstones") if isinstance(ledger, dict) else None
+    return isinstance(tombstones, list) and any(isinstance(t, dict) and event_id in (t.get("target_ids") or ()) for t in tombstones)
 
 
 def locking_supported() -> bool:

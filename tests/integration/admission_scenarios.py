@@ -58,7 +58,7 @@ def prompt(p: wks.Project, text: str, *, at_: str | None = None, session: str | 
     """Send a synthetic prompt variant and return its stored user_message event (the last part)."""
     p.send(wks.variant(wks.record("lifecycle", "UserPromptSubmit"), prompt=text, session=session), at=at_)
     p.drain()
-    found = [e for e in p.events("user_message") if (e["payload"].get("text") or "") and text.startswith(e["payload"]["text"][:64])]
+    found = [e for e in p.events("user_message") if ((e["payload"] or {}).get("text") or "") and text.startswith(e["payload"]["text"][:64])]  # a forgotten payload is None
     return found[-1]
 
 

@@ -7,6 +7,21 @@
       "title": "Applied Schema",
       "type": "integer"
     },
+    "deleted_backup_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Deleted Backup Ids",
+      "type": "array"
+    },
+    "limits": {
+      "items": {
+        "maxLength": 64,
+        "type": "string"
+      },
+      "title": "Limits",
+      "type": "array"
+    },
     "preserved_tombstone_epoch": {
       "minimum": 0,
       "title": "Preserved Tombstone Epoch",
@@ -16,6 +31,11 @@
       "minimum": 0,
       "title": "Restored Revision",
       "type": "integer"
+    },
+    "source_contains_suppressed": {
+      "default": false,
+      "title": "Source Contains Suppressed",
+      "type": "boolean"
     },
     "suppressed_record_count": {
       "minimum": 0,

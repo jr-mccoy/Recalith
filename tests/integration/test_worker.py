@@ -1333,3 +1333,60 @@ def test_retention_backup_crash_matches_reference(tmp_path, failpoint):
         restart = _driver(root, log)
         assert restart.returncode == 0, restart.stderr
         assert rsc.retention_state(root) == reference, (failpoint, rep)
+
+
+FORGET_MATRIX = [*failpoints.FORGET, *failpoints.RESTORE]
+
+
+@pytest.mark.parametrize("failpoint", FORGET_MATRIX)
+def test_forget_restore_crash_matches_reference(tmp_path, failpoint):
+    """Killed inside a forget's phases or a restore (Task 16), then the operator re-runs what did not complete.
+
+    Real payloads and recorded proposals (``forget_scenarios.build`` with
+    delivery), a recorded backup before the forget, an operator's external copy
+    of it and a prompt of the forgotten session still in the spool. The script:
+    recovery of an interrupted restore (as the worker's start does), the guarded
+    forget of the task by its preview digest (a re-run resumes its persisted
+    operation), a worker drain, the restore of the external copy unless the store
+    already holds its audit, a drain. A plain reference run gives the outcome; a
+    counting run of a fresh build logs each hit with whether work was owed,
+    judged from the effects (no tombstone, the marker text anywhere under
+    ``.recalith``, the older backup on disk or not marked deleted, no
+    post-forget backup verifying by the test's own hashing, the ledger copy
+    behind the store, the maintenance marker, a restore journal or staged file,
+    no restore audit, no reconstruction job), never from ``privacy_operations``;
+    each repetition kills at one of those hits (first, middle, last). After any
+    kill no forgotten text remains in the live store, the spool or the scratch
+    once the purge committed, and every post-forget backup verifies; after the
+    re-run the state equals the reference.
+    """
+    import forget_scenarios as fsc
+
+    reference_root = fsc.crash_project(tmp_path, "reference")
+    plain = _driver(reference_root, tmp_path / "reference.calls")
+    assert plain.returncode == 0, plain.stderr
+    reference = fsc.forget_state(reference_root)
+    assert reference["files"]["marker"] == [] and reference["files"]["maintenance"] is False and reference["files"]["journal"] is False
+    assert reference["audits"] == {"forget": 1, "restore": 1} and reference["privacy"] == ["completed"] and reference["reconstruct"] == 1
+    assert ("old", "deleted") in reference["backups"] and ("forget", "verified") in reference["backups"] and reference["files"]["forget_backups"] == [True]
+    assert reference["heads"]["decl"][0] == "forgotten" and reference["heads"]["multi"][0] == "quarantined" and reference["heads"]["lesson"][0] == "active"
+    assert reference["ledger"] == (1, 1) and reference["tombstone_epoch"] == 1
+    count_root = fsc.crash_project(tmp_path, "count")
+    hits_log = tmp_path / "count.hits"
+    counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    assert fsc.forget_state(count_root) == reference  # the scenario is deterministic
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while forget or restore work is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = fsc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert fsc.forget_state(root) != reference, "the kill must land before the work under test is complete"
+        assert fsc.kill_invariants(root) == [], (failpoint, rep)
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert fsc.forget_state(root) == reference, (failpoint, rep)

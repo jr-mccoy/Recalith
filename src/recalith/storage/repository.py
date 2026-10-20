@@ -18,7 +18,7 @@ from recalith.contracts.jobs import Job
 from recalith.errors import RecalithError
 from recalith.storage.db import Store, Txn
 
-InsertOutcome = Literal["inserted", "duplicate", "conflict"]
+InsertOutcome = Literal["inserted", "duplicate", "conflict", "suppressed"]
 
 
 def assert_owned(ctx: InstallationContext, *, project_id: str, installation_id: str) -> None:
@@ -36,7 +36,9 @@ def insert_event(txn: Txn, ctx: InstallationContext, envelope: EventEnvelope) ->
     Same adapter/source key and digest is a duplicate (no new row, no new
     support). Same key with a different digest keeps the original event
     unchanged and records one ``source_conflicts`` row per distinct digest.
-    Returns the outcome and the event or conflict ID.
+    A source identity a tombstone names is ``suppressed``: a replay of
+    forgotten content stores nothing. Returns the outcome and the event or
+    conflict ID.
     """
     assert_owned(ctx, project_id=envelope.project_id, installation_id=envelope.installation_id)
     if not registered_workspace(txn, envelope.workspace_id):
@@ -44,6 +46,10 @@ def insert_event(txn: Txn, ctx: InstallationContext, envelope: EventEnvelope) ->
     expected_id = derived_id("evt", [ctx.installation_id, envelope.adapter_id, envelope.source_event_key])
     if envelope.event_id != expected_id:
         raise RecalithError("event_identity_conflict", "event id is not derived from this installation's source identity")
+    if txn.one("SELECT 1 FROM tombstone_targets WHERE target_id = ?", (expected_id,)) is not None:
+        # A replay of a forgotten source (same identity, any content): nothing is stored, not even a
+        # conflict body; the content-free metadata row, if any, stays as forgetting left it (decision 0017).
+        return "suppressed", expected_id
     existing = txn.one("SELECT event_id, payload_digest FROM events WHERE adapter_id = ? AND source_event_key = ?", (envelope.adapter_id, envelope.source_event_key))
     if existing is not None:
         if existing[1] == envelope.payload_digest:

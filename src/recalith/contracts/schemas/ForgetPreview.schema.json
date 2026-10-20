@@ -64,9 +64,24 @@
       "title": "Export Ids",
       "type": "array"
     },
+    "limits": {
+      "items": {
+        "maxLength": 64,
+        "type": "string"
+      },
+      "title": "Limits",
+      "type": "array"
+    },
     "preview_digest": {
       "title": "Preview Digest",
       "type": "string"
+    },
+    "quarantined_refs": {
+      "items": {
+        "$ref": "#/$defs/RecordRef"
+      },
+      "title": "Quarantined Refs",
+      "type": "array"
     }
   },
   "required": [

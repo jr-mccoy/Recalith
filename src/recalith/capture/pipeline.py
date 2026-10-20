@@ -225,7 +225,7 @@ def ingest_in_transaction(txn: Any, ctx: InstallationContext, envelopes: Sequenc
     from recalith.controller import revalidate as revision  # deferred: revision builds on the capture pipeline
     from recalith.retrieval import delivery  # deferred: delivery accounting builds on the capture pipeline
 
-    counts = {"inserted": 0, "duplicate": 0, "conflict": 0}
+    counts = {"inserted": 0, "duplicate": 0, "conflict": 0, "suppressed": 0}
     inserted: list[EventEnvelope] = []
     merged: dict[str, RecordRef] = {}
     marked: list[str] = []
@@ -302,7 +302,7 @@ def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
             spool.remove_segment(dirs, path)
             failpoints.hit(failpoints.INGEST_AFTER_UNLINK)
             accepted += counts["inserted"]
-            duplicate += counts["duplicate"]
+            duplicate += counts["duplicate"] + counts["suppressed"]  # a suppressed replay is never new evidence
             conflict += counts["conflict"]
             if job_id:
                 created_jobs.append(job_id)

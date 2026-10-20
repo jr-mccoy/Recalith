@@ -26,6 +26,13 @@ store's current tombstones and epoch, written at every backup and by the
 worker whenever the epoch moves; it is what lets Task 16's restore of an older
 backup suppress what was forgotten after it.
 
+**Forgetting and restore** (Task 16): :func:`holds` tells whether a
+snapshot still holds forgotten content (an affected backup),
+:func:`delete_recorded` deletes one for forgetting, and a restore reads the
+verified snapshot once into memory (:func:`load_verified_snapshot`), applies
+the newer tombstones there and writes the suppressed copy with
+:func:`write_database`.
+
 **Retention** (:func:`prune`): verified backups older than the private-backup
 window are deleted, files first and then the row, and only when the output's
 manifest still names that backup; anything else at a recorded location is left
@@ -434,6 +441,87 @@ def prune(store: Store, ctx: InstallationContext, *, now: str, days: int) -> lis
     return deleted
 
 
+# --------------------------------------------------------------------------
+# Forgetting and restore (Task 16, decision 0017)
+
+
+def holds(path: Path | str, event_ids: set[str], record_ids: set[str]) -> bool | None:
+    """Whether a backup snapshot still holds a payload or body of these IDs; None when it cannot be read."""
+    tables = {"claim": ("claim_revisions", "claim_id"), "task": ("task_revisions", "task_id"), "ep": ("episode_revisions", "episode_id")}
+    try:
+        conn = _snapshot(Path(path))
+    except (sqlite3.Error, OSError, ValueError):
+        return None
+    try:
+        events = sorted(event_ids)
+        for i in range(0, len(events), 400):
+            chunk = events[i : i + 400]
+            if conn.execute(f"SELECT 1 FROM events WHERE payload IS NOT NULL AND event_id IN ({','.join('?' for _ in chunk)}) LIMIT 1", tuple(chunk)).fetchone():  # noqa: S608
+                return True
+        for prefix, (table, key) in tables.items():
+            ids = sorted(r for r in record_ids if r.split("_", 1)[0] == prefix)
+            for i in range(0, len(ids), 400):
+                chunk = ids[i : i + 400]
+                if conn.execute(f"SELECT 1 FROM {table} WHERE body IS NOT NULL AND {key} IN ({','.join('?' for _ in chunk)}) LIMIT 1", tuple(chunk)).fetchone():  # noqa: S608
+                    return True
+        return False
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+
+
+def delete_recorded(store: Store, backup_id: str) -> bool:
+    """Delete one recorded backup for forgetting: its files when the location still holds it, then the row (``deleted``)."""
+    with store.read() as view:
+        row = view.execute("SELECT location FROM backups WHERE backup_id = ?", (backup_id,)).fetchone()
+    if row is None:
+        return False
+    location = Path(row[0]) if row[0] else None
+    if location is not None and os.path.lexists(location) and location.is_dir() and _owned(location, backup_id):
+        shutil.rmtree(location)  # files first, then the row: a crash between them repeats the deletion
+    with store.transaction() as txn:
+        txn.execute("UPDATE backups SET state = 'deleted' WHERE backup_id = ? AND state = 'verified'", (backup_id,))
+        txn.mutated(serving_relevant=False)
+    return True
+
+
+def load_verified_snapshot(path: Path | str, verified: Verified) -> sqlite3.Connection:
+    """The verified snapshot as an in-memory database: its bytes are read once and must hash to the manifest's digest.
+
+    A restore suppresses newer tombstones in this copy, so nothing that a
+    tombstone covers is ever written to disk on the restore path.
+    """
+    data = (Path(path) / BACKUP_DB).read_bytes()
+    if hashlib.sha256(data).hexdigest() != verified.manifest.file_digests[BACKUP_DB]:
+        raise BackupInvalid("backup_file_digest_mismatch", BACKUP_DB)
+    conn = sqlite3.connect(":memory:", isolation_level=None, check_same_thread=False)
+    try:
+        conn.deserialize(data)
+        conn.execute("PRAGMA foreign_keys = ON")
+    except sqlite3.Error:
+        conn.close()
+        raise BackupInvalid("backup_snapshot_unreadable") from None
+    return conn
+
+
+def write_database(conn: sqlite3.Connection, target: Path) -> None:
+    """Write a database (e.g. a suppressed in-memory restore copy) to a new private, self-contained file, fsynced."""
+    os.close(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600))
+    dst = sqlite3.connect(target)
+    try:
+        conn.backup(dst)
+        mode = dst.execute("PRAGMA journal_mode = DELETE").fetchone()[0]
+        if str(mode).lower() != "delete":
+            raise sqlite3.OperationalError("the copy could not use a rollback journal")
+    finally:
+        dst.close()
+    for leftover in (target.with_name(target.name + "-wal"), target.with_name(target.name + "-shm"), target.with_name(target.name + "-journal")):
+        leftover.unlink(missing_ok=True)
+    _fsync_file(target)
+    spool.fsync_dir(target.parent)
+
+
 def recorded(store: Store) -> list[dict[str, Any]]:
     with store.read() as view:
         rows = view.execute("SELECT backup_id, state, created_at, location, manifest_digest, bytes, tombstone_epoch FROM backups ORDER BY created_at, backup_id").fetchall()
@@ -441,4 +529,4 @@ def recorded(store: Store) -> list[dict[str, Any]]:
     return [dict(zip(keys, r, strict=True)) for r in rows]
 
 
-__all__ = ["create", "verify", "recover", "prune", "ledger_of", "write_latest_ledger", "read_latest_ledger", "BackupInvalid", "BackupResult", "Verified", "utc_now"]
+__all__ = ["create", "verify", "recover", "prune", "ledger_of", "write_latest_ledger", "read_latest_ledger", "holds", "delete_recorded", "load_verified_snapshot", "write_database", "BackupInvalid", "BackupResult", "Verified", "utc_now"]

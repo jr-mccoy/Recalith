@@ -373,7 +373,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Entire task is in preview and depends on Task 15 core backup/pin-aware retention, not its capsule/transfer slice.
 
-**Files:** Create `privacy/forget.py`, extend `storage/backup.py`, create `tests/integration/test_forgetting.py`, `tests/integration/test_restore.py`.
+**Files:** Create `privacy/forget.py`, extend `storage/backup.py`, create `tests/integration/test_forgetting.py`, `tests/integration/test_restore.py`. Decision 0017 also adds `storage/migrations/0010.sql` (schema 10: `quarantined`/`forgotten` task and episode heads, `tombstone_targets`), the test builders `tests/integration/forget_scenarios.py` and the kill/restart matrix `test_forget_restore_crash_matches_reference` (`failpoints.FORGET`, `failpoints.RESTORE`); restore's staging, journal and swap live in `privacy/forget.py` beside the purge they share, and `storage/backup.py` keeps verification, the ledger and backup creation unchanged in interface.
 
 **Interfaces:** Produce `preview_forget`, `apply_forget`, and `restore` with signatures from DATA_CONTRACTS.
 

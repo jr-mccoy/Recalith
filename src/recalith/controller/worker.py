@@ -21,6 +21,10 @@ elapsed monotonic time (suspend/resume) is recorded and handled as one jump:
 recurring work is scheduled for the current slot only, overdue jobs run one at
 a time inside the daily budget.
 
+**Forgetting** (Task 16): each poll first finishes an interrupted restore and
+the persisted phases of an unfinished forget (``privacy.forget.resume``); the
+model lane leases nothing while privacy maintenance pauses delivery.
+
 **Retention** (Task 15 core): each poll ends with the deterministic retention
 step (``privacy.retention.run``): interrupted backups are finished or cleaned,
 the latest tombstone-ledger copy follows the epoch, and at most hourly the
@@ -65,7 +69,7 @@ from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_t
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
 from recalith.controller import apply, budgets, jobs, launch, planner, triggers
-from recalith.privacy import retention
+from recalith.privacy import forget, retention
 from recalith.retrieval import compile as projection
 from recalith.controller.requests import NothingToPrepare, PrepareFailed
 from recalith.errors import RecalithError
@@ -343,6 +347,10 @@ class Worker:
         worked = False
         now = self.clock.now()
         try:
+            if forget.restore_pending(self.ctx.root):
+                self.close()  # an interrupted restore is finished before this worker reads the store again
+                worked |= bool(forget.recover_restore(self.ctx))
+            worked |= bool(forget.resume(self.store, self.ctx, now=now))  # persisted forget phases before anything else
             worked |= self._recover_sources()
             ready = len(spool.ready_segments(self.dirs))
             if ready:
@@ -587,6 +595,7 @@ class Worker:
                 return 0  # another worker owns this installation; one worker per installation
             time.sleep(0.02)
         try:
+            forget.recover_restore(self.ctx)  # before the store is opened: an interrupted restore finishes or is discarded
             self.startup()
             if self.provider is not None:
                 self.provider.start()
@@ -679,6 +688,8 @@ class ModelLane:
         """One model scheduling opportunity; True when a job was leased."""
         if not self.available():
             return False
+        if session.maintenance_active(self.worker.ctx.root):
+            return False  # privacy maintenance (forget/restore) pauses model launches
         job = jobs.lease_next(self.worker.ctx, owner=self.owner, now=self.now(), kinds=MODEL_JOB_KINDS, store=self.store, config=self.config)
         if job is None:
             return False

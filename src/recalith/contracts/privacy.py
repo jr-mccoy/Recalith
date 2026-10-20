@@ -63,6 +63,10 @@ class ForgetPreview(StrictModel):
     backup_ids: list[Id]
     export_ids: list[Id]
     preview_digest: Digest
+    # Task 16 (decision 0017): the derivatives that keep surviving roots (content-free quarantine, reconstruction
+    # later) and the content-free limit codes of logical forgetting.
+    quarantined_refs: list[RecordRef] = Field(default_factory=list)
+    limits: list[Annotated[str, Field(max_length=64)]] = Field(default_factory=list)
 
 
 class ForgetRequest(StrictModel):
@@ -149,3 +153,8 @@ class RestoreResult(StrictModel):
     restored_revision: NonNegative
     preserved_tombstone_epoch: NonNegative
     suppressed_record_count: NonNegative
+    # Task 16 (decision 0017): whether the restored snapshot held content a newer tombstone suppressed, the
+    # affected recorded backups deleted under the forgetting policy, and the content-free limit codes.
+    source_contains_suppressed: bool = False
+    deleted_backup_ids: list[Id] = Field(default_factory=list)
+    limits: list[Annotated[str, Field(max_length=64)]] = Field(default_factory=list)
