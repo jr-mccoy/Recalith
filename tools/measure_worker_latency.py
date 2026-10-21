@@ -191,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         status = wh.wait_running(replayer.root)
         report["spawn"] = status["spawn"]
         # Typed-state latency at random idle phases.
-        latencies, from_spawn = [], []
+        latencies, from_spawn, series = [], [], []
         for trial in range(args.trials):
             settled = wh.wait_for(lambda: idle_status(replayer.root), 60)
             assert settled, "worker never returned to idle"
@@ -204,12 +204,21 @@ def main(argv: list[str] | None = None) -> int:
             reply, wall = run_hook(replayer, wh.unique_prompt(replayer, trial), "UserPromptSubmit", tmp)
             acked = spawned + wall
             event_id = reply["receipt"]["event_ids"][0]
-            if not wh.wait_for(lambda event_id=event_id: available(replayer.root, event_id), 30, interval=0.01):
+            slowest = [0.0]
+
+            def reached(event_id=event_id, slowest=slowest) -> bool:
+                st = worker.read_status(replayer.root) or {}
+                slowest[0] = max(slowest[0], (st.get("poll") or {}).get("last_poll_seconds") or 0.0)
+                return available(replayer.root, event_id)
+
+            if not wh.wait_for(reached, 30, interval=0.01):
                 raise SystemExit(f"trial {trial} never reached typed state")
             done = time.monotonic()
             latencies.append(done - acked)
             from_spawn.append(done - spawned)
-        report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle"}
+            # Per trial, so a late trial reads as a slow poll (worker work) or a missed cycle (arrival phase against the 5 s cadence).
+            series.append({"trial": trial, "phase_s": round(phase, 3), "from_hook_ack_s": round(done - acked, 3), "hook_wall_s": round(wall, 3), "slowest_poll_s": round(slowest[0], 3)})
+        report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle", "series": series}
         # Idle footprint.
         settled = wh.wait_for(lambda: idle_status(replayer.root), 60)
         pid = settled["pid"]

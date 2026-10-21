@@ -1,0 +1,78 @@
+{
+  "command": "python tools/measure_worker_latency.py --trials 20 --start-trials 5 --idle-seconds 600 --output measurements/worker-macOS.json",
+  "environment": {
+    "logical_cpus": 3,
+    "machine": "arm64",
+    "os_page_cache": "not dropped",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.16"
+  },
+  "hook_with_worker_start": {
+    "max": 117.944,
+    "mean": 88.33,
+    "n": 5,
+    "p50": 87.371,
+    "p95": 113.741,
+    "p99": 117.104,
+    "unit": "ms",
+    "worker_states": {
+      "worker_started": 5
+    }
+  },
+  "hook_worker_running": {
+    "max": 122.76,
+    "mean": 83.072,
+    "n": 5,
+    "p50": 80.11,
+    "p95": 117.88,
+    "p99": 121.784,
+    "unit": "ms",
+    "worker_states": {
+      "worker_running": 5
+    }
+  },
+  "host_fixture_version": "2.1.301",
+  "idle": {
+    "accounting": "ps",
+    "cpu_met": true,
+    "cpu_percent_of_one_core": 0.2066,
+    "cpu_target_percent": 1.0,
+    "rss_met": true,
+    "rss_mib": 41.6,
+    "rss_target_mib": 150,
+    "window_seconds": 600.1
+  },
+  "measured_at": "2026-10-21T21:53:25Z",
+  "measurement": "preview worker typed-state latency (idle 5 s polling, no IPC), hook start cost, idle footprint",
+  "spawn": {
+    "degraded_reasons": [],
+    "in_job": null,
+    "method": "posix_session",
+    "spawned_by": "hook",
+    "state": "detached"
+  },
+  "typed_state": {
+    "arrivals": "uniform random phase of the idle cycle",
+    "from_hook_ack": {
+      "max": 4.622,
+      "mean": 2.704,
+      "n": 20,
+      "p50": 2.941,
+      "p95": 4.521,
+      "p99": 4.602,
+      "unit": "s"
+    },
+    "from_hook_spawn": {
+      "max": 4.704,
+      "mean": 2.799,
+      "n": 20,
+      "p50": 3.029,
+      "p95": 4.596,
+      "p99": 4.683,
+      "unit": "s"
+    },
+    "idle_poll_seconds": 5,
+    "met": true,
+    "target_p95_seconds": 5.0
+  }
+}
