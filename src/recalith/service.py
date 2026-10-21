@@ -731,39 +731,45 @@ def search(ctx: InstallationContext, text: str, *, history: bool = False, limit:
     return out
 
 
-def status(ctx: InstallationContext, *, inherited: Mapping[str, str]) -> dict[str, Any]:
-    """``recalith status``: content-free state. Health composition and readiness are Task 17: never claimed here."""
-    from recalith.controller import worker as worker_module
-    from recalith.providers import base as provider_base
+def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = None, deep: bool = False):
+    """DATA_CONTRACTS §11 ``health(ctx) -> HealthReport`` (Task 17, decision 0018): read-only, this installation only."""
+    from recalith.operations import health as operations_health
 
-    from recalith.privacy import retention
+    return operations_health.health(ctx, inherited=inherited, deep=deep)
 
-    with open_store(ctx, readonly=True) as store:
-        meta = store.meta()
-        with store.read() as view:
-            queue = jobs.queue_summary(view, now=utc_now())
-            kept = retention.last_report(view)
-    route = provider_base.route_status(provider_base.load_provider_config(ctx.root), installation_id=ctx.installation_id, inherited=inherited, observe=False)
-    worker_state = worker_module.read_status(ctx.root) or {}
-    running = process_env.worker_running(str(ctx.root))
-    return {
-        "project_id": ctx.project_id, "installation_id": ctx.installation_id, "release_profile": meta.release_profile, "engine_version": ctx.engine_version, "schema_version": meta.schema_version,
-        "store_revision": meta.store_revision, "guidance_epoch": meta.guidance_epoch, "policy_revision": meta.policy_revision, "tombstone_epoch": meta.tombstone_epoch,
-        "worker": {"running": running, "state": worker_state.get("state") if running else "stopped", "spawn": worker_state.get("spawn") if running else None, "model_lane": worker_state.get("model_lane") if running else None},
-        "jobs": queue,
-        "capture": pipeline.capture_health(ctx),
-        "inference": {"state": route.state, "reasons": route.reasons},
-        "retention": kept,
-        "health": {"state": "unavailable", "reason_codes": ["health_composition_unavailable"], "owner": "task_17"},
-        "autonomous_ready": False,
-        "readiness": "not_evaluated",
+
+def status(ctx: InstallationContext, *, inherited: Mapping[str, str], deep: bool = False) -> dict[str, Any]:
+    """``recalith status``: content-free identity and epochs, the last retention sweep and the profile-aware ``HealthReport``.
+
+    ``autonomous_ready``/``readiness`` repeat the report's verdict; the CLI
+    exits 0 only when it is ready and 8 (``capability_degraded``) otherwise,
+    naming the reasons of every required capability that is not healthy.
+    """
+    report = health(ctx, inherited=inherited, deep=deep)
+    out: dict[str, Any] = {
+        "project_id": ctx.project_id, "installation_id": ctx.installation_id, "release_profile": report.release_profile, "engine_version": report.installation.engine_version,
+        "pinned_engine_version": report.installation.pinned_engine_version, "schema_version": report.installation.schema_version, "store_revision": report.installation.store_revision,
+        "tombstone_epoch": report.installation.tombstone_epoch, "worker_state": report.worker_state, "retention": None,
+        "health": report.model_dump(mode="json"), "autonomous_ready": report.autonomous_ready, "readiness": report.readiness,
     }
+    if report.installation.schema_state == "current":
+        from recalith.privacy import retention
+
+        with open_store(ctx, readonly=True) as store:
+            meta = store.meta()
+            with store.read() as view:
+                out["retention"] = retention.last_report(view)
+        out.update({"guidance_epoch": meta.guidance_epoch, "policy_revision": meta.policy_revision})
+    return out
 
 
 def doctor(ctx: InstallationContext, *, inherited: Mapping[str, str]) -> dict[str, Any]:
-    """``recalith doctor`` without probes: read-only store checks plus :func:`status`; never claims readiness."""
-    report = status(ctx, inherited=inherited)
-    with open_store(ctx, readonly=True) as store, store.read() as view:
-        quick = view.execute("PRAGMA quick_check").fetchone()[0]
-    report["checks"] = {"store_quick_check": "ok" if quick == "ok" else "failed", "revision_chain": "unavailable_in_preview", "private_path_rules": "not_probed"}
+    """``recalith doctor`` without probes: :func:`status` with the store's quick check; probes are guarded forms."""
+    report = status(ctx, inherited=inherited, deep=True)
+    recovery = report["health"]["capabilities"]["recovery"]["coverage"]
+    guard = report["health"]["capabilities"]["operator_guard"]["coverage"]
+    report["checks"] = {
+        "store_quick_check": recovery.get("store_integrity", "not_checked"), "revision_chain": "unavailable_in_preview",
+        "private_path_rules": guard["private_paths"]["state"], "command_deny_rules": guard["command_deny_rules"],
+    }
     return report

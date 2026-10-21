@@ -83,13 +83,15 @@ class SpoolDirs:
         self.gaps = self.base / "gaps"
         self.quarantine = self.base / "quarantine"
 
-    def ensure(self) -> None:
-        """Create missing private directories; existing modes are left as found."""
-        for path in (self.base, self.tmp, self.ready, self.cursors, self.gaps, self.quarantine):
+    def ensure(self, *only: Path) -> None:
+        """Create missing private directories (all, or ``only`` these); existing modes are left as found."""
+        for path in only or (self.base, self.tmp, self.ready, self.cursors, self.gaps, self.quarantine):
             if not path.is_dir():
-                path.mkdir(parents=True, exist_ok=True)
-                if os.name != "nt":
-                    os.chmod(path, 0o700)
+                for part in (self.base, path) if path != self.base else (path,):
+                    if not part.is_dir():
+                        part.mkdir(parents=True, exist_ok=True)
+                        if os.name != "nt":
+                            os.chmod(part, 0o700)
 
 
 # --------------------------------------------------------------------------
@@ -318,9 +320,13 @@ def write_cursor(dirs: SpoolDirs, source_id: str, cursor: dict[str, Any]) -> boo
 
 
 def record_gap(dirs: SpoolDirs, *, code: str, reason: str, event_count: int, at: str, source_ids: Iterable[str] = ()) -> bool:
-    """Best effort: a failure to record a gap must not affect the host."""
+    """Best effort: a failure to record a gap must not affect the host.
+
+    Only the gap directory is ensured: a broken ``ready`` directory (the
+    failure being recorded) must not also lose the record of the gap (A07).
+    """
     try:
-        dirs.ensure()
+        dirs.ensure(dirs.gaps)
         if sum(1 for _ in dirs.gaps.iterdir()) >= MAX_GAP_FILES:
             return False
         record = {"gap_schema": 1, "code": code, "reason": reason, "event_count": event_count, "at": at, "source_ids": sorted(source_ids)}

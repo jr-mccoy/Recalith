@@ -136,11 +136,12 @@ def test_degraded_capability_returns_8(root, tmp_path, tok):
     status = cs.cli(root, "--json", "status")
     assert status.code == 8
     obj = status.obj
-    assert obj["status"] == "capability_degraded" and obj["degraded"] == ["health_composition_unavailable"]
+    assert obj["status"] == "capability_degraded" and "provider_not_configured" in obj["degraded"] and "host_not_integrated" in obj["degraded"]
     report = obj["result"]
-    assert report["autonomous_ready"] is False and report["readiness"] == "not_evaluated"
-    assert report["health"]["state"] == "unavailable" and report["inference"]["state"] == "unavailable"
-    assert "provider_not_configured" in report["inference"]["reasons"]
+    assert report["autonomous_ready"] is False and report["readiness"] == "degraded"
+    health = report["health"]
+    assert health["autonomous_ready"] is False and health["capabilities"]["inference"]["state"] == "unavailable"
+    assert "provider_not_configured" in health["capabilities"]["inference"]["reason_codes"]
     doctor = cs.cli(root, "--json", "doctor")
     assert doctor.code == 8 and doctor.obj["result"]["checks"]["revision_chain"] == "unavailable_in_preview"
     # A degraded context packet is exit 8 too (no snapshot of a missing store view); its packet is still one object.

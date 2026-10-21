@@ -62,6 +62,242 @@
       "title": "CapabilityState",
       "type": "object"
     },
+    "ConflictEntry": {
+      "additionalProperties": false,
+      "description": "One unresolved source conflict (one per distinct conflicting digest, A49); identifiers only.",
+      "properties": {
+        "adapter_id": {
+          "maxLength": 64,
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "conflict_id": {
+          "title": "Conflict Id",
+          "type": "string"
+        },
+        "first_seen_at": {
+          "title": "First Seen At",
+          "type": "string"
+        },
+        "original_event_id": {
+          "title": "Original Event Id",
+          "type": "string"
+        },
+        "payload_digest": {
+          "title": "Payload Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conflict_id",
+        "original_event_id",
+        "adapter_id",
+        "payload_digest",
+        "first_seen_at"
+      ],
+      "title": "ConflictEntry",
+      "type": "object"
+    },
+    "InstallationState": {
+      "additionalProperties": false,
+      "description": "Which installation was checked, its pinned engine and its store schema (A02/A40).",
+      "properties": {
+        "engine_version": {
+          "maxLength": 128,
+          "title": "Engine Version",
+          "type": "string"
+        },
+        "installation_id": {
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "pinned_engine_version": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pinned Engine Version"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "schema_state": {
+          "enum": [
+            "current",
+            "migration_required",
+            "newer_unsupported",
+            "unreadable"
+          ],
+          "title": "Schema State",
+          "type": "string"
+        },
+        "schema_version": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Schema Version"
+        },
+        "store_revision": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Store Revision"
+        },
+        "supported_schema_version": {
+          "minimum": 0,
+          "title": "Supported Schema Version",
+          "type": "integer"
+        },
+        "tombstone_epoch": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tombstone Epoch"
+        }
+      },
+      "required": [
+        "project_id",
+        "installation_id",
+        "engine_version",
+        "pinned_engine_version",
+        "schema_version",
+        "supported_schema_version",
+        "schema_state"
+      ],
+      "title": "InstallationState",
+      "type": "object"
+    },
+    "PrivacyMaintenance": {
+      "additionalProperties": false,
+      "description": "Pending privacy maintenance from forgetting and restore (decision 0017) and the reported limits.",
+      "properties": {
+        "backup_unavailable_after_forget": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Backup Unavailable After Forget",
+          "type": "array"
+        },
+        "delivery_paused": {
+          "default": false,
+          "title": "Delivery Paused",
+          "type": "boolean"
+        },
+        "limits": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "title": "Limits",
+          "type": "array"
+        },
+        "maintenance_marker": {
+          "default": "absent",
+          "enum": [
+            "absent",
+            "active",
+            "stale"
+          ],
+          "title": "Maintenance Marker",
+          "type": "string"
+        },
+        "restore_journaled": {
+          "default": false,
+          "title": "Restore Journaled",
+          "type": "boolean"
+        },
+        "scratch_cleanup_pending": {
+          "default": false,
+          "title": "Scratch Cleanup Pending",
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "idle",
+            "pending"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "unfinished_operations": {
+          "items": {
+            "$ref": "#/$defs/PrivacyOperationState"
+          },
+          "maxItems": 64,
+          "title": "Unfinished Operations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "title": "PrivacyMaintenance",
+      "type": "object"
+    },
+    "PrivacyOperationState": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "purged",
+            "files",
+            "ledger",
+            "backup",
+            "deleted",
+            "reconstructed",
+            "completed"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "running",
+            "cleanup_pending"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "phase",
+        "status"
+      ],
+      "title": "PrivacyOperationState",
+      "type": "object"
+    },
     "RetentionSummary": {
       "additionalProperties": false,
       "properties": {
@@ -128,18 +364,38 @@
       "title": "Capabilities",
       "type": "object"
     },
+    "checked_at": {
+      "title": "Checked At",
+      "type": "string"
+    },
     "coverage_gaps": {
       "items": {
         "maxLength": 256,
         "type": "string"
       },
+      "maxItems": 256,
       "title": "Coverage Gaps",
       "type": "array"
+    },
+    "installation": {
+      "$ref": "#/$defs/InstallationState"
     },
     "job_summary": {
       "additionalProperties": true,
       "title": "Job Summary",
       "type": "object"
+    },
+    "privacy_maintenance": {
+      "$ref": "#/$defs/PrivacyMaintenance"
+    },
+    "readiness": {
+      "enum": [
+        "ready",
+        "degraded",
+        "unavailable"
+      ],
+      "title": "Readiness",
+      "type": "string"
     },
     "release_profile": {
       "enum": [
@@ -150,7 +406,28 @@
       "type": "string"
     },
     "retention_summary": {
-      "$ref": "#/$defs/RetentionSummary"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RetentionSummary"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_conflict_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Source Conflict Count",
+      "type": "integer"
+    },
+    "source_conflicts": {
+      "items": {
+        "$ref": "#/$defs/ConflictEntry"
+      },
+      "maxItems": 256,
+      "title": "Source Conflicts",
+      "type": "array"
     },
     "worker_state": {
       "enum": [
@@ -169,7 +446,11 @@
     "release_profile",
     "capabilities",
     "worker_state",
+    "readiness",
+    "checked_at",
+    "installation",
     "retention_summary",
+    "privacy_maintenance",
     "autonomous_ready"
   ],
   "title": "HealthReport",

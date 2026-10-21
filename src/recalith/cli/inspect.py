@@ -59,10 +59,14 @@ def run(args: argparse.Namespace, form: Form, out: Output, environ: Mapping[str,
         raise service.unavailable("doctor --full-integrity (the revision chain)", "the full release")
     actor = service.OBSERVER if c == "observe" else service.READER
     ctx = service.resolve(root, actor=actor)
-    if c == "status":
-        return out.success(service.status(ctx, inherited=environ), degraded=["health_composition_unavailable"])
-    if c == "doctor":
-        return out.success(service.doctor(ctx, inherited=environ), degraded=["health_composition_unavailable"])
+    if c in ("status", "doctor"):
+        from recalith.contracts.health import HealthReport
+        from recalith.operations.health import degraded_codes
+
+        report = service.status(ctx, inherited=environ) if c == "status" else service.doctor(ctx, inherited=environ)
+        verdict = HealthReport.model_validate(report["health"])
+        # Exit 0 only when every required capability is healthy; otherwise 8 naming what is not (DATA_CONTRACTS §12).
+        return out.success(report, degraded=() if verdict.autonomous_ready else degraded_codes(verdict))
     if c == "observe":
         payload = read_stdin_json()
         items = payload.get("observations") if isinstance(payload, dict) and "observations" in payload else [payload]
