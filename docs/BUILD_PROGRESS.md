@@ -624,7 +624,14 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Private-path protection** on 2.1.305 is limited (`sh -c`, interpreters); preview installs none.
   - **The notice** is shown to the user by the host; that it appears in an interactive terminal is inferred from the host's `systemMessage` contract and its stream event, not observed in a TTY here.
   - **Still open from Task 15:** age pruning of derived revision bodies.
-- CI: pending at commit time; recorded in the follow-up docs commit.
+- **CI run 84 (9b74d5c): four of five jobs green; Windows failed one test.**
+  - Linux 3.12: 1042 passed, 27 skipped (tests 1380.48 s).
+  - Linux 3.13: 1042 passed, 27 skipped (tests 1326.33 s), plus the requirements-lock check and offline provisioning (1 passed).
+  - Linux 3.14: 1042 passed, 27 skipped (tests 1318.17 s).
+  - macOS 3.13: 1042 passed, 27 skipped (tests 1469.16 s).
+  - The runners skip the 8 real-host smoke tests (no Claude CLI) and run the root-only token variant this container skips.
+  - Windows 3.13: 1 failed, 975 passed, 93 skipped (tests 3116.46 s). `test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings` built its expected absolute launcher spelling with `str(root)` (backslashes on Windows), while the installer deliberately writes the forward-slash `root.as_posix()` form on every OS. The test was fixed, not the code: `PureWindowsPath(...)` shows the two forms differ only on Windows. The POSIX-only installed-command tests skip there by design. The installer, removal, guard, health, matrix and version-review tests ran natively.
+- CI after the fix: recorded in the next follow-up docs commit.
 - Next action: Task 18 preview (the release gate: 12-scenario comparative smoke against a clean no-memory baseline, three default-budget workload days, the profile-required deterministic/failure tests, native-platform hook latency/usefulness and the release checklist). B1 still blocks every live check.
 
 Add each later checkpoint with:

@@ -495,7 +495,7 @@ def test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings(provision
     rules = set(ccs.ownership(root)["owned"]["deny"])
     coverage = result["command_deny_rules"]
     spellings = coverage["spellings"]
-    assert {".recalith/bin/recalith", "./.recalith/bin/recalith", f"{root}/.recalith/bin/recalith", "python -m recalith", "python3 -m recalith", "python -m recalith.cli.main"} <= set(spellings)
+    assert {".recalith/bin/recalith", "./.recalith/bin/recalith", f"{root.as_posix()}/.recalith/bin/recalith", "python -m recalith", "python3 -m recalith", "python -m recalith.cli.main"} <= set(spellings)  # absolute spellings in the forward-slash form the installer writes on every OS
     for form in integration.ADMIN_FORMS:
         for spelling in spellings:
             assert f"Bash({spelling} {form}:*)" in rules, (spelling, form)
