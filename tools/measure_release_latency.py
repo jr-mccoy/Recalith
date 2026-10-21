@@ -97,6 +97,7 @@ def population(results: list[dict], expects: list[str | None], events: list[str]
     walls = [r["wall"] for r in results]
     inner = [r["reply"].get("elapsed_ms", 0) / 1000 for r in results]
     states: dict[str, int] = {}
+    reasons: dict[str, int] = {}
     delivered = degraded = 0
     examples = []
     for r, expect in zip(results, expects, strict=True):
@@ -105,6 +106,8 @@ def population(results: list[dict], expects: list[str | None], events: list[str]
         degraded += bad
         state = (r["reply"].get("delivery") or {}).get("state", "?")
         states[state] = states.get(state, 0) + 1
+        for reason in set((r["reply"].get("delivery") or {}).get("degraded") or []) | set(r["reply"].get("degradations") or []):
+            reasons[reason] = reasons.get(reason, 0) + 1
         if bad and len(examples) < 5:
             examples.append({"state": state, "degraded": (r["reply"].get("delivery") or {}).get("degraded"), "degradations": r["reply"].get("degradations"), "rc": r["rc"], "stderr": r["stderr"][-120:], "expected": expect, "stdout_head": r["stdout"][:600].decode("utf-8", "replace")})
     n = len(results)
@@ -115,7 +118,9 @@ def population(results: list[dict], expects: list[str | None], events: list[str]
         slot["n"] += 1
         slot["eligible_delivered"] += ok
         slot["degraded"] += bad
-    return {"n": n, "by_event": by_event, "wall_spawn_to_exit": mhl.summarize(walls), "entry_to_exit": mhl.summarize(inner), "delivery_states": states,
+    # Per-trial series in trial order (ms), so a tail can be told apart from a burst.
+    series = {"wall_ms": [round(w * 1000, 1) for w in walls], "entry_ms": [round(x * 1000, 1) for x in inner]}
+    return {"n": n, "by_event": by_event, "wall_spawn_to_exit": mhl.summarize(walls), "entry_to_exit": mhl.summarize(inner), "delivery_states": states, "reasons": reasons, "series": series,
             "eligible_delivered": delivered, "eligible_delivered_rate": round(delivered / n, 4) if n else None, "degraded": degraded, "degraded_rate": round(degraded / n, 4) if n else None,
             "degraded_examples": examples}
 

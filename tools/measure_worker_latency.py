@@ -166,19 +166,28 @@ def main(argv: list[str] | None = None) -> int:
     }
     try:
         # Hook cost when it starts the worker versus when one is running.
+        # A hook short on time sheds the worker step (deadline_worker_start_skipped) and the next hook
+        # retries it (SYSTEM_SPEC §5.1.1); those outcomes are counted, never asserted away.
         with_start, running = [], []
+        start_states: dict[str, int] = {}
+        running_states: dict[str, int] = {}
         for i in range(args.start_trials):
             wh.stop_worker(replayer.root)
             (Path(process_env.run_dir(replayer.root)) / process_env.START_STAMP).unlink(missing_ok=True)
-            reply, wall = run_hook(replayer, replayer.prepare(start_record), start_record["event"], tmp)
-            assert reply["worker"] == "worker_started", reply
-            with_start.append(wall)
+            for _attempt in range(3):
+                reply, wall = run_hook(replayer, replayer.prepare(start_record), start_record["event"], tmp)
+                start_states[reply["worker"]] = start_states.get(reply["worker"], 0) + 1
+                if reply["worker"] == "worker_started":
+                    with_start.append(wall)
+                    break
+            else:
+                raise SystemExit(f"three hooks never started the worker: {reply}")
             assert wh.wait_running(replayer.root), "worker never came up"
             reply, wall = run_hook(replayer, wh.unique_prompt(replayer, 10_000 + i), "UserPromptSubmit", tmp)
-            assert reply["worker"] == "worker_running", reply
+            running_states[reply["worker"]] = running_states.get(reply["worker"], 0) + 1
             running.append(wall)
-        report["hook_with_worker_start"] = summarize(with_start, "ms")
-        report["hook_worker_running"] = summarize(running, "ms")
+        report["hook_with_worker_start"] = {**summarize(with_start, "ms"), "worker_states": start_states}
+        report["hook_worker_running"] = {**summarize(running, "ms"), "worker_states": running_states}
         status = wh.wait_running(replayer.root)
         report["spawn"] = status["spawn"]
         # Typed-state latency at random idle phases.
