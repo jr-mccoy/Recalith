@@ -11,8 +11,8 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (Task 0) and 2.1.302 (Task 7: probe and production adapter, clean and host-marked parents, all isolation dimensions pass); live route + operator attestation not configured (B1); the worker has no backend and model jobs wait with `provider_unavailable`. Task 18 re-ran the probe and runtime check on 2.1.306: isolation passes, route unavailable |
 | Live host delivery certification | **Not established.** Task 13 repeated the protocol through the real engine and installed hooks on Claude Code 2.1.305: all four paths request-visible in request-capture mode (3/3 positives, 3/3 negatives), live echo not run (B1). A request-capture `host.json` certifies no path; `integrate` enables none in a real project. Task 18 repeated it on 2.1.306 with the same outcome |
-| Product tests / benchmarks | Deterministic unit/integration/platform suites and the kill/restart matrix (see the Task 18 and Task 11 follow-up checkpoints); the §7 gate per native platform after decision 0021: met in this container (warm and cold 500/500 delivered, p95 ≤ 95 ms); CI runners in the follow-up checkpoint |
-| Next task | The live preview gate once B1 clears (operator commands under B1, then `evals/run.py gate --mode live`); then Cut 2 |
+| Product tests / benchmarks | Deterministic unit/integration/platform suites and the kill/restart matrix (Task 18 and Task 11 follow-up checkpoints). The §7 hook gate is met on every native platform after decision 0021: this container plus four CI runs per platform; Windows cold-cache p95 155–241 ms. Typed-state latency on Windows is over 5 s in three of four CI runs, cause not established |
+| Next task | Attribute the Windows typed-state latency; the live preview gate once B1 clears (operator commands under B1, then `evals/run.py gate --mode live`); then Cut 2 |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -48,7 +48,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 15 | Evidence retention and portable transfers | Core backup/ledger, live pins, 180-day unpinned retention | Capsules, transfer/export/import, Breadcrumbs importer | preview core slice complete (derived revision-body aging closed in Task 18, decision 0020; capsules, export/import, Breadcrumbs importer pending, full-only) |
 | 16 | Intentional forgetting and safe restore | Complete forgetting and suppression-aware restore | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics, preview; health composition of pending privacy maintenance and schema migration are Task 17, real-host pause certification Task 13, export/import tombstones full-only with Task 15; A25/A36/A37/A48/A63/A64 in progress, no live variant) |
 | 17 | Health, local upgrades, and independent operations | Health, startup/recovery, profile-aware readiness | Engine/schema upgrade, preview-to-full transition, chain diagnostics | preview slice complete (deterministic; upgrade/transition/rollback, OS startup entries and chain diagnostics pending, full-only; readiness of a real installation needs Task 13's host record and B1's route) |
-| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; gate **blocked** (B1: no live trial); §7 usefulness fixed by decision 0021 (per-platform status in its checkpoint); scripted runs are mechanics only; full evaluation pending, full-only |
+| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; gate **blocked** (B1: no live trial); §7 hook latency and usefulness met on every platform after decision 0021; Windows typed-state latency open; scripted runs are mechanics only; full evaluation pending, full-only |
 
 ## Acceptance tracking
 
@@ -988,7 +988,7 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
     | slow fsync (30 ms) | 100 | 132.4 / 150.9 / 156.2 / 157.7 | 89.2 | 1.00 | 0.00 | — |
 
     Before the change, on the same tool, delivery was 0.50 warm and cold: every prompt trial missed its fact. Now 250/250 prompt and 250/250 pre-action trials deliver in each healthy population. The fault populations are reported separately and are not in the gate.
-  - **CI runners** (`.github/workflows/measure.yml`): see the CI part of this checkpoint.
+  - **CI runners** (`.github/workflows/measure.yml`): see the CI part below.
 - **Idle worker, Linux, this container:** `python tools/measure_worker_latency.py --trials 5 --start-trials 3 --idle-seconds 600 --output <scratch>/worker-idle-linux.json` → exit 0 in 624 s.
   - **0.1167 % of one core and 44.8 MiB RSS over 600 s** (targets < 1 %, ≤ 150 MiB), measured while the full suite ran.
   - The lookup adds no idle work: the projection step reads its epochs in the same cheap read and renders nothing when nothing changed.
@@ -1020,10 +1020,68 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Common words:** a claim matching only very common terms can be crowded out of the bounded read; the service is unaffected.
   - **Pre-action cautions** at corpus scale still come from the views' 64-claim action slice.
   - **Rebuild cost:** a forget, a restore, or an environment or policy change re-renders the lookup in 512-claim batches (about 0.25 ms per claim).
-  - **Matrix reps:** the 20-rep matrix for the touched families is in the CI part below.
+  - **Windows typed-state latency** p95 is over 5 s in three of four CI runs; the cause is not established (see below).
   - **Full-only, not started:** the 48-scenario three-trial comparison, the held-out corpus and its authorship, the Breadcrumbs and notes baselines, Task 14, upgrades/transition, transfers and capsules.
-- **CI:** pending at the time of writing; recorded below.
-- **Next action:** the live preview gate once B1 clears, then Cut 2.
+- **Local suites on 3.12 and 3.14** (same source as `3a41f40`):
+  - `UV_PROJECT_ENVIRONMENT=<scratch> uv run --locked --python 3.12 python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1092 passed, 20 skipped in 1774.77 s**;
+  - 3.14 → exit 0, **1092 passed, 20 skipped in 1715.57 s**.
+- **Kill/restart families touched, at 20 reps:** `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/integration/test_worker.py -k "projection_crash or forget_restore_crash or delivery_crash" --durations=0` → exit 0, **27 passed in 1129.60 s**.
+
+  | Family | Cases | Summed call time |
+  |---|---|---|
+  | projection (with `lookup.before_commit`, `lookup.after_publish`) | 8 | 360.3 s |
+  | forget/restore | 12 | 519.4 s |
+  | delivery | 7 | 249.2 s |
+
+  The other ten families are untouched by this slice; their last 20-rep results are in the Task 18 checkpoint.
+- **CI run 99 (`3a41f40`): all five jobs green.** The +17 cases against run 95 are the new ones.
+
+  | Job | Result | Tests time |
+  |---|---|---|
+  | Linux 3.12 | 1085 passed, 27 skipped | 1443.77 s |
+  | Linux 3.13 | 1085 passed, 27 skipped, plus offline provisioning 1 passed in 3.75 s | 1333.78 s |
+  | Linux 3.14 | 1085 passed, 27 skipped | 1382.62 s |
+  | macOS 3.13 | 1085 passed, 27 skipped | 1733.72 s |
+  | Windows 3.13 | 1019 passed, 93 skipped | 3819.81 s |
+
+  The release-artifacts run 6 also built. CI run 100 (`8c57a62`, a tools and measurements commit) is recorded in the next docs commit if it differs.
+- **§7 on the CI runners** (`.github/workflows/measure.yml`, default populations; reports in `docs/measurements/ci-3a41f40/` for runs 5–7 and `docs/measurements/ci-8c57a62/` for run 8, whose worker report has the new per-trial typed-state series). Spawn-to-exit p95/p99 ms and healthy delivered fraction:
+
+  | Platform, run | warm p95 / p99 | warm delivered | cold/missing p95 / p99 | cold delivered | gate |
+  |---|---|---|---|---|---|
+  | Linux, run 5 | 55.7 / 57.6 | 1.000 | 56.3 / 57.7 | 1.000 | met |
+  | Linux, run 6 | 42.7 / 61.5 | 1.000 | 44.1 / 88.4 | 1.000 | met |
+  | Linux, run 7 | 57.9 / 92.4 | 1.000 | 58.1 / 59.2 | 1.000 | met |
+  | Linux, run 8 | 55.7 / 310.6 | 0.992 | 50.0 / 56.6 | 1.000 | met |
+  | macOS arm64, run 5 | 96.9 / 138.1 | 1.000 | 114.2 / 131.4 | 1.000 | met |
+  | macOS arm64, run 6 | 200.1 / 343.8 | 1.000 | 140.4 / 178.8 | 1.000 | met |
+  | macOS arm64, run 7 | 126.5 / 214.0 | 1.000 | 92.1 / 119.4 | 1.000 | met |
+  | macOS arm64, run 8 | 73.1 / 91.2 | 1.000 | 59.0 / 137.4 | 1.000 | met |
+  | Windows Server 2025, run 5 | 162.0 / 199.6 | 1.000 | **241.1** / 486.1 | 0.990 (degraded 0.012) | met |
+  | Windows Server 2025, run 6 | 166.1 / 270.1 | 0.998 | **166.5** / 184.3 | 1.000 | met |
+  | Windows Server 2025, run 7 | 135.9 / 153.2 | 1.000 | **219.7** / 464.7 | 1.000 (degraded 0.01) | met |
+  | Windows Server 2025, run 8 | 137.5 / 167.8 | 1.000 | **155.2** / 194.0 | 1.000 | met |
+
+  - **Usefulness:** every healthy target is met on every platform in all four runs.
+  - **Windows cold-cache verdict: p95 ≤ 300 ms is established on Windows** (241.1, 166.5, 219.7 and 155.2 ms in four runs on two commits; the earlier 430.7 ms was on the previous code). Run 5's tail is a burst, not a spread: trials 300–450 have hook-internal times of 200–890 ms, pre-action and prompt alike, with `capture_deadline_overrun` on the degraded ones, i.e. slow spool publication on the shared runner. Its 50-trial windows are otherwise flat (p95 141–157 ms). Run 6's cold series has no trial over 300 ms. The tails are storage stalls and not compile or lookup cost.
+  - **Fault populations** (separate, never in the gate) stay safe on every platform: no nonzero exit or block. Four concurrent hooks show 2–12 `store_snapshot_unavailable` empties per 100 on CI (most on Windows), as before. Slow fsync and busy-writer deliver ≥ 0.97. Windows transient rename delivers 0.99–1.00.
+- **Typed event to working state, CI** (`tools/measure_worker_latency.py --trials 20`, 5 s idle polling; target p95 ≤ 5 s):
+  - **Linux and macOS meet it in all four runs:** Linux 4.66 / 4.47 / 4.66 / 4.48 s; macOS 4.52 / 4.84 / 4.25 / 4.46 s.
+  - **Windows misses it in three of four runs:** 4.914 s (run 5), 5.152 s (run 6, one 8.0 s trial), 5.226 s (run 7) and 6.544 s (run 8). The previous code's runs 2–3 gave 4.91 s (max 5.09).
+  - **Run 8's per-trial series gives a partial attribution:**
+    - The two late trials (6.54 and 6.60 s) had fast worker polls (slowest ≤ 0.06 s), so they missed poll cycles rather than waiting on worker work.
+    - On Windows, arrival phase plus latency comes to about 6–6.5 s even for late-phase arrivals, against about 5 s on Linux and macOS. The worker's observed idle cycle there runs 1–1.5 s past its 5 s cadence.
+    - Separately, some polls took 1.3–2.8 s (trials 6–7 and 15–16) while every Linux and macOS poll stayed ≤ 0.07 s.
+  - **Cause not established.** The lookup adds 0–5 ms to a projection step (median 19.9 vs 20.1 ms at 20 heads and 58.7 vs 53.6 ms at 2,000, old vs new code, in this container), which cannot explain seconds. A same-runner comparison with the previous commit needs a ref to dispatch from, which this session may not push. This is an **open §7 item on Windows**, recorded with the attribution above; the target is not weakened.
+- **Idle worker, CI** (600 s; targets < 1 % of one core, ≤ 150 MiB): every run meets it.
+  - Linux: 0.075–0.097 %, 46.5–47.3 MiB.
+  - macOS: 0.20–0.22 %, 40.3–44.8 MiB.
+  - Windows: 0.138–0.159 %, 15.5–16.1 MiB.
+- **Checklist:** `hook_latency_usefulness_per_platform` is `failed`.
+  - Every hook latency and usefulness target is met on every native platform, and the idle footprint holds.
+  - It is not `passed`, because the Windows typed-state p95 target is unmet in three of four runs.
+  - `tools/release_checklist.py` → exit 0 (verdict `blocked`).
+- **Next action:** attribute the Windows typed-state latency (the per-trial series now in the worker report), then the live preview gate once B1 clears, then Cut 2.
 
 Add each later checkpoint with:
 
@@ -1091,11 +1149,12 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 
 ## Next-session handoff
 
-Task 18's preview slice and the Task 11 follow-up (decision 0021) are built; see their checkpoints. The preview gate is **blocked** by B1. The §7 usefulness defect of decision 0020 item 15 is fixed; the per-platform results, including the Windows cold-cache verdict, are in the follow-up checkpoint. Next actions, in order:
+Task 18's preview slice and the Task 11 follow-up (decision 0021) are built; see their checkpoints. The preview gate is **blocked** by B1. The §7 usefulness defect of decision 0020 item 15 is fixed: every hook latency and usefulness target is met on every native platform, and the Windows cold-cache p95 is established at 155–241 ms over four CI runs. Next actions, in order:
 
-1. **The live preview gate once B1 clears:** the eight operator commands under B1, from an ordinary terminal against the installed executable (2.1.306), then record the live results here. Re-run `integrate claude` after any host upgrade; a new host version needs a fixture capture and review before it is certified (decision 0019).
-2. **Owner decisions before publication:** the project license and the signing material (the release artifacts are unsigned).
-3. **Then Cut 2.**
+1. **Windows typed-state latency** (open §7 item): p95 is over 5 s in three of four CI runs. Run 8's per-trial series (`docs/measurements/ci-8c57a62/worker-Windows-run8.json`) shows missed poll cycles with fast polls, and an idle cycle running 1–1.5 s past the 5 s cadence. Instrument the worker's cycle on a Windows runner (tick start, sleep slices, status writes), find the cause and fix it; a same-runner comparison with the previous commit needs a ref the owner can provide.
+2. **The live preview gate once B1 clears:** the eight operator commands under B1, from an ordinary terminal against the installed executable (2.1.306), then record the live results here. Re-run `integrate claude` after any host upgrade; a new host version needs a fixture capture and review before it is certified (decision 0019).
+3. **Owner decisions before publication:** the project license and the signing material (the release artifacts are unsigned).
+4. **Then Cut 2.**
 
 Full-only work stays pending:
 

@@ -92,10 +92,10 @@
     {
       "id": "hook_latency_usefulness_per_platform",
       "section_8": [1, 10],
-      "status": "pending",
-      "detail": "tools/measure_release_latency.py runs the §7 populations per native platform (.github/workflows/measure.yml for macOS, Windows and a Linux runner). Decision 0021 fixed the prompt usefulness defect of decision 0020 item 15 with a bounded, worker-published lexical lookup. In this container (Linux, 4 vCPU Xeon @ 2.10 GHz) every healthy target is met: warm 500/500 delivered, p95 93.2 ms, p99 96.6 ms; cold/missing 500/500, p95 94.7 ms, p99 101.2 ms; degradation 0. The CI runners' re-measurement on this code is pending. The Windows cold-cache p95 is not yet established (430.7 ms in one earlier CI run, 148.6 ms in another). The idle worker is under 1 % of one core and ≤ 150 MiB on Linux, macOS and Windows.",
-      "blocker": "per-platform CI re-measurement after decision 0021 not yet recorded; Windows cold-cache p95 to be confirmed across at least two runs",
-      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml", "docs/measurements/release-gate-latency-linux.json", "docs/measurements/release-gate-latency-windows-ci.json", "docs/measurements/worker-idle-windows-ci.json", "docs/decisions/0020-preview-evaluation-and-release-hardening.md", "docs/decisions/0021-bounded-lexical-lookup-for-hook-prompts.md"]
+      "status": "failed",
+      "detail": "tools/measure_release_latency.py runs the §7 populations per native platform: this container and .github/workflows/measure.yml on Linux, macOS and Windows runners. Decision 0021 fixed the prompt usefulness defect (decision 0020 item 15). Every hook latency and usefulness target is now met on every platform: in this container warm and cold 500/500 delivered at p95 93.2/94.7 ms; on CI in four runs each. Windows cold/missing p95 is established at 155–241 ms in four runs; run 5's tail was a storage-stall burst. The idle worker is under 1 % of one core and ≤ 150 MiB everywhere. Typed event to working state misses its p95 ≤ 5 s target on Windows in three of four runs (4.91, 5.15, 5.23, 6.54 s); Linux and macOS meet it.",
+      "blocker": "Windows typed-state p95 over 5 s in three of four CI runs. Per-trial series show missed poll cycles with fast polls and a worker idle cycle running 1–1.5 s past its 5 s cadence on Windows. The cause is not established (Task 11 follow-up checkpoint).",
+      "evidence": ["tools/measure_release_latency.py", "tools/measure_worker_latency.py", ".github/workflows/measure.yml", "docs/measurements/release-gate-latency-linux.json", "docs/measurements/ci-3a41f40", "docs/measurements/ci-8c57a62", "docs/decisions/0020-preview-evaluation-and-release-hardening.md", "docs/decisions/0021-bounded-lexical-lookup-for-hook-prompts.md"]
     },
     {
       "id": "failure_injection_protocol",
