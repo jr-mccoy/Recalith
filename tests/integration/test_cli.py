@@ -817,3 +817,28 @@ def test_scope_paths_cannot_escape_the_workspace(root, tmp_path, tok):
     with db.open_store(cs.context(root), readonly=True) as store, store.read() as view:
         (body,) = [json.loads(r[0]) for r in view.execute("SELECT body FROM claim_revisions").fetchall()]
     assert body["scope"]["paths"] == ["src/ünïcødé dir/"]
+
+
+@pytest.mark.parametrize("encoding", ["cp1252", "ascii", "utf-8"])
+def test_machine_output_is_utf8_whatever_the_console_encoding(encoding):
+    """JSON stdout and diagnostics are UTF-8 even where the stream's text encoding is a Windows code page (CI run 85).
+
+    Windows pipes default to the console code page: a project path with ``é``
+    was written as ``0xE9`` and a character outside the code page raised
+    ``UnicodeEncodeError``. Real ``TextIOWrapper`` streams with that encoding stand in for the console.
+    """
+    import io
+
+    from recalith.cli.main import Output
+
+    out_buf, err_buf = io.BytesIO(), io.BytesIO()
+    out, err = io.TextIOWrapper(out_buf, encoding=encoding), io.TextIOWrapper(err_buf, encoding=encoding)
+    o = Output(as_json=True, command="integrate", stdout=out, stderr=err)
+    assert o.success({"spelling": "C:/Users/proj with space é/.recalith/bin/recalith", "arrow": "180\u219230"}) == 0
+    assert o.failure("invalid_schema", "the path proj é \u2192 is invalid", 2) == 2
+    out.flush()
+    err.flush()
+    lines = out_buf.getvalue().decode("utf-8").splitlines()
+    assert json.loads(lines[0])["result"]["spelling"].endswith("proj with space é/.recalith/bin/recalith")
+    assert json.loads(lines[1])["message"] == "the path proj é \u2192 is invalid"
+    assert "proj é \u2192" in err_buf.getvalue().decode("utf-8")

@@ -631,6 +631,12 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - macOS 3.13: 1042 passed, 27 skipped (tests 1469.16 s).
   - The runners skip the 8 real-host smoke tests (no Claude CLI) and run the root-only token variant this container skips.
   - Windows 3.13: 1 failed, 975 passed, 93 skipped (tests 3116.46 s). `test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings` built its expected absolute launcher spelling with `str(root)` (backslashes on Windows), while the installer deliberately writes the forward-slash `root.as_posix()` form on every OS. The test was fixed, not the code: `PureWindowsPath(...)` shows the two forms differ only on Windows. The POSIX-only installed-command tests skip there by design. The installer, removal, guard, health, matrix and version-review tests ran natively.
+- **CI run 85 (17f5ea8): Windows failed the same test again; this time the cause was a real defect.**
+  - **Failure:** Windows 3.13: 1 failed, 975 passed, 93 skipped (tests 3125.92 s). The other jobs passed.
+  - **Root cause:** the CLI wrote its `--json` stdout and its stderr diagnostics in the stream's text encoding. A Windows pipe defaults to the console code page, so the `é` of the test project's path left the child as `0xE9` and read back as U+FFFD. A character outside the code page raises `UnicodeEncodeError`.
+  - **Reproduced locally** with `TextIOWrapper` streams in `cp1252` and `ascii`: `test_cli.py::test_machine_output_is_utf8_whatever_the_console_encoding` failed on both before the fix.
+  - **Fix:** `cli/main.py` writes UTF-8 bytes to the stream's buffer for both streams. The forward-slash spelling fix in the deny-rule test stays: it was needed too.
+  - **Checks after the fix:** the unit, CLI, adapter and health suites → 504 passed in 462.91 s.
 - CI after the fix: recorded in the next follow-up docs commit.
 - Next action: Task 18 preview (the release gate: 12-scenario comparative smoke against a clean no-memory baseline, three default-budget workload days, the profile-required deterministic/failure tests, native-platform hook latency/usefulness and the release checklist). B1 still blocks every live check.
 
