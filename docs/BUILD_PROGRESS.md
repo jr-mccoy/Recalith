@@ -725,7 +725,21 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - «TBD: Linux latency gate, full suites, ruff, generator checks»
 - **§7 hook latency and usefulness per native platform** (`tools/measure_release_latency.py`: fresh `python -I` hook processes, 10,000 corpus heads, an admitted failure lesson and a prompt-relevant fact; warm and cold/missing alternate pre-action and prompt trials; usefulness counts only emitted expected text). Spawn-to-exit p95/p99 ms and healthy eligible delivery:
 
-  «TBD: latency table»
+  | Platform (n = 500 each) | warm p95 / p99 | cold/missing p95 / p99 | warm delivered | cold delivered |
+  |---|---|---|---|---|
+  | Linux, this container (`python tools/measure_release_latency.py --output …` → exit 1 in 3 min 2 s; `docs/measurements/release-gate-latency-linux.json`) | 113.3 / 122.6 | 113.3 / 123.4 | 0.50 | 0.50 |
+  | Linux, CI runner (measure run 2, `bef058f`) | 53.2 / 319.4 | 55.5 / 158.9 | 0.50 | 0.50 |
+  | macOS arm64, CI runner (same run) | 122.2 / 144.9 | 132.3 / 256.3 | 0.50 | 0.50 |
+  | Windows Server 2025, CI runner (same run) | 176.8 / 549.9 | **430.7** / 615.5 | 0.494 | 0.482 |
+
+  The other populations in this container (p95 ms, delivered):
+  - stale views: 112.6, 0.50;
+  - first launches (n = 50): 116.6 (p99 188.6), 1.00 (pre-action only);
+  - busy writer: 114.4, 0.50;
+  - four concurrent hooks: 105.9, 0.50;
+  - slow fsync: 178.8, 0.50.
+
+  Per event, every PreToolUse trial delivered its caution (250/250 warm and cold) and every UserPromptSubmit trial missed its fact (0/250). Exit 1 is the gate's own verdict: latency met, usefulness not met. The first CI run (`9c9752e`) used the defective cold regime and is not reported.
 
   - **Usefulness fails on every platform**, for one concrete cause (decision 0020 item 15). Every pre-action caution is delivered, and every prompt-specific fact is missing, because the hook's views hold a query-independent slice. Prompt trials are therefore all degraded, and delivery is about 50 % against targets of ≥ 99 % warm and ≥ 95 % cold. A Task 11 view-contract change is needed. The build may only be labeled experimental on this target.
   - **Windows cold/missing p95 is over 300 ms** (430.7 ms, CI run of `bef058f`), while stale views, which go through the same fallback path, stay at 199.5 ms. «TBD: Windows tail diagnosis from the 665532f run»
