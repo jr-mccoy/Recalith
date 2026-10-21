@@ -544,6 +544,10 @@ def test_backup_is_consistent(tmp_path):
             while not stop.is_set():
                 rs.seed(p, template, proposition=f"Concurrent claim {len(written)}.")
                 written.append(1)
+                # Writes keep landing during the backup, but a loop that re-takes the lock at once can starve the
+                # backup's own short record write past the busy timeout on a slow runner (CI Windows); the worker,
+                # the store's real writer, never writes back to back like that.
+                time.sleep(0.005)
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
 
@@ -817,6 +821,20 @@ def test_closed_task_history_ages_after_90_days(tmp_path):
     shown = service.show(osc.context(p.root), task_id)
     assert shown["body"] is None and shown["content"] == "expired"
     assert sweep(p, rsn.plus(closed_at, days=91)).records_aged == {"task": 0, "episode": 0}  # idempotent
+
+
+def test_sweep_takes_no_aging_transaction_when_nothing_can_age(tmp_path, monkeypatch):
+    """The candidates come from the read snapshot; the write lock (and its pin closure) is taken only when a body can age."""
+    p, task_id, closed_at = _closed_task(tmp_path)
+    calls: list[str] = []
+    real = retention.age_records
+    monkeypatch.setattr(retention, "age_records", lambda *a, **kw: (calls.append("aging"), real(*a, **kw))[1])
+    sweep(p, rsn.plus(closed_at, days=90))  # not yet past the cutoff
+    assert calls == []
+    sweep(p, rsn.plus(closed_at, days=90, seconds=1))
+    assert calls == ["aging"] and not any(_bodies(p, "task", task_id))
+    sweep(p, rsn.plus(closed_at, days=91))  # everything already aged
+    assert calls == ["aging"]
 
 
 def test_episode_bodies_age_180_days_after_task_closure(tmp_path):

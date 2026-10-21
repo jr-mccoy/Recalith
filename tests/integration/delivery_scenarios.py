@@ -96,30 +96,40 @@ def context_text(output: bytes) -> str:
     return data["hookSpecificOutput"]["additionalContext"]
 
 
-def process(p: wks.Project, rec: dict[str, Any], tmp: Path, *, tag: str = "", env: dict[str, str] | None = None) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
-    """The real entry in a fresh ``python -I`` process, as the hook launcher runs it; returns (process, reply)."""
-    reply_path = tmp / f"reply-{rec['seq']}-{tag or time.monotonic_ns()}.json"
-    proc, _wall = cf.run_hook(p.root, p.replay.prepare(rec), event=rec["event"], reply=reply_path, env=env)
-    reply = json.loads(reply_path.read_text(encoding="utf-8")) if reply_path.exists() else {}
-    return proc, reply
-
-
-KILL_DRIVER = r"""
+# Test-only driver: the real ``entry.main`` in a fresh ``python -I`` process with a generous soft deadline, and
+# optionally one failpoint armed to kill it. These cases judge accounting and kill/emit outcomes, not latency: a
+# shared CI runner can stall a hook past the production 250 ms deadline, and the hook then rightly sheds delivery
+# (``deadline_delivery_skipped``, asserted by its own tests and measured per platform by
+# tools/measure_release_latency.py). The production entry has no deadline or failpoint switch.
+DRIVER = r"""
 import io, json, sys
 sys.path.insert(0, sys.argv[1])
 from recalith.fast import entry, failpoints
-failpoints.arm(sys.argv[3], failpoints.kill)
+entry.SOFT_DEADLINE_SECONDS = 5.0
+if sys.argv[3]:
+    failpoints.arm(sys.argv[3], failpoints.kill)
 data = open(sys.argv[2], "rb").read()
 entry.main(json.loads(sys.argv[4]), stdin=io.BytesIO(data))
 """
 
 
-def killed_process(p: wks.Project, rec: dict[str, Any], tmp: Path, failpoint: str) -> subprocess.CompletedProcess:
-    """The real entry in a fresh process, killed (``os._exit``) at one delivery failpoint; stdout is what reached the host."""
+def _driver(p: wks.Project, rec: dict[str, Any], tmp: Path, argv: list[str], *, failpoint: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     payload = tmp / f"payload-{rec['seq']}-{time.monotonic_ns()}.json"
     payload.write_bytes(p.replay.prepare(rec))
-    argv = ["--project", str(p.root), "claude_code", "--event", rec["event"]]
-    return subprocess.run([sys.executable, "-I", "-c", KILL_DRIVER, SRC, str(payload), failpoint, json.dumps(argv)], capture_output=True, env=cf.child_env(), timeout=60, check=False)
+    return subprocess.run([sys.executable, "-I", "-c", DRIVER, SRC, str(payload), failpoint, json.dumps(argv)], capture_output=True, env=cf.child_env() if env is None else env, timeout=60, check=False)
+
+
+def process(p: wks.Project, rec: dict[str, Any], tmp: Path, *, tag: str = "", env: dict[str, str] | None = None) -> tuple[subprocess.CompletedProcess, dict[str, Any]]:
+    """The real entry in a fresh ``python -I`` process (the test driver's generous deadline); returns (process, reply)."""
+    reply_path = tmp / f"reply-{rec['seq']}-{tag or time.monotonic_ns()}.json"
+    proc = _driver(p, rec, tmp, ["--project", str(p.root), "claude_code", "--event", rec["event"], "--reply-file", str(reply_path)], env=env)
+    reply = json.loads(reply_path.read_text(encoding="utf-8")) if reply_path.exists() else {}
+    return proc, reply
+
+
+def killed_process(p: wks.Project, rec: dict[str, Any], tmp: Path, failpoint: str) -> subprocess.CompletedProcess:
+    """The real entry in a fresh process, killed (``os._exit``) at one delivery failpoint; stdout is what reached the host."""
+    return _driver(p, rec, tmp, ["--project", str(p.root), "claude_code", "--event", rec["event"]], failpoint=failpoint)
 
 
 # --------------------------------------------------------------------------

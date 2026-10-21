@@ -722,7 +722,13 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
     A release candidate's 100 reps were not run; this is not a release candidate.
   - **Matrix-only mutation:** the aging step's evidence-link deletion was split into an in-memory list applied after `retention.after_record_aging`. `test_retention.py` still passed (23), and the retention matrix failed at `retention.after_record_aging` (state differs from the reference). The mutation was reverted with a digest check. The Task 13 checkpoint's matrix-only mutation (`integrate.after_record`) was not re-run here.
   - **Idle worker (Linux, this container):** `python tools/measure_worker_latency.py --trials 5 --start-trials 3 --idle-seconds 600` → exit 0. It used 0.15 % of one core over 600 s with 45.5 MiB RSS (targets < 1 %, ≤ 150 MiB), while the crash matrix loaded the same CPUs. Only the idle window counts; the reduced typed-state trials are not a latency record. Saved in `docs/measurements/worker-idle-linux.json`.
-  - «TBD: Linux latency gate, full suites, ruff, generator checks»
+  - **Full suites at `665532f`'s source** (identical to `3aa10e4`/`dad851d`; docs only after it):
+    - 3.13: `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` → exit 0, 1074 passed, 20 skipped in 2208.58 s;
+    - 3.12: `UV_PROJECT_ENVIRONMENT=<scratch> uv run --locked --python 3.12 python -m pytest -q -rs -p no:cacheprovider` → exit 0, 1074 passed, 20 skipped in 2204.72 s;
+    - 3.14: the same → exit 0, 1074 passed, 20 skipped in 2277.21 s.
+
+    The 8 real-host smoke tests ran (2.1.306 is certified); they skip on CI runners without the CLI.
+  - **Checks:** `uvx ruff@0.14.0 check --select F,E9,B` on every new and touched Python file → clean (the pre-existing `fast/redact.py` B905 and `test_installations.py` F841 are untouched). `tools/generate_schemas.py --check` → exit 0; `tools/generate_hook_wire.py --check` → exit 0; `tools/release_checklist.py` → exit 0. `requirements.lock`/`uv.lock` are unchanged.
 - **§7 hook latency and usefulness per native platform** (`tools/measure_release_latency.py`: fresh `python -I` hook processes, 10,000 corpus heads, an admitted failure lesson and a prompt-relevant fact; warm and cold/missing alternate pre-action and prompt trials; usefulness counts only emitted expected text). Spawn-to-exit p95/p99 ms and healthy eligible delivery:
 
   | Platform (n = 500 each) | warm p95 / p99 | cold/missing p95 / p99 | warm delivered | cold delivered |
@@ -844,7 +850,30 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Statistics:** 12 scenarios with one trial each are inconclusive.
   - **Cost:** pilot-based cost and time estimates are illustrative, because no provider usage was measured.
   - **Full-only, not started:** the 48-scenario three-trial comparison, the held-out corpus and its authorship, the Breadcrumbs/notes baselines, Task 14, upgrades/transition, transfers and capsules.
-- «TBD: CI»
+- **CI.**
+  - **Run 90 (`9c9752e`, the slice): all five jobs green.**
+
+    | Job | Result | Tests time |
+    |---|---|---|
+    | Linux 3.12 | 1067 passed, 27 skipped | 1403.84 s |
+    | Linux 3.13 | 1067 passed, 27 skipped, plus offline provisioning 1 passed in 3.22 s | 1147.80 s |
+    | Linux 3.14 | 1067 passed, 27 skipped | 1348.94 s |
+    | macOS 3.13 | 1067 passed, 27 skipped | 1501.13 s |
+    | Windows 3.13 | 1001 passed, 93 skipped | 3270.00 s |
+
+    The release-artifacts workflow built the unsigned artifacts; measure run 1 is superseded (defective cold regime).
+  - **Run 91 (`bef058f`) and run 93 (`3aa10e4`): green.**
+  - **Run 92 (`665532f`): Windows failed 2 tests** (2 failed, 999 passed, 93 skipped in 4172.33 s, about a third slower than usual). The other four jobs were green: macOS 1067/27 in 1672.06 s, Linux 3.12 in 976.15 s, 3.13 in 1289.67 s, 3.14 in 1379.23 s.
+    - `test_retention.py::test_pin_expiry_race_never_admits_missing_support`: the concurrent sweeper hit the 250 ms busy timeout.
+    - `test_retention.py::test_backup_is_consistent`: the backup's record write hit the busy timeout under a back-to-back writer thread.
+  - **Run 94 (`dad851d`): Windows failed 2 other tests** (2 failed, 999 passed, 93 skipped in 3248.97 s).
+    - `test_delivery.py::test_real_hook_processes_deliver_and_account`: one PreToolUse hook took 553.6 ms and shed delivery (`deadline_delivery_skipped`).
+    - `test_delivery.py::test_emission_crash_is_uncertain`: the killed hook exited 0 before its failpoint, which is the same deadline shed.
+  - **Root causes and fixes:**
+    - **The race test failure is a real cost of this slice's aging step.** It opened a write transaction on every sweep, including every worker poll, and computed the full pin closure under the lock even when nothing could age. The sweep now takes candidates from its read snapshot and locks only when a body can age. `test_sweep_takes_no_aging_transaction_when_nothing_can_age` fails on the old sweep and passes now.
+    - **The backup test's writer thread re-took the lock back to back** and starved the backup's short record write. It now pauses 5 ms between writes, so writes still land throughout the backup.
+    - **The two delivery tests judge accounting and kill outcomes**, yet they ran with the production 250 ms deadline on a shared runner. They now run the real `entry.main` in a fresh `python -I` process through a test-only driver with a generous deadline. Deadline shedding keeps its own tests and is measured per platform; production gains no switch.
+  - «TBD: local re-runs after the fixes, and the next CI run»
 - Next action: the live preview gate once B1 clears. Run the B1 operator commands, then `evals/run.py gate --mode live …` with an operator-provisioned token, from an ordinary terminal. Before that, a Task 11 follow-up is needed for prompt usefulness at scale (item 15), and the Windows cold-cache tail needs fixing. Then Cut 2.
 
 Add each later checkpoint with:
