@@ -873,7 +873,13 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
     - **The race test failure is a real cost of this slice's aging step.** It opened a write transaction on every sweep, including every worker poll, and computed the full pin closure under the lock even when nothing could age. The sweep now takes candidates from its read snapshot and locks only when a body can age. `test_sweep_takes_no_aging_transaction_when_nothing_can_age` fails on the old sweep and passes now.
     - **The backup test's writer thread re-took the lock back to back** and starved the backup's short record write. It now pauses 5 ms between writes, so writes still land throughout the backup.
     - **The two delivery tests judge accounting and kill outcomes**, yet they ran with the production 250 ms deadline on a shared runner. They now run the real `entry.main` in a fresh `python -I` process through a test-only driver with a generous deadline. Deadline shedding keeps its own tests and is measured per platform; production gains no switch.
-  - «TBD: local re-runs after the fixes, and the next CI run»
+  - **Local re-runs after the fixes (`84cd043`):**
+    - `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/integration/test_worker.py -k retention_backup_crash_matches_reference` → exit 0, 9 passed in 746.66 s;
+    - the retention, delivery and scratch suites → 55 passed, 1 skipped in 88.02 s;
+    - the full 3.13 suite → exit 0, 1075 passed, 20 skipped in 2147.71 s (the new aging-lock test is the extra one).
+
+    3.12 and 3.14 for this commit are covered by CI.
+  - «TBD: the CI run for 84cd043»
 - Next action: the live preview gate once B1 clears. Run the B1 operator commands, then `evals/run.py gate --mode live …` with an operator-provisioned token, from an ordinary terminal. Before that, a Task 11 follow-up is needed for prompt usefulness at scale (item 15), and the Windows cold-cache tail needs fixing. Then Cut 2.
 
 Add each later checkpoint with:
