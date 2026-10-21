@@ -24,6 +24,14 @@ Path states: `healthy` (3/3 positive and 3/3 negative valid passes), `degraded` 
 
 Where the host saves a transcript, the report also records whether it contains the nonce (second check). The probe never claims direct inspection of the model's internal request in live mode.
 
+## Engine mode (Task 13; decision 0019)
+
+```bash
+python tools/probe_delivery.py --config probe-private/local-config.json --engine-project PATH --output docs/host-compatibility.json
+```
+
+`PATH` is a project integrated with `.recalith/bin/recalith integrate claude` for the executable's exact version. The same protocol runs through the real engine: each trial is a disposable fixture installation (real `init`, hooks and deny rules from the real `integrate`), the nonce lives in one item of a memory admitted through recorded proposals (an open intent question for session start and compaction restoration, a lexically matched fact for the prompt, a failure lesson on the fixture tool `ls /nonexistent-recalith-fixture-dir` for pre-action), and only the trial's path is enabled in a controlled manifest. Request capture additionally records the engine's accounting (an ingested emitted receipt within the packet cap), the host deny probe (every covered spelling denied, gap spellings refused by the CLI guard on the actual tool subprocess, markers inherited by tool subprocesses), the private-path probe in the project's configured permission mode, the session-start notice, hook-failure fixtures and hook-spawned worker survival (SessionEnd, host process-group kill, terminal hangup). The report goes to `sections.delivery_engine.<host_id>`; the project's `.recalith/host.json` is written (`live` only for a complete live run) and the integration is re-run so exactly the certified paths are enabled.
+
 ## Modes
 
 * `live`: the real host with the selected account route and model. Only live results certify a path.

@@ -572,7 +572,7 @@ def _locked(ctx, request, purpose, query, compiled, reasons, *, session_id, host
         _save(root, scratch)
         return _result("fenced_out", purpose, reason=fenced["reason"], degraded=sorted(set(reasons + [fenced["reason"]])), fence_ms=fenced["fence_ms"])
     failpoints.hit(failpoints.DELIVERY_AFTER_FENCE)
-    output = claude_capture.context_output(request.get("host_event") or claude_capture.DELIVERY_EVENTS[purpose], fc.render_packet(purpose, final["items"]))
+    output = claude_capture.context_output(request.get("host_event") or claude_capture.DELIVERY_EVENTS[purpose], fc.render_packet(purpose, final["items"]), notice=request.get("notice"))
     data = json.dumps(output, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if len(data) > WIRE_STDOUT_CAP:
         scratch["entries"].remove(entry)

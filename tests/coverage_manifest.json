@@ -112,7 +112,8 @@
       "blocking": true,
       "owning_tasks": [
         "2",
-        "17"
+        "17",
+        "13"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -131,7 +132,8 @@
             "tests/integration/test_installations.py::test_move_requires_operator_rebind",
             "tests/platform/test_autostart.py::test_copied_installation_does_not_autostart",
             "tests/platform/test_autostart.py::test_moved_installation_does_not_autostart_until_rebound_and_reintegrated",
-            "tests/platform/test_autostart.py::test_recreated_checkout_keeps_the_hook_off"
+            "tests/platform/test_autostart.py::test_recreated_checkout_keeps_the_hook_off",
+            "tests/integration/test_claude_adapter.py::test_rerun_after_rebind_reintegrates_cleanly"
           ],
           "platforms": [
             "linux",
@@ -139,7 +141,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Service-level; CLI transport for rebind/discard-copy is Task 12a. Task 17: a copied, moved or recreated checkout never starts or adopts a worker through the real hook process (installation_relocated before capture or start, in the copy and the original); after a rebind the stale manifest keeps the hook off and health reports hook_context_relocated; the original's hook still starts its own worker (positive control)."
+          "notes": "Service-level; CLI transport for rebind/discard-copy is Task 12a. Task 17: a copied, moved or recreated checkout never starts or adopts a worker through the real hook process (installation_relocated before capture or start, in the copy and the original); after a rebind the stale manifest keeps the hook off and health reports hook_context_relocated; the original's hook still starts its own worker (positive control). Task 13: after a move and an operator rebind the stale manifest keeps the installed hook off (hook_context_relocated) until `integrate claude` re-runs; then capture resumes in the moved checkout."
         },
         {
           "variant": "full_only",
@@ -350,7 +352,11 @@
             "tests/integration/test_worker.py::test_worker_recovers_registered_transcripts_with_their_named_parser",
             "tests/platform/test_capture_only_claude.py::test_capture_only_real_lifecycle",
             "tests/platform/test_capture_only_claude.py::test_late_result_joins_its_own_call",
-            "tests/platform/test_capture_only_claude.py::test_transcript_supplement_recovers_assistant_text_once"
+            "tests/platform/test_capture_only_claude.py::test_transcript_supplement_recovers_assistant_text_once",
+            "tests/platform/test_claude_smoke.py::test_claude_capture_delivery_and_compact",
+            "tests/integration/test_claude_adapter.py::test_installed_hooks_capture_real_lifecycle_and_transcripts",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_305_transcripts_parse_without_gaps",
+            "tests/integration/test_claude_adapter.py::test_claude_capture_delivery_and_compact"
           ],
           "platforms": [
             "linux",
@@ -358,7 +364,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Test-only JSONL source plus real Claude 2.1.301 hook payloads and sanitized transcript (request-capture fixtures). Worker-driven recovery is Task 4; host integration Tasks 13/14."
+          "notes": "Test-only JSONL source plus real Claude 2.1.301 hook payloads and sanitized transcript (request-capture fixtures). Worker-driven recovery is Task 4; host integration Tasks 13/14. Task 13: the registered transcript supplement and subagent transcripts through installed hooks on the real Claude Code 2.1.305 host (request-capture): assistant text recovered by the hook-started worker, exact transcript paths registered."
         }
       ]
     },
@@ -1057,7 +1063,12 @@
           "tests": [
             "tests/integration/test_delivery.py::test_compaction_restores_once",
             "tests/integration/test_delivery.py::test_prompt_substitution_is_one_shared_allowance",
-            "tests/integration/test_delivery.py::test_delivery_stays_gated"
+            "tests/integration/test_delivery.py::test_delivery_stays_gated",
+            "tests/platform/test_claude_smoke.py::test_engine_delivery_reaches_the_request_on_every_path",
+            "tests/platform/test_claude_smoke.py::test_certification_writes_only_a_request_capture_record",
+            "tests/integration/test_claude_adapter.py::test_only_live_certified_paths_are_enabled",
+            "tests/integration/test_claude_adapter.py::test_health_is_ready_only_under_a_complete_certified_state",
+            "tests/integration/test_claude_adapter.py::test_claude_capture_delivery_and_compact"
           ],
           "platforms": [
             "linux",
@@ -1065,7 +1076,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 12b mechanics only: start/prompt/pre-action/restoration delivery paths gated per path in a controlled manifest and a certified host version; missing compact path restores on the next prompt; missing pre-action path substitutes on the prompt. Real nonce certification of start/prompt (required) and pre-action/compaction (optional) is Task 13 and needs a certified route (B1); not a pass."
+          "notes": "Task 12b mechanics only: start/prompt/pre-action/restoration delivery paths gated per path in a controlled manifest and a certified host version; missing compact path restores on the next prompt; missing pre-action path substitutes on the prompt. Real nonce certification of start/prompt (required) and pre-action/compaction (optional) is Task 13 and needs a certified route (B1); not a pass. Task 13: all four paths request_visible through the real engine on 2.1.305 (3/3 positives, 3/3 negatives; request capture, never an echo pass); integrate enables only paths a live record certifies; live nonce certification not run (B1), so start/prompt remain uncertified; not a pass."
         },
         {
           "variant": "full_only",
@@ -1115,7 +1126,8 @@
             "tests/platform/test_provider_isolation.py::test_hook_started_worker_rechecks_curator_isolation",
             "tests/platform/test_provider_isolation.py::test_provider_never_receives_other_project",
             "tests/unit/test_provider_contract.py::test_unknown_capabilities_leave_the_worker_without_a_backend",
-            "tests/unit/test_provider_probe.py::test_probe_uses_the_engine_spawn_environment"
+            "tests/unit/test_provider_probe.py::test_probe_uses_the_engine_spawn_environment",
+            "tests/integration/test_claude_adapter.py::test_curator_session_is_ignored"
           ],
           "platforms": [
             "linux",
@@ -1123,7 +1135,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 7: the production curator launch (shared spawn_environment curator role, fresh private root outside any checkout, certified argument array) is checked for effective isolation with the Task 0 sentinels planted, from clean and host-marked parents with decoy credentials, through the fake CLI on every platform and the installed Claude Code 2.1.302 in request-capture mode; a hook that runs despite the recursion marker fails and withdraws a route; the hook-started worker rechecks its own curator launch (run/provider-check.json); a request carries only its own installation's records. Live certification is still B1 (no route); request capture never certifies."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 7: the production curator launch (shared spawn_environment curator role, fresh private root outside any checkout, certified argument array) is checked for effective isolation with the Task 0 sentinels planted, from clean and host-marked parents with decoy credentials, through the fake CLI on every platform and the installed Claude Code 2.1.302 in request-capture mode; a hook that runs despite the recursion marker fails and withdraws a route; the hook-started worker rechecks its own curator launch (run/provider-check.json); a request carries only its own installation's records. Live certification is still B1 (no route); request capture never certifies. Task 13: a curator-marked process running the installed hook command captures nothing, starts no worker and prints nothing."
         }
       ]
     },
@@ -1156,7 +1168,9 @@
             "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
             "tests/unit/test_provider_contract.py::test_certification_record_requires_a_complete_live_observation",
             "tests/integration/test_health.py::test_missing_provider_is_degraded_not_ready",
-            "tests/integration/test_health.py::test_exhausted_budget_pools_are_reported"
+            "tests/integration/test_health.py::test_exhausted_budget_pools_are_reported",
+            "tests/integration/test_claude_adapter.py::test_status_reports_b1_without_a_host_certification",
+            "tests/platform/test_claude_smoke.py::test_certification_writes_only_a_request_capture_record"
           ],
           "platforms": [
             "linux",
@@ -1164,7 +1178,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain. Task 17: health names capability loss — a missing or request-capture-only route (B1) is inference unavailable and readiness degraded, never ready; a claude on PATH is not a route; capture stays live; exhausted pools degrade inference/admission with the pool named; status exits 8."
+          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain. Task 17: health names capability loss — a missing or request-capture-only route (B1) is inference unavailable and readiness degraded, never ready; a claude on PATH is not a route; capture stays live; exhausted pools degrade inference/admission with the pool named; status exits 8. Task 13: with the integration installed and the request-capture host record written, health still names provider_not_configured and readiness stays degraded (B1)."
         }
       ]
     },
@@ -1314,7 +1328,9 @@
             "tests/integration/test_installations.py::test_path_escape_is_refused",
             "tests/platform/test_paths.py",
             "tests/integration/test_cli.py::test_scope_paths_cannot_escape_the_workspace",
-            "tests/integration/test_cli.py::test_missing_or_revoked_token_returns_6"
+            "tests/integration/test_cli.py::test_missing_or_revoked_token_returns_6",
+            "tests/integration/test_claude_adapter.py::test_local_install_is_default_and_ignored",
+            "tests/integration/test_claude_adapter.py::test_rerun_after_rebind_reintegrates_cleanly"
           ],
           "platforms": [
             "linux",
@@ -1322,7 +1338,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Linux: case-insensitive variant skipped (no casefold filesystem); macOS/Windows CI exercise it. Host integration paths are Task 13. Task 12a: declaration scope paths are portable workspace-relative paths (traversal, absolute and drive paths refused as invalid input; Unicode and spaces kept); a token file reached through a symlink is refused without use."
+          "notes": "Linux: case-insensitive variant skipped (no casefold filesystem); macOS/Windows CI exercise it. Host integration paths are Task 13. Task 12a: declaration scope paths are portable workspace-relative paths (traversal, absolute and drive paths refused as invalid input; Unicode and spaces kept); a token file reached through a symlink is refused without use. Task 13: install, hooks and rebind in a project path with spaces and non-ASCII characters."
         }
       ]
     },
@@ -1781,7 +1797,8 @@
       "blocking": false,
       "owning_tasks": [
         "4",
-        "17"
+        "17",
+        "13"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -1807,7 +1824,9 @@
             "tests/integration/test_worker.py::test_typed_ingestion_runs_while_model_is_pending",
             "tests/platform/test_autostart.py::test_hook_started_worker_is_reported",
             "tests/integration/test_health.py::test_running_worker_is_judged_from_its_own_record",
-            "tests/integration/test_health.py::test_worker_startup_and_recovery_checks"
+            "tests/integration/test_health.py::test_worker_startup_and_recovery_checks",
+            "tests/platform/test_claude_smoke.py::test_hook_spawned_worker_survives_session_end_and_host_termination",
+            "tests/platform/test_claude_smoke.py::test_claude_capture_delivery_and_compact"
           ],
           "platforms": [
             "linux",
@@ -1815,7 +1834,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17. Task 17: health composes the hook-started worker's own record (state, spawn independence, heartbeat), the registered hook start (preview's startup route; OS entries full-only) and pending recovery (interrupted backups, journaled restore, delayed ingestion). Live real-host termination is Task 13."
+          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17. Task 17: health composes the hook-started worker's own record (state, spawn independence, heartbeat), the registered hook start (preview's startup route; OS entries full-only) and pending recovery (interrupted backups, journaled restore, delayed ingestion). Live real-host termination is Task 13. Task 13: a worker started by the registered hook start in a real Claude Code 2.1.305 session survives SessionEnd, a SIGKILL of the host's process group and a terminal hangup, and ingests afterwards (Linux; request capture)."
         },
         {
           "variant": "full_only",
@@ -1901,7 +1920,10 @@
             "tests/unit/test_provider_contract.py::test_per_call_host_diagnostic_rechecks_isolation",
             "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
             "tests/integration/test_health.py::test_unknown_host_version_is_conservative",
-            "tests/integration/test_health.py::test_missing_required_prompt_is_not_ready"
+            "tests/integration/test_health.py::test_missing_required_prompt_is_not_ready",
+            "tests/integration/test_claude_adapter.py::test_unknown_host_version_is_conservative",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_305_fixtures_map_like_2_1_301",
+            "tests/integration/test_claude_adapter.py::test_missing_executable_records_unknown_version"
           ],
           "platforms": [
             "linux",
@@ -1909,7 +1931,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review."
         },
         {
           "variant": "full_only",
@@ -2144,7 +2166,17 @@
             "tests/integration/test_installations.py::test_tracked_files_are_exactly_the_portable_ones",
             "tests/platform/test_capture_only_claude.py::test_missing_runtime_is_nonblocking",
             "tests/platform/test_capture_only_claude.py::test_provisioned_runtime_launcher_reaches_the_fast_entry",
-            "tests/integration/test_cli.py::test_agent_channel_cannot_declare_or_forget"
+            "tests/integration/test_cli.py::test_agent_channel_cannot_declare_or_forget",
+            "tests/integration/test_claude_adapter.py::test_local_install_is_default_and_ignored",
+            "tests/integration/test_claude_adapter.py::test_rerun_is_idempotent_and_installs_no_duplicates",
+            "tests/integration/test_claude_adapter.py::test_remove_restores_unrelated_settings_byte_for_byte",
+            "tests/integration/test_claude_adapter.py::test_remove_without_prior_settings_leaves_nothing",
+            "tests/integration/test_claude_adapter.py::test_modified_owned_entries_are_reported_for_reconciliation",
+            "tests/integration/test_claude_adapter.py::test_tracked_settings_are_refused",
+            "tests/integration/test_claude_adapter.py::test_missing_runtime_and_absent_runtime_clone",
+            "tests/integration/test_claude_adapter.py::test_installer_effects_on_every_platform",
+            "tests/integration/test_claude_adapter.py::test_integration_crash_matrix",
+            "tests/integration/test_claude_adapter.py::test_full_only_flags_pass_the_guard_then_answer_unavailable"
           ],
           "platforms": [
             "linux",
@@ -2152,7 +2184,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13. Task 12a: the provisioned project launcher (sh `.recalith/bin/recalith`, `recalith.cmd` on Windows) runs the real guarded CLI in the refusal matrix."
+          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13. Task 12a: the provisioned project launcher (sh `.recalith/bin/recalith`, `recalith.cmd` on Windows) runs the real guarded CLI in the refusal matrix. Task 13: local install by default into the ignored settings location, owned-entry removal with unrelated settings restored byte for byte, modified entries reported, no-runtime installed hook and absent-runtime clone silent, crash matrix; shared (tracked) configuration is full-only."
         },
         {
           "variant": "full_only",
@@ -2368,7 +2400,11 @@
             "tests/platform/test_hook_imports.py::test_hook_delivery_branch_is_stdlib_and_read_only",
             "tests/platform/test_hook_imports.py::test_capture_only_hooks_never_import_the_delivery_branch",
             "tests/platform/test_session_scratch.py::test_lock_timeout_skips_delivery_never_capture",
-            "tests/platform/test_session_scratch.py::test_unsupported_lock_disables_scratch_delivery"
+            "tests/platform/test_session_scratch.py::test_unsupported_lock_disables_scratch_delivery",
+            "tests/integration/test_claude_adapter.py::test_hook_failure_never_denies_tool",
+            "tests/platform/test_claude_smoke.py::test_hook_failure_never_denies_tool_on_the_real_host",
+            "tests/platform/test_hook_imports.py::test_session_start_notice_is_stdlib_bounded_and_once",
+            "tests/integration/test_claude_adapter.py::test_claude_capture_delivery_and_compact"
           ],
           "platforms": [
             "linux",
@@ -2376,7 +2412,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13. Task 12b (delivery side): zero allowance (ordinary context withheld, a caution still charged), an elapsed deadline and a slow filesystem (300 ms fsync) shed delivery with no reservation while capture stays durable; a crashed writer's WAL with present/missing/unreadable SHM and a live writer checkpointing in a loop: deliver or degrade at once, never a checkpoint, recovery write or wait; the session-start lookup without a binding is workspace-only; the delivery import audit (stdlib and recalith.fast only, mode=ro SQLite, no socket/subprocess) and capture-only hooks never import it; native lock timeouts on each OS. The unreadable-SHM variant skips as root and on Windows."
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13. Task 12b (delivery side): zero allowance (ordinary context withheld, a caution still charged), an elapsed deadline and a slow filesystem (300 ms fsync) shed delivery with no reservation while capture stays durable; a crashed writer's WAL with present/missing/unreadable SHM and a live writer checkpointing in a loop: deliver or degrade at once, never a checkpoint, recovery write or wait; the session-start lookup without a binding is workspace-only; the delivery import audit (stdlib and recalith.fast only, mode=ro SQLite, no socket/subprocess) and capture-only hooks never import it; native lock timeouts on each OS. The unreadable-SHM variant skips as root and on Windows. Task 13: the installed hook stays nonblocking under every operational failure (never exit 2, never a decision); the notice path is stdlib-only; installed-command latency with delivery measured (docs/measurements/hook-delivery-latency-installed.json)."
         },
         {
           "variant": "full_only",
@@ -2509,7 +2545,9 @@
           "description": "Claude exact-version coverage; start/prompt required, two optional paths reported",
           "status": "in_progress",
           "tests": [
-            "tests/unit/test_delivery_probe.py"
+            "tests/unit/test_delivery_probe.py",
+            "tests/platform/test_claude_smoke.py::test_engine_delivery_reaches_the_request_on_every_path",
+            "tests/integration/test_claude_adapter.py::test_host_record_is_live_only_from_a_complete_live_observation"
           ],
           "platforms": [
             "linux",
@@ -2517,7 +2555,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1)."
+          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass."
         },
         {
           "variant": "full_only",
@@ -2672,7 +2710,9 @@
           "tests": [
             "tests/integration/test_integrity.py::test_preview_revision_chain_is_reserved_and_unpopulated",
             "tests/integration/test_health.py::test_private_path_report_is_not_isolation",
-            "tests/integration/test_health.py::test_deferred_features_are_explicit_not_passed"
+            "tests/integration/test_health.py::test_deferred_features_are_explicit_not_passed",
+            "tests/integration/test_claude_adapter.py::test_private_paths_are_probed_never_installed",
+            "tests/platform/test_claude_smoke.py::test_private_path_probe_in_the_configured_permission_mode"
           ],
           "platforms": [
             "linux",
@@ -2680,7 +2720,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13."
+          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13. Task 13: private-path probe in the configured permission mode on 2.1.305: probed_limited (file tools and cat/head/cp blocked by probe-only rules, sh -c and interpreters not; hooks unaffected); nothing installed; revision chain unavailable."
         },
         {
           "variant": "full_only",
@@ -2978,7 +3018,8 @@
       "blocking": true,
       "owning_tasks": [
         "4",
-        "12a"
+        "12a",
+        "13"
       ],
       "capability": "operator_guard",
       "in_preview": true,
@@ -3011,7 +3052,11 @@
             "tests/integration/test_cli.py::test_registered_hook_starts_worker_without_operator_cli",
             "tests/integration/test_cli.py::test_terminal_without_controlling_terminal_is_noninteractive",
             "tests/integration/test_cli.py::test_root_refuses_token_owned_by_another_user",
-            "tests/platform/test_hook_imports.py::test_service_and_domain_import_no_cli_or_host_entry"
+            "tests/platform/test_hook_imports.py::test_service_and_domain_import_no_cli_or_host_entry",
+            "tests/platform/test_claude_smoke.py::test_command_deny_rules_and_markers_on_actual_tool_subprocesses",
+            "tests/integration/test_claude_adapter.py::test_marked_callers_are_refused_before_any_effect",
+            "tests/integration/test_claude_adapter.py::test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings",
+            "tests/integration/test_claude_adapter.py::test_probe_host_is_guarded_and_names_the_operator_harness"
           ],
           "platforms": [
             "linux",
@@ -3019,7 +3064,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host)."
+          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host). Task 13: certified deny rules denied all 29 covered commands on the real host; the gap spellings reached the CLI on the actual tool subprocess (CLAUDECODE and CLAUDE_CODE_CHILD_SESSION inherited) and the guard refused them with a captured audit; no admin effect."
         }
       ]
     }

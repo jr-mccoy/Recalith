@@ -6,13 +6,13 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 
 | Item | Initial value |
 |---|---|
-| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path; Task 4 preview slice (persistent worker, registered hook start, leases, budgets; fake provider backend); Task 5 preview slice (fenced transactional application, re-evaluation, compensating undo; schema 2); Task 6 (typed task reduction, versioned bindings, continuity link, connected episodes; schema 3); Task 7 (provider boundary: explicit certified routes, isolated curator launch, request preparers, narrative scheduling; no live route); Task 8 (lineage: persisted root classes with aliases, class-based confirmation; tri-state applicability; schema 4); Task 9 (extraction scheduling and bounded selection, mapping/declaration/strength admission, persisted review batches and assessment admission, failure debounce; schema 5; no live route); Task 10 (FailureRecheck and dependency changes in the ingestion transaction, recheck records, revalidation settling, held supersessions, deterministic planner: due reviews, consolidation groups, intent questions; schema 6; no live route); Task 11 (retrieval and bounded context composition: lexical/structural index with FTS5 detection and token fallback, the §8.2 delivery table through the Task 10 advice gate, exact budgets, pre-serialized views and live-filtered fallback rows, the stdlib hook compiler with a fresh read-only fence and bounded live dependency checks; schema 7; no live route); Task 12a (public service and the guarded `recalith` CLI: every DATA_CONTRACTS §12 form, the operator guard on the original caller, pre-init tokens with verifiers in `local.toml`, guarded `declare`/`correct` on the unchanged review/hold/recheck paths, exit codes 6/7/8; no schema change; no live route); Task 12b (delivery accounting, session overlay and corrections at the fence: the hook's delivery branch with scratch reservations, final fence, local emission, receipts through the spool, worker accounting and outcome links; schema 8; delivery enabled only in controlled test manifests; no live route); Task 15 core preview slice (pin-aware retention: live-owner and owed-work pins over whole evidence chains, day-181 expiry of unpinned payloads with the pin recheck in the expiry transaction, chain-availability admission and strength, honest support-loss downgrades, delivery-metadata and proposal aging, scratch settled before pruning; verified backups with the tombstone ledger and a latest ledger copy, recovery, bounded backup retention, the guarded `backup` form and the verifying first phase of `restore`; schema 9; capsules/transfers full-only, not built); Task 16 preview (intentional forgetting: dependency-aware preview, digest-guarded purge with content-free tombstones and quarantined derivatives, replay suppression, persisted phases with worker recovery, the post-forget backup and deletion of affected backups, reconstruction jobs; suppression-aware restore applying the newer ledger in memory before an atomic swap; schema 10; no live route); Task 17 preview slice (profile-aware, read-only `health(ctx)` composing every capture/inference/admission/recovery/forget/operator-guard/delivery capability, pending privacy maintenance, source conflicts, budgets, retention and the store schema; the `HostCertification` record Task 13 will write; `status`/`doctor` exit 0 only when ready, else 8; startup reporting with the hook start as preview's route; schema 10 unchanged; no live route) |
+| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path; Task 4 preview slice (persistent worker, registered hook start, leases, budgets; fake provider backend); Task 5 preview slice (fenced transactional application, re-evaluation, compensating undo; schema 2); Task 6 (typed task reduction, versioned bindings, continuity link, connected episodes; schema 3); Task 7 (provider boundary: explicit certified routes, isolated curator launch, request preparers, narrative scheduling; no live route); Task 8 (lineage: persisted root classes with aliases, class-based confirmation; tri-state applicability; schema 4); Task 9 (extraction scheduling and bounded selection, mapping/declaration/strength admission, persisted review batches and assessment admission, failure debounce; schema 5; no live route); Task 10 (FailureRecheck and dependency changes in the ingestion transaction, recheck records, revalidation settling, held supersessions, deterministic planner: due reviews, consolidation groups, intent questions; schema 6; no live route); Task 11 (retrieval and bounded context composition: lexical/structural index with FTS5 detection and token fallback, the §8.2 delivery table through the Task 10 advice gate, exact budgets, pre-serialized views and live-filtered fallback rows, the stdlib hook compiler with a fresh read-only fence and bounded live dependency checks; schema 7; no live route); Task 12a (public service and the guarded `recalith` CLI: every DATA_CONTRACTS §12 form, the operator guard on the original caller, pre-init tokens with verifiers in `local.toml`, guarded `declare`/`correct` on the unchanged review/hold/recheck paths, exit codes 6/7/8; no schema change; no live route); Task 12b (delivery accounting, session overlay and corrections at the fence: the hook's delivery branch with scratch reservations, final fence, local emission, receipts through the spool, worker accounting and outcome links; schema 8; delivery enabled only in controlled test manifests; no live route); Task 15 core preview slice (pin-aware retention: live-owner and owed-work pins over whole evidence chains, day-181 expiry of unpinned payloads with the pin recheck in the expiry transaction, chain-availability admission and strength, honest support-loss downgrades, delivery-metadata and proposal aging, scratch settled before pruning; verified backups with the tombstone ledger and a latest ledger copy, recovery, bounded backup retention, the guarded `backup` form and the verifying first phase of `restore`; schema 9; capsules/transfers full-only, not built); Task 16 preview (intentional forgetting: dependency-aware preview, digest-guarded purge with content-free tombstones and quarantined derivatives, replay suppression, persisted phases with worker recovery, the post-forget backup and deletion of affected backups, reconstruction jobs; suppression-aware restore applying the newer ledger in memory before an atomic swap; schema 10; no live route); Task 17 preview slice (profile-aware, read-only `health(ctx)` composing every capture/inference/admission/recovery/forget/operator-guard/delivery capability, pending privacy maintenance, source conflicts, budgets, retention and the store schema; the `HostCertification` record Task 13 will write; `status`/`doctor` exit 0 only when ready, else 8; startup reporting with the hook start as preview's route; schema 10 unchanged; no live route); Task 13 preview slice (`recalith integrate claude` local install/remove with an ownership record and byte-for-byte restoration, the ignored location, 216 certified administrative deny rules, the context_schema 4 manifest enabling only live-certified delivery paths, the stdlib session-start notice, Claude Code 2.1.305 capture certified after fixture review, the engine-mode certification harness writing `.recalith/host.json` (request-capture only under B1), private-path probe `probed_limited`, hook-spawned worker survival on the real host; no live route) |
 | Engine version | `0.1.0.dev0` (development; no release built) |
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (Task 0) and 2.1.302 (Task 7: probe and production adapter, clean and host-marked parents, all isolation dimensions pass); live route + operator attestation not configured (B1); the worker has no backend and model jobs wait with `provider_unavailable` |
-| Live host delivery certification | **Not established.** All four paths request-visible on Claude Code 2.1.301 (Task 0b); live nonce echo not run (no route). Task 12b's delivery branch emits locally only in controlled test manifests; local emission is not certification (Task 13) |
-| Product tests / benchmarks | Deterministic unit/integration/platform suites (see the Task 11 checkpoint); capture-only hook latency, preview worker typed-state latency and hook-side context compile latency measured; real-host fixtures and the installed-host worker test are request-capture mode; no live-certified host or provider |
-| Next task | Task 13: production Claude Code integration (`integrate`, live delivery certification writing `.recalith/host.json`, command deny rules, private-path probe), then Task 18 preview; certified backend still blocked by B1 |
+| Live host delivery certification | **Not established.** Task 13 repeated the protocol through the real engine and installed hooks on Claude Code 2.1.305: all four paths request-visible in request-capture mode (3/3 positives, 3/3 negatives), live echo not run (B1). A request-capture `host.json` certifies no path; `integrate` enables none in a real project |
+| Product tests / benchmarks | Deterministic unit/integration/platform suites (see the Task 13 checkpoint); capture-only hook latency, worker typed-state latency, hook compile latency, local delivery latency and installed-command latency with delivery (warm and cold-cache p95 < 100 ms, p99 < 110 ms on the container) measured; real-host smoke tests in request-capture mode; no live-certified host or provider |
+| Next task | Task 18 preview: the release gate (comparative smoke, three workload days, the release checklist); live certification still blocked by B1 |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -43,7 +43,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 11 | Retrieval and context composition | Retrieval and bounded context composition | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics with recorded proposals; live recall quality, the ACCEPTANCE_TESTS §5/§6 retrieval gates and live delivery blocked by B1; delivery is Tasks 12b/13) |
 | 12a | Public service and CLI contracts | Public service/CLI and strict operator guards | Core behavior retained; no separate deferred slice listed | complete (deterministic transport and guard with simulated callers; the live operator workflow on a real IDE host and host command deny rules are Task 13; live review quality blocked by B1) |
 | 12b | Delivery accounting, session overlay, and corrections | Delivery accounting, overlay, correction/privacy fences | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics; delivery enabled only in controlled test manifests; real delivery certification is Task 13 and blocked by B1; forgetting's scratch/receipt purge is Task 16) |
-| 13 | Claude Code integration | Real Claude capture/delivery; command guard; private-path probe | Installed private-path restrictions where supported; shared mode | not started |
+| 13 | Claude Code integration | Real Claude capture/delivery; command guard; private-path probe | Installed private-path restrictions where supported; shared mode | preview slice complete (live delivery certification blocked by B1: request-capture evidence only; `--shared`, `--autostart` and installed private-path rules pending, full-only) |
 | 14 | Codex, generic JSON, and optional MCP integration | Deferred capability reporting; adapters are full-release work | Codex, generic JSON, optional MCP; Codex inference separately gated | not started |
 | 15 | Evidence retention and portable transfers | Core backup/ledger, live pins, 180-day unpinned retention | Capsules, transfer/export/import, Breadcrumbs importer | preview core slice complete (capsules, export/import, Breadcrumbs importer pending, full-only; derived revision-body aging open, see the Task 15 checkpoint) |
 | 16 | Intentional forgetting and safe restore | Complete forgetting and suppression-aware restore | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics, preview; health composition of pending privacy maintenance and schema migration are Task 17, real-host pause certification Task 13, export/import tombstones full-only with Task 15; A25/A36/A37/A48/A63/A64 in progress, no live variant) |
@@ -521,6 +521,130 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
 - CI: **run 80 (3221231): all five jobs green.** Linux 3.12 passed 980 with 19 skipped (tests 21:31, job 21:38); Linux 3.13 passed 980 with 19 skipped (tests 22:41, job 22:57), plus the requirements-lock check and offline provisioning (1 passed); Linux 3.14 passed 980 with 19 skipped (tests 19:58, job 20:11); macOS 3.13 passed 980 with 19 skipped (tests 23:28, job 23:49). Windows 3.13 passed 930 with 69 skipped (tests 1:07:22, job 1:07:46): run 76's 896/63 plus the 34 new passes and the 6 explicit pending upgrade skips, so the health, upgrade and autostart tests (copied/moved/recreated checkouts through the real hook, msvcrt lock probes, the hook-started worker) ran natively. The CI runners pass one more test than this container (980 vs 979; the root-only token-ownership variant skips here). The schema-snapshot and hook-wire checks passed on every OS; the runners had no orphan processes to clean up.
 - Next action: Task 13 (production Claude Code integration): `integrate claude` installing hooks with autostart and certified delivery paths, the live nonce protocol through the real engine writing `.recalith/host.json`, the certified command deny rules and the private-path probe, re-integration after a rebind, real-host worker survival; then Task 18 preview. B1 still blocks every live check.
 
+### 2026-10-21 — Task 13 (preview slice): Claude Code integration
+
+- **Files.**
+  - New source: `src/recalith/fast/claude.py` (stdlib hook table, host envelope, session-start notice) and `src/recalith/integrations/{__init__,install,claude}.py` (the owned-settings installer with its ownership record, the Claude integration, the host record writer, the read-only integration state health reads).
+  - Edited source: `fast/entry.py` (manifest context_schema 4 `notices`, the notice in the reply and envelope), `fast/claude_capture.py` (2.1.305 certified after review; the envelope delegates to `fast.claude`), `fast/delivery.py` (the notice merged into an emitted envelope), `fast/failpoints.py` (the `INTEGRATION` family), `capture/hooks.py` (context_schema 4, `session_notice`), `operations/health.py` (`host_hooks_modified`, `command_deny_rules_modified|uncertified`, the guard's `host_version_changed`, notice and integration coverage), `service.py` (`integrate_host`, `remove_host_integration`), `cli/mutate.py` (`integrate claude [--remove]`; `--autostart`/`--shared`/other hosts 4; the probe forms 4 naming the harnesses).
+  - Tools: new `tools/probe_engine.py` (the Task 0b harness in engine mode); `tools/probe_delivery.py --engine-project PATH`; `tools/measure_delivery_latency.py --installed-launcher`.
+  - Fixtures: `tests/fixtures/hosts/claude/2.1.305/` (reviewed request-capture capture).
+  - Tests: new `tests/integration/test_claude_adapter.py` (60 tests with parameters) with builders in `tests/integration/claude_scenarios.py`, and `tests/platform/test_claude_smoke.py` (8 tests on the installed host); `tests/platform/test_hook_imports.py` (`recalith.fast.claude` audited; the notice path audit); `tests/integration/test_cli.py` (the integrate forms now real).
+  - Docs: decision 0019; SYSTEM_SPEC §2.2/§6.1/§9.3/§13/§13.1/§14; DATA_CONTRACTS §2.3/§11/§12; IMPLEMENTATION_PLAN Task 13 files; `docs/probes/DELIVERY_PROBE.md` (engine mode); `docs/host-compatibility.json` (2.1.305 in every section, new `delivery_engine`); `docs/measurements/hook-delivery-latency-installed.json`; coverage manifest.
+  - All of the plan's listed files exist; none was unnecessary. `fast/claude.py` holds the Claude host side beyond Task 3b's capture mapping.
+- **Behavior:** see decision 0019.
+  - **Local install.** `recalith integrate claude` (guarded) installs into the untracked `.claude/settings.local.json`: one hook group per captured event running `"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code --event EVENT`, plus 216 administrative deny rules. The exact owned entries and the original settings bytes go into a private ownership record. An owned `/.claude/settings.local.json` ignore line is added and verified with `git check-ignore`. A tracked settings file is refused (6).
+  - **Manifest.** The hook-context manifest (context_schema 4) gets the registered worker start, the route key names, the notice consent, and only the delivery paths a live record of this installation and exact host version certifies: none under B1.
+  - **Removal and rebind.** `--remove` restores the original bytes when nothing else changed, else keeps later user edits. Modified owned entries are reported (8) and left for reconciliation; a re-install waits (3). A re-run after a rebind updates only what moved.
+  - **Certification.** The engine-mode certification runs the nonce protocol through the real hook, compiler, fences, budgets, receipts and worker accounting in disposable fixture installations, plus the host deny, marker, private-path, notice, hook-failure and worker-survival probes. It writes the target's `.recalith/host.json`: `live` only from a complete live run, `request_capture` otherwise, with every delivery path `unavailable`.
+  - **Session-start notice.** One `systemMessage` of at most 512 bytes, from small local files only, at most once per set of limitations.
+- **Wired now versus later.**
+  - **Wired now:** integrate/remove through the CLI and the service; the manifest gating; the notice; health's integration checks; 2.1.305 capture; the certification harness and host record; latency through the installed command.
+  - **Task 18:** the preview gate (smoke comparison, workload days, the release checklist).
+  - **Full release:** `--shared`, `--autostart` (OS startup entries), installed private-path rules, Codex/generic/MCP (Task 14).
+  - **B1:** live nonce certification, hence a `live` host record and enabled delivery in a real project.
+- **Commands** (Linux x86_64 container, 4 vCPU Xeon @ 2.10 GHz, ext4, SQLite 3.45.1, Python 3.13.16, Claude Code CLI **2.1.305** at `/opt/node22/bin/claude`):
+  - **Baseline** before any change: the virtualenv was absent and created with `uv sync --locked --python 3.13`; then `.venv/bin/python -m pytest -q -p no:cacheprovider` → exit 0, 979 passed, 20 skipped in 1501.89 s.
+  - **Fixture capture:** `.venv/bin/python tools/capture_claude_fixtures.py --output <scratch>` → exit 0 in 9.4 s. It observed the same 12 events as 2.1.301 and removed 23 owned hooks, with unrelated settings preserved. The review is in decision 0019; the copy is in `tests/fixtures/hosts/claude/2.1.305/`.
+  - **Tests first,** with the new files against the unchanged tree: `pytest tests/integration/test_claude_adapter.py tests/platform/test_claude_smoke.py` → exit 2, collection errors (`recalith.fast.claude`, `recalith.integrations` and `probe_engine` absent).
+  - **After implementation:**
+    - `tests/integration/test_claude_adapter.py` → 60 passed;
+    - `tests/platform/test_claude_smoke.py` → 8 passed in 81 s (real host, request capture);
+    - `tests/platform/test_hook_imports.py` → 31 passed;
+    - unit plus the adjacent platform and integration suites (`test_hook_imports`, `test_capture_only_claude`, `test_autostart`, `test_cli`, `test_health`, `test_delivery`, `test_installations`) → all passed after the CLI test update.
+  - **First full run** `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` (Python 3.13.16) → exit 1, 1 failed, 1048 passed, 20 skipped in 1617.46 s. `test_worker_lifecycle.py::test_schema_one_manifest_still_captures_without_autostart` downgraded today's manifest to schema 1 without dropping the new schema-4 `notices` key. The test was fixed (it now pops `notices` as it pops `worker`); the validator is unchanged, so an extra key is still refused.
+  - **Then:** `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` (3.13.16) → exit 0, 1049 passed, 20 skipped in 1659.68 s. `UV_PROJECT_ENVIRONMENT=<scratch> uv run --locked --python 3.12 python -m pytest -q -rs -p no:cacheprovider` → exit 0, 1049 passed, 20 skipped in 1830.16 s; the same on **3.14** → exit 0, 1049 passed, 20 skipped in 1903.75 s. Skips are the baseline's 20. The real-host smoke tests ran here (the installed CLI is 2.1.305) and skip on CI runners without the CLI.
+  - **Kill/restart matrix:** `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -p no:cacheprovider tests/integration/test_claude_adapter.py -k crash_matrix` → exit 0, 7 passed in 153.87 s. That is 7 failpoints × 20 reps, each a real child killed with `os._exit` and then restarted (same command, or removal). The reps vary the settings form (host format, compact, tab-indented, absent) and the presence of a `.gitignore`. Judged from effects only: exactly one copy of every owned entry after a restarted install; the pre-install bytes of the settings and `.gitignore`, and no record or manifest, after removal.
+  - **Latency:** `python tools/measure_delivery_latency.py --installed-launcher --trials 500 --corpus 10000 --output <scratch>` → exit 0 (about 4.5 min); copied to `docs/measurements/hook-delivery-latency-installed.json`.
+  - **Checks:** `tools/generate_schemas.py --check` → exit 0 (no contract change); `tools/generate_hook_wire.py --check` → exit 0; `uvx ruff@0.14.0 check --select F,E9,B` on every new and touched Python file → clean (the pre-existing `probe_delivery.py` F401 was fixed too). `requirements.lock`/`uv.lock` are unchanged.
+- **Latency gate (A58, ACCEPTANCE_TESTS §7), measured.**
+  - **Method:** each trial is `sh -c COMMAND` with exactly the command `integrate` installed, run as Claude Code runs a hook (`CLAUDE_PROJECT_DIR`, `CLAUDECODE`). That covers the POSIX launcher, the provisioned runtime, the fresh `python -I` fast entry, capture, compile, session lock, reservation, fresh fence, stdout, receipt spool and mark.
+  - **Payloads and store:** real 2.1.301 payload variants; 10,000 synthetic corpus claim heads plus an admitted lesson and fact; a controlled manifest with every path enabled.
+  - **Hardware:** the container above; OS page cache not dropped.
+
+  | Regime (n=500) | spawn-to-exit p50 / p95 / p99 / max ms | entry-to-exit p95 ms | delivery | degraded |
+  |---|---|---|---|---|
+  | warm views, pre-action caution | 75.9 / 98.6 / 108.6 / 195.8 | 28.9 | 500 emitted | 0 |
+  | warm views, prompt context | 74.2 / 94.2 / 106.8 / 111.2 | 28.2 | 500 emitted | 0 |
+  | stale views, ≤32 fallback rows (cold cache) | 75.5 / 96.7 / 108.1 / 428.4 | 29.5 | 500 emitted | 0 |
+  | same session again (suppressed) | 66.5 / 85.9 / 90.9 / 97.8 | 18.7 | 1 emitted, 499 suppressed | 0 |
+
+  Both gates hold here (p95 ≤ 300 ms, p99 ≤ 750 ms; healthy eligible delivery 100 %, degradation 0 %). Native macOS/Windows host execution was not measured, because no host is available there. The first-launch-after-provisioning population is the Task 3b measurement.
+- **Verification of the tests themselves.** 19 deliberate mutations, each applied alone, run against the new tests and reverted with a digest check (script in the session scratchpad).
+  - **First round, 15/19 caught.** One of the 15 was caught **only by the kill/restart matrix**: the `installing` record saved after the settings write. A crash then leaves owned entries that a removal cannot find (`test_integration_crash_matrix[integrate.after_record]`).
+  - **Four slipped:**
+    - "a request-capture record enables delivery": the test's record certified nothing;
+    - "the notice prints on compaction": the marker masked it;
+    - "health ignores modified owned hooks": only the delivery-side code was asserted;
+    - "reconcile no longer blocks a re-install": equivalent, because install already refuses while an edited entry remains.
+  - **Fixes:** the tests were strengthened (a request-capture record that says `certified`, a compaction start before the first notice, the capture capability's `host_hooks_modified`, one owned copy after a refused re-install), and the redundant reconcile check was removed.
+  - **Second round:** the three non-equivalent mutations are all caught. Overall 18/18 effective mutations caught, one of them only by the matrix.
+- **Acceptance** (all `in_progress`, none passed; full-only variants pending):
+  - **A03** preview: the rebind workflow through the installed hook.
+  - **A08:** the transcript supplement and subagent transcripts through installed hooks on the real host.
+  - **A27/A61** preview: four paths `request_visible` through the real engine; live not run, B1.
+  - **A28:** curator-marked installed hook.
+  - **A29:** B1 visible after integration.
+  - **A33:** a path with spaces and Unicode.
+  - **A45** preview: a hook-spawned worker survives SessionEnd, a kill of the host's process group and a terminal hangup; a killed worker restarts on the next session.
+  - **A47** preview: unknown version conservative; 2.1.305 certified only after review.
+  - **A53** preview: local install/remove, byte-for-byte preservation, absent-runtime clone, crash matrix.
+  - **A58** preview: never blocks; latency with delivery measured; notice import audit.
+  - **A65** preview: `probed_limited`, nothing installed.
+  - **A73:** host-denied covered spellings; the guard refuses gap spellings on the actual tool subprocess, with an audit.
+  - **Full-only, pending:** A27/A47/A61 Codex, A53 shared configuration, A65 installed rules, A45 session/IPC.
+- **Real versus synthetic inputs.**
+  - **Real:** the installed Claude Code 2.1.305 CLI in disposable owned fixture workspaces (private `HOME`, `--setting-sources local`); real 2.1.301/2.1.305 payloads; the real installer, launcher, provisioned runtime, hook entry, compiler, fences, budgets, scratch, receipts, worker and ingestion; the guarded CLI as a real child process with an explicitly provisioned fixture token; host denials, tool subprocess markers and process survival as the host produced them.
+  - **Synthetic, labeled at each use:**
+    - a `claude` executable that only answers `--version`, in the deterministic tests;
+    - `HostCertification` records claiming a live observation (`claude_scenarios.live_record`) and a certified provider route (`health_scenarios`), for the readiness tests;
+    - the nonce memories, admitted with recorded proposals;
+    - per-trial controlled manifests;
+    - the loopback scripted model, which chooses tool calls and never echoes;
+    - a maintenance marker, a corrupted store page, a blocked spool, a broken interpreter;
+    - a shared provisioned runtime linked into each fixture.
+- **Live versus unavailable (B1 still open; this session's credentials and proxy were never used as a route).** The ignored config was recreated from the tracked example: model null, `not_configured` route, unchecked attestation, request-capture and live modes, no credentials, expected version 2.1.305.
+  - **Provider probe:** `python tools/probe_provider.py --config probe-private/local-config.json --output <scratch>/hc.json` → exit 4 (`unavailable`; blocking `auth_route`, `live_launch`, `operator_attestation`, `schema_output`; 19.0 s).
+  - **Runtime check:** `python tools/check_provider_runtime.py …` → exit 4 (clean and host-marked isolation pass; `route_uncertified`, `selected_auth_missing`; 2.4 s).
+  - **Stub delivery probe:** `python tools/probe_delivery.py --config … --output <scratch>/hc.json` → exit 4 (`required_path_unavailable`, live not run; 17.5 s).
+  - **Engine-mode probe:** `python tools/probe_delivery.py --config … --engine-project <scratch>/target --output <scratch>/hc.json` → exit 4 in 81.3 s. Request capture showed all four paths `request_visible`, command rules `denied_all_covered` and private paths `probed_limited`; live was `not_run` (`no_auth_route_configured`); the target's `host.json` is `mode: request_capture` with every delivery path `unavailable`.
+  - **The target's `recalith status`:** exit 8. Inference is `unavailable` (`provider_not_configured`), start/prompt delivery `unavailable` (`delivery_request_capture_only`), the operator guard healthy, readiness `degraded`.
+  - **Report:** the host version changed (2.1.304 → 2.1.305) in every section, so the reviewed scratch report replaced `docs/host-compatibility.json`. Every existing section is extended, and `delivery_engine` is added.
+  - **Unavailable:** live model-visible delivery on every path, live recall and review, every live certification; native macOS/Windows host execution and termination.
+- **Review focus recheck** (Task 13's part):
+  1. **The same source event twice across a crash.** Installed hooks capture through the unchanged spool and dedup paths. The integration's own persisted steps converge under the kill/restart matrix, with no duplicate owned entry. A restarted hook-spawned worker drains the backlog once.
+  2. **Quoted or repeated through agent memory.** Delivery receipts and nonce trials add no support. The certification harness's memories are recorded fixtures. A request-capture observation never certifies a path, and a delivery is not evidence.
+  3. **A correction or forget before the final delivery fence.** The installed hooks run the unchanged Task 12b/16 fence and maintenance pause. The notice names a paused delivery, and health keeps `maintenance_in_progress`.
+  4. **Paths.** The hook command is project-relative. A move keeps the hook off until the operator rebinds and integration re-runs. A clone carries no settings. A copied or foreign `cwd` still captures nothing. Paths with spaces and Unicode work. The private-path probe never installs rules in the project.
+  5. **A provider or host version change.** Delivery paths are enabled only for the exact certified version. A version change after integration reports `host_version_changed` in health. An uncertified version is conservative: capture only, no delivery, no notice. 2.1.305 was certified only after its fixture review; fixtures were not re-pinned.
+- **Gaps and limits:**
+  - **B1** blocks live certification. No real project has delivery enabled.
+  - **Platforms:** the hook command is POSIX. Native Windows and macOS host execution and their termination behavior were not observed; the deterministic installer tests run on every OS in CI.
+  - **Session start:** with no task binding, a fresh session start carries only open intent questions (decision 0013), so the start trials use a question.
+  - **Deny rules** are friction, not a boundary: global options, shell wrappers and other interpreters evade them, and the CLI guard is the backstop.
+  - **Private-path protection** on 2.1.305 is limited (`sh -c`, interpreters); preview installs none.
+  - **The notice** is shown to the user by the host; that it appears in an interactive terminal is inferred from the host's `systemMessage` contract and its stream event, not observed in a TTY here.
+  - **Still open from Task 15:** age pruning of derived revision bodies.
+- **CI run 84 (9b74d5c): four of five jobs green; Windows failed one test.**
+  - Linux 3.12: 1042 passed, 27 skipped (tests 1380.48 s).
+  - Linux 3.13: 1042 passed, 27 skipped (tests 1326.33 s), plus the requirements-lock check and offline provisioning (1 passed).
+  - Linux 3.14: 1042 passed, 27 skipped (tests 1318.17 s).
+  - macOS 3.13: 1042 passed, 27 skipped (tests 1469.16 s).
+  - The runners skip the 8 real-host smoke tests (no Claude CLI) and run the root-only token variant this container skips.
+  - Windows 3.13: 1 failed, 975 passed, 93 skipped (tests 3116.46 s). `test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings` built its expected absolute launcher spelling with `str(root)` (backslashes on Windows), while the installer deliberately writes the forward-slash `root.as_posix()` form on every OS. The test was fixed, not the code: `PureWindowsPath(...)` shows the two forms differ only on Windows. The POSIX-only installed-command tests skip there by design. The installer, removal, guard, health, matrix and version-review tests ran natively.
+- **CI run 85 (17f5ea8): Windows failed the same test again; this time the cause was a real defect.**
+  - **Failure:** Windows 3.13: 1 failed, 975 passed, 93 skipped (tests 3125.92 s). The other jobs passed.
+  - **Root cause:** the CLI wrote its `--json` stdout and its stderr diagnostics in the stream's text encoding. A Windows pipe defaults to the console code page, so the `é` of the test project's path left the child as `0xE9` and read back as U+FFFD. A character outside the code page raises `UnicodeEncodeError`.
+  - **Reproduced locally** with `TextIOWrapper` streams in `cp1252` and `ascii`: `test_cli.py::test_machine_output_is_utf8_whatever_the_console_encoding` failed on both before the fix.
+  - **Fix:** `cli/main.py` writes UTF-8 bytes to the stream's buffer for both streams. The forward-slash spelling fix in the deny-rule test stays: it was needed too.
+  - **Checks after the fix:** the unit, CLI, adapter and health suites → 504 passed in 462.91 s.
+- **CI run 86 (d436a1c): all five jobs green.** The 3 extra tests per job are the parametrized UTF-8 regression test.
+  - Linux 3.12: 1045 passed, 27 skipped (tests 1366.21 s).
+  - Linux 3.13: 1045 passed, 27 skipped (tests 1282.30 s), plus the requirements-lock check and offline provisioning (1 passed, 3.93 s).
+  - Linux 3.14: 1045 passed, 27 skipped (tests 1146.38 s).
+  - macOS 3.13: 1045 passed, 27 skipped (tests 1611.80 s).
+  - Windows 3.13: 979 passed, 93 skipped (tests 3125.07 s).
+- Next action: Task 18 preview (the release gate: 12-scenario comparative smoke against a clean no-memory baseline, three default-budget workload days, the profile-required deterministic/failure tests, native-platform hook latency/usefulness and the release checklist). B1 still blocks every live check.
+
 Add each later checkpoint with:
 
 - Date and commit when available; completed task slice and changed files.
@@ -559,10 +683,44 @@ Status after Task 16 (2026-10-20): unchanged; the probe and the production adapt
 
 Status after Task 17 (2026-10-20): unchanged; the probe and the production adapter were re-run in request-capture mode against the same Claude Code 2.1.304 executable (isolation passes; route unavailable; report unchanged). Health now reports B1 explicitly (inference `provider_not_configured`/`request_capture_only`, readiness `degraded`); live delivery certification (`.recalith/host.json`) is Task 13.
 
+Status after Task 13 (2026-10-21): unchanged. The installed CLI is now Claude Code 2.1.305 (new executable digest). The provider probe, the runtime check and the stub delivery probe were re-run against it in request-capture mode (isolation passes; route unavailable). The engine-mode delivery probe (`tools/probe_delivery.py --engine-project`) shows all four paths request-visible through the real engine, with live `not_run`, and writes only a `request_capture` host record. Health reports B1 as inference `provider_not_configured` and delivery `delivery_request_capture_only`, with readiness `degraded`. Because the executable changed, certification must use the executable installed then.
+
+**Operator commands to complete live certification** (an ordinary OS terminal outside any agent or IDE session; no marker such as `CLAUDECODE` in its environment):
+
+1. `cp tools/probe_config.example.json probe-private/local-config.json`, then edit it:
+   - `executable`, and `expected_version` set to the installed `claude --version`;
+   - the explicit `model` for both sections;
+   - an API-key `auth_route` naming only the key's environment variable;
+   - `operator_attestation` set to `checked_eligible` with `basis`/`checked_on`, only after checking the account's terms for unattended background use.
+2. `export ANTHROPIC_API_KEY=...` (or the selected key name) in that terminal only.
+3. `python tools/probe_provider.py --config probe-private/local-config.json --output docs/host-compatibility.json --route-out /path/to/project`. Expect exit 0; this writes the project's certified `.recalith/provider.json`.
+4. `python tools/check_provider_runtime.py --config probe-private/local-config.json --output docs/host-compatibility.json`. Expect exit 0.
+5. In the project: `.recalith/bin/recalith integrate claude`. This is local and needs the terminal, or `--operator-token-file PATH`.
+6. `python tools/probe_delivery.py --config probe-private/local-config.json --engine-project /path/to/project --output docs/host-compatibility.json`. Exit 0 requires live start/prompt healthy. It writes the project's `live` `.recalith/host.json` and re-runs the integration so exactly the certified paths are enabled.
+7. `.recalith/bin/recalith status`. It exits 0 only when every required capability is healthy.
+
 Proceeding independently: Task 1 contracts and the deterministic kernel (Tasks 2–6, 8) do not depend on the live route. Autonomous extraction (Task 9 onward with a real provider) and any readiness claim stay blocked until B1 clears.
 
 For each further blocker, record the task, observed evidence, minimal missing action or access, and what can proceed independently. Keep secrets and raw private data out of this file. Place lasting policy/interface decisions in `docs/decisions/` and update the owning normative document.
 
 ## Next-session handoff
 
-Next action: Task 13 (production Claude Code integration, preview slice): `integrate claude` (local install, owned-entry removal, worker autostart and the certified delivery paths in the hook manifest), the live nonce protocol through the real engine for all four paths (start/prompt required) writing the installation's `.recalith/host.json` (`HostCertification`, decision 0018) that health reads, certified administrative command deny rules, the private-path probe/report, re-integration after a rebind, and real-host worker survival around SessionEnd; then Task 18 preview. Live certification still needs B1's operator route: run `python tools/probe_provider.py --config probe-private/local-config.json --output docs/host-compatibility.json --route-out PROJECT` from an ordinary terminal against the installed executable (2.1.304), then `python tools/check_provider_runtime.py ...` and the delivery probe, and record the live results here. Full-only work (Task 5 revision chain, `storage/integrity.py`, A65 full; Task 15 capsules and transfers; Task 17 upgrade/transition/rollback, OS startup entries, chain diagnostics) stays pending. Open from Task 15: age pruning of derived revision bodies.
+Next action: Task 18 preview, the release gate:
+
+- the 12-scenario comparative smoke against a clean no-memory baseline;
+- three default-budget workload days;
+- the profile-required deterministic and failure tests;
+- native-platform hook latency and usefulness;
+- the release checklist (ACCEPTANCE_TESTS §6.1, §8).
+
+Task 13's preview slice is complete. Its live certification needs B1's operator route: run the seven operator commands under B1 (Blockers and decisions) from an ordinary terminal against the installed executable (2.1.305), and record the live results here. Re-run `integrate claude` after any host upgrade; a new host version needs a fixture capture and review before it is certified (decision 0019).
+
+Full-only work stays pending:
+
+- Task 5: the revision chain, `storage/integrity.py`, A65 full;
+- Task 13: `--shared`, `--autostart`, installed private-path rules;
+- Task 14: Codex, generic JSON and MCP;
+- Task 15: capsules and transfers;
+- Task 17: upgrade, transition and rollback, OS startup entries, chain diagnostics.
+
+Still open from Task 15: age pruning of derived revision bodies.

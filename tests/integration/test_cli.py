@@ -178,9 +178,9 @@ def _forms(tmp_path: Path) -> dict[str, list[str]]:
         "restore": ["restore", str(some), "--expected-digest", zero],
         "upgrade": ["upgrade", "--wheel", str(some), "--expected-digest", zero],
         "upgrade_full": ["upgrade", "--wheel", str(some), "--expected-digest", zero, "--release-profile", "full"],
-        "integrate": ["integrate", "claude_code", "--autostart"],
-        "integrate_shared": ["integrate", "claude_code", "--shared"],
-        "integrate_remove": ["integrate", "claude_code", "--remove"],
+        "integrate": ["integrate", "claude", "--autostart"],
+        "integrate_shared": ["integrate", "claude", "--shared"],
+        "integrate_remove": ["integrate", "claude", "--remove"],
         "workspace_attach": ["workspace", "attach", str(tmp_path)],
         "workspace_rebind": ["workspace", "rebind"],
         "workspace_discard_copy": ["workspace", "discard-copy"],
@@ -764,7 +764,7 @@ def test_jobs_retry_and_unavailable_forms(root, tmp_path, tok):
     again = cs.cli(root, "--json", "--operator-token-file", str(tok), "jobs", "retry", job_id)
     assert again.code == 6  # only a failed job is retried
     forms = _forms(tmp_path)
-    for name in ("export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
+    for name in ("export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_shared", "workspace_attach", "project_fork", "doctor_probe_host"):  # integrate --autostart/--shared are full-only (decision 0019)
         result = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms[name])
         assert result.code == 4 and result.obj["error"] == "capability_unavailable", (name, result.stdout)
         assert "Task" in result.obj["message"] or "full release" in result.obj["message"]
@@ -817,3 +817,28 @@ def test_scope_paths_cannot_escape_the_workspace(root, tmp_path, tok):
     with db.open_store(cs.context(root), readonly=True) as store, store.read() as view:
         (body,) = [json.loads(r[0]) for r in view.execute("SELECT body FROM claim_revisions").fetchall()]
     assert body["scope"]["paths"] == ["src/ünïcødé dir/"]
+
+
+@pytest.mark.parametrize("encoding", ["cp1252", "ascii", "utf-8"])
+def test_machine_output_is_utf8_whatever_the_console_encoding(encoding):
+    """JSON stdout and diagnostics are UTF-8 even where the stream's text encoding is a Windows code page (CI run 85).
+
+    Windows pipes default to the console code page: a project path with ``é``
+    was written as ``0xE9`` and a character outside the code page raised
+    ``UnicodeEncodeError``. Real ``TextIOWrapper`` streams with that encoding stand in for the console.
+    """
+    import io
+
+    from recalith.cli.main import Output
+
+    out_buf, err_buf = io.BytesIO(), io.BytesIO()
+    out, err = io.TextIOWrapper(out_buf, encoding=encoding), io.TextIOWrapper(err_buf, encoding=encoding)
+    o = Output(as_json=True, command="integrate", stdout=out, stderr=err)
+    assert o.success({"spelling": "C:/Users/proj with space é/.recalith/bin/recalith", "arrow": "180\u219230"}) == 0
+    assert o.failure("invalid_schema", "the path proj é \u2192 is invalid", 2) == 2
+    out.flush()
+    err.flush()
+    lines = out_buf.getvalue().decode("utf-8").splitlines()
+    assert json.loads(lines[0])["result"]["spelling"].endswith("proj with space é/.recalith/bin/recalith")
+    assert json.loads(lines[1])["message"] == "the path proj é \u2192 is invalid"
+    assert "proj é \u2192" in err_buf.getvalue().decode("utf-8")

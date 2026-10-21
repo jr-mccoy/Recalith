@@ -10,9 +10,11 @@ process it may launch is this installation's worker, through the registered
 internal start path (:func:`recalith.fast.process_env.ensure_worker`), after
 capture, only when the manifest enables autostart and no worker holds the
 installation lock, and without waiting for it. It always exits 0. Its stdout
-is empty, or exactly one host context envelope (additional context only:
-never a permission decision, a block or a rewritten tool call) when the
-manifest enables delivery for this path (Task 12b; Task 13 certifies paths).
+is empty, or exactly one host envelope: additional context only (never a
+permission decision, a block or a rewritten tool call) when the manifest
+enables delivery for this path (Task 12b; Task 13 enables only certified
+paths), and/or the brief session-start ``systemMessage`` notice of SYSTEM_SPEC
+§14 (``recalith.fast.claude.session_notice``; Task 13).
 Operational failures become content-free gap records in ``spool/gaps/`` and
 reply degradations, never a blocked or failed host step.
 
@@ -36,7 +38,7 @@ import os
 import sys
 import time
 
-from recalith.fast import claude_capture, failpoints, process_env, redact, session, spool
+from recalith.fast import claude as fast_claude, claude_capture, failpoints, process_env, redact, session, spool
 from recalith.fast.normalize import normalize_raw
 from recalith.fast.wire import LIMITS, WireError, canonical_json, derived_id, digest_of, is_id, is_valid, new_id, utc_now, validate
 
@@ -60,11 +62,14 @@ PRUNE_MIN_REMAINING = 0.100
 # 3 adds each adapter's ``delivery_paths`` (decision 0015): the purposes whose
 # injection is installed; delivery stays off unless ``delivery_enabled`` and a
 # path are both set, and only for a certified host version. Schemas 1 and 2
-# still capture, with delivery off.
+# still capture, with delivery off. context_schema 4 (Task 13, decision 0019) adds
+# ``notices = {session_start: bool}``: the integration's consent for the brief
+# session-start health notice (SYSTEM_SPEC §14); older schemas have none.
 
 MANIFEST_V1_KEYS = frozenset({"context_schema", "project_id", "installation_id", "workspace_id", "root", "workspace_root", "root_identity", "workspace_root_identity", "policy_revision", "adapters"})
 MANIFEST_V2_KEYS = MANIFEST_V1_KEYS | {"worker"}
 MANIFEST_V3_KEYS = MANIFEST_V2_KEYS
+MANIFEST_V4_KEYS = MANIFEST_V3_KEYS | {"notices"}
 
 
 def _identity_of(path: str) -> str:
@@ -115,13 +120,17 @@ def load_context(root: str, adapter_id: str) -> dict:
         "delivery_reason": None if delivery_enabled else delivery_reason,
         "worker_autostart": worker["autostart"],
         "worker_route_keys": list(worker["route_keys"]),
+        "session_notice": bool((raw.get("notices") or {}).get("session_start")),
+        "host_certified": adapter["host_version"] in claude_capture.CERTIFIED_VERSIONS,
     }
 
 
 def valid_context_manifest(raw) -> bool:
     if not isinstance(raw, dict) or type(raw.get("context_schema")) is not int:
         return False
-    if (raw["context_schema"], set(raw)) not in ((1, MANIFEST_V1_KEYS), (2, MANIFEST_V2_KEYS), (3, MANIFEST_V3_KEYS)):
+    if (raw["context_schema"], set(raw)) not in ((1, MANIFEST_V1_KEYS), (2, MANIFEST_V2_KEYS), (3, MANIFEST_V3_KEYS), (4, MANIFEST_V4_KEYS)):
+        return False
+    if raw["context_schema"] == 4 and not (isinstance(raw["notices"], dict) and set(raw["notices"]) == {"session_start"} and type(raw["notices"]["session_start"]) is bool):
         return False
     if type(raw["policy_revision"]) is not int or raw["policy_revision"] < 1:
         return False
@@ -146,10 +155,10 @@ def valid_context_manifest(raw) -> bool:
 
 
 def valid_adapter_entry(entry, schema: int) -> bool:
-    """Schemas 1–2: ``{host_version, delivery_enabled: false}``; schema 3 adds ``delivery_paths`` (empty unless enabled)."""
+    """Schemas 1–2: ``{host_version, delivery_enabled: false}``; schemas 3–4 add ``delivery_paths`` (empty unless enabled)."""
     if not isinstance(entry, dict):
         return False
-    keys = {"host_version", "delivery_enabled"} | ({"delivery_paths"} if schema == 3 else set())
+    keys = {"host_version", "delivery_enabled"} | ({"delivery_paths"} if schema >= 3 else set())
     if set(entry) != keys or type(entry["delivery_enabled"]) is not bool:
         return False
     if not (entry["host_version"] is None or (isinstance(entry["host_version"], str) and 1 <= len(entry["host_version"]) <= 64)):
@@ -327,7 +336,7 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None, em
     delivered.
     """
     delivery = {"state": "none"} if ctx.get("delivery_enabled") else {"state": "unavailable", "reason": ctx.get("delivery_reason") or "delivery_not_enabled"}
-    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": delivery, "degradations": [], "worker": None}
+    reply: dict = {"receipt": None, "host_output": None, "delivery_attempt_id": None, "emitted_receipt": None, "delivery": delivery, "degradations": [], "worker": None, "notice": None}
     for gap in request.get("coverage_gaps", []):
         _gap(ctx, gap["code"], gap["reason"])
         if gap["code"] not in reply["degradations"]:
@@ -340,8 +349,13 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None, em
         reply["receipt"] = receipt
         reply["degradations"].extend(receipt["coverage"].get("degraded", []))
         accepted = receipt["status"] == "accepted"
+    notice = fast_claude.session_notice(ctx, request, deadline=deadline) if accepted and emit is not None else None
+    if notice:
+        request["notice"] = notice
     if ctx.get("delivery_enabled") and request.get("events"):
         _delivery_branch(ctx, request, reply, accepted=accepted, deadline=deadline, emit=emit)
+    if notice:
+        _emit_notice(request, reply, notice, emit)
     # Capture (and delivery) have finished: only now may the worker start.
     _start_worker(ctx, reply, deadline=deadline, inherited=inherited)
     if request.get("events"):
@@ -371,6 +385,24 @@ def handle_hook(ctx: dict, request: dict, *, deadline: float, inherited=None, em
         elif role == "session_start" and deadline - time.monotonic() > PRUNE_MIN_REMAINING:
             session.prune_abandoned(ctx["root"])
     return reply
+
+
+def _emit_notice(request: dict, reply: dict, notice: str, emit) -> None:
+    """The session-start notice: inside the delivery envelope when one was emitted, else a notice-only envelope."""
+    if reply.get("host_output") and reply["host_output"].get("systemMessage") == notice:
+        reply["notice"] = "emitted"
+        return
+    if reply.get("delivery", {}).get("state") in ("emitted", "uncertain"):
+        reply["notice"] = "skipped"  # stdout already carries one envelope; the marker keeps it from repeating
+        return
+    output = fast_claude.host_output(request.get("host_event") or "SessionStart", notice=notice)
+    try:
+        emit(fast_claude.encode(output))
+    except Exception:  # noqa: BLE001 - a notice never fails the hook
+        reply["notice"] = "emission_failed"
+        return
+    reply["host_output"] = output
+    reply["notice"] = "emitted"
 
 
 def _delivery_branch(ctx: dict, request: dict, reply: dict, *, accepted: bool, deadline: float, emit) -> None:

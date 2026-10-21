@@ -95,7 +95,7 @@ def _assert_clean(report: dict, *, allowed: tuple = ()) -> None:
     assert not [m for m in report["baseline"] if m.split(".")[0] in ("pydantic", "packaging", "sqlite3")]
 
 
-@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.process_env", "recalith.fast.entry"])
+@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.claude", "recalith.fast.process_env", "recalith.fast.entry"])
 def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     report = _run_probe(["package", module])
     # The read-only snapshot modules (and the delivery branch on them) may import sqlite3; nothing else may.
@@ -236,6 +236,31 @@ def test_hook_delivery_branch_is_stdlib_and_read_only(tmp_path):
     assert len(emitted) >= 3 and ids["lesson"] in "".join(emitted)  # prompt/pre-action/restoration reached stdout
     for out in emitted:
         assert set(json.loads(out)) == {"hookSpecificOutput"}
+
+
+def test_session_start_notice_is_stdlib_bounded_and_once(tmp_path):
+    """The session-start notice (SYSTEM_SPEC §14; Task 13) reads small local files only: no SQLite, no Pydantic, no health layer.
+
+    A controlled manifest with the notice consent (``integrate`` sets it) and
+    delivery off; no provider route: the first session start prints one
+    ``systemMessage`` envelope, the second (same limitations) prints nothing.
+    """
+    from recalith.capture.hooks import write_hook_context
+
+    replay = cf.Replay(tmp_path)
+    write_hook_context(replay.ctx, adapter_id="claude_code", host_version=cf.VERSION, session_notice=True)
+    start = cf.records("lifecycle")[0]
+    case = {"argv": ["--project", str(replay.root), "claude_code", "--event", start["event"]], "stdin": replay.prepare(start).decode("utf-8")}
+    env = cf.child_env(RECALITH_TEST_AUDIT=json.dumps(AUDIT_EVENTS))
+    proc = subprocess.run([sys.executable, "-I", "-c", PROBE, "deliver"], input=json.dumps([case, case]), capture_output=True, text=True, encoding="utf-8", env=env, timeout=120, check=False)
+    assert proc.returncode == 0, proc.stderr[-3000:]
+    lines = proc.stdout.strip().splitlines()
+    outputs, report = json.loads(lines[-2])["outputs"], json.loads(lines[-1])
+    _assert_clean(report)
+    assert not {"recalith.fast.delivery", "recalith.fast.cache", "sqlite3", "recalith.operations"} & set(report["new"])
+    first = json.loads(outputs[0])
+    assert set(first) == {"systemMessage"} and len(first["systemMessage"].encode("utf-8")) <= 512 and "inference" in first["systemMessage"]
+    assert outputs[1] == ""
 
 
 def test_capture_only_hooks_never_import_the_delivery_branch(tmp_path):

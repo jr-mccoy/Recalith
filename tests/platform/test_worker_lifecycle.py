@@ -491,6 +491,7 @@ def test_schema_one_manifest_still_captures_without_autostart(tmp_path):
     path = replayer.root / entry.HOOK_CONTEXT_FILE
     manifest = json.loads(path.read_text(encoding="utf-8"))
     manifest.pop("worker")
+    manifest.pop("notices")  # context_schema 4 (decision 0019) added it; schemas 1–3 never had it
     manifest["context_schema"] = 1
     for adapter in manifest["adapters"].values():
         adapter.pop("delivery_paths")  # context_schema 3 (decision 0015) added it; schemas 1–2 never had it

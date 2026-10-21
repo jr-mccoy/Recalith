@@ -263,6 +263,10 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     adapter = (manifest or {}).get("adapters", {}).get("claude_code") if manifest_state in ("ok", "relocated") else None
     host_version = adapter.get("host_version") if adapter else None
     host_state, host = load_host_certification(root, ctx.installation_id)
+    from recalith.integrations import claude as integration
+
+    installed = integration.installed_state(root)  # None: no `integrate` ran here (a tooling/test manifest)
+    broken_hooks = sorted(e for e, st in ((installed or {}).get("hooks") or {}).items() if st != "intact")
     worker = autostart.worker_report(ctx, now=now)
     marker_present = os.path.exists(session.maintenance_path(root))
     gaps: list[str] = []
@@ -283,7 +287,11 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
         "manifest": manifest_state, "host_id": "claude_code", "host_version": host_version, "capture_certified_versions": sorted(claude_capture.CERTIFIED_VERSIONS),
         "transcript_parser": claude_capture.TRANSCRIPT_PARSER, "ready_segments": len(ready), "oldest_ready_age_seconds": oldest_age, "gaps": capture_gaps,
         "quarantined_segments": quarantined, "unresolved_conflicts": facts.get("conflict_count"),
+        "integration": None if installed is None else {"state": installed.get("state"), "hooks": installed.get("hooks"), "deny_rules": installed.get("deny_rules")},
+        "session_notice": bool(((manifest or {}).get("notices") or {}).get("session_start")),
     }
+    if installed is not None and (broken_hooks or installed.get("state") != "installed"):
+        cap.flag("degraded", "host_hooks_modified")  # an owned hook entry was edited or removed: some events are not captured
     if manifest_state == "absent":
         cap.flag("unavailable", "host_not_integrated")
     elif manifest_state == "invalid":
@@ -333,6 +341,8 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
             cap.flag("unavailable", "host_version_uncertified")  # the hook keeps delivery off for an uncertified version
         if manifest_state == "ok" and path not in delivery_paths:
             cap.flag("unavailable", "delivery_path_not_installed")
+        if installed is not None and integration.PATH_EVENTS[path] in broken_hooks:
+            cap.flag("unavailable", "host_hooks_modified")
         if not current:
             cap.flag("degraded", SCHEMA_REASON[schema_state])
         if marker_present:
@@ -459,14 +469,21 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     private = host.private_paths if host is not None else "not_run"
     cap.coverage = {
         "marker_guard": "active", "markers": sorted(GUARD_MARKERS),  # the guard's refusal is exercised by A73 through the real CLI
-        "command_deny_rules": "installed" if rules == "installed" else "not_installed",
+        "command_deny_rules": "installed" if rules == "installed" and (installed is None or installed.get("deny_rules") == "intact") else "not_installed",
+        "owned_deny_rules": None if installed is None else installed.get("deny_rules"),
         "private_paths": {"state": private, "installed_rules": "unavailable_in_preview", "os_level_isolation": False},
         "scope": "same_user_friction",  # markers, terminals, tokens and rules are not an OS security boundary
     }
     if host_state == "invalid":
         cap.flag("degraded", "host_certification_invalid")
-    if rules != "installed":
+    if installed is not None and installed.get("deny_rules") in ("modified", "unknown"):
+        cap.flag("degraded", "command_deny_rules_modified")
+    elif installed is not None and installed.get("deny_rules") == "not_installed":
         cap.flag("degraded", "command_deny_rules_not_installed")
+    elif rules != "installed":
+        cap.flag("degraded", "command_deny_rules_uncertified" if installed is not None else "command_deny_rules_not_installed")
+    if host is not None and host_version is not None and host.host_version != host_version:
+        cap.flag("degraded", "host_version_changed")  # the rules and the probe were observed on another host version
     if private == "not_run":
         cap.flag("degraded", "private_path_probe_not_run")
         gaps.append("private_path_probe_not_run")

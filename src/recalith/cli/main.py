@@ -2,7 +2,9 @@
 
 Exactly the command forms of DATA_CONTRACTS §12. With ``--json`` stdout is
 exactly one JSON object; human diagnostics go to stderr and never carry
-source bodies, statements, token contents or arguments. Exit codes: 0
+source bodies, statements, token contents or arguments. Both are written as
+UTF-8 whatever the console's text encoding (a Windows pipe defaults to the
+code page). Exit codes: 0
 success, 2 invalid input, 3 revision conflict, 4 unavailable capability
 (including ``installation_relocated``), 5 storage failure, 6 policy refusal,
 7 ``not_captured``, 8 ``capability_degraded``.
@@ -229,6 +231,18 @@ def form_of(args: argparse.Namespace) -> Form:
 # Output
 
 
+def _emit(stream: Any, text: str) -> None:
+    """Write ``text`` as UTF-8, whatever the stream's text encoding (a Windows pipe defaults to the console code page)."""
+    buffer = getattr(stream, "buffer", None)
+    if buffer is None:
+        stream.write(text)
+        stream.flush()
+        return
+    stream.flush()
+    buffer.write(text.encode("utf-8"))
+    buffer.flush()
+
+
 class Output:
     def __init__(self, *, as_json: bool, command: str, stdout: Any = None, stderr: Any = None) -> None:
         self.as_json = as_json
@@ -238,8 +252,7 @@ class Output:
 
     def _write(self, obj: Mapping[str, Any]) -> None:
         text = json.dumps(obj, ensure_ascii=False, sort_keys=True) if self.as_json else json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2)
-        self.stdout.write(text + "\n")
-        self.stdout.flush()
+        _emit(self.stdout, text + "\n")
 
     def success(self, result: Any, *, degraded: Sequence[str] = ()) -> int:
         body: dict[str, Any] = {"ok": True, "command": self.command, "result": result}
@@ -255,8 +268,7 @@ class Output:
             self._write(body)
         else:
             self.stdout.flush()
-        self.stderr.write(f"recalith: {code}: {message}\n")
-        self.stderr.flush()
+        _emit(self.stderr, f"recalith: {code}: {message}\n")
         return exit_code
 
     def error(self, exc: RecalithError, **extra: Any) -> int:

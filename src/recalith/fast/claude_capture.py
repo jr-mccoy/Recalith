@@ -1,9 +1,12 @@
-"""Claude Code capture adapter for the exact host version 2.1.301 (capture only).
+"""Claude Code capture adapter for the exact host versions 2.1.301 and 2.1.305.
 
 Standard library only. The mapping below was established from real hook
 payloads of the installed host (``tests/fixtures/hosts/claude/2.1.301/``,
-captured by ``tools/capture_claude_fixtures.py``); a similar event name on
-another version is not certification (DATA_CONTRACTS §2.3, SYSTEM_SPEC §9.2).
+captured by ``tools/capture_claude_fixtures.py``); 2.1.305 was captured the
+same way and reviewed field by field before it was added (decision 0019:
+identical hook events, field sets and value formats; its transcripts add only
+known metadata records). A similar event name on another version is not
+certification (DATA_CONTRACTS §2.3, SYSTEM_SPEC §9.2).
 
 Hook event → normalized role → envelope kind:
 
@@ -61,7 +64,7 @@ from recalith.fast.normalize import RawEvent, RecordGap
 from recalith.fast.wire import derived_id, digest_of_text
 
 ADAPTER_ID = "claude_code"
-CERTIFIED_VERSIONS = frozenset({"2.1.301"})
+CERTIFIED_VERSIONS = frozenset({"2.1.301", "2.1.305"})
 TRANSCRIPT_PARSER = "claude_code_transcript@2.1.301"
 
 ROLES = {
@@ -483,9 +486,11 @@ def _failure_result(mapper: Mapper, tool_name: str, error) -> tuple[int | None, 
 DELIVERY_EVENTS = {"session_start": "SessionStart", "prompt": "UserPromptSubmit", "pre_action": "PreToolUse", "compact_restore": "SessionStart"}
 
 
-def context_output(hook_event: str, text: str) -> dict:
-    """The nonblocking host context envelope: additional context only, never a permission decision or a block."""
-    return {"hookSpecificOutput": {"hookEventName": hook_event, "additionalContext": text}}
+def context_output(hook_event: str, text: str, *, notice: str | None = None) -> dict:
+    """The nonblocking host envelope: additional context (and an optional user notice), never a permission decision or a block."""
+    from recalith.fast import claude
+
+    return claude.host_output(hook_event, text, notice=notice)
 
 
 # --------------------------------------------------------------------------

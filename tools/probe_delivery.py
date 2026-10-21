@@ -4,6 +4,7 @@
 Usage::
 
     python tools/probe_delivery.py --config LOCAL_CONFIG --output docs/host-compatibility.json
+    python tools/probe_delivery.py --config LOCAL_CONFIG --engine-project PATH --output docs/host-compatibility.json
 
 For each of the four delivery paths (session start, prompt, pre-action,
 post-compaction) the probe installs a temporary, owned nonce-only stub hook
@@ -43,7 +44,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -732,12 +733,86 @@ def probe_delivery(config_path: Path, output_path: Path, *, keep_workspace: bool
             shutil.rmtree(base, ignore_errors=True)
 
 
+ENGINE_SECTION = "delivery_engine"
+
+
+def probe_engine_mode(config_path: Path, output_path: Path, project: Path, *, keep_workspace: bool = False) -> int:
+    """Task 13: the same protocol through the real engine and installed hooks (``tools/probe_engine.py``; decision 0019).
+
+    ``project`` is an installation integrated with ``recalith integrate claude``
+    for the executable's exact version; its ``.recalith/host.json`` is written
+    from the result (``live`` only for a complete live run) and the integration
+    is re-run so exactly the certified paths are enabled. Exit codes as above.
+    """
+    try:
+        cfg = load_config(config_path)
+    except ConfigError as exc:
+        return pc.die_usage(str(exc))
+    import probe_engine as pe
+
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+    from recalith.integrations import claude as integration
+    from recalith.operations.autostart import read_manifest
+
+    exe = cfg["executable"]
+    resolved = exe if os.path.isabs(exe) else shutil.which(exe)
+    project = project.resolve()
+    if resolved is None or not os.path.exists(resolved):
+        print(json.dumps({"verdict": "unavailable", "reason": "executable_missing"}))
+        return pc.EXIT_UNAVAILABLE
+    observed = integration.host_version(resolved)["version"]
+    state, manifest = read_manifest(project)
+    integrated = ((manifest or {}).get("adapters") or {}).get("claude_code", {}).get("host_version") if state == "ok" else None
+    if integrated is None or integrated != observed:
+        return pc.die_usage(f"{project} is not integrated for Claude Code {observed}; run `.recalith/bin/recalith integrate claude` there first (found {integrated})")
+    live_reason = None
+    if "live" not in cfg["modes"]:
+        live_reason = "live mode not selected in config"
+    elif cfg["auth_route"]["kind"] == "not_configured":
+        live_reason = "no_auth_route_configured"
+    elif any(k not in os.environ for k in cfg["auth_route"]["env_keys"]):
+        live_reason = "selected_auth_env_missing"
+    elif cfg["expected_version"] and cfg["expected_version"] not in (observed or ""):
+        live_reason = "host_version_mismatch"
+    base = Path(tempfile.mkdtemp(prefix="recalith-engine-probe-"))
+    sanitizer = pc.Sanitizer({str(base): "<harness-root>", str(project): "<project>", str(Path.home()): "<home>", str(REPO_ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in cfg["auth_route"]["env_keys"]])
+    try:
+        report = pe.certify(resolved, base=base, modes=[m for m in cfg["modes"] if m == "request_capture" or live_reason is None], target_root=project, cfg=cfg, live_reason=live_reason)
+    finally:
+        pe.stop_workers(base)
+        if keep_workspace:
+            print(f"harness kept at {base}", file=sys.stderr)
+        else:
+            shutil.rmtree(base, ignore_errors=True)
+    report.update({"probe": "tools/probe_delivery.py --engine-project", "probe_schema": 1, "tested_at": pc.utc_now(), "platform": pc.platform_facts(), "configured_model": cfg["model"],
+                   "auth_route": {"kind": cfg["auth_route"]["kind"], "billing": cfg["auth_route"]["billing"], "selected_env_key_names": cfg["auth_route"]["env_keys"]},
+                   "invocation": {"executable": resolved, "executable_sha256": pc.sha256_file(Path(os.path.realpath(resolved)))}})
+    live = report["live"]
+    if live.get("status") == "run":
+        paths = live["paths"]
+    else:
+        paths = {p: {"state": "not_run", "required": p in REQUIRED_PATHS, "reasons": [live.get("reason")]} for p in PATHS}
+    report["paths"] = paths
+    code = exit_code_for(paths)
+    report["verdict"] = {pc.EXIT_CERTIFIED: "required_paths_healthy", pc.EXIT_UNAVAILABLE: "required_path_unavailable", pc.EXIT_DEGRADED: "required_path_degraded"}[code]
+    report["certification_scope"] = "Real engine through installed hooks for this host version; request-capture results are never an echo pass; live results certify only this host/model/config."
+    pc.merge_report_section(output_path, ENGINE_SECTION, cfg["host_id"], sanitizer.value(report))
+    rc = report.get("request_capture") or {}
+    print(json.dumps({"verdict": report["verdict"], "live": live.get("status"), "live_reason": live.get("reason"), "host_record_mode": (report.get("host_record") or {}).get("mode"),
+                      "request_capture_paths": {p: v.get("state") for p, v in (rc.get("paths") or {}).items()}, "command_rules": (rc.get("command_rules") or {}).get("state"),
+                      "private_paths": (rc.get("private_paths") or {}).get("state")}))
+    return code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--keep-workspace", action="store_true")
+    parser.add_argument("--engine-project", type=Path, help="Task 13: run the protocol through the real engine and write this integrated installation's host record")
     ns = parser.parse_args(argv)
+    if ns.engine_project is not None:
+        return probe_engine_mode(ns.config, ns.output, ns.engine_project, keep_workspace=ns.keep_workspace)
     return probe_delivery(ns.config, ns.output, keep_workspace=ns.keep_workspace)
 
 

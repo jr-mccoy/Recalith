@@ -44,14 +44,23 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tests"), str(ROOT / "tests" / "in
 import measure_hook_latency as mhl  # noqa: E402
 
 
+INSTALLED: dict[str, str] = {}  # event -> the exact command ``recalith integrate claude`` installed (``--installed-launcher``)
+
+
 def trial(root: Path, data: bytes, event: str, reply: Path) -> tuple[float, dict, bytes]:
     import subprocess
 
     import claude_fixtures as cf
 
-    argv = [sys.executable, "-I", "-m", "recalith.fast.entry", "--project", str(root), "claude_code", "--event", event, "--reply-file", str(reply)]
+    if INSTALLED:
+        # As Claude Code runs a hook: ``sh -c COMMAND`` with the project directory and the host marker (observed on 2.1.305).
+        argv = ["sh", "-c", INSTALLED[event] + " --reply-file " + json.dumps(str(reply))]
+        env = cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=str(root))
+    else:
+        argv = [sys.executable, "-I", "-m", "recalith.fast.entry", "--project", str(root), "claude_code", "--event", event, "--reply-file", str(reply)]
+        env = cf.child_env()
     start = time.perf_counter()
-    proc = subprocess.run(argv, input=data, capture_output=True, env=cf.child_env(), timeout=60, check=False)
+    proc = subprocess.run(argv, input=data, capture_output=True, env=env, timeout=60, check=False)
     elapsed = time.perf_counter() - start
     if proc.returncode != 0 or proc.stderr:
         raise RuntimeError(f"hook trial failed: rc={proc.returncode} stderr={proc.stderr[-500:]!r}")
@@ -82,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--trials", type=int, default=500)
     parser.add_argument("--corpus", type=int, default=10_000)
     parser.add_argument("--output", type=Path, default=ROOT / "docs" / "measurements" / "hook-delivery-latency.json")
+    parser.add_argument("--installed-launcher", action="store_true", help="Task 13: run each trial through the hook command `recalith integrate claude` installed (sh + project launcher + provisioned runtime)")
     args = parser.parse_args(argv)
 
     import consolidation_scenarios as cs
@@ -95,6 +105,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.corpus:
             rs.corpus(p, fact, args.corpus, proposition="Corpus {i}: deployment notes for the staging bucket and cache warmup.")
         rs.publish(p)
+        if args.installed_launcher:
+            import claude_scenarios as ccs
+            import cli_scenarios as clis
+            from recalith.capture.hooks import write_hook_context
+            from recalith.integrations import claude as integration
+
+            clis.provision_runtime(p.root)
+            integration.integrate(clis.context(p.root), executable=str(ccs.fake_claude(tmp_path / "hostbin", "2.1.301")))  # synthetic: a fixed --version answer
+            write_hook_context(p.ctx, adapter_id="claude_code", host_version="2.1.301", worker_autostart=False, session_notice=False)
+            INSTALLED.update({event: ccs.installed_command(p.root, event) for event in ("PreToolUse", "UserPromptSubmit")})
         ds.enable(p)
 
         def pre(session, i):
@@ -117,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         report.update({
             "tool": "tools/measure_delivery_latency.py",
             "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "measurement": "the real hook entry with its delivery branch (capture, compile, session lock, reservation, final fence, stdout, receipt spool, mark) in fresh python -I processes",
+            "measurement": ("the hook command installed by `recalith integrate claude`, run as `sh -c COMMAND` (POSIX launcher, provisioned runtime, python -I fast entry)" if args.installed_launcher else "the real hook entry") + " with its delivery branch (capture, compile, session lock, reservation, final fence, stdout, receipt spool, mark) in fresh processes",
             "scope": "Task 12b compile and local emission timing against the shared 250 ms soft deadline; not a delivery certification (Task 13: no host reads the output), not live recall quality (B1)",
             "store": {"real_payloads": "Claude Code 2.1.301 lifecycle session through the real adapter; per-trial variants (new tool-use IDs, host sessions, prompt texts)",
                       "admitted": ["failure lesson on pytest -q test_mid.py (file dependency)", "fact"], "synthetic_corpus_claim_heads": args.corpus,
