@@ -178,9 +178,9 @@ def _forms(tmp_path: Path) -> dict[str, list[str]]:
         "restore": ["restore", str(some), "--expected-digest", zero],
         "upgrade": ["upgrade", "--wheel", str(some), "--expected-digest", zero],
         "upgrade_full": ["upgrade", "--wheel", str(some), "--expected-digest", zero, "--release-profile", "full"],
-        "integrate": ["integrate", "claude_code", "--autostart"],
-        "integrate_shared": ["integrate", "claude_code", "--shared"],
-        "integrate_remove": ["integrate", "claude_code", "--remove"],
+        "integrate": ["integrate", "claude", "--autostart"],
+        "integrate_shared": ["integrate", "claude", "--shared"],
+        "integrate_remove": ["integrate", "claude", "--remove"],
         "workspace_attach": ["workspace", "attach", str(tmp_path)],
         "workspace_rebind": ["workspace", "rebind"],
         "workspace_discard_copy": ["workspace", "discard-copy"],
@@ -764,7 +764,7 @@ def test_jobs_retry_and_unavailable_forms(root, tmp_path, tok):
     again = cs.cli(root, "--json", "--operator-token-file", str(tok), "jobs", "retry", job_id)
     assert again.code == 6  # only a failed job is retried
     forms = _forms(tmp_path)
-    for name in ("export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_remove", "workspace_attach", "project_fork", "doctor_probe_host"):
+    for name in ("export", "import", "import_breadcrumbs", "upgrade", "integrate", "integrate_shared", "workspace_attach", "project_fork", "doctor_probe_host"):  # integrate --autostart/--shared are full-only (decision 0019)
         result = cs.cli(root, "--json", "--operator-token-file", str(tok), *forms[name])
         assert result.code == 4 and result.obj["error"] == "capability_unavailable", (name, result.stdout)
         assert "Task" in result.obj["message"] or "full release" in result.obj["message"]

@@ -8,11 +8,13 @@ identities, the policy revision, per adapter the host version recorded at
 integration time, and (context_schema 2, decision 0006) whether the hook may
 start this installation's worker plus the exact route key names that worker
 may carry for its selected provider route, and (context_schema 3, decision
-0015) per adapter the delivery paths whose injection is installed. Delivery
-stays off unless a caller passes ``delivery_paths`` explicitly: only
-controlled test manifests do in this build; Task 13's ``integrate`` command
-enables certified paths (and worker autostart) for a real host. Until then
-tests and the fixture tooling call :func:`write_hook_context` directly.
+0015) per adapter the delivery paths whose injection is installed, and
+(context_schema 4, decision 0019) the integration's consent for the brief
+session-start notice. Delivery stays off unless a caller passes
+``delivery_paths`` explicitly: ``recalith integrate claude``
+(``integrations.claude``) passes only the paths a live certification of this
+installation and host version certified, with worker autostart and notices on;
+controlled test manifests and the certification harness pass trial paths.
 """
 
 from __future__ import annotations
@@ -38,12 +40,14 @@ def write_hook_context(
     worker_autostart: bool | None = None,
     worker_route_keys: Sequence[str] | None = None,
     delivery_paths: Sequence[str] | None = None,
+    session_notice: bool | None = None,
 ) -> Path:
     """Create or update the manifest entry for ``adapter_id``; other adapters are kept.
 
-    ``worker_autostart``/``worker_route_keys``/``delivery_paths`` of None keep
-    the current values (autostart off, no route keys and no delivery for a new
-    manifest); ``delivery_paths=[]`` turns delivery off.
+    ``worker_autostart``/``worker_route_keys``/``delivery_paths``/
+    ``session_notice`` of None keep the current values (autostart off, no route
+    keys, no delivery and no session-start notice for a new manifest);
+    ``delivery_paths=[]`` turns delivery off.
     """
     if adapter_id not in CAPTURE_ADAPTERS:
         raise RecalithError("capability_unavailable", f"no capture adapter {adapter_id!r} in this build")
@@ -51,12 +55,14 @@ def write_hook_context(
     private_mkdir(path.parent)
     adapters: dict = {}
     worker = {"autostart": False, "route_keys": []}
+    notices = {"session_start": False}
     if path.exists():
         try:
             current = json.loads(path.read_text(encoding="utf-8"))
             if entry.valid_context_manifest(current) and current["installation_id"] == ctx.installation_id:
                 adapters = {name: {"host_version": a["host_version"], "delivery_enabled": a["delivery_enabled"], "delivery_paths": list(a.get("delivery_paths") or [])} for name, a in current["adapters"].items()}
                 worker = dict(current.get("worker") or worker)
+                notices = dict(current.get("notices") or notices)
         except (OSError, ValueError):
             adapters = {}
     previous = adapters.get(adapter_id, {}).get("delivery_paths", [])
@@ -68,8 +74,10 @@ def write_hook_context(
         worker["autostart"] = bool(worker_autostart)
     if worker_route_keys is not None:
         worker["route_keys"] = list(worker_route_keys)
+    if session_notice is not None:
+        notices["session_start"] = bool(session_notice)
     manifest = {
-        "context_schema": 3,
+        "context_schema": 4,
         "project_id": ctx.project_id,
         "installation_id": ctx.installation_id,
         "workspace_id": ctx.workspace_id,
@@ -80,6 +88,7 @@ def write_hook_context(
         "policy_revision": ctx.policy_revision,
         "adapters": adapters,
         "worker": worker,
+        "notices": notices,
     }
     if not entry.valid_context_manifest(manifest):
         raise RecalithError("invalid_schema", "hook context manifest would be invalid")

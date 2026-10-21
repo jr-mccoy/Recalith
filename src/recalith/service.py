@@ -731,6 +731,26 @@ def search(ctx: InstallationContext, text: str, *, history: bool = False, limit:
     return out
 
 
+def integrate_host(ctx: InstallationContext, host: str, *, inherited: Mapping[str, str] | None = None, executable: str | None = None) -> dict[str, Any]:
+    """``recalith integrate claude`` (Task 13, decision 0019): the local owned integration; operator only."""
+    require_operator(ctx, "integrate")
+    if host != "claude":
+        raise unavailable(f"integrate {host}", "the full release (Task 14)")
+    from recalith.integrations import claude as integration
+
+    return integration.integrate(ctx, executable=executable)
+
+
+def remove_host_integration(ctx: InstallationContext, host: str) -> dict[str, Any]:
+    """``recalith integrate claude --remove``: unchanged owned entries only; modified ones reported; operator only."""
+    require_operator(ctx, "integrate --remove")
+    if host != "claude":
+        raise unavailable(f"integrate {host} --remove", "the full release (Task 14)")
+    from recalith.integrations import claude as integration
+
+    return integration.remove(ctx)
+
+
 def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = None, deep: bool = False):
     """DATA_CONTRACTS §11 ``health(ctx) -> HealthReport`` (Task 17, decision 0018): read-only, this installation only."""
     from recalith.operations import health as operations_health

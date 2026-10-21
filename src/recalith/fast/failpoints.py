@@ -3,7 +3,7 @@
 Production code calls :func:`hit` at named points around spool temp write,
 flush, rename, cursor advance, database begin/commit, job lease, budget
 reservation, proposal persistence, job completion, retention expiry,
-backup completion, forgetting and restore. Nothing is armed
+backup completion, forgetting, restore and host integration. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -149,6 +149,19 @@ RESTORE_AFTER_STAGE = "restore.after_stage"
 RESTORE_BEFORE_COMMIT = "restore.before_commit"
 RESTORE_BEFORE_SWAP = "restore.before_swap"
 RESTORE_AFTER_SWAP = "restore.after_swap"
+# Host integration (Task 13, decision 0019): the ``installing`` ownership record
+# is written (settings, ignore line, hook manifest and the final record pending);
+# the host settings file is written; the owned ignore line is written; the hook
+# manifest is written (the final ``installed`` record pending). Removal: the
+# settings are restored (manifest, ignore line and record removal pending); the
+# hook manifest is removed; the ignore line is removed (the record pending).
+INTEGRATE_AFTER_RECORD = "integrate.after_record"
+INTEGRATE_AFTER_SETTINGS = "integrate.after_settings"
+INTEGRATE_AFTER_IGNORE = "integrate.after_ignore"
+INTEGRATE_AFTER_MANIFEST = "integrate.after_manifest"
+REMOVE_AFTER_SETTINGS = "integrate.remove_after_settings"
+REMOVE_AFTER_MANIFEST = "integrate.remove_after_manifest"
+REMOVE_AFTER_IGNORE = "integrate.remove_after_ignore"
 
 CAPTURE = (
     SPOOL_TEMP_WRITE, SPOOL_FSYNC, SPOOL_RENAME, SPOOL_AFTER_RENAME, SPOOL_AFTER_PUBLISH,
@@ -167,7 +180,8 @@ RETENTION = (RETENTION_AFTER_SELECT, RETENTION_BEFORE_COMMIT, RETENTION_AFTER_CO
 BACKUP = (BACKUP_AFTER_SNAPSHOT, BACKUP_AFTER_MANIFEST, BACKUP_AFTER_PUBLISH, BACKUP_AFTER_RECORD, BACKUP_AFTER_PRUNE)
 FORGET = (FORGET_AFTER_MARKER, FORGET_BEFORE_COMMIT, FORGET_AFTER_COMMIT, FORGET_AFTER_FILES, FORGET_AFTER_LEDGER, FORGET_AFTER_BACKUP, FORGET_AFTER_DELETE, FORGET_AFTER_RECONSTRUCT)
 RESTORE = (RESTORE_AFTER_STAGE, RESTORE_BEFORE_COMMIT, RESTORE_BEFORE_SWAP, RESTORE_AFTER_SWAP)
-ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE
+INTEGRATION = (INTEGRATE_AFTER_RECORD, INTEGRATE_AFTER_SETTINGS, INTEGRATE_AFTER_IGNORE, INTEGRATE_AFTER_MANIFEST, REMOVE_AFTER_SETTINGS, REMOVE_AFTER_MANIFEST, REMOVE_AFTER_IGNORE)
+ALL = CAPTURE + WORKER + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE + INTEGRATION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

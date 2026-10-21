@@ -30,15 +30,13 @@ from recalith.fast import process_env
 MAX_SCOPE_BYTES = 64 * 1024
 # Guarded forms whose implementation belongs to a later task (or to the full release).
 LATER = {
-    "integrate": "Task 13 (Claude Code integration)",
-    "integrate_remove": "Task 13 (Claude Code integration)",
     "export": "Task 15 full (portable transfers; full release)",
     "import": "Task 15 full (portable transfers; full release)",
     "import_breadcrumbs": "Task 15 full (Breadcrumbs importer; full release)",
     "upgrade": "Task 17 full (local upgrades; full release)",
     "project_fork": "Task 2 full (project fork; full release)",
     "workspace_attach": "Task 2 full (workspace attachment; full release)",
-    "doctor_probe": "Tasks 13/17 (host and provider probes through doctor)",
+    "doctor_probe": "the full release (Tasks 13/17 full); in preview the operator harnesses run the probes: tools/probe_delivery.py --engine-project PATH for the host, tools/probe_provider.py for the provider (decision 0019)",
 }
 EXIT_CODE_NAMES = {2: "invalid_schema", 3: "revision_conflict", 4: "capability_unavailable", 5: "storage_failure", 6: "policy_refused"}
 
@@ -142,6 +140,17 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
         except ValidationError:
             raise RecalithError("invalid_schema", "--preview-digest is the 64-character digest a forget preview printed") from None
         return out.success(service.apply_forget(ctx, request).model_dump(mode="json"))
+    if k in ("integrate", "integrate_remove"):
+        if args.host != "claude":
+            raise service.unavailable(f"integrate {args.host}", "the full release (Task 14: Codex, generic JSON, MCP)" if args.host in ("codex", "generic", "mcp") else "no integration of that name")
+        if args.autostart:
+            raise service.unavailable("integrate --autostart (per-project OS startup entries)", "the full release (Task 17 full; preview starts the worker through the registered hook start)")
+        if args.shared:
+            raise service.unavailable("integrate --shared (tracked shared settings)", "the full release (Task 13 full)")
+        if k == "integrate":
+            return out.success(service.integrate_host(ctx, args.host, inherited=environ))
+        result = service.remove_host_integration(ctx, args.host)
+        return out.success(result, degraded=["owned_entries_modified"] if result["modified"] else ())
     if k.startswith("worker_"):
         if args.mode == "session":
             raise service.unavailable("session worker mode", "the full release (Task 4 full)")
