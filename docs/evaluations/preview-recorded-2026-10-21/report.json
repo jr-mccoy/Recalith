@@ -1,0 +1,1561 @@
+{
+ "baselines": {
+  "not_run": {
+   "breadcrumbs": "full release only",
+   "notes": "full release only"
+  },
+  "run": [
+   "candidate",
+   "no_memory"
+  ]
+ },
+ "cost_and_time": {
+  "actual": {
+   "background_model_calls": 174,
+   "elapsed_seconds": 5.9,
+   "foreground_sessions": 48,
+   "mode": "scripted",
+   "provider_cost_note": "recorded mode: no provider call was made; the background calls were answered by the recorded curator",
+   "provider_cost_usd": 0.0
+  },
+  "illustrative_estimate": {
+   "comparative_smoke_cost_usd": 28.12,
+   "comparative_smoke_sessions": 60.0,
+   "inputs": {
+    "background_share": 0.25,
+    "foreground_cost_per_session_usd": 0.3,
+    "minutes_per_session": 4,
+    "overhead": 0.25,
+    "sessions_per_scenario": 2.5
+   },
+   "label": "ACCEPTANCE_TESTS \u00a76.2 arithmetic, not measured costs or current prices",
+   "serial_hours": 4.0
+  },
+  "pilot": {
+   "reason": "a live pilot needs a certified route (B1)",
+   "state": "not_run"
+  }
+ },
+ "counts_toward_gate": false,
+ "demonstrations_6_1": {
+  "demonstrations": {
+   "changed_condition_revision": {
+    "demonstrated": true,
+    "scenarios": {
+     "smoke-R1-fieldnotes-check-env-fixed": {
+      "legitimate_retry_success": true,
+      "lesson": [
+       [
+        "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+        "active",
+        "current",
+        5
+       ]
+      ],
+      "retry_point": [
+       {
+        "delivered": true,
+        "items": [
+         {
+          "advice": "context",
+          "freshness": "needs_revalidation",
+          "text": "Failure lesson: tools/check.py fails with KeyError unless NOTES_HOME is set. Observed: `python tools/check.py` failed with KeyError: 'NOTES_HOME'. Alternative: "
+         }
+        ],
+        "satisfied": true,
+        "spec": {
+         "must_not_include_caution": "NOTES_HOME",
+         "purpose": "prompt",
+         "session": "C"
+        }
+       }
+      ],
+      "revalidation": [
+       "revalidate:revise_claim"
+      ],
+      "task_success": true
+     },
+     "smoke-R2-ledgerlite-import-fixed": {
+      "legitimate_retry_success": true,
+      "lesson": [
+       [
+        "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+        "active",
+        "current",
+        5
+       ]
+      ],
+      "retry_point": [
+       {
+        "delivered": true,
+        "items": [
+         {
+          "advice": "context",
+          "freshness": "needs_revalidation",
+          "text": "Failure lesson: Plain discovery fails to import ledgerlite without PYTHONPATH=src. Observed: `python -m unittest discover -s tests -t .` failed: the tests direc"
+         }
+        ],
+        "satisfied": true,
+        "spec": {
+         "must_not_include_caution": "PYTHONPATH",
+         "purpose": "prompt",
+         "session": "C"
+        }
+       }
+      ],
+      "revalidation": [
+       "revalidate:revise_claim"
+      ],
+      "task_success": true
+     }
+    }
+   },
+   "forgetting_and_restore": {
+    "backup_before": {
+     "external_copy": true,
+     "manifest_digest": "636e95f570ad8fb756997ecb199a3c5616abfded194d3562868015bb57d4ec5d",
+     "store_hits_before": 20
+    },
+    "delivered_after_forget": false,
+    "delivered_after_restore": false,
+    "demonstrated": true,
+    "forget": {
+     "backup_state": "verified",
+     "deleted_backups": 1,
+     "limits": [
+      "external_exports_not_recallable",
+      "remote_provider_copies_not_recallable",
+      "operator_backup_copies_not_recallable",
+      "filesystem_forensics_outside_guarantee",
+      "ledger_digest_membership_disclosure",
+      "paraphrase_not_detected"
+     ],
+     "purge_state": "completed",
+     "purged": 24,
+     "quarantined": 0,
+     "recorded_pre_forget_backup_deleted": true
+    },
+    "guarded_cli_from_this_process": {
+     "exit": 6,
+     "refusal": "host_marker_present"
+    },
+    "restore": {
+     "applied_schema": 10,
+     "deleted_backup_ids": [],
+     "limits": [
+      "external_copy_holds_suppressed_content",
+      "external_exports_not_recallable",
+      "remote_provider_copies_not_recallable",
+      "operator_backup_copies_not_recallable",
+      "filesystem_forensics_outside_guarantee",
+      "ledger_digest_membership_disclosure",
+      "paraphrase_not_detected"
+     ],
+     "preserved_tombstone_epoch": 1,
+     "restored_revision": 97,
+     "source_contains_suppressed": true,
+     "suppressed_record_count": 24
+    },
+    "route": "service operator actor (test-fixture route, as the Task 16 suites)",
+    "scenario": "smoke-L3-household-grocery-budget",
+    "selector": {
+     "claims": 1,
+     "tasks": 1
+    },
+    "store_hits_after_forget": 0,
+    "store_hits_after_restore": 0
+   },
+   "fresh_session_reuse": {
+    "admitted": [
+     "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+     "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root."
+    ],
+    "baseline_repeated_mistakes": 1,
+    "candidate_first_test_command_in_B": "PYTHONPATH=src python -m unittest discover -s tests",
+    "candidate_repeated_mistakes": 0,
+    "demonstrated": true,
+    "note": "session B's knowledge came through delivered context (the scripted agent consults nothing else); the session-start point is unmet by design (decision 0013: a fresh start with no task binding carries only open intent questions) and the prompt packet carried it",
+    "remember_instruction": false,
+    "retrieval_points": [
+     {
+      "delivered": true,
+      "items": [],
+      "satisfied": false,
+      "spec": {
+       "must_include": "PYTHONPATH=src",
+       "purpose": "session_start",
+       "session": "B"
+      }
+     }
+    ],
+    "scenario": "smoke-L1-ledgerlite-test-command"
+   },
+   "isolation": {
+    "cross_project_leak_commands": 0,
+    "cross_record_ids": [],
+    "cross_text_in_search": [],
+    "demonstrated": true,
+    "fieldnotes_active_claims": [
+     "tools/check.py fails with KeyError unless NOTES_HOME is set."
+    ],
+    "fieldnotes_session_b_delivered": [],
+    "installations": {
+     "distinct": true,
+     "fieldnotes": "inst_8c437d36-96b2-450a-a661-173fdfddbbc1",
+     "ledgerlite": "inst_d092ef80-d9e7-4ba4-a460-b5119b89c481"
+    },
+    "ledgerlite_active_claims": [
+     "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+     "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root."
+    ],
+    "scenario": "smoke-C4-cross-project-near-match",
+    "task_success": true
+   },
+   "zero_interventions": {
+    "demonstrated": true,
+    "jobs_awaiting_a_human": 0,
+    "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+    "operator_interventions": 0,
+    "trials": 24,
+    "workload_days": 3
+   }
+  },
+  "label": "scripted agent + recorded curator through the real engine; not a live demonstration (B1)",
+  "mode": "scripted"
+ },
+ "gate": {
+  "reasons": [
+   "B1: provider_not_configured; start_prompt_delivery_not_certified: no host record given (B1: live nonce certification not run)",
+   "not_live: scripted/recorded runs cannot pass the preview gate"
+  ],
+  "state": "blocked",
+  "superiority_claim": false
+ },
+ "limitations": [
+  "B1: no certified inference route and no live host certification, so no live trial ran; every number here is recorded-mode mechanics, not a live measurement.",
+  "The working agent is a fixed scripted policy (evals/agent.py) that reads only the delivered context at its branch points; it measures whether the engine delivered the right thing, not how a live agent uses it.",
+  "The curator is recorded proposals (evals/curator.py) written with knowledge of the gold; \u00a75.1 extraction quality is therefore not measured (precision and recall reflect the deterministic pipeline admitting or rejecting those proposals).",
+  "Hooks run in process through the real stdlib hook path with Claude Code 2.1.305-shaped payloads (map_hook, handle_hook) and a controlled delivery manifest; the installed launcher and the real host are not in the loop.",
+  "Scheduling runs on a virtual clock (sessions two hours apart, worker drains to a three-hour idle horizon); provider latency and queue time are not real.",
+  "Background tokens are the engine's own charged estimates (ceil(bytes/3) and output allowances); the recorded backend reports no provider usage.",
+  "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC \u00a77; no held-out or independent corpus exists.",
+  "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+  "Each smoke store holds only a few claims, so hook views always contain every relevant claim here; at reference scale (10,000 heads) the hook's query-independent views omit prompt-specific facts (decision 0020 item 15, docs/measurements/release-gate-latency-linux.json), which this run cannot show."
+ ],
+ "mode": "scripted",
+ "mode_note": "MECHANICS ONLY: scripted working agent and recorded curator proposals through the real engine; never a live pass",
+ "native_memory": {
+  "installed_host_observation": {
+   "configuration": {
+    "env": [
+     "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+    ],
+    "settings": {
+     "autoMemoryEnabled": false
+    }
+   },
+   "control": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": true
+   },
+   "disabled": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": false
+   },
+   "host_version": "2.1.306 (Claude Code)",
+   "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+   "state": "disabled"
+  },
+  "scripted_arms": "not applicable: the scripted agent has no host-native memory"
+ },
+ "operational_5_2": {
+  "budget_exhaustion": {
+   "backlog_at_day_end": {
+    "fieldnotes": {
+     "jobs": 2,
+     "kinds": [
+      "extract_claims",
+      "update_task"
+     ],
+     "oldest_age_seconds": 1591.0
+    },
+    "household": {
+     "jobs": 0,
+     "kinds": [],
+     "oldest_age_seconds": 0.0
+    },
+    "ledgerlite": {
+     "jobs": 0,
+     "kinds": [],
+     "oldest_age_seconds": 0.0
+    }
+   },
+   "days_hitting_any_pool": {
+    "denominator": 3,
+    "numerator": 1,
+    "value": 0.3333,
+    "wilson_95": [
+     0.0615,
+     0.7923
+    ]
+   },
+   "median_hours_to_exhaustion": 7.575,
+   "nonexhausted_censored_days": 2,
+   "pools_hit": [
+    "ordinary.input_estimate"
+   ],
+   "priority_inversions": 0,
+   "scenario_days": 3,
+   "waiting_seconds": {
+    "correction_declaration_review": {
+     "max": 1.0,
+     "n": 3,
+     "p50": 1.0,
+     "p95": 1.0
+    },
+    "ordinary": {
+     "max": 3.0,
+     "n": 90,
+     "p50": 0.0,
+     "p95": 2.0
+    },
+    "ordinary_review": {
+     "max": 1.0,
+     "n": 3,
+     "p50": 1.0,
+     "p95": 1.0
+    }
+   }
+  },
+  "curation_throughput": {
+   "fieldnotes": {
+    "admitted_claims": 2,
+    "calls": 36,
+    "calls_by_purpose": {
+     "build_episode": 9,
+     "extract_claims": 18,
+     "review_claims": 2,
+     "update_task": 7
+    },
+    "calls_per_admitted_claim": 18.0,
+    "calls_per_settled_episode": 4.0,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 153317,
+     "extract_claims": 326579,
+     "review_claims": 8451,
+     "update_task": 109922
+    },
+    "processing": "recorded backend: immediate (no provider latency)",
+    "queue_wait_seconds": {
+     "max": 3.0,
+     "n": 36,
+     "p50": 0.0,
+     "p95": 2.0
+    },
+    "settled_episodes": 9
+   },
+   "household": {
+    "admitted_claims": 1,
+    "calls": 26,
+    "calls_by_purpose": {
+     "build_episode": 8,
+     "extract_claims": 9,
+     "review_claims": 1,
+     "update_task": 8
+    },
+    "calls_per_admitted_claim": 26.0,
+    "calls_per_settled_episode": 3.25,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 104721,
+     "extract_claims": 134288,
+     "review_claims": 3462,
+     "update_task": 108878
+    },
+    "processing": "recorded backend: immediate (no provider latency)",
+    "queue_wait_seconds": {
+     "max": 2.0,
+     "n": 26,
+     "p50": 1.0,
+     "p95": 2.0
+    },
+    "settled_episodes": 8
+   },
+   "ledgerlite": {
+    "admitted_claims": 3,
+    "calls": 34,
+    "calls_by_purpose": {
+     "build_episode": 7,
+     "extract_claims": 18,
+     "review_claims": 3,
+     "update_task": 6
+    },
+    "calls_per_admitted_claim": 11.333,
+    "calls_per_settled_episode": 4.857,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 133389,
+     "extract_claims": 334544,
+     "review_claims": 13823,
+     "update_task": 100780
+    },
+    "processing": "recorded backend: immediate (no provider latency)",
+    "queue_wait_seconds": {
+     "max": 2.0,
+     "n": 34,
+     "p50": 0.0,
+     "p95": 2.0
+    },
+    "settled_episodes": 7
+   }
+  },
+  "delivery_visibility": {
+   "paths": {
+    "claude_code": {
+     "contaminated_runs": "none recorded",
+     "host_version": "2.1.306",
+     "live": "not_run",
+     "paths": {
+      "compact": {
+       "live": "not_run",
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "pre_action": {
+       "live": "not_run",
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "prompt": {
+       "live": "not_run",
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "session_start": {
+       "live": "not_run",
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      }
+     }
+    }
+   },
+   "source": "docs/host-compatibility.json (sections.delivery_engine)"
+  },
+  "evidence_strength_distribution": {
+   "fieldnotes": {
+    "day_end": {
+     "corroborated:inferred": 1,
+     "supported:user_declared": 1
+    },
+    "first_admission": {
+     "corroborated:inferred": 1,
+     "supported:user_declared": 1
+    }
+   },
+   "household": {
+    "day_end": {
+     "supported:user_declared": 1
+    },
+    "first_admission": {
+     "supported:user_declared": 1
+    }
+   },
+   "ledgerlite": {
+    "day_end": {
+     "corroborated:inferred": 1,
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    },
+    "first_admission": {
+     "corroborated:inferred": 1,
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    }
+   },
+   "smoke": {
+    "active:corroborated:inferred": 1,
+    "active:supported:inferred": 3,
+    "active:supported:user_declared": 4,
+    "superseded:supported:user_declared": 1
+   }
+  },
+  "false_suppression": {
+   "denominator": 1,
+   "examples": [],
+   "numerator": 0,
+   "value": 0.0,
+   "wilson_95": [
+    0.0,
+    0.7935
+   ]
+  },
+  "same_session_learning_latency": {
+   "smoke": {
+    "count": 10,
+    "observations": [
+     {
+      "caution_delivered": false,
+      "failure": "python -m unittest discover -s tests",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "NOTES_HOME='~/notes' python -m unittest tests.test_delete",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python tools/check.py",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python -m unittest discover -s tests",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python tools/check.py",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python -m unittest discover -s tests",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python tools/check.py",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python -m unittest discover -s tests",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python tools/check.py",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python -m unittest discover -s tests -t .",
+      "next_pre_action_state": "none"
+     }
+    ]
+   },
+   "workload": {
+    "fieldnotes": {
+     "count": 10,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 16.0,
+       "mentions_failure": true,
+       "session": "S1",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 22.0,
+       "mentions_failure": true,
+       "session": "S3",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 25.0,
+       "mentions_failure": false,
+       "session": "S3",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 43.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 44.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 69.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 138.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 34.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 44.0,
+       "mentions_failure": true,
+       "session": "S6",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 46.0,
+       "mentions_failure": false,
+       "session": "S7",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    },
+    "household": {
+     "count": 1,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 68.0,
+       "mentions_failure": true,
+       "session": "S4",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    },
+    "ledgerlite": {
+     "count": 11,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 43.0,
+       "mentions_failure": true,
+       "session": "S1",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 38.0,
+       "mentions_failure": true,
+       "session": "S2",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 48.0,
+       "mentions_failure": false,
+       "session": "S2",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 55.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 49.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 47.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 9.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 34.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 26.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 12.0,
+       "mentions_failure": true,
+       "session": "S7",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 27.0,
+       "mentions_failure": false,
+       "session": "S8",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    }
+   }
+  },
+  "task_over_fragmentation": {
+   "fieldnotes": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 8,
+    "current_nonredirected_heads": 8,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 7,
+    "linked_placeholders": 0,
+    "provisional": 195,
+    "ratio": 1.143
+   },
+   "household": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 8,
+    "current_nonredirected_heads": 7,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 4,
+    "linked_placeholders": 1,
+    "provisional": 95,
+    "ratio": 2.0
+   },
+   "ledgerlite": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 9,
+    "current_nonredirected_heads": 9,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 7,
+    "linked_placeholders": 0,
+    "provisional": 197,
+    "ratio": 1.286
+   }
+  }
+ },
+ "paired_outcomes": {
+  "claim": "No superiority claim: a 12-scenario smoke run with one trial per arm cannot establish one (ACCEPTANCE_TESTS \u00a76.1).",
+  "scenarios": [
+   {
+    "background_tokens": {
+     "candidate": 42774,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 0.264,
+     "no_memory": 0.162
+    },
+    "foreground_tokens": {
+     "candidate": 375,
+     "no_memory": 375
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C1-ledgerlite-routine-typo",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 112170,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 0.531,
+     "no_memory": 0.432
+    },
+    "foreground_tokens": {
+     "candidate": 716,
+     "no_memory": 716
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C2-fieldnotes-tdd-expected-red",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 58936,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.072,
+     "no_memory": 0.0
+    },
+    "foreground_tokens": {
+     "candidate": 76,
+     "no_memory": 76
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C3-household-utilities-speculation",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 43428,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 0.464,
+     "no_memory": 0.334
+    },
+    "foreground_tokens": {
+     "candidate": 690,
+     "no_memory": 690
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C4-cross-project-near-match",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 70494,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.401,
+     "no_memory": 0.313
+    },
+    "foreground_tokens": {
+     "candidate": 718,
+     "no_memory": 779
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 1
+    },
+    "scenario": "smoke-L1-ledgerlite-test-command",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 97528,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 2
+    },
+    "elapsed_seconds": {
+     "candidate": 0.285,
+     "no_memory": 0.169
+    },
+    "foreground_tokens": {
+     "candidate": 550,
+     "no_memory": 429
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L2-fieldnotes-iso-dates",
+    "task_success": {
+     "candidate": true,
+     "no_memory": false
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 86182,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.145,
+     "no_memory": 0.001
+    },
+    "foreground_tokens": {
+     "candidate": 234,
+     "no_memory": 95
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L3-household-grocery-budget",
+    "task_success": {
+     "candidate": true,
+     "no_memory": false
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 39069,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 0.284,
+     "no_memory": 0.135
+    },
+    "foreground_tokens": {
+     "candidate": 747,
+     "no_memory": 747
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L4-ledgerlite-resume-refactor",
+    "task_success": {
+     "candidate": false,
+     "no_memory": false
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 101875,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.378,
+     "no_memory": 0.285
+    },
+    "foreground_tokens": {
+     "candidate": 677,
+     "no_memory": 421
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": true,
+     "no_memory": true
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R1-fieldnotes-check-env-fixed",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 61421,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.366,
+     "no_memory": 0.204
+    },
+    "foreground_tokens": {
+     "candidate": 859,
+     "no_memory": 579
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": true,
+     "no_memory": true
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R2-ledgerlite-import-fixed",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 67511,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.157,
+     "no_memory": 0.001
+    },
+    "foreground_tokens": {
+     "candidate": 217,
+     "no_memory": 89
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R3-household-budget-correction",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 81411,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 0.341,
+     "no_memory": 0.152
+    },
+    "foreground_tokens": {
+     "candidate": 247,
+     "no_memory": 83
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R4-fieldnotes-storage-conflict",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   }
+  ],
+  "summary": {
+   "background_tokens": {
+    "ci_95": [
+     58882.6667,
+     84460.5
+    ],
+    "inconclusive": false,
+    "mean": 71899.9167,
+    "n": 12
+   },
+   "detours": {
+    "ci_95": [
+     -0.25,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": -0.0833,
+    "n": 12
+   },
+   "elapsed_seconds": {
+    "ci_95": [
+     0.1063,
+     0.1451
+    ],
+    "inconclusive": false,
+    "mean": 0.125,
+    "n": 12
+   },
+   "foreground_tokens": {
+    "ci_95": [
+     24.8333,
+     148.0833
+    ],
+    "inconclusive": false,
+    "mean": 85.5833,
+    "n": 12
+   },
+   "legitimate_retry_success": {
+    "ci_95": [
+     0.0,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": 0.0,
+    "n": 2
+   },
+   "operator_interventions": {
+    "ci_95": [
+     0.0,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": 0.0,
+    "n": 12
+   },
+   "repeated_failure_relative_reduction": {
+    "candidate": 0,
+    "full_release_target": ">= 0.25 (Cut 2 gate; not a preview gate)",
+    "no_memory": 1,
+    "relative_reduction": 1.0
+   },
+   "repeated_mistakes": {
+    "ci_95": [
+     -0.25,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": -0.0833,
+    "n": 12
+   },
+   "task_success": {
+    "candidate_successes": 11,
+    "ci_95": [
+     0.0,
+     0.4167
+    ],
+    "inconclusive": true,
+    "mean": 0.1667,
+    "n": 12,
+    "no_memory_successes": 9,
+    "pairs": 12
+   }
+  }
+ },
+ "profile": "claude_preview",
+ "quality_5_1": {
+  "examples": {
+   "discouraged_retries": [],
+   "incorrect_guidance": [],
+   "irrelevant_cautions": [],
+   "missed_lessons": [],
+   "unsupported_admitted": []
+  },
+  "measures": {
+   "conflict_uncertainty_preservation": {
+    "denominator": 1,
+    "met": true,
+    "numerator": 1,
+    "target": ">= 0.95",
+    "value": 1.0,
+    "wilson_95": [
+     0.2065,
+     1.0
+    ]
+   },
+   "failed_approach_recall": {
+    "denominator": 3,
+    "met": true,
+    "numerator": 3,
+    "target": ">= 0.9",
+    "value": 1.0,
+    "wilson_95": [
+     0.4385,
+     1.0
+    ]
+   },
+   "incorrect_confident_guidance": {
+    "count": 0,
+    "met": true,
+    "population": 12,
+    "target": "== 0"
+   },
+   "irrelevant_caution_quiet": {
+    "denominator": 3,
+    "met": true,
+    "numerator": 0,
+    "target": "<= 0.05",
+    "value": 0.0,
+    "wilson_95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "legitimate_retry_discouraged": {
+    "denominator": 2,
+    "met": true,
+    "numerator": 0,
+    "target": "<= 0.05",
+    "value": 0.0,
+    "wilson_95": [
+     0.0,
+     0.6576
+    ]
+   },
+   "routine_human_maintenance": {
+    "count": 0,
+    "met": true,
+    "population": 12,
+    "target": "== 0"
+   },
+   "supported_precision": {
+    "denominator": 8,
+    "met": true,
+    "numerator": 8,
+    "target": ">= 0.95",
+    "value": 1.0,
+    "wilson_95": [
+     0.6756,
+     1.0
+    ]
+   },
+   "useful_recall": {
+    "denominator": 8,
+    "met": true,
+    "numerator": 8,
+    "target": ">= 0.85",
+    "value": 1.0,
+    "wilson_95": [
+     0.6756,
+     1.0
+    ]
+   }
+  },
+  "population": "12 candidate smoke trials (one per scenario)"
+ },
+ "report_schema": 1,
+ "retrieval_points": {
+  "denominator": 12,
+  "numerator": 9,
+  "unmet": [
+   {
+    "delivered_items": 0,
+    "satisfied": false,
+    "scenario": "smoke-L1-ledgerlite-test-command",
+    "spec": {
+     "must_include": "PYTHONPATH=src",
+     "purpose": "session_start",
+     "session": "B"
+    }
+   },
+   {
+    "delivered_items": 0,
+    "satisfied": false,
+    "scenario": "smoke-L4-ledgerlite-resume-refactor",
+    "spec": {
+     "must_include": "money.parse",
+     "purpose": "session_start",
+     "session": "B"
+    }
+   },
+   {
+    "delivered_items": 1,
+    "satisfied": false,
+    "scenario": "smoke-R3-household-budget-correction",
+    "spec": {
+     "must_not_include": "$600 as current",
+     "purpose": "prompt",
+     "session": "C"
+    }
+   }
+  ],
+  "value": 0.75,
+  "wilson_95": [
+   0.4677,
+   0.9111
+  ]
+ },
+ "scenario_authorship": {
+  "held_out": "none (full release; intentionally empty)",
+  "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
+  "smoke": {
+   "independent_of_system_spec_7": false,
+   "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC \u00a77; development fixtures, not held out",
+   "route": [
+    "repository author (coding agent)"
+   ]
+  },
+  "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions"
+ },
+ "unsuccessful_runs": [
+  {
+   "arm": "no_memory",
+   "reason": "task_failed",
+   "scenario": "smoke-L2-fieldnotes-iso-dates"
+  },
+  {
+   "arm": "no_memory",
+   "reason": "task_failed",
+   "scenario": "smoke-L3-household-grocery-budget"
+  },
+  {
+   "arm": "candidate",
+   "reason": "task_failed",
+   "scenario": "smoke-L4-ledgerlite-resume-refactor"
+  },
+  {
+   "arm": "no_memory",
+   "reason": "task_failed",
+   "scenario": "smoke-L4-ledgerlite-resume-refactor"
+  }
+ ],
+ "versions": {
+  "certified_capture_versions": [
+   "2.1.301",
+   "2.1.305",
+   "2.1.306"
+  ],
+  "commit": "b6598eedd242b851ec5a5e99452b3f35cbd41ada",
+  "engine": "0.1.0.dev0",
+  "installed_host": "2.1.306 (Claude Code)",
+  "platform": "Linux 6.18.44-fc-v139 x86_64",
+  "prompts": {
+   "build_episode": "build_episode@1",
+   "extract_claims": "extract_claims@1",
+   "revalidate": "revalidate@1",
+   "review_claims": "review_claims@1",
+   "update_task": "update_task@1"
+  },
+  "python": "3.13.16",
+  "schema": 10,
+  "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)",
+  "sqlite": "3.45.1",
+  "tree_clean": false
+ }
+}

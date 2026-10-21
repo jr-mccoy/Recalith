@@ -49,6 +49,16 @@ this inside its own transaction: it drops payloads whatever pins them and
 downgrades what lost support. Tombstones, derivative purge, quarantine and
 cleanup of files are Task 16.
 
+**Derived revision bodies** (:func:`age_records`, decision 0020). A completed
+or abandoned task's revision bodies age once its closure is strictly older
+than ``closed_task_history`` (90 days); a settled or archived episode's once
+its task's closure is strictly older than ``episode_after_closure`` (180
+days). A revision a live owner or unfinished work cites (a record node of the
+pin closure) is kept. Aging empties the body, removes that revision's
+evidence links and projection rows, keeps the head and its status, writes a
+content-free ``retention_record_aging`` audit and advances the guidance epoch,
+in its own transaction with the pins recomputed there.
+
 **Storage growth** is reported, never bounded by pins: :func:`summary` gives
 the ``RetentionSummary`` (pinned and unpinned payload bytes, live owners, free
 disk, and the pinned payloads already past their window, which a full-release
@@ -86,6 +96,9 @@ SCRATCH_IDLE_SECONDS = 24 * 3600
 EXPIRY_KIND = "retention_expiry"
 SUPPORT_LOST_KIND = "support_lost"
 RELEASE_KIND = "payload_release"
+RECORD_AGING_KIND = "retention_record_aging"
+CLOSED_TASKS = ("completed", "abandoned")
+AGEABLE_EPISODES = ("settled", "archived")
 _IN = 400
 
 
@@ -115,6 +128,7 @@ class Pins:
     owned: set[str] = field(default_factory=set)  # events in live owners' evidence chains
     owed: set[str] = field(default_factory=set)  # events unfinished work still needs
     owners: int = 0
+    records: set[tuple[str, str, int]] = field(default_factory=set)  # record revisions either closure visits (kept from body aging)
 
     @property
     def events(self) -> set[str]:
@@ -150,6 +164,7 @@ class _Closure:
     def __init__(self, q: Any) -> None:
         self.q = q
         self.events: set[str] = set()
+        self.records: set[tuple[str, str, int]] = set()
         self._seen: set[tuple] = set()
         self._queue: list[tuple] = []
 
@@ -177,6 +192,7 @@ class _Closure:
             if node[0] == "event":
                 self._event(node[1])
             else:
+                self.records.add(node)
                 self._record(*node)
         return self.events
 
@@ -233,6 +249,7 @@ def pins(q: Any) -> Pins:
     for (event_id,) in q.execute("SELECT failure_event_id FROM failure_triggers WHERE state IN ('pending', 'due')").fetchall():
         owed.add_event(event_id)  # an undebounced failure is read when its extraction comes due
     out.owed = owed.run()
+    out.records = owned.records | owed.records
     return out
 
 
@@ -269,6 +286,7 @@ class Report:
     proposals_trimmed: int = 0
     conflicts_trimmed: int = 0
     truncated: bool = False
+    records_aged: dict[str, int] = field(default_factory=lambda: {"task": 0, "episode": 0})
     summary: RetentionSummary | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -276,7 +294,7 @@ class Report:
             "now": self.now, "cutoff": self.cutoff, "delivery_cutoff": self.delivery_cutoff, "expired_count": len(self.expired), "repinned_count": len(self.repinned),
             "pinned_count": self.pinned_count, "owed_count": self.owed_count, "downgraded_count": len(self.downgraded), "deliveries_removed": self.deliveries_removed,
             "outcome_links_removed": self.outcome_links_removed, "proposals_trimmed": self.proposals_trimmed, "conflicts_trimmed": self.conflicts_trimmed,
-            "truncated": self.truncated, "summary": self.summary.model_dump(mode="json") if self.summary is not None else None,
+            "truncated": self.truncated, "records_aged": dict(self.records_aged), "summary": self.summary.model_dump(mode="json") if self.summary is not None else None,
         }
 
 
@@ -324,7 +342,10 @@ def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, con
         found = _eligible(view, cutoff=report.cutoff, delivery_cutoff=report.delivery_cutoff, cursor=cursor, limit=limit + 1)
         report.truncated = len(found) > limit
         found = found[:limit]
-        prefilter = pins(view).events
+        pinned = pins(view)
+        prefilter = pinned.events
+        # Aging takes the write lock only when something can age; the transaction recomputes pins and candidates.
+        ageing = bool(aging_candidates(view, now, config, pinned.records))
     candidates = [e for e in found if e not in prefilter]
     failpoints.hit(failpoints.RETENTION_AFTER_SELECT)
     if candidates:
@@ -332,6 +353,10 @@ def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, con
             _expire(txn, ctx, candidates, report)
             failpoints.hit(failpoints.RETENTION_BEFORE_COMMIT)
         failpoints.hit(failpoints.RETENTION_AFTER_COMMIT)
+    if ageing:
+        with store.transaction() as txn:
+            age_records(txn, ctx, report, config)
+    failpoints.hit(failpoints.RETENTION_AFTER_RECORD_AGING)
     with store.transaction() as txn:
         _bookkeeping(txn, report)
         report.downgraded = [r.id for r in reconcile(txn, ctx, None, now=now)]
@@ -372,6 +397,102 @@ def _expire(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], repor
         "pinned_count": len(current.owned), "owed_count": len(current.owed - current.owned), **_ids(report.expired),
     }, reason="age retention of unpinned payloads", now=report.now)
     txn.mutated(serving_relevant=True)  # evidence expiry is serving-relevant (DATA_CONTRACTS §11)
+
+
+# --------------------------------------------------------------------------
+# Derived revision bodies
+
+
+def closed_at(q: Any, task_id: str) -> str | None:
+    """When the task's current closed streak began: the closing revision's time (its body, else its operation); None when unknown."""
+    closing = None
+    for _revision, status, body, store_revision in q.execute("SELECT revision, status, body, created_store_revision FROM task_revisions WHERE task_id = ? ORDER BY revision DESC", (task_id,)).fetchall():
+        if status not in CLOSED_TASKS:
+            break
+        closing = (body, store_revision)
+    if closing is None:
+        return None
+    body, store_revision = closing
+    if body is not None:
+        moment = json.loads(body).get("updated_at")
+        if moment:
+            return moment
+    row = q.execute("SELECT MIN(created_at) FROM operations WHERE store_revision = ?", (store_revision,)).fetchone()
+    return row[0] if row else None
+
+
+def _age_record(txn: Txn, kind: str, record_id: str, keep: set[tuple[str, str, int]], backend: str | None) -> int:
+    from recalith.retrieval import index
+
+    table, key = records.REVISION_TABLES[kind]
+    head_revision = records.head(txn, kind, record_id)[0]
+    aged = 0
+    head_aged = False
+    for (revision,) in txn.execute(f"SELECT revision FROM {table} WHERE {key} = ? AND body IS NOT NULL ORDER BY revision", (record_id,)).fetchall():  # noqa: S608 - fixed names
+        if (kind, record_id, revision) in keep:
+            continue
+        txn.execute(f"UPDATE {table} SET body = NULL WHERE {key} = ? AND revision = ?", (record_id, revision))  # noqa: S608
+        txn.execute("DELETE FROM evidence_links WHERE owner_kind = ? AND owner_id = ? AND owner_revision = ?", (kind, record_id, revision))
+        aged += 1
+        head_aged = head_aged or revision == head_revision
+    if head_aged and backend is not None:
+        index._remove(txn, kind, record_id, backend)  # noqa: SLF001 - the projection's own row removal
+    return aged
+
+
+def aging_candidates(q: Any, now: str, config: RetentionConfig, keep: set[tuple[str, str, int]]) -> list[tuple[str, str]]:
+    """Closed tasks and settled/archived episodes past their cutoff that still hold an unpinned revision body."""
+    from recalith.working import tasks
+
+    task_cut = _minus(now, config.closed_task_history.days)
+    episode_cut = _minus(now, config.episode_after_closure.days)
+    out: list[tuple[str, str]] = []
+    closure: dict[str, str | None] = {}
+    for task_id, _revision in q.execute(f"SELECT task_id, revision FROM task_heads WHERE status IN ({','.join('?' for _ in CLOSED_TASKS)})", CLOSED_TASKS).fetchall():  # noqa: S608
+        closure[task_id] = when = closed_at(q, task_id)
+        if when is not None and when < task_cut and _unpinned_body(q, "task", task_id, keep):
+            out.append(("task", task_id))
+    for episode_id, task_id in q.execute(f"SELECT episode_id, task_id FROM episode_heads WHERE state IN ({','.join('?' for _ in AGEABLE_EPISODES)})", AGEABLE_EPISODES).fetchall():  # noqa: S608
+        owner = tasks.resolve_task(q, task_id) or task_id
+        if owner not in closure:
+            continue  # the task is not closed (or redirects to an open one): its episodes stay
+        when = closure[owner]
+        if when is not None and when < episode_cut and _unpinned_body(q, "episode", episode_id, keep):
+            out.append(("episode", episode_id))
+    return out
+
+
+def _unpinned_body(q: Any, kind: str, record_id: str, keep: set[tuple[str, str, int]]) -> bool:
+    table, key = records.REVISION_TABLES[kind]
+    return any((kind, record_id, revision) not in keep for (revision,) in q.execute(f"SELECT revision FROM {table} WHERE {key} = ? AND body IS NOT NULL", (record_id,)).fetchall())  # noqa: S608 - fixed names
+
+
+def age_records(txn: Txn, ctx: InstallationContext, report: Report, config: RetentionConfig) -> None:
+    """Inside one transaction: age closed tasks' history and their episodes' bodies, never a pinned revision."""
+    from recalith.retrieval import index
+
+    task_cut = _minus(report.now, config.closed_task_history.days)
+    episode_cut = _minus(report.now, config.episode_after_closure.days)
+    keep = pins(txn).records
+    state = index.state(txn)
+    backend = state["backend"] if state is not None else None
+    aged: dict[str, list[str]] = {"task": [], "episode": []}
+    for kind, record_id in aging_candidates(txn, report.now, config, keep):
+        n = _age_record(txn, kind, record_id, keep, backend)
+        if n:
+            aged[kind].append(record_id)
+            report.records_aged[kind] += n
+    if not aged["task"] and not aged["episode"]:
+        return
+    txn.execute("DELETE FROM context_views")
+    txn.execute("UPDATE projection_state SET views_store_revision = -1, views_guidance_epoch = -1, views_policy_revision = -1, views_tombstone_epoch = -1")
+    if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None:
+        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    _audit(txn, ctx, kind=RECORD_AGING_KIND, key=[report.now, aged["task"], aged["episode"]], inputs={
+        "task_ids": aged["task"][:AUDIT_IDS], "episode_ids": aged["episode"][:AUDIT_IDS], "task_cutoff": task_cut, "episode_cutoff": episode_cut,
+        "revisions": dict(report.records_aged), "pinned_records": len(keep),
+    }, reason="age retention of derived revision bodies", now=report.now)
+    txn.mutated(serving_relevant=True)
 
 
 def _ids(event_ids: Sequence[str]) -> dict[str, Any]:

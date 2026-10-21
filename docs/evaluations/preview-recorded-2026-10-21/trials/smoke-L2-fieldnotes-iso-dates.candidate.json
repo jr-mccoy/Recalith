@@ -1,0 +1,379 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 3,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 96941,
+  "estimated_output_tokens": 587,
+  "harness_drain_seconds": 1.369,
+  "jobs_by_state": {
+   "completed": 9
+  },
+  "model_calls": 8,
+  "tokens": 97528,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_0deb8e28-90ae-4a29-8a46-0fb81450939e",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "job_id": "job_7ec7a9fc-db7c-4cce-ae42-f4811bac6269",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 31273
+  },
+  {
+   "job_id": "job_09e28f40-7415-4b00-b514-51a7e4adc8d0",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 30902
+  },
+  {
+   "job_id": "job_5418321b-05e6-4e31-af50-b0949921f9d1",
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 39990
+  },
+  {
+   "job_id": "job_45e5f20e-69ec-4c9d-b6c8-483943760a43",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 10025
+  },
+  {
+   "job_id": "job_34acdab5-5daf-4f84-a5e1-12a06eeb88a3",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 44730
+  },
+  {
+   "job_id": "job_bc080d0c-fde3-4b5c-a28e-f23b855c0975",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 44359
+  },
+  {
+   "job_id": "job_fca39597-cada-47c2-beaa-8265e5088057",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 55910
+  },
+  {
+   "job_id": "job_fe70f9cf-ad73-4fce-bf5a-a2a94b48b6ea",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 33625
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "The user declared ISO-8601 dates for all printed output."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "ISO-8601",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Every project must use ISO-8601 dates."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 20,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-02T14:04:43.000000Z",
+   "events": 8,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:l2"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_cf128b8a-f155-4c17-b48a-048073da7a1e",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_ee002d4b-c4b4-4dfd-b7ee-849c42d08f9a"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "l2",
+  "checks": {
+   "checks_pass": true,
+   "export_dates_iso8601": true,
+   "export_exists": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 97528,
+  "detours": 1,
+  "elapsed_seconds": 0.285,
+  "foreground_tokens": 550,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Decision: All dates printed by fieldnotes use ISO-8601; locale formats are not allowed."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "ISO-8601",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python tools/check.py",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-L2-fieldnotes-iso-dates",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:04.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 5
+   },
+   "elapsed_seconds": 0.058,
+   "host_session_id": "5daebb2b-f6ad-57e2-a035-965999ed11c8",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`list` prints each note's ISO-8601 creation timestamp, so it follows the decision."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "NOTES_HOME='~/notes' python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:04:43.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:44.000000Z",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Decision: All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.\n  why: lexical_match \u2014 matches fieldnotes, date\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_0deb8e28-90ae-4a29-8a46-0fb81450939e r2; evt_05639af71c45ede3e39eac02fa63628605bc2f9037a45ec44307a4ccc7e77450",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "2026-11-02T14:04:45.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:47.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:49.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:51.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 4
+   },
+   "elapsed_seconds": 0.226,
+   "host_session_id": "fdae2f46-2144-5059-b7e3-53efa302f922",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "Added `export`."
+  }
+ ],
+ "trial_schema": 1
+}

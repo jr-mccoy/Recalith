@@ -126,7 +126,12 @@ class Reduction:
     def draft(self, task_id: str) -> tasks.Draft | None:
         if task_id not in self.drafts:
             current = tasks.head_state(self.txn, task_id)
-            assert current is not None, "a bound task exists"
+            if current is None:
+                head = records.head(self.txn, "task", task_id)
+                assert head is not None, "a bound task exists"
+                self.base[task_id] = head[0]
+                self.frozen.add(task_id)  # a closed task whose history aged (decision 0020): it takes no new state
+                return None
             revision, status, data = current
             self.base[task_id] = revision
             self.drafts[task_id] = tasks.Draft(data, signature_of=self.signature_of)
@@ -170,11 +175,11 @@ class Reduction:
         return bindings.bound_partner_task(self.txn, ev)
 
     def purged(self, task_id: str | None) -> bool:
-        """A forgotten or content-free quarantined task takes no new events (decision 0017)."""
+        """A forgotten or content-free quarantined task (decision 0017), or a closed task whose history aged (decision 0020), takes no new events."""
         if task_id is None or any(c["task_id"] == task_id for c in self.created):
             return False
         head = records.head(self.txn, "task", task_id)
-        return head is not None and head[1] in PURGED
+        return head is not None and (head[1] in PURGED or records.body(self.txn, "task", task_id, head[0]) is None)
 
     def new_session(self, ev: Ev) -> segment.SessionState:
         hint = self.resolve(ev.task_hint) if ev.task_hint else None
@@ -364,7 +369,8 @@ class Reduction:
         if decision is None:
             return None
         current = tasks.head_state(self.txn, task_id)
-        assert current is not None
+        if current is None:
+            return None  # an aged closed task (decision 0020): no episode from its body-less head
         previous = None
         if book["last_episode_id"]:
             head = records.head(self.txn, "episode", book["last_episode_id"])

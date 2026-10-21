@@ -1,0 +1,150 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "harness_drain_seconds": 0,
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "Step 1 (money.parse) was completed in session A; steps 2 and 3 were pending."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "supported_lessons": [],
+  "task_state": {
+   "next_action": "Step 2: make Ledger.transfer use money.parse",
+   "objective": "Three-step money refactor"
+  }
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:l4"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "l4",
+  "checks": {
+   "step1_present": true,
+   "step2_transfer_uses_money_parse": false,
+   "step3_not_started": false,
+   "suite_passes": true,
+   "transfer_accepts_decimal": true
+  },
+  "metrics": {},
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 1,
+  "elapsed_seconds": 0.135,
+  "foreground_tokens": 747,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": false
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-L4-ledgerlite-resume-refactor",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/money.py",
+     "session": "A",
+     "tool": "Write"
+    }
+   ],
+   "deliveries": [],
+   "drain": null,
+   "elapsed_seconds": 0.0,
+   "host_session_id": "3c4bf6b9-689f-578c-be38-19e0d53ada76",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Step 1 is done. Next step: (2) make Ledger.transfer use money.parse."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "tests/test_money.py",
+     "session": "B",
+     "tool": "Write"
+    },
+    {
+     "command": "python -m unittest discover -s tests",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [],
+   "drain": null,
+   "elapsed_seconds": 0.135,
+   "host_session_id": "87957050-4379-5f14-8e4c-14c3d0cf3019",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Did the next step and ran the tests."
+  }
+ ],
+ "trial_schema": 1
+}

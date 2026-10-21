@@ -396,10 +396,11 @@ def scenario(root: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
-def expect(root: Path, expired_keys: list[str]) -> None:
+def expect(root: Path, expired_keys: list[str], derived: dict[str, int] | None = None) -> None:
     spec = scenario(root)
     assert spec is not None
     spec["expect_expired"] = sorted(expired_keys)
+    spec["expect_derived"] = derived
     (root / SCENARIO).write_text(json.dumps(spec), encoding="utf-8")
 
 
@@ -458,6 +459,26 @@ def _independently_verified(directory: Path) -> bool:
         return False
 
 
+def derived_state(conn: sqlite3.Connection) -> dict[str, int]:
+    """Derived revision bodies left and projection rows of body-less heads (decision 0020), counted from the store itself."""
+    task_bodies = conn.execute("SELECT COUNT(*) FROM task_revisions r JOIN task_heads h ON h.task_id = r.task_id WHERE h.status IN ('completed', 'abandoned') AND r.body IS NOT NULL").fetchone()[0]
+    episode_bodies = conn.execute("SELECT COUNT(*) FROM episode_revisions WHERE body IS NOT NULL").fetchone()[0]
+    stale = 0
+    for kind, table, key, head_table in (("task", "task_revisions", "task_id", "task_heads"), ("episode", "episode_revisions", "episode_id", "episode_heads")):
+        stale += conn.execute(
+            f"SELECT COUNT(*) FROM retrieval_docs d JOIN {head_table} h ON h.{key} = d.record_id JOIN {table} r ON r.{key} = h.{key} AND r.revision = h.revision "  # noqa: S608 - fixed names
+            "WHERE d.record_kind = ? AND r.body IS NULL", (kind,)).fetchone()[0]
+        stale += conn.execute(
+            f"SELECT COUNT(*) FROM lexical_index l JOIN {head_table} h ON h.{key} = l.record_id JOIN {table} r ON r.{key} = h.{key} AND r.revision = h.revision "  # noqa: S608
+            "WHERE l.record_kind = ? AND r.body IS NULL", (kind,)).fetchone()[0]
+    orphans = 0
+    for kind, table, key in (("task", "task_revisions", "task_id"), ("episode", "episode_revisions", "episode_id")):
+        orphans += conn.execute(
+            f"SELECT COUNT(*) FROM evidence_links l JOIN {table} r ON r.{key} = l.owner_id AND r.revision = l.owner_revision WHERE l.owner_kind = ? AND r.body IS NULL",  # noqa: S608
+            (kind,)).fetchone()[0]
+    return {"task_bodies": task_bodies, "episode_bodies": episode_bodies, "stale_projection_rows": stale, "orphan_links": orphans}
+
+
 def outstanding(root: Path) -> str:
     """``1`` while retention or backup work is owed, judged from the effects (read-only).
 
@@ -476,6 +497,7 @@ def outstanding(root: Path) -> str:
             states = dict(conn.execute("SELECT source_event_key, payload_state FROM events").fetchall())
             epoch = conn.execute("SELECT tombstone_epoch FROM installation_meta").fetchone()[0]
             rows = {loc: state for loc, state in conn.execute("SELECT location, state FROM backups").fetchall()}
+            derived = derived_state(conn)
         finally:
             conn.close()
     except sqlite3.Error:
@@ -485,6 +507,9 @@ def outstanding(root: Path) -> str:
     owed = owed or rows.get(str(old)) != "deleted" or old.exists()
     owed = owed or rows.get(str(new)) != "verified" or not _independently_verified(new)
     owed = owed or bool(_partials(spec))
+    want = spec.get("expect_derived")
+    if want is not None:  # derived bodies the reference aged still present, or projection rows left for an aged head
+        owed = owed or derived["task_bodies"] > want["task_bodies"] or derived["episode_bodies"] > want["episode_bodies"] or derived["stale_projection_rows"] > 0 or derived["orphan_links"] > 0
     ledger = None
     try:
         ledger = json.loads((root / ".recalith" / "state" / "ledger.json").read_text(encoding="utf-8"))
@@ -506,14 +531,19 @@ def retention_state(root: Path) -> dict[str, Any]:
             claims.append((body["proposition"], status, body["strength"], body["freshness"], body["evidence_availability"]))
         roles = {spec["old"]["output"]: "old", spec["new"]["output"]: "new"}
         rows = sorted((roles.get(loc, "other"), state, epoch) for loc, state, epoch in view.execute("SELECT location, state, tombstone_epoch FROM backups").fetchall())
-        audits = view.execute("SELECT COUNT(*) FROM operations WHERE kind = 'retention_expiry'").fetchone()[0]
+        audits = view.execute("SELECT COUNT(*) FROM operations WHERE kind IN ('retention_expiry', 'retention_record_aging')").fetchone()[0]
         epochs = view.execute("SELECT tombstone_epoch FROM installation_meta").fetchone()
     old, new = Path(spec["old"]["output"]), Path(spec["new"]["output"])
     ledger = json.loads((root / ".recalith" / "state" / "ledger.json").read_text(encoding="utf-8")) if (root / ".recalith" / "state" / "ledger.json").exists() else None
     new_ledger = json.loads((new / "ledger.json").read_text(encoding="utf-8")) if (new / "ledger.json").exists() else None
     snapshot_states = sorted(snapshot_rows(new / "memory.sqlite", "SELECT source_event_key, payload_state FROM events")) if (new / "memory.sqlite").exists() else None
+    conn = sqlite3.connect((root / ".recalith" / db.STATE_DB).as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        derived = derived_state(conn)
+    finally:
+        conn.close()
     return {
-        "payloads": states, "claims": sorted(claims), "backups": rows, "audits": audits,
+        "payloads": states, "claims": sorted(claims), "backups": rows, "audits": audits, "derived": derived,
         "files": {"old": old.exists(), "new": _independently_verified(new), "partials": len(_partials(spec))},
         "ledger": None if ledger is None else (ledger["tombstone_epoch"], len(ledger["tombstones"])), "tombstone_epoch": epochs[0],
         "new_backup": None if new_ledger is None else (new_ledger["tombstone_epoch"], len(new_ledger["tombstones"]), snapshot_states),

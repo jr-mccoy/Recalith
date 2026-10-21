@@ -1,0 +1,133 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "harness_drain_seconds": 0,
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "The cause of the September increase is unknown."
+  ],
+  "exact_observations": [
+   "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any admitted causal explanation for the September increase."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:c3"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "c3",
+  "checks": {
+   "plan_exists": true,
+   "plan_has_estimate": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 0.0,
+  "foreground_tokens": 76,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C3-household-utilities-speculation",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "utilities-log.csv",
+     "session": "A",
+     "tool": "Read"
+    }
+   ],
+   "deliveries": [],
+   "drain": null,
+   "elapsed_seconds": 0.0,
+   "host_session_id": "2a92b775-e542-5b4d-8c80-47d19e726f46",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Possibly air conditioning or a rate change; none of this was checked."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "utilities-log.csv",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "utilities-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "deliveries": [],
+   "drain": null,
+   "elapsed_seconds": 0.0,
+   "host_session_id": "7afd8355-6294-5227-a3de-2ff21931f021",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "Wrote the plan."
+  }
+ ],
+ "trial_schema": 1
+}

@@ -37,7 +37,8 @@
           "status": "in_progress",
           "tests": [
             "tests/integration/test_installations.py::test_two_installations_have_separate_ids_and_databases",
-            "tests/integration/test_retrieval.py::test_two_installations_never_cross"
+            "tests/integration/test_retrieval.py::test_two_installations_never_cross",
+            "tests/integration/test_evaluation.py::test_replay_cannot_see_future_evidence"
           ],
           "platforms": [
             "linux",
@@ -45,7 +46,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Storage-level isolation; retrieval-level A01 is Task 11. Task 11: retrieval-level isolation in both compilers (service compile_context and the hook views/fallback), in both directions; a foreign workspace query is refused (service) or degraded empty (hook). Storage isolation from Task 2."
+          "notes": "Storage-level isolation; retrieval-level A01 is Task 11. Task 11: retrieval-level isolation in both compilers (service compile_context and the hook views/fallback), in both directions; a foreign workspace query is refused (service) or degraded empty (hook). Storage isolation from Task 2. Task 18: each trial and arm has its own installation; no trial's store holds another session's or a later session's evidence."
         }
       ]
     },
@@ -1413,7 +1414,12 @@
             "tests/integration/test_retention.py::test_replayed_source_after_expiry_does_not_resurrect",
             "tests/integration/test_retention.py::test_unreferenced_payloads_expire_at_180_days",
             "tests/integration/test_retention.py::test_worker_expires_at_day_181_and_republishes",
-            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference"
+            "tests/integration/test_worker.py::test_retention_backup_crash_matches_reference",
+            "tests/integration/test_retention.py::test_closed_task_history_ages_after_90_days",
+            "tests/integration/test_retention.py::test_episode_bodies_age_180_days_after_task_closure",
+            "tests/integration/test_retention.py::test_live_claims_pin_the_record_revisions_they_cite",
+            "tests/integration/test_retention.py::test_undo_over_an_aged_body_is_a_conflict",
+            "tests/integration/test_retention.py::test_late_event_of_an_aged_task_is_reduced_without_reviving_it"
           ],
           "platforms": [
             "linux",
@@ -1421,7 +1427,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core (decision 0016): pins over live owners' whole evidence chains (active/disputed/candidate claims incl. contradictions and context, active/paused tasks with their open working range, open episodes, transitive records through an archived intermediary, forwarded subagent results, merged/aliased classes) plus unfinished work; day-181 expiry (strictly older than 180 days by capture time) of eligible unpinned payloads only, in a transaction that recomputes the pin closure, reported (retention_expiry audit, RetentionSummary) and advancing the guidance epoch; retention alone lowers nothing; concurrent reference vs expiry (in-transaction recheck, chain-availability admission); last-owner release; delivery metadata 90 days; scratch settled before pruning; the forgetting override (release_payloads) is exercised by a synthetic caller until Task 16; real worker at a clock ahead of capture. Real 2.1.301 payloads and recorded proposals; synthetic: open episode, tombstones, merged-class adapter events. Not passed: the forget path end to end is Task 16 and the full_only capsule variant stays pending. Task 16: the forget path end to end (release_payloads called by apply_forget)."
+          "notes": "Task 15 core (decision 0016): pins over live owners' whole evidence chains (active/disputed/candidate claims incl. contradictions and context, active/paused tasks with their open working range, open episodes, transitive records through an archived intermediary, forwarded subagent results, merged/aliased classes) plus unfinished work; day-181 expiry (strictly older than 180 days by capture time) of eligible unpinned payloads only, in a transaction that recomputes the pin closure, reported (retention_expiry audit, RetentionSummary) and advancing the guidance epoch; retention alone lowers nothing; concurrent reference vs expiry (in-transaction recheck, chain-availability admission); last-owner release; delivery metadata 90 days; scratch settled before pruning; the forgetting override (release_payloads) is exercised by a synthetic caller until Task 16; real worker at a clock ahead of capture. Real 2.1.301 payloads and recorded proposals; synthetic: open episode, tombstones, merged-class adapter events. Not passed: the forget path end to end is Task 16 and the full_only capsule variant stays pending. Task 16: the forget path end to end (release_payloads called by apply_forget). Task 18 (decision 0020): derived revision bodies age (closed task history 90 days, episodes 180 days after task closure) except revisions a live owner cites; the retention matrix gains retention.after_record_aging and judges derived bodies, projection rows and orphaned links."
         },
         {
           "variant": "full_only",
@@ -1923,7 +1929,9 @@
             "tests/integration/test_health.py::test_missing_required_prompt_is_not_ready",
             "tests/integration/test_claude_adapter.py::test_unknown_host_version_is_conservative",
             "tests/integration/test_claude_adapter.py::test_reviewed_2_1_305_fixtures_map_like_2_1_301",
-            "tests/integration/test_claude_adapter.py::test_missing_executable_records_unknown_version"
+            "tests/integration/test_claude_adapter.py::test_missing_executable_records_unknown_version",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_fixtures_map_like_2_1_305",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_transcripts_parse_without_gaps"
           ],
           "platforms": [
             "linux",
@@ -1931,7 +1939,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020)."
         },
         {
           "variant": "full_only",
@@ -1991,6 +1999,7 @@
       "blocking": true,
       "owning_tasks": [
         "3",
+        "3b",
         "17"
       ],
       "capability": "deterministic_core",
@@ -2109,7 +2118,8 @@
       "required_behavior": "Only registered parsers satisfy observed mappings. Runtime values require declared config or certified observed result tied to workspace/executable; never recalith Python. A version observed before a registered executable fingerprint change, or bound to a different fingerprint, is stale and evaluates unknown until refreshed. Unknown binding and untrusted assertions cannot certify a value; hooks never launch probes",
       "blocking": true,
       "owning_tasks": [
-        "3"
+        "3",
+        "3b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2211,7 +2221,8 @@
       "required_behavior": "Values are dropped before spool/provider transmission; only registered normalized scalars remain; missing predicates are unknown",
       "blocking": true,
       "owning_tasks": [
-        "3"
+        "3",
+        "3b"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2368,7 +2379,8 @@
         "13",
         "14",
         "3b",
-        "12b"
+        "12b",
+        "18"
       ],
       "capability": "deterministic_core",
       "in_preview": true,
@@ -2412,7 +2424,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13. Task 12b (delivery side): zero allowance (ordinary context withheld, a caution still charged), an elapsed deadline and a slow filesystem (300 ms fsync) shed delivery with no reservation while capture stays durable; a crashed writer's WAL with present/missing/unreadable SHM and a live writer checkpointing in a loop: deliver or degrade at once, never a checkpoint, recovery write or wait; the session-start lookup without a binding is workspace-only; the delivery import audit (stdlib and recalith.fast only, mode=ro SQLite, no socket/subprocess) and capture-only hooks never import it; native lock timeouts on each OS. The unreadable-SHM variant skips as root and on Windows. Task 13: the installed hook stays nonblocking under every operational failure (never exit 2, never a decision); the notice path is stdlib-only; installed-command latency with delivery measured (docs/measurements/hook-delivery-latency-installed.json)."
+          "notes": "Capture-branch slice (Task 3b): stdlib-only import inventory with audit hook (no SQLite, socket, subprocess or exec), shared 250 ms deadline, truthful capture_deadline_overrun, overlay shedding and 20 ms session lock. Read-only snapshots, WAL/SHM, live checkpoint, reservation/fence and fallback paths arrive with delivery (Tasks 12b/13). Task 4 adds the registered worker start: shed with deadline_worker_start_skipped below 30 ms, capture never shed, and the start is the hook's only process effect (subprocess imported on that path only). Task 11: the hook compiler is stdlib-only, opens SQLite only as mode=ro/query_only/busy_timeout 0 with a write-denying authorizer, degrades on an unavailable snapshot, sheds fallback/delivery under the shared deadline, bounds dependency reads (16 files, 1 MiB, 50 ms). WAL/SHM crash variants with a live checkpoint and the delivery branch remain 12b/13. Task 12b (delivery side): zero allowance (ordinary context withheld, a caution still charged), an elapsed deadline and a slow filesystem (300 ms fsync) shed delivery with no reservation while capture stays durable; a crashed writer's WAL with present/missing/unreadable SHM and a live writer checkpointing in a loop: deliver or degrade at once, never a checkpoint, recovery write or wait; the session-start lookup without a binding is workspace-only; the delivery import audit (stdlib and recalith.fast only, mode=ro SQLite, no socket/subprocess) and capture-only hooks never import it; native lock timeouts on each OS. The unreadable-SHM variant skips as root and on Windows. Task 13: the installed hook stays nonblocking under every operational failure (never exit 2, never a decision); the notice path is stdlib-only; installed-command latency with delivery measured (docs/measurements/hook-delivery-latency-installed.json). Task 18 (decision 0020): the §7 gate per native platform (tools/measure_release_latency.py; Linux here and on CI, macOS and Windows on CI): latency targets hold except Windows cold/missing p95; usefulness fails on every platform because the hook's query-independent views omit prompt-specific facts at corpus scale (decision 0020 item 15). Not passed."
         },
         {
           "variant": "full_only",
@@ -2531,7 +2543,8 @@
       "owning_tasks": [
         "0b",
         "13",
-        "14"
+        "14",
+        "18"
       ],
       "capability": "start_delivery+prompt_delivery",
       "in_preview": true,
@@ -2547,7 +2560,9 @@
           "tests": [
             "tests/unit/test_delivery_probe.py",
             "tests/platform/test_claude_smoke.py::test_engine_delivery_reaches_the_request_on_every_path",
-            "tests/integration/test_claude_adapter.py::test_host_record_is_live_only_from_a_complete_live_observation"
+            "tests/integration/test_claude_adapter.py::test_host_record_is_live_only_from_a_complete_live_observation",
+            "tests/unit/test_eval_harness.py::test_preflight_names_a_request_capture_host_record",
+            "tests/unit/test_eval_harness.py::test_scripted_smoke_run_writes_labeled_trials"
           ],
           "platforms": [
             "linux",
@@ -2555,7 +2570,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass."
+          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass. Task 18 report mechanics: preflight reads the host record (request capture is never certification) and the report's delivery-visibility measure reads sections.delivery_engine per path; no live certification (B1)."
         },
         {
           "variant": "full_only",
@@ -2605,7 +2620,8 @@
             "tests/integration/test_consolidation.py::test_written_after_evidence_dependency_resolves_unknown",
             "tests/integration/test_retrieval.py::test_failure_recheck_and_dependency_change_remove_caution",
             "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_is_checked_live",
-            "tests/integration/test_retrieval.py::test_dependency_free_lesson_never_cautions"
+            "tests/integration/test_retrieval.py::test_dependency_free_lesson_never_cautions",
+            "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_labels_every_claim_kind"
           ],
           "platforms": [
             "linux",
@@ -2613,7 +2629,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11. Task 10: code-resolved fingerprints; a merge with unchanged dependencies keeps caution on every branch; a certified write marks dependents (transitively) needs_revalidation and suppresses caution on any branch; explicit branch_ref still applies; a dependency-preserving change does nothing. Packet delivery is Tasks 11/12b. Task 11: changed or missing dependencies suppress caution in packets regardless of branch (captured write, or the bounded live check for an uncaptured edit); a dependency-free lesson never cautions."
+          "notes": "Task 8 slice: dependency_applicability (unchanged fingerprints apply across branches; changed or missing suppress caution on any branch; empty is unknown) and explicit branch_ref predicates. Dependency indexes and revalidation are Task 10; retrieval Task 11. Task 10: code-resolved fingerprints; a merge with unchanged dependencies keeps caution on every branch; a certified write marks dependents (transitively) needs_revalidation and suppresses caution on any branch; explicit branch_ref still applies; a dependency-preserving change does nothing. Packet delivery is Tasks 11/12b. Task 11: changed or missing dependencies suppress caution in packets regardless of branch (captured write, or the bounded live check for an uncaptured edit); a dependency-free lesson never cautions. Task 18: changed dependencies are labeled for every claim kind, not only failure lessons."
         }
       ]
     },
@@ -2799,6 +2815,7 @@
       "blocking": true,
       "owning_tasks": [
         "0",
+        "4",
         "7",
         "13"
       ],
@@ -2894,7 +2911,8 @@
             "tests/integration/test_retrieval.py::test_candidates_are_tentative_only_for_the_bound_task_or_exact_action",
             "tests/integration/test_retrieval.py::test_intent_question_is_one_conflict_item",
             "tests/integration/test_retrieval.py::test_warning_contains_cause_and_retry_condition",
-            "tests/integration/test_retrieval.py::test_hook_and_service_decisions_agree"
+            "tests/integration/test_retrieval.py::test_hook_and_service_decisions_agree",
+            "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_labels_every_claim_kind"
           ],
           "platforms": [
             "linux",
@@ -2902,7 +2920,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 11: every §8.2 row in both compilers with registered reason codes; expired/redacted support (field or live payload state) omitted; tentative and conflict labels preserved. Deterministic mechanics with recorded proposals and synthetic store states for Task 15/16 writes; awaiting CI on all three platforms and the Task 18 gate."
+          "notes": "Task 11: every §8.2 row in both compilers with registered reason codes; expired/redacted support (field or live payload state) omitted; tentative and conflict labels preserved. Deterministic mechanics with recorded proposals and synthetic store states for Task 15/16 writes; awaiting CI on all three platforms and the Task 18 gate. Task 18: a live dependency mismatch shows any claim kind needs_revalidation in both compilers (decision 0020)."
         }
       ]
     },
@@ -3019,7 +3037,8 @@
       "owning_tasks": [
         "4",
         "12a",
-        "13"
+        "13",
+        "14"
       ],
       "capability": "operator_guard",
       "in_preview": true,
@@ -3056,7 +3075,8 @@
             "tests/platform/test_claude_smoke.py::test_command_deny_rules_and_markers_on_actual_tool_subprocesses",
             "tests/integration/test_claude_adapter.py::test_marked_callers_are_refused_before_any_effect",
             "tests/integration/test_claude_adapter.py::test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings",
-            "tests/integration/test_claude_adapter.py::test_probe_host_is_guarded_and_names_the_operator_harness"
+            "tests/integration/test_claude_adapter.py::test_probe_host_is_guarded_and_names_the_operator_harness",
+            "tests/unit/test_eval_harness.py::test_operator_token_route_never_bypasses_the_guard"
           ],
           "platforms": [
             "linux",
@@ -3064,7 +3084,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host). Task 13: certified deny rules denied all 29 covered commands on the real host; the gap spellings reached the CLI on the actual tool subprocess (CLAUDECODE and CLAUDE_CODE_CHILD_SESSION inherited) and the guard refused them with a captured audit; no admin effect."
+          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host). Task 13: certified deny rules denied all 29 covered commands on the real host; the gap spellings reached the CLI on the actual tool subprocess (CLAUDECODE and CLAUDE_CODE_CHILD_SESSION inherited) and the guard refused them with a captured audit; no admin effect. Task 18: the evaluation harness's token init route gets the guard's refusal from a host-marked process; it never mints a token or clears a marker."
         }
       ]
     }

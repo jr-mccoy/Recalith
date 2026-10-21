@@ -1,0 +1,326 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "update_task": 1
+  },
+  "estimated_input_tokens": 43328,
+  "estimated_output_tokens": 100,
+  "harness_drain_seconds": 0.678,
+  "jobs_by_state": {
+   "completed": 5
+  },
+  "model_calls": 4,
+  "tokens": 43428,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [
+  {
+   "job_id": "job_1acf75c5-b961-4544-ab24-3201de509d8a",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 30407
+  },
+  {
+   "job_id": "job_36d39e06-3189-46d2-9b8f-5c424859aff9",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 30036
+  },
+  {
+   "job_id": "job_8d470cc3-04b4-47a2-a4f9-6d873cd2cbd3",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 39124
+  },
+  {
+   "job_id": "job_ea759af0-8151-48b2-b35f-7626a9826b64",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 30413
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "ledgerlite's test command applies to fieldnotes."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 8,
+ "horizon_checks": [
+  {
+   "before": "B",
+   "checked_at": "2026-11-02T14:09:44.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:c4"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_099feda4-870e-44f7-90c3-107e59fc1a3e",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_158abf52-9d39-4ff4-8e02-fddbc4ebf0ac"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "c4",
+  "checks": {
+   "checks_pass": true,
+   "no_foreign_test_command": true,
+   "project_tests_run_successfully": true
+  },
+  "metrics": {
+   "cross_project_leak_commands": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 43428,
+  "detours": 1,
+  "elapsed_seconds": 0.464,
+  "foreground_tokens": 690,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": true,
+   "spec": {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python -m unittest discover -s tests",
+   "next_pre_action_state": "none"
+  },
+  {
+   "caution_delivered": false,
+   "failure": "python tools/check.py",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-C4-cross-project-near-match",
+ "second_project": {
+  "claims": [
+   {
+    "basis": "inferred",
+    "claim_id": "claim_1c6fc34d-0dd0-4c42-b8ab-85a20c3568f4",
+    "freshness": "current",
+    "kind": "failure_lesson",
+    "proposition": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+    "revision": 2,
+    "status": "active",
+    "strength": "corroborated"
+   },
+   {
+    "basis": "inferred",
+    "claim_id": "claim_afc12ff0-545a-48c1-a54a-e0f9e1991365",
+    "freshness": "current",
+    "kind": "procedure",
+    "proposition": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+    "revision": 2,
+    "status": "active",
+    "strength": "supported"
+   }
+  ],
+  "curator_calls": [
+   {
+    "job_id": "job_f9c23d2c-83a9-4259-8cda-1aecee00fdfe",
+    "operations": [
+     "propose_claim",
+     "propose_claim"
+    ],
+    "purpose": "extract_claims",
+    "request_bytes": 35949
+   },
+   {
+    "job_id": "job_5b3cd371-df94-4a1c-8986-13382916f14c",
+    "operations": [
+     "assess_claim",
+     "assess_claim"
+    ],
+    "purpose": "review_claims",
+    "request_bytes": 17699
+   }
+  ],
+  "init": {
+   "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+   "route": "test_fixture"
+  },
+  "installation_id": "inst_b5f283a6-551a-46b3-94c3-8a4f894b2735",
+  "manifest": {
+   "certified": false,
+   "delivery_paths": [
+    "session_start",
+    "prompt",
+    "pre_action",
+    "compact_restore"
+   ],
+   "host_version": "2.1.305",
+   "kind": "controlled_test_manifest",
+   "worker_autostart": false
+  },
+  "project": "ledgerlite"
+ },
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "host_session_id": "20e37aa7-46d7-5662-a75d-27037148f4bc",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "second_project": true
+  },
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "NOTES_HOME='~/notes' python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:09:44.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:45.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:46.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:48.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 4
+   },
+   "elapsed_seconds": 0.236,
+   "host_session_id": "e86fca9b-bf15-5e27-99a4-643e6ba79cbc",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "Reported the checks."
+  }
+ ],
+ "trial_schema": 1
+}

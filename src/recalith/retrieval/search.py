@@ -357,7 +357,8 @@ def decide(q: Any, ctx: InstallationContext, cand: dict[str, Any], query: Contex
         return None
     if claim is not None:
         current: dict[str, str | None] = {}
-        if claim.kind == "failure_lesson" and claim.status == "active" and claim.freshness == "current" and app == cond.TRUE:
+        lesson_gate = claim.kind == "failure_lesson" and claim.status == "active" and app == cond.TRUE
+        if claim.dependencies and claim.freshness == "current" and (lesson_gate or claim.kind != "failure_lesson"):
             values = {k: v["value"] for k, v in (cand.get("claim_values") or {}).items()}
             current = fc.current_dependencies(cand["dependencies"], workspace_root=str(ctx.workspace_root), environment=query.environment, budget=budget, claim_values=values)
         g = revalidate.guidance(q, ctx, claim, query, current=current)
@@ -367,9 +368,10 @@ def decide(q: Any, ctx: InstallationContext, cand: dict[str, Any], query: Contex
         if advice == "caution" and "exact_action_match" not in match["reasons"] and not fc._action_conditions_true(cand, qd, query.environment):
             advice = "context"
         extra = [r for r in g.reasons if r != "candidate"]
+        shown = g.freshness
     else:
-        advice, extra = cand.get("advice_ceiling", "context"), []
-    item = fc.finish_item(cand, advice, app, match, qd, extra)
+        advice, extra, shown = cand.get("advice_ceiling", "context"), [], None
+    item = fc.finish_item(cand, advice, app, match, qd, extra, freshness=shown)
     return {"item": item, "score": match["score"], "rank_group": 0 if advice in ("caution", "conflict") else 1, "subject": cand.get("subject")}
 
 

@@ -1,0 +1,762 @@
+{
+ "day_schema": 1,
+ "project": "fieldnotes",
+ "start": "2026-11-04T08:00:00.000000Z",
+ "duration_seconds": 28800,
+ "synthetic": true,
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "gold": {
+  "tasks": 7,
+  "task_of_session": {
+   "S1": "checks",
+   "S2": "iso-dates",
+   "S3": "export",
+   "S4": "delete",
+   "S5": "storage-jsonl",
+   "S6": "count",
+   "S7": "line-length",
+   "S8": "count"
+  }
+ },
+ "events": [
+  {
+   "at": 600,
+   "session": "S1",
+   "kind": "start"
+  },
+  {
+   "at": 669,
+   "session": "S1",
+   "kind": "prompt",
+   "text": "Run the project checks with python tools/check.py and get them passing."
+  },
+  {
+   "at": 735,
+   "session": "S1",
+   "kind": "bash",
+   "command": "python tools/check.py",
+   "exit_code": 1,
+   "output": "Traceback (most recent call last):\n  File \"tools/check.py\", line 23, in main\n    notes_home = os.environ[\"NOTES_HOME\"]\nKeyError: 'NOTES_HOME'"
+  },
+  {
+   "at": 751,
+   "session": "S1",
+   "kind": "read",
+   "path": "tools/check.py",
+   "content": "..."
+  },
+  {
+   "at": 774,
+   "session": "S1",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n..\n----------------------------------------------------------------------\nRan 1 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 821,
+   "session": "S1",
+   "kind": "stop",
+   "reply": "Checks need NOTES_HOME."
+  },
+  {
+   "at": 3300,
+   "session": "S2",
+   "kind": "start"
+  },
+  {
+   "at": 3319,
+   "session": "S2",
+   "kind": "prompt",
+   "text": "Decision for this project: every printed date is ISO-8601. Check how list prints dates."
+  },
+  {
+   "at": 3371,
+   "session": "S2",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 3386,
+   "session": "S2",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 3441,
+   "session": "S2",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 6000,
+   "session": "S3",
+   "kind": "start"
+  },
+  {
+   "at": 6064,
+   "session": "S3",
+   "kind": "prompt",
+   "text": "Add an export command printing DATE: TEXT per note, with a unit test."
+  },
+  {
+   "at": 6094,
+   "session": "S3",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 6152,
+   "session": "S3",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 6216,
+   "session": "S3",
+   "kind": "write",
+   "path": "tests/test_export.py",
+   "content": "import unittest\n"
+  },
+  {
+   "at": 6229,
+   "session": "S3",
+   "kind": "bash",
+   "command": "python tools/check.py",
+   "exit_code": 1,
+   "output": "Traceback (most recent call last):\n  File \"tools/check.py\", line 23, in main\n    notes_home = os.environ[\"NOTES_HOME\"]\nKeyError: 'NOTES_HOME'"
+  },
+  {
+   "at": 6251,
+   "session": "S3",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_export (tests.test_export.ExportTests.test_export)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_export.py\", line 14, in test_export\n    self.assertEqual('Jan 02: a', '2026-01-02: a')\nAssertionError: 'Jan 02: a' != '2026-01-02: a'\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 6276,
+   "session": "S3",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 6345,
+   "session": "S3",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n..\n----------------------------------------------------------------------\nRan 1 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 6373,
+   "session": "S3",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 9600,
+   "session": "S4",
+   "kind": "start"
+  },
+  {
+   "at": 9646,
+   "session": "S4",
+   "kind": "prompt",
+   "text": "Using TDD add a delete INDEX command: write the failing test first."
+  },
+  {
+   "at": 9665,
+   "session": "S4",
+   "kind": "write",
+   "path": "tests/test_delete.py",
+   "content": "import unittest\n"
+  },
+  {
+   "at": 9732,
+   "session": "S4",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_delete (tests.test_delete.DeleteTests.test_delete)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_delete.py\", line 14, in test_delete\n    self.assertEqual(2, 0)\nAssertionError: 2 != 0\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 9775,
+   "session": "S4",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 9826,
+   "session": "S4",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n......\n----------------------------------------------------------------------\nRan 6 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 9893,
+   "session": "S4",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 12600,
+   "session": "S5",
+   "kind": "start"
+  },
+  {
+   "at": 12653,
+   "session": "S5",
+   "kind": "prompt",
+   "text": "Move storage to notes.jsonl, one JSON object per line, keeping load/add working. Long session."
+  },
+  {
+   "at": 12717,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 12728,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_roundtrip (tests.test_store.StoreTests.test_roundtrip)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_store.py\", line 14, in test_roundtrip\n    self.assertEqual([], [{'text': 'a'}])\nAssertionError: [] != [{'text': 'a'}]\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 12772,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 12836,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12845,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 12890,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 12914,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 12941,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12975,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 12995,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n..\n----------------------------------------------------------------------\nRan 2 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 13057,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 13072,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 13117,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13158,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 13226,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 13280,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 13337,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13407,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_roundtrip (tests.test_store.StoreTests.test_roundtrip)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_store.py\", line 14, in test_roundtrip\n    self.assertEqual([], [{'text': 'a'}])\nAssertionError: [] != [{'text': 'a'}]\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 13476,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 13544,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 13588,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 13599,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13651,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 13679,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 13726,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n...\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 13750,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 13769,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13838,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 13871,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 13898,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 13963,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14020,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 14083,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_roundtrip (tests.test_store.StoreTests.test_roundtrip)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_store.py\", line 14, in test_roundtrip\n    self.assertEqual([], [{'text': 'a'}])\nAssertionError: [] != [{'text': 'a'}]\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 14152,
+   "session": "S5",
+   "kind": "compact"
+  },
+  {
+   "at": 14221,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 14270,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 14310,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14327,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 14352,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 14412,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 14437,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14487,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n......\n----------------------------------------------------------------------\nRan 6 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 14506,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 14541,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 14552,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 14581,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14623,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 14688,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 14698,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_roundtrip (tests.test_store.StoreTests.test_roundtrip)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_store.py\", line 14, in test_roundtrip\n    self.assertEqual([], [{'text': 'a'}])\nAssertionError: [] != [{'text': 'a'}]\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 14732,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 14799,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14823,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 14863,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/store.py",
+   "content": "..."
+  },
+  {
+   "at": 14889,
+   "session": "S5",
+   "kind": "read",
+   "path": "fieldnotes/cli.py",
+   "content": "..."
+  },
+  {
+   "at": 14930,
+   "session": "S5",
+   "kind": "edit",
+   "path": "fieldnotes/store.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 14994,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_store.py",
+   "content": "..."
+  },
+  {
+   "at": 15028,
+   "session": "S5",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n....\n----------------------------------------------------------------------\nRan 4 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 15078,
+   "session": "S5",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 19800,
+   "session": "S6",
+   "kind": "start"
+  },
+  {
+   "at": 19866,
+   "session": "S6",
+   "kind": "prompt",
+   "text": "Add a count command and run the checks."
+  },
+  {
+   "at": 19885,
+   "session": "S6",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 19912,
+   "session": "S6",
+   "kind": "bash",
+   "command": "python tools/check.py",
+   "exit_code": 1,
+   "output": "Traceback (most recent call last):\n  File \"tools/check.py\", line 23, in main\n    notes_home = os.environ[\"NOTES_HOME\"]\nKeyError: 'NOTES_HOME'"
+  },
+  {
+   "at": 19956,
+   "session": "S6",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n...\n----------------------------------------------------------------------\nRan 3 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 19989,
+   "session": "S6",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 23400,
+   "session": "S7",
+   "kind": "start"
+  },
+  {
+   "at": 23409,
+   "session": "S7",
+   "kind": "prompt",
+   "text": "The style check complains about long lines; fix them."
+  },
+  {
+   "at": 23436,
+   "session": "S7",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 1,
+   "output": "fieldnotes/cli.py:41: line longer than 100 characters\nusing NOTES_HOME=/tmp/fieldnotes-check\n.....\n----------------------------------------------------------------------\nRan 5 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 23482,
+   "session": "S7",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 23525,
+   "session": "S7",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n.....\n----------------------------------------------------------------------\nRan 5 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 23566,
+   "session": "S7",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 26700,
+   "session": "S8",
+   "kind": "start"
+  },
+  {
+   "at": 26756,
+   "session": "S8",
+   "kind": "prompt",
+   "text": "Make count print 0 for an empty store and rerun checks."
+  },
+  {
+   "at": 26807,
+   "session": "S8",
+   "kind": "edit",
+   "path": "fieldnotes/cli.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 26872,
+   "session": "S8",
+   "kind": "bash",
+   "command": "NOTES_HOME=/tmp/notes python tools/check.py",
+   "exit_code": 0,
+   "output": "using NOTES_HOME=/tmp/fieldnotes-check\n.....\n----------------------------------------------------------------------\nRan 5 tests in 0.002s\n\nOK"
+  },
+  {
+   "at": 26907,
+   "session": "S8",
+   "kind": "stop",
+   "reply": "Done."
+  }
+ ]
+}

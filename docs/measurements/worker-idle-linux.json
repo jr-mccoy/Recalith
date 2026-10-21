@@ -1,0 +1,73 @@
+{
+ "command": "python tools/measure_worker_latency.py --trials 5 --start-trials 3 --idle-seconds 600 --output <scratch>/worker-idle-linux.json",
+ "conditions": "Task 18 run (2026-10-21): only the idle window is the gate figure. The typed-state and start trials are reduced (5 and 3) and ran while the 20-rep crash matrix loaded the same 4 vCPUs, so they are not a latency measurement; worker-typed-state-latency.json is the latency record.",
+ "environment": {
+  "logical_cpus": 4,
+  "machine": "x86_64",
+  "os_page_cache": "not dropped",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "python": "3.13.16"
+ },
+ "hook_with_worker_start": {
+  "max": 84.361,
+  "mean": 74.289,
+  "n": 3,
+  "p50": 72.644,
+  "p95": 83.19,
+  "p99": 84.127,
+  "unit": "ms"
+ },
+ "hook_worker_running": {
+  "max": 72.896,
+  "mean": 62.757,
+  "n": 3,
+  "p50": 58.39,
+  "p95": 71.445,
+  "p99": 72.606,
+  "unit": "ms"
+ },
+ "host_fixture_version": "2.1.301",
+ "idle": {
+  "accounting": "procfs",
+  "cpu_met": true,
+  "cpu_percent_of_one_core": 0.15,
+  "cpu_target_percent": 1.0,
+  "rss_met": true,
+  "rss_mib": 45.5,
+  "rss_target_mib": 150,
+  "window_seconds": 600.0
+ },
+ "measured_at": "2026-10-21T13:33:31Z",
+ "measurement": "preview worker typed-state latency (idle 5 s polling, no IPC), hook start cost, idle footprint",
+ "spawn": {
+  "degraded_reasons": [],
+  "in_job": null,
+  "method": "posix_session",
+  "spawned_by": "hook",
+  "state": "detached"
+ },
+ "typed_state": {
+  "arrivals": "uniform random phase of the idle cycle",
+  "from_hook_ack": {
+   "max": 4.637,
+   "mean": 3.397,
+   "n": 5,
+   "p50": 3.958,
+   "p95": 4.599,
+   "p99": 4.63,
+   "unit": "s"
+  },
+  "from_hook_spawn": {
+   "max": 4.697,
+   "mean": 3.469,
+   "n": 5,
+   "p50": 4.044,
+   "p95": 4.658,
+   "p99": 4.689,
+   "unit": "s"
+  },
+  "idle_poll_seconds": 5,
+  "met": true,
+  "target_p95_seconds": 5.0
+ }
+}

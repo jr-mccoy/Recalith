@@ -1,0 +1,147 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "harness_drain_seconds": 0,
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "ledgerlite's test command applies to fieldnotes."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:c4"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "c4",
+  "checks": {
+   "checks_pass": true,
+   "no_foreign_test_command": true,
+   "project_tests_run_successfully": true
+  },
+  "metrics": {
+   "cross_project_leak_commands": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 1,
+  "elapsed_seconds": 0.334,
+  "foreground_tokens": 690,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C4-cross-project-near-match",
+ "second_project": {
+  "project": "ledgerlite"
+ },
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "host_session_id": "f0d2f388-f921-5c84-a4b8-ebb226dc890f",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "second_project": true
+  },
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "NOTES_HOME='~/notes' python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [],
+   "drain": null,
+   "elapsed_seconds": 0.184,
+   "host_session_id": "a507d361-b2f8-512b-a7bf-ed4d87b8414b",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "Reported the checks."
+  }
+ ],
+ "trial_schema": 1
+}

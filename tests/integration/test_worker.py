@@ -1308,12 +1308,13 @@ def test_retention_backup_crash_matches_reference(tmp_path, failpoint):
     assert plain.returncode == 0, plain.stderr
     reference = rsc.retention_state(reference_root)
     expired_keys = [k for k, state, _null in reference["payloads"] if state == "expired"]
-    assert expired_keys and reference["audits"] == 1
+    assert expired_keys and reference["audits"] == 2  # one expiry and one record-aging audit (decision 0020)
+    assert reference["derived"]["stale_projection_rows"] == reference["derived"]["orphan_links"] == 0 and reference["derived"]["task_bodies"] < rsc.retention_state(rsc.crash_project(tmp_path, "unaged"))["derived"]["task_bodies"]
     assert reference["backups"] == [("new", "verified", 1), ("old", "deleted", 1)] and reference["files"] == {"old": False, "new": True, "partials": 0}
     assert reference["ledger"] == (1, 1) and reference["new_backup"][:2] == (1, 1)
     assert sorted(reference["new_backup"][2]) == sorted((k, s) for k, s, _null in reference["payloads"])  # the new snapshot holds the expiry
     count_root = rsc.crash_project(tmp_path, "count")
-    rsc.expect(count_root, expired_keys)
+    rsc.expect(count_root, expired_keys, reference["derived"])
     hits_log = tmp_path / "count.hits"
     counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
     assert counted.returncode == 0, counted.stderr
@@ -1324,7 +1325,7 @@ def test_retention_backup_crash_matches_reference(tmp_path, failpoint):
     ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
     for rep in range(REPS):
         root = rsc.crash_project(tmp_path, f"crash-{rep}")
-        rsc.expect(root, expired_keys)
+        rsc.expect(root, expired_keys, reference["derived"])
         log = tmp_path / f"crash-{rep}.calls"
         result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
         assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)

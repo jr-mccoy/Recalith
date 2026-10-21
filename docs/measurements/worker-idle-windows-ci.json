@@ -1,0 +1,80 @@
+{
+  "command": "python tools/measure_worker_latency.py --trials 20 --start-trials 5 --idle-seconds 600 --output measurements/worker-Windows.json",
+  "environment": {
+    "logical_cpus": 4,
+    "machine": "AMD64",
+    "os_page_cache": "not dropped",
+    "platform": "Windows-2025Server-10.0.26100-SP0",
+    "python": "3.13.16"
+  },
+  "hook_with_worker_start": {
+    "max": 229.241,
+    "mean": 175.255,
+    "n": 5,
+    "p50": 171.024,
+    "p95": 226.728,
+    "p99": 228.738,
+    "unit": "ms",
+    "worker_states": {
+      "worker_started": 5
+    }
+  },
+  "hook_worker_running": {
+    "max": 108.133,
+    "mean": 97.815,
+    "n": 5,
+    "p50": 94.813,
+    "p95": 107.056,
+    "p99": 107.917,
+    "unit": "ms",
+    "worker_states": {
+      "worker_running": 5
+    }
+  },
+  "host_fixture_version": "2.1.301",
+  "idle": {
+    "accounting": "windows_process_api",
+    "cpu_met": true,
+    "cpu_percent_of_one_core": 0.1901,
+    "cpu_target_percent": 1.0,
+    "rss_met": true,
+    "rss_mib": 16.2,
+    "rss_target_mib": 150,
+    "window_seconds": 600.0
+  },
+  "measured_at": "2026-10-21T15:14:00Z",
+  "measurement": "preview worker typed-state latency (idle 5 s polling, no IPC), hook start cost, idle footprint",
+  "spawn": {
+    "degraded_reasons": [
+      "job_membership_unverified"
+    ],
+    "in_job": true,
+    "method": "windows_breakaway",
+    "spawned_by": "hook",
+    "state": "degraded"
+  },
+  "typed_state": {
+    "arrivals": "uniform random phase of the idle cycle",
+    "from_hook_ack": {
+      "max": 5.086,
+      "mean": 3.024,
+      "n": 20,
+      "p50": 3.555,
+      "p95": 4.909,
+      "p99": 5.05,
+      "unit": "s"
+    },
+    "from_hook_spawn": {
+      "max": 5.181,
+      "mean": 3.134,
+      "n": 20,
+      "p50": 3.694,
+      "p95": 5.029,
+      "p99": 5.15,
+      "unit": "s"
+    },
+    "idle_poll_seconds": 5,
+    "met": true,
+    "target_p95_seconds": 5.0
+  }
+}

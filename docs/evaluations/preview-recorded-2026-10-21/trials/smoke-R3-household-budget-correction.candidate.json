@@ -1,0 +1,346 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 66436,
+  "estimated_output_tokens": 1075,
+  "harness_drain_seconds": 1.796,
+  "jobs_by_state": {
+   "completed": 9
+  },
+  "model_calls": 8,
+  "tokens": 67511,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_74785b6a-5de1-452b-b392-02a60ccd8a44",
+   "freshness": "current",
+   "kind": "preference",
+   "proposition": "Grocery budget is $600 per month.",
+   "revision": 3,
+   "status": "superseded",
+   "strength": "supported"
+  },
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_7ab807a7-727e-40c8-aba2-e761a4435091",
+   "freshness": "current",
+   "kind": "preference",
+   "proposition": "Grocery budget is $700 per month.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "job_id": "job_b82631de-04af-4672-b6fe-ea343cbdcf50",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 23397
+  },
+  {
+   "job_id": "job_315926ce-6a43-496f-9c7b-84256431fdd8",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 23026
+  },
+  {
+   "job_id": "job_72f401d3-1caf-4b33-8812-c5e06d335fb6",
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 32114
+  },
+  {
+   "job_id": "job_ca283c26-c2f9-456f-a384-ce4a934b4d25",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 9829
+  },
+  {
+   "job_id": "job_5d93fef5-e893-46ed-a2d6-f1f011dea6df",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 30065
+  },
+  {
+   "job_id": "job_059a17cd-dcc0-4182-906b-d510b25a9650",
+   "operations": [
+    "propose_claim",
+    "change_claim_status"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 41200
+  },
+  {
+   "job_id": "job_b216fdd0-4e2f-4c9e-af2c-4f541726e673",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 9974
+  },
+  {
+   "job_id": "job_629de120-e192-4109-a03b-d1e0245a4371",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 29694
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "A: budget under $600.",
+   "C: explicit correction to $700."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "$600 as current",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The $600 preference is superseded/invalidated as current guidance; history retains it.",
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "Grocery budget is $700 per month.",
+    "supersedes": "Grocery budget under $600 per month."
+   }
+  ]
+ },
+ "hook_replies": 14,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-11-02T14:04:41.000000Z",
+   "events": 6,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:r3"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_f88772fc-9ac6-4d47-8a6d-1c098a8aff99",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_efa5f589-13ef-430e-ac5d-ba57e37035bb"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "r3",
+  "checks": {
+   "grocery_list_exists": true,
+   "no_stale_600_limit": true,
+   "plan_states_700_limit": true,
+   "within_corrected_700_budget": true
+  },
+  "metrics": {
+   "grocery_total_usd": 680.0
+  },
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 67511,
+  "detours": 0,
+  "elapsed_seconds": 0.157,
+  "foreground_tokens": 217,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Preference: Grocery budget is $600 per month."
+    }
+   ],
+   "satisfied": false,
+   "spec": {
+    "must_not_include": "$600 as current",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-R3-household-budget-correction",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "budget.csv",
+     "session": "A",
+     "tool": "Read"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 5
+   },
+   "elapsed_seconds": 0.032,
+   "host_session_id": "b7496d67-ee3f-5116-afe3-fe9d6721cc91",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Noted: groceries stay under $600 per month."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "groceries.csv",
+     "session": "C",
+     "tool": "Write"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "meal-plan.md",
+     "session": "C",
+     "tool": "Write"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:04:41.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:42.000000Z",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Preference: Grocery budget is $600 per month.\n  why: lexical_match \u2014 matches grocery, budget, 600, per\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_74785b6a-5de1-452b-b392-02a60ccd8a44 r2; evt_d278b6fd8e6f617e7dbfea1b8f4b4cd8e7a3a0ad1fc2e86786302f5a810f64b1",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "2026-11-02T14:04:43.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:45.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 4
+   },
+   "elapsed_seconds": 0.125,
+   "host_session_id": "3b227682-1136-5b89-a4f6-b297241ff148",
+   "name": "C",
+   "overlays": [],
+   "project": "household",
+   "reply": "Drafted a $680 list under the $700 limit."
+  }
+ ],
+ "trial_schema": 1
+}

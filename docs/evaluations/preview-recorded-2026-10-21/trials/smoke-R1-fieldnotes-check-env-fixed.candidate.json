@@ -1,0 +1,371 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 3,
+   "revalidate": 1,
+   "review_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 100241,
+  "estimated_output_tokens": 1634,
+  "harness_drain_seconds": 1.24,
+  "jobs_by_state": {
+   "completed": 11
+  },
+  "model_calls": 10,
+  "tokens": 101875,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_199b65ef-17f7-49d8-8594-9eafd6995775",
+   "freshness": "current",
+   "kind": "failure_lesson",
+   "proposition": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+   "revision": 5,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "job_id": "job_bfd661e5-8c1e-4483-8b73-4a7b4efc73d3",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 37489
+  },
+  {
+   "job_id": "job_b72aa335-3a52-49da-a3d7-6d78f4df71cc",
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 46206
+  },
+  {
+   "job_id": "job_8904512e-0fb8-4a80-883d-074df6163eff",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 15239
+  },
+  {
+   "job_id": "job_ed392297-6c9e-4b2b-84b5-7fdb4828c33b",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 37118
+  },
+  {
+   "job_id": "job_c64e2c4e-1573-4bd0-a6a1-8aabb609137f",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 40066
+  },
+  {
+   "job_id": "job_816e2ad6-93f6-4325-900b-9d91ae857d0e",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 23679
+  },
+  {
+   "job_id": "job_c0851c40-3ab5-4c15-a816-928b33f19f17",
+   "operations": [
+    "revise_claim"
+   ],
+   "purpose": "revalidate",
+   "request_bytes": 22195
+  },
+  {
+   "job_id": "job_70c15fde-0be3-4c1e-a2da-353f6c8295fe",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 18298
+  },
+  {
+   "job_id": "job_81e393f1-b802-4680-aa55-2f6df201aecd",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 37111
+  },
+  {
+   "job_id": "job_f8161029-b9d3-419d-82bb-73a8d720da85",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 23308
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A, check.py failed with KeyError: 'NOTES_HOME' unless NOTES_HOME was set.",
+   "Before C, tools/check.py changed to default NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "NOTES_HOME",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [
+   "NOTES_HOME must always be set for every command."
+  ],
+  "quiet": false,
+  "revision_expectation": "After the check.py change the lesson is needs_revalidation (no caution); a plain run in C is a legitimate retry and succeeds.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tools/check.py",
+    "kind": "failure_lesson",
+    "proposition": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+    "retry_condition": "Retry without NOTES_HOME if tools/check.py changes."
+   }
+  ]
+ },
+ "hook_replies": 16,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-11-02T14:09:45.000000Z",
+   "events": 10,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:r1"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_907736f4-dd08-4726-a8bb-9cb1d73c73b0",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_470e8840-2c4d-4dc1-9d80-8e29108ce57d"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "r1",
+  "checks": {
+   "check_passes_without_env": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 101875,
+  "detours": 0,
+  "elapsed_seconds": 0.378,
+  "foreground_tokens": 677,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "needs_revalidation",
+     "text": "Failure lesson: tools/check.py fails with KeyError unless NOTES_HOME is set. Observed: `python tools/check.py` failed with KeyError: 'NOTES_HOME'. Alternative: "
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_not_include_caution": "NOTES_HOME",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python tools/check.py",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-R1-fieldnotes-check-env-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "NOTES_HOME='~/notes' python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:04.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:06.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 5
+   },
+   "elapsed_seconds": 0.223,
+   "host_session_id": "3d2f75ee-2c05-5e52-9539-65adde39ae04",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "tools/check.py needs NOTES_HOME set; with it the checks pass."
+  },
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:09:45.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:46.000000Z",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Failure lesson: tools/check.py fails with KeyError unless NOTES_HOME is set. Observed: `python tools/check.py` failed with KeyError: 'NOTES_HOME'. Alternative: Set NOTES_HOME to a scratch directory.\n  why: lexical_match \u2014 matches tools, check, py, python; dependency_false; freshness_needs_revalidation\n  applies: true \u00b7 freshness: needs_revalidation \u00b7 basis: inferred\n  conditions: depends on file tools/check.py\n  retry: Retry without NOTES_HOME if tools/check.py changes.\n  sources: claim_199b65ef-17f7-49d8-8594-9eafd6995775 r2; evt_7987feead31be05b3087d8208b948aaf67f83a6997b6b08444a8aac74998e704; evt_7dafb6dfe60123c5349c7f716426a3cf6d2e30e71e1f568829cf72c9232279f0",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "2026-11-02T14:09:47.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 6
+   },
+   "elapsed_seconds": 0.154,
+   "host_session_id": "2845ac77-b928-5542-b422-b8cf33669517",
+   "name": "C",
+   "overlays": [
+    "tools/check.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "Reported the check result."
+  }
+ ],
+ "trial_schema": 1
+}

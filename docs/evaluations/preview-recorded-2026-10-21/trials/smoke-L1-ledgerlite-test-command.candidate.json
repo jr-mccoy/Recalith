@@ -1,0 +1,396 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 1
+  },
+  "estimated_input_tokens": 68928,
+  "estimated_output_tokens": 1566,
+  "harness_drain_seconds": 0.966,
+  "jobs_by_state": {
+   "completed": 6
+  },
+  "model_calls": 5,
+  "tokens": 70494,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_89d52f48-1a6d-4f9b-9734-2cf5ad869f53",
+   "freshness": "current",
+   "kind": "failure_lesson",
+   "proposition": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+   "revision": 2,
+   "status": "active",
+   "strength": "corroborated"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_a9a6fa4b-42fa-424b-a19d-a546a3666bbe",
+   "freshness": "current",
+   "kind": "procedure",
+   "proposition": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "job_id": "job_71ef2525-56c1-4710-95f0-a67a29df0e96",
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 35984
+  },
+  {
+   "job_id": "job_677d78ad-de65-431a-9560-06f293fd5721",
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 17683
+  },
+  {
+   "job_id": "job_30c83dd9-8fe8-494e-bb30-57c3ef0c5855",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 45957
+  },
+  {
+   "job_id": "job_5b6fd354-445f-4564-ab8c-4694cfa9b8d7",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 45586
+  },
+  {
+   "job_id": "job_9e857f48-7222-4a40-91d7-d46687812314",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 61567
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether installing the package in editable mode would also work was not tested."
+  ],
+  "exact_observations": [
+   "`python -m unittest` from the project root ran 0 tests (exit 5).",
+   "`python -m unittest discover -s tests` failed with ModuleNotFoundError: No module named 'ledgerlite'.",
+   "`PYTHONPATH=src python -m unittest discover -s tests` ran the suite successfully."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All Python projects need PYTHONPATH=src.",
+   "unittest discovery is broken."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "kind": "procedure",
+    "proposition": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+    "scope": "this project"
+   },
+   {
+    "basis": "inferred",
+    "kind": "failure_lesson",
+    "proposition": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+    "retry_condition": "Retry plain discovery if the package becomes installed or tests add src to sys.path."
+   }
+  ]
+ },
+ "hook_replies": 22,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-02T14:09:44.000000Z",
+   "events": 10,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:l1"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_2d3c94ac-80bd-41c1-a9a7-b3ec0a3442d3",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_24f865db-2ffd-4a2c-bbe4-b078798b66e7"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "l1",
+  "checks": {
+   "close_refuses_nonzero": true,
+   "close_removes_zero_account": true,
+   "close_tested": true,
+   "suite_passes": true
+  },
+  "metrics": {
+   "repeated_test_command_failures": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 70494,
+  "detours": 0,
+  "elapsed_seconds": 0.401,
+  "foreground_tokens": 718,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": false,
+   "spec": {
+    "must_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python -m unittest discover -s tests",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-L1-ledgerlite-test-command",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:04.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:06.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 4
+   },
+   "elapsed_seconds": 0.243,
+   "host_session_id": "02cafc88-9c9a-59d7-b9a5-be7b25e38881",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The tests run with `PYTHONPATH=src python -m unittest discover -s tests` from the project root; plain discovery cannot import the src-layout package."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:09:44.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:45.000000Z",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Failure lesson: Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing. Observed: Plain `python -m unittest discover -s tests` failed with ModuleNotFoundError: No module named 'ledgerlite'. Alternative: Set PYTHONPATH=src.\n  why: lexical_match \u2014 matches add; dependency_unknown\n  applies: true \u00b7 freshness: current \u00b7 basis: inferred\n  retry: Retry plain discovery if the tests add src to sys.path.\n  sources: claim_89d52f48-1a6d-4f9b-9734-2cf5ad869f53 r2; evt_654f77750fcfcbce036911aaec6d65509fb18c761fdc09b2cc705c7f423fbd3c; evt_934fc8302301deaa59f2b0201617546dd3829f4047c6c900f17d67fe9c0b0b18",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "2026-11-02T14:09:46.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:48.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:50.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:52.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 3
+   },
+   "elapsed_seconds": 0.159,
+   "host_session_id": "7a8d6a52-23b5-564a-80d2-6ab19e3839b9",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Added Ledger.close with a zero-balance check and a test; the suite passes."
+  }
+ ],
+ "trial_schema": 1
+}

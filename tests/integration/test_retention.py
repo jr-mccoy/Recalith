@@ -544,6 +544,10 @@ def test_backup_is_consistent(tmp_path):
             while not stop.is_set():
                 rs.seed(p, template, proposition=f"Concurrent claim {len(written)}.")
                 written.append(1)
+                # Writes keep landing during the backup, but a loop that re-takes the lock at once can starve the
+                # backup's own short record write past the busy timeout on a slow runner (CI Windows); the worker,
+                # the store's real writer, never writes back to back like that.
+                time.sleep(0.005)
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
 
@@ -762,3 +766,136 @@ def test_interrupted_backup_never_verifies_and_is_recovered(tmp_path):
     assert target.exists() and recovered
     with p.view() as v:
         assert [(state, Path(loc).resolve()) for state, loc in v.execute("SELECT state, location FROM backups").fetchall()] == [("verified", target.resolve())]
+
+
+# ---------------------------------------------------------------------------
+# Derived revision bodies (SYSTEM_SPEC §11: closed task history 90 days, episode bodies 180 days after task closure;
+# never over a live pin). Open since Task 15; preview requires it (the §11 defaults apply to both profiles).
+
+
+def _closed_task(tmp_path, name: str = "aging"):
+    """The real lifecycle session's task, completed by a recorded proposal citing the user's statement."""
+    p = cs.project(tmp_path, name)
+    task_id = rsn.complete(p, wks.LIFECYCLE_SESSION, rsn.COMPLETE)
+    with p.view() as v:
+        closed_at = json.loads(v.execute("SELECT body FROM task_revisions WHERE task_id = ? AND status = 'completed' ORDER BY revision LIMIT 1", (task_id,)).fetchone()[0])["updated_at"]
+    return p, task_id, closed_at
+
+
+def _bodies(p, kind: str, record_id: str) -> list[bool]:
+    table, key = {"task": ("task_revisions", "task_id"), "episode": ("episode_revisions", "episode_id")}[kind]
+    with p.view() as v:
+        return [row[0] is not None for row in v.execute(f"SELECT body FROM {table} WHERE {key} = ? ORDER BY revision", (record_id,)).fetchall()]  # noqa: S608
+
+
+def _settled_episode(p, task_id: str) -> str:
+    """A settled episode of ``task_id`` (synthetic store state, as ``retention_scenarios.open_episode``)."""
+    events = [p.event("tool_finished", call=cs.MID)["id"]]
+    episode_id = rsn.open_episode(p, task_id, events)
+    rsn.settle_episode(p, episode_id)
+    return episode_id
+
+
+def _indexed(p, record_id: str) -> int:
+    with p.view() as v:
+        return v.execute("SELECT COUNT(*) FROM retrieval_docs WHERE record_id = ?", (record_id,)).fetchone()[0] + v.execute("SELECT COUNT(*) FROM lexical_index WHERE record_id = ?", (record_id,)).fetchone()[0]
+
+
+def test_closed_task_history_ages_after_90_days(tmp_path):
+    p, task_id, closed_at = _closed_task(tmp_path)
+    rs.publish(p)
+    assert all(_bodies(p, "task", task_id))
+    epoch = rsn.meta(p).guidance_epoch
+    kept = sweep(p, rsn.plus(closed_at, days=90))  # day 90 exactly is retained
+    assert kept.records_aged == {"task": 0, "episode": 0} and all(_bodies(p, "task", task_id))
+    aged = sweep(p, rsn.plus(closed_at, days=90, seconds=1))
+    revisions = len(_bodies(p, "task", task_id))
+    assert aged.records_aged["task"] == revisions and not any(_bodies(p, "task", task_id))
+    with p.view() as v:
+        head = v.execute("SELECT status FROM task_heads WHERE task_id = ?", (task_id,)).fetchone()[0]
+        audit = v.execute("SELECT inputs FROM operations WHERE kind = 'retention_record_aging'").fetchall()
+        links = v.execute("SELECT COUNT(*) FROM evidence_links WHERE owner_kind = 'task' AND owner_id = ?", (task_id,)).fetchone()[0]
+    assert head == "completed" and links == 0 and _indexed(p, task_id) == 0  # the head stays; its text, links and index rows go
+    assert len(audit) == 1 and "fixture" not in audit[0][0].lower() and task_id in audit[0][0]  # content-free: identifiers and counts
+    assert rsn.meta(p).guidance_epoch > epoch
+    shown = service.show(osc.context(p.root), task_id)
+    assert shown["body"] is None and shown["content"] == "expired"
+    assert sweep(p, rsn.plus(closed_at, days=91)).records_aged == {"task": 0, "episode": 0}  # idempotent
+
+
+def test_sweep_takes_no_aging_transaction_when_nothing_can_age(tmp_path, monkeypatch):
+    """The candidates come from the read snapshot; the write lock (and its pin closure) is taken only when a body can age."""
+    p, task_id, closed_at = _closed_task(tmp_path)
+    calls: list[str] = []
+    real = retention.age_records
+    monkeypatch.setattr(retention, "age_records", lambda *a, **kw: (calls.append("aging"), real(*a, **kw))[1])
+    sweep(p, rsn.plus(closed_at, days=90))  # not yet past the cutoff
+    assert calls == []
+    sweep(p, rsn.plus(closed_at, days=90, seconds=1))
+    assert calls == ["aging"] and not any(_bodies(p, "task", task_id))
+    sweep(p, rsn.plus(closed_at, days=91))  # everything already aged
+    assert calls == ["aging"]
+
+
+def test_episode_bodies_age_180_days_after_task_closure(tmp_path):
+    p, task_id, closed_at = _closed_task(tmp_path)
+    episode_id = _settled_episode(p, task_id)
+    # Another host session's task stays active: its settled episode is kept whatever its age.
+    p.send(wks.variant(wks.record("lifecycle", "SessionStart"), session=rsn.SESSION_B))
+    p.send(wks.variant(wks.record("lifecycle", "UserPromptSubmit"), prompt="Session B: keep working.", session=rsn.SESSION_B))
+    p.drain()
+    open_task = p.task_of(p.event("user_message", text="Session B: keep")["id"])
+    other = _settled_episode(p, open_task)
+    sweep(p, rsn.plus(closed_at, days=120))  # the task's own history is gone by now: closure comes from its operations
+    assert not any(_bodies(p, "task", task_id)) and all(_bodies(p, "episode", episode_id))
+    assert sweep(p, rsn.plus(closed_at, days=180)).records_aged["episode"] == 0 and all(_bodies(p, "episode", episode_id))
+    aged = sweep(p, rsn.plus(closed_at, days=180, seconds=1))
+    assert aged.records_aged["episode"] == len(_bodies(p, "episode", episode_id)) and not any(_bodies(p, "episode", episode_id))
+    with p.view() as v:
+        assert v.execute("SELECT state FROM episode_heads WHERE episode_id = ?", (episode_id,)).fetchone()[0] == "settled"
+    assert all(_bodies(p, "episode", other)) and all(_bodies(p, "task", open_task))
+
+
+def test_live_claims_pin_the_record_revisions_they_cite(tmp_path):
+    p, task_id, closed_at = _closed_task(tmp_path)
+    episode_id = _settled_episode(p, task_id)
+    task_revision = osc.head_ref(p.root, "task", task_id).revision
+    episode_revision = osc.head_ref(p.root, "episode", episode_id).revision
+    on_episode = rsn.record_claim(p, "The fixture lifecycle episode settled.", "episode", episode_id, [], subject="episode")
+    on_task = rsn.record_claim(p, "The fixture lifecycle task was completed.", "task", task_id, [], subject="task")
+    sweep(p, rsn.plus(closed_at, days=181))
+    with p.view() as v:
+        def body(table, key, rid, rev):
+            return v.execute(f"SELECT body IS NOT NULL FROM {table} WHERE {key} = ? AND revision = ?", (rid, rev)).fetchone()[0]  # noqa: S608
+        assert body("task_revisions", "task_id", task_id, task_revision) and body("episode_revisions", "episode_id", episode_id, episode_revision)
+    assert _bodies(p, "task", task_id).count(True) == 1  # only the cited revision of the history survives
+    rsn.status_change(p, on_episode, "archived")
+    rsn.status_change(p, on_task, "archived")
+    released = sweep(p, rsn.plus(closed_at, days=182))
+    assert released.records_aged == {"task": 1, "episode": 1}
+    assert not any(_bodies(p, "task", task_id)) and not any(_bodies(p, "episode", episode_id))
+
+
+def test_undo_over_an_aged_body_is_a_conflict(tmp_path):
+    p, task_id, closed_at = _closed_task(tmp_path)
+    with p.view() as v:
+        completion = v.execute("SELECT operation_id FROM operations WHERE kind = 'update_task' AND local_ref = 'done'").fetchone()[0]
+    sweep(p, rsn.plus(closed_at, days=91))
+    preview = apply.preview_undo(osc.operator(p.root), completion)
+    assert preview.state == "conflicted" and {c.reason for c in preview.conflicts} == {"body_unavailable"}
+    with pytest.raises(RecalithError) as refused:
+        apply.apply_undo(osc.operator(p.root), completion, preview_digest=preview.preview_digest)
+    assert refused.value.code == "revision_conflict"
+    assert not any(_bodies(p, "task", task_id))  # nothing is resurrected
+
+
+def test_late_event_of_an_aged_task_is_reduced_without_reviving_it(tmp_path):
+    p, task_id, closed_at = _closed_task(tmp_path)
+    sweep(p, rsn.plus(closed_at, days=91))
+    p.send(wks.variant(wks.record("lifecycle", "UserPromptSubmit"), prompt="One more thing after the task closed.", session=wks.LIFECYCLE_SESSION))
+    p.drain()
+    with p.view() as v:
+        failed = v.execute("SELECT body FROM jobs WHERE kind = 'ingest' AND state != 'completed'").fetchall()
+    assert failed == [], failed
+    assert p.task_of(p.event("user_message", text="One more thing after")["id"]) != task_id  # a new task, as after forgetting
+    assert not any(_bodies(p, "task", task_id))
