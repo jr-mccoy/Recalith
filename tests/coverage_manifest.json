@@ -38,7 +38,8 @@
           "tests": [
             "tests/integration/test_installations.py::test_two_installations_have_separate_ids_and_databases",
             "tests/integration/test_retrieval.py::test_two_installations_never_cross",
-            "tests/integration/test_evaluation.py::test_replay_cannot_see_future_evidence"
+            "tests/integration/test_evaluation.py::test_replay_cannot_see_future_evidence",
+            "tests/integration/test_prompt_lookup.py::test_lookup_is_isolated_per_workspace_and_installation"
           ],
           "platforms": [
             "linux",
@@ -952,7 +953,8 @@
             "tests/integration/test_retrieval.py::test_linked_placeholder_redirects_and_supplies_nothing_actionable",
             "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus",
             "tests/integration/test_delivery.py::test_counts_only_emitted_revisions",
-            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account"
+            "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account",
+            "tests/integration/test_prompt_lookup.py::test_lookup_never_serves_retired_forgotten_or_superseded_content"
           ],
           "platforms": [
             "linux",
@@ -991,7 +993,8 @@
             "tests/integration/test_forgetting.py::test_forget_before_fence_excludes_and_after_fence_is_in_flight",
             "tests/integration/test_retrieval.py::test_correction_before_the_fence_excludes_old_guidance",
             "tests/integration/test_retrieval.py::test_evidence_change_advances_guidance_epoch",
-            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades"
+            "tests/integration/test_retrieval.py::test_stale_projection_falls_back_or_degrades",
+            "tests/integration/test_prompt_lookup.py::test_lookup_refuses_stale_epochs_and_revisions"
           ],
           "platforms": [
             "linux",
@@ -1680,7 +1683,8 @@
             "tests/integration/test_worker.py::test_projection_crash_matches_reference",
             "tests/integration/test_delivery.py::test_receipts_are_bookkeeping_and_views_stay_valid",
             "tests/integration/test_delivery.py::test_real_hook_processes_deliver_and_account",
-            "tests/integration/test_worker.py::test_delivery_crash_matches_reference"
+            "tests/integration/test_worker.py::test_delivery_crash_matches_reference",
+            "tests/integration/test_prompt_lookup.py::test_lookup_batch_is_discarded_when_the_epochs_move"
           ],
           "platforms": [
             "linux",
@@ -2416,7 +2420,14 @@
             "tests/integration/test_claude_adapter.py::test_hook_failure_never_denies_tool",
             "tests/platform/test_claude_smoke.py::test_hook_failure_never_denies_tool_on_the_real_host",
             "tests/platform/test_hook_imports.py::test_session_start_notice_is_stdlib_bounded_and_once",
-            "tests/integration/test_claude_adapter.py::test_claude_capture_delivery_and_compact"
+            "tests/integration/test_claude_adapter.py::test_claude_capture_delivery_and_compact",
+            "tests/integration/test_prompt_lookup.py::test_prompt_fact_recall_from_warm_views_at_ten_thousand_heads",
+            "tests/integration/test_prompt_lookup.py::test_prompt_fact_recall_from_cold_views_at_ten_thousand_heads",
+            "tests/integration/test_prompt_lookup.py::test_prompt_fact_recall_does_not_depend_on_the_static_slice",
+            "tests/integration/test_prompt_lookup.py::test_quiet_prompts_stay_quiet_at_ten_thousand_heads",
+            "tests/integration/test_prompt_lookup.py::test_hook_and_service_agree_on_lookup_eligibility",
+            "tests/integration/test_prompt_lookup.py::test_lookup_refresh_is_bounded_idempotent_and_never_advances_epochs",
+            "tests/integration/test_prompt_lookup.py::test_fresh_hook_processes_emit_the_fact_warm_and_cold"
           ],
           "platforms": [
             "linux",
@@ -2912,7 +2923,8 @@
             "tests/integration/test_retrieval.py::test_intent_question_is_one_conflict_item",
             "tests/integration/test_retrieval.py::test_warning_contains_cause_and_retry_condition",
             "tests/integration/test_retrieval.py::test_hook_and_service_decisions_agree",
-            "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_labels_every_claim_kind"
+            "tests/integration/test_retrieval.py::test_uncaptured_dependency_change_labels_every_claim_kind",
+            "tests/integration/test_prompt_lookup.py::test_lookup_rows_follow_expired_support_and_scope"
           ],
           "platforms": [
             "linux",

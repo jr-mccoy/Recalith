@@ -1154,7 +1154,7 @@ def test_projection_crash_matches_reference(tmp_path, failpoint):
     assert counted.returncode == 0, counted.stderr
     reference = snapshot(reference_root)
     projection = reference[2]
-    assert projection["current"] and projection["views"] and projection["terms"]
+    assert projection["current"] and projection["views"] and projection["terms"] and projection["lookup"] and projection["postings"]
     service_items, source, hook_items = reference[3]
     assert source == "view" and service_items and hook_items  # the final views serve the final state
     hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]

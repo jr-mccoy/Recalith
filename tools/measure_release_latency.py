@@ -18,9 +18,11 @@ Healthy populations (the gate, per platform):
 * ``warm`` — current views; alternating pre-action (a caution) and prompt
   (context) trials. Target p95 ≤ 300 ms, p99 ≤ 750 ms, healthy eligible
   delivery ≥ 99 %, degradation ≤ 1 %.
-* ``cold_missing`` — no packet cache (every view deleted, the worker's
-  pre-rendered fallback rows kept): the hook reads at most 32 fallback rows
-  and filters them live with the stdlib. Target p95 ≤ 300 ms, p99 ≤ 750 ms, delivery ≥ 95 %,
+* ``cold_missing`` — no packet cache (every view deleted; the worker's
+  pre-rendered fallback rows and its prompt lookup rows kept, decision 0021):
+  the hook reads at most 32 fallback rows, plus for a prompt at most 16
+  lookup rows through bounded postings, and filters them live with the
+  stdlib. Target p95 ≤ 300 ms, p99 ≤ 750 ms, delivery ≥ 95 %,
   degradation ≤ 5 %.
 
 Usefulness counts a trial *eligible-delivered* only when the expected lesson
@@ -125,10 +127,23 @@ def population(results: list[dict], expects: list[str | None], events: list[str]
             "degraded_examples": examples}
 
 
+def windows(series: dict, size: int = 50) -> list:
+    """Per consecutive window of ``size`` trials: wall and hook-internal p95 and max (ms), so a tail reads as a burst or a spread from the log alone."""
+    walls, inner = series.get("wall_ms") or [], series.get("entry_ms") or []
+    out = []
+    for start in range(0, len(walls), size):
+        w, e = sorted(walls[start:start + size]), sorted(inner[start:start + size])
+        pick = lambda xs: xs[min(len(xs) - 1, int(0.95 * len(xs)))] if xs else None  # noqa: E731
+        out.append({"from": start, "wall_p95": pick(w), "wall_max": w[-1] if w else None, "entry_p95": pick(e), "entry_max": e[-1] if e else None})
+    return out
+
+
 def verdict(name: str, pop: dict) -> dict:
     t = TARGETS[name]
     wall = pop["wall_spawn_to_exit"]
-    checks = {"p95": wall["p95_ms"] <= t["p95_ms"], "p99": wall["p99_ms"] <= t["p99_ms"], "delivery": (pop["eligible_delivered_rate"] or 0) >= t["delivery_min"], "degradation": (pop["degraded_rate"] or 1) <= t["degradation_max"]}
+    checks = {"p95": wall["p95_ms"] <= t["p95_ms"], "p99": wall["p99_ms"] <= t["p99_ms"], "delivery": (pop["eligible_delivered_rate"] or 0) >= t["delivery_min"],
+              # A rate of 0.0 is a measured zero, not a missing value (``or`` would read it as 100 %).
+              "degradation": pop["degraded_rate"] is not None and pop["degraded_rate"] <= t["degradation_max"]}
     return {"targets": t, "checks": checks, "met": all(checks.values())}
 
 
@@ -278,7 +293,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(text, encoding="utf-8")
-    summary = {name: {k: pop.get(k) for k in ("n", "eligible_delivered_rate", "degraded_rate")} | {"p95_ms": (pop.get("wall_spawn_to_exit") or {}).get("p95_ms"), "p99_ms": (pop.get("wall_spawn_to_exit") or {}).get("p99_ms")}
+    summary = {name: {k: pop.get(k) for k in ("n", "eligible_delivered_rate", "degraded_rate", "reasons", "by_event")}
+               | {"p95_ms": (pop.get("wall_spawn_to_exit") or {}).get("p95_ms"), "p99_ms": (pop.get("wall_spawn_to_exit") or {}).get("p99_ms"),
+                  "entry_p95_ms": (pop.get("entry_to_exit") or {}).get("p95_ms"), "windows": windows(pop.get("series") or {})}
                for name, pop in report["populations"].items() if "n" in pop}
     print(json.dumps({"environment": report["environment"]["platform"], "gate": report["gate"], "summary": summary}, indent=1, sort_keys=True))
     return 0 if report["gate"]["met"] else 1

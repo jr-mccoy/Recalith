@@ -24,8 +24,10 @@ results (with the exact consulted value digest), dependencies, evidence and
 action family; and up to 128 ranked fallback rows the hook may filter live
 (at most 32 per compile). Views, their epochs and the projection state are
 written in one transaction that reads the records it renders, so a view can
-never carry content older than the epochs it is labeled with. Projection
-writes never advance the store revision or the guidance epoch.
+never carry content older than the epochs it is labeled with. It then
+reconciles one bounded batch of the prompt lookup
+(:mod:`recalith.retrieval.lookup`, decision 0021). Projection writes never
+advance the store revision or the guidance epoch.
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ from recalith.contracts.common import InstallationContext, canonical_json, utc_n
 from recalith.contracts.context import ContextPacket, ContextQuery
 from recalith.fast import context as fc
 from recalith.fast import failpoints
-from recalith.retrieval import index, search
+from recalith.retrieval import index, lookup, search
 from recalith.storage import records
 from recalith.storage.db import Store, open_store
 
@@ -122,10 +124,8 @@ class _Cands:
         if claim_id not in self.cache:
             head = records.head(self.q, "claim", claim_id)
             claim = records.load(self.q, "claim", claim_id, head[0]) if head is not None and head[1] in fc.LIVE else None
-            cand = search.claim_candidate(self.q, self.ctx, claim, environment=self.environment) if claim is not None else None
-            if cand is not None and cand.get("evidence") not in fc.SUFFICIENT_EVIDENCE:
-                cand = None  # never pre-serialized: expired/redacted support stays out of automatic context
-            self.cache[claim_id] = cand
+            # Never pre-serialized: retired heads and expired/redacted support stay out of automatic context.
+            self.cache[claim_id] = search.servable_candidate(self.q, self.ctx, claim, environment=self.environment)
         return self.cache[claim_id]
 
 
@@ -233,20 +233,21 @@ def _insert_view(txn: Any, vid: str, workspace_id: str, task_id: str | None, pur
 
 
 def projection_due(store: Store) -> dict[str, bool]:
-    """A cheap read: is the index behind the store, or are the views behind the epochs?"""
+    """A cheap read: is the index behind the store, are the views behind the epochs, is the lookup incomplete at them?"""
     with store.read() as view:
         meta = search.meta_of(view)
         state = index.state(view)
     if state is None:
-        return {"index": True, "views": True}
+        return {"index": True, "views": True, "lookup": True}
     return {
         "index": state["indexed"] != meta["store_revision"],
         "views": (state["views_guidance"], state["views_policy"], state["views_tombstone"]) != (meta["guidance_epoch"], meta["policy_revision"], meta["tombstone_epoch"]),
+        "lookup": (state["lookup_guidance"], state["lookup_policy"], state["lookup_tombstone"]) != (meta["guidance_epoch"], meta["policy_revision"], meta["tombstone_epoch"]),
     }
 
 
 def refresh_projection(store: Store, ctx: InstallationContext, *, now: str | None = None) -> dict[str, int]:
-    """Deterministic, model-free: index at the store revision, views at the epochs. Returns what it did (empty: nothing due)."""
+    """Deterministic, model-free: index at the store revision, views at the epochs, one bounded lookup batch. Returns what it did (empty: nothing due)."""
     due = projection_due(store)
     did: dict[str, int] = {}
     if due["index"]:
@@ -255,6 +256,8 @@ def refresh_projection(store: Store, ctx: InstallationContext, *, now: str | Non
             did["indexed"] = changed
     if due["views"]:
         did["views"] = publish_views(store, ctx, now=now)
+    if due["lookup"]:
+        did.update(lookup.refresh(store, ctx, now=now))
     return did
 
 

@@ -92,10 +92,10 @@
     {
       "id": "hook_latency_usefulness_per_platform",
       "section_8": [1, 10],
-      "status": "failed",
-      "detail": "tools/measure_release_latency.py ran the §7 populations per native platform: Linux in this container and on a CI runner, macOS and Windows on CI runners (.github/workflows/measure.yml). Latency p95 ≤ 300 ms and p99 ≤ 750 ms hold for warm views on all three platforms and for cold/missing views on Linux and macOS; Windows cold/missing p95 was 430.7 ms in one CI run and 148.6 ms in another, so it is not established there. Usefulness fails on every platform: pre-action cautions are delivered, but prompt-specific facts outside the views' static slice are not, so healthy eligible delivery is about 50 % (target ≥ 99 % warm, ≥ 95 % cold). The idle worker is under 1 % of one core and ≤ 150 MiB on Linux, macOS and Windows. Results are in docs/measurements/ and the Task 18 checkpoint.",
-      "blocker": "decision 0020 item 15: the hook's query-independent views omit prompt-relevant facts at corpus scale (a Task 11 view-contract change); Windows cold-cache p95 over 300 ms in one of two CI runs, not yet attributed (see the Task 18 checkpoint)",
-      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml", "docs/measurements/release-gate-latency-linux.json", "docs/measurements/release-gate-latency-windows-ci.json", "docs/measurements/worker-idle-windows-ci.json", "docs/decisions/0020-preview-evaluation-and-release-hardening.md"]
+      "status": "pending",
+      "detail": "tools/measure_release_latency.py runs the §7 populations per native platform (.github/workflows/measure.yml for macOS, Windows and a Linux runner). Decision 0021 fixed the prompt usefulness defect of decision 0020 item 15 with a bounded, worker-published lexical lookup. In this container (Linux, 4 vCPU Xeon @ 2.10 GHz) every healthy target is met: warm 500/500 delivered, p95 93.2 ms, p99 96.6 ms; cold/missing 500/500, p95 94.7 ms, p99 101.2 ms; degradation 0. The CI runners' re-measurement on this code is pending. The Windows cold-cache p95 is not yet established (430.7 ms in one earlier CI run, 148.6 ms in another). The idle worker is under 1 % of one core and ≤ 150 MiB on Linux, macOS and Windows.",
+      "blocker": "per-platform CI re-measurement after decision 0021 not yet recorded; Windows cold-cache p95 to be confirmed across at least two runs",
+      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml", "docs/measurements/release-gate-latency-linux.json", "docs/measurements/release-gate-latency-windows-ci.json", "docs/measurements/worker-idle-windows-ci.json", "docs/decisions/0020-preview-evaluation-and-release-hardening.md", "docs/decisions/0021-bounded-lexical-lookup-for-hook-prompts.md"]
     },
     {
       "id": "failure_injection_protocol",
