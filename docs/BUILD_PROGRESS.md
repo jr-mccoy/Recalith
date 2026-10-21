@@ -731,6 +731,10 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   | Linux, CI runner (measure run 2, `bef058f`) | 53.2 / 319.4 | 55.5 / 158.9 | 0.50 | 0.50 |
   | macOS arm64, CI runner (same run) | 122.2 / 144.9 | 132.3 / 256.3 | 0.50 | 0.50 |
   | Windows Server 2025, CI runner (same run) | 176.8 / 549.9 | **430.7** / 615.5 | 0.494 | 0.482 |
+  | Windows Server 2025, CI runner (measure run 3, `665532f`; `docs/measurements/release-gate-latency-windows-ci.json`) | 134.4 / 173.5 | 148.6 / 184.4 | 0.50 | 0.50 |
+  | Linux, CI runner (measure run 3) | 48.4 / 49.3 | 50.3 / 54.3 | 0.50 | 0.50 |
+
+  macOS in measure run 3 was cancelled by the runner before any step ran; run 2 is its result.
 
   The other populations in this container (p95 ms, delivered):
   - stale views: 112.6, 0.50;
@@ -742,7 +746,7 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   Per event, every PreToolUse trial delivered its caution (250/250 warm and cold) and every UserPromptSubmit trial missed its fact (0/250). Exit 1 is the gate's own verdict: latency met, usefulness not met. The first CI run (`9c9752e`) used the defective cold regime and is not reported.
 
   - **Usefulness fails on every platform**, for one concrete cause (decision 0020 item 15). Every pre-action caution is delivered, and every prompt-specific fact is missing, because the hook's views hold a query-independent slice. Prompt trials are therefore all degraded, and delivery is about 50 % against targets of ≥ 99 % warm and ≥ 95 % cold. A Task 11 view-contract change is needed. The build may only be labeled experimental on this target.
-  - **Windows cold/missing p95 is over 300 ms** (430.7 ms, CI run of `bef058f`), while stale views, which go through the same fallback path, stay at 199.5 ms. «TBD: Windows tail diagnosis from the 665532f run»
+  - **Windows cold/missing p95 was over 300 ms in one of two runs.** Measure run 2 gave 430.7 ms, while its stale views, which go through the same fallback path, gave 199.5 ms, and warm had a 2.19 s outlier. Measure run 3, on another runner, gave 148.6 ms with a flat per-trial series (no hook-internal time over 200 ms in any 50-trial window). Run 2 kept no series, so its tail cannot be attributed: it is not established as a code cost, and it is not dismissed. The cold-cache latency target is therefore **not established on Windows** until repeated runs agree; shared CI runners are not the §7 reference hardware.
   - **Fault populations** (reported separately, never in the gate) behave safely: no hook exits nonzero or blocks. A busy writer, a 30 ms slow fsync, four concurrent hooks and (Windows) a transient rename sharing violation each deliver the cautions. Concurrency on Windows shows a few `store_snapshot_unavailable`/`fenced_out` empties, which are reported, not hidden.
   - **Two tool defects were found by the first CI measurement and fixed in the tools**, not by changing a target:
     - the cold regime deleted the fallback rows too (`bef058f`);
@@ -754,9 +758,9 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   | Linux (this container) | 0.15 | 45.5 | 600 s | During the crash matrix |
   | Linux (CI runner) | 0.0833 | 46.9 | 600 s | |
   | macOS (CI runner, arm64) | 0.19 | 37.8 | 600.1 s | `ps` accounting |
-  | Windows (CI runner) | «TBD» | | | The first run lost the window to the tool defect above |
+  | Windows (CI runner, measure run 3) | 0.1901 | 16.2 | 600 s | Windows process API; run 2 lost the window to the tool defect above |
 
-  Typed-state p95 from hook acknowledgement (n = 20, 5 s idle polling) was 4.60 s on CI Linux and 4.44 s on macOS (target ≤ 5 s).
+  Typed-state p95 from hook acknowledgement (n = 20, 5 s idle polling) was 4.60 s on CI Linux (4.66 s in run 3), 4.44 s on macOS and 4.91 s on Windows (target ≤ 5 s; Windows max 5.09 s).
 - **Smoke run (scripted, mechanics only; 12 scenarios, 24 trials):**
   - Candidate succeeded in 11 of 12 scenarios and the clean baseline in 9 of 12. L4 fails in both arms, by design (decision 0020 item 14). L2 and L3 fail only in the baseline.
   - Repeated mistakes: candidate 0, baseline 1 (L1). Detours: candidate 5, baseline 6.
@@ -910,7 +914,7 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 Task 18's preview slice is built; see its checkpoint. Its gate is **blocked** by B1 and its §7 usefulness gate **failed** (decision 0020 item 15). Next actions, in order:
 
 1. **Task 11 follow-up: prompt usefulness at scale** (decision 0020 item 15). Give the hook a bounded, worker-published lexical lookup into per-claim pre-serialized candidates, read with the stdlib inside the existing deadline. That needs the SYSTEM_SPEC §5.1.1 and DATA_CONTRACTS view-contract update, then a re-run of `tools/measure_release_latency.py` per platform (`.github/workflows/measure.yml`).
-2. **Windows cold-cache p95.** Diagnose the tail from the per-trial series in the measure artifact, fix the cause, and re-measure.
+2. **Windows cold-cache p95.** Re-run `.github/workflows/measure.yml` by dispatch until runs agree. If a tail returns, attribute it from the per-trial series the artifact now keeps, then fix the cause.
 3. **The live preview gate once B1 clears:** the eight operator commands under B1, from an ordinary terminal against the installed executable (2.1.306), then record the live results here. Re-run `integrate claude` after any host upgrade; a new host version needs a fixture capture and review before it is certified (decision 0019).
 4. **Owner decisions before publication:** the project license and the signing material (the release artifacts are unsigned).
 5. **Then Cut 2.**
