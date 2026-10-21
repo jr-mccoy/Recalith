@@ -92,15 +92,16 @@
     {
       "id": "hook_latency_usefulness_per_platform",
       "section_8": [1, 10],
-      "status": "pending",
-      "detail": "tools/measure_release_latency.py runs the §7 populations per native platform (Linux in this container; macOS and Windows on their CI runners through .github/workflows/measure.yml); the results are recorded in docs/measurements/ and the Task 18 checkpoint.",
-      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml"]
+      "status": "failed",
+      "detail": "tools/measure_release_latency.py ran the §7 populations per native platform: Linux in this container and on a CI runner, macOS and Windows on CI runners (.github/workflows/measure.yml). Latency p95 ≤ 300 ms and p99 ≤ 750 ms hold for warm views on all three platforms and for cold/missing views on Linux and macOS; Windows cold/missing p95 is over 300 ms. Usefulness fails on every platform: pre-action cautions are delivered, but prompt-specific facts outside the views' static slice are not, so healthy eligible delivery is about 50 % (target ≥ 99 % warm, ≥ 95 % cold). The idle worker is under 1 % of one core and ≤ 150 MiB on Linux and macOS. Results are in docs/measurements/ and the Task 18 checkpoint.",
+      "blocker": "decision 0020 item 15: the hook's query-independent views omit prompt-relevant facts at corpus scale (a Task 11 view-contract change); Windows cold-cache p95 over 300 ms (see the Task 18 checkpoint)",
+      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml", "docs/measurements/release-gate-latency-linux.json", "docs/decisions/0020-preview-evaluation-and-release-hardening.md"]
     },
     {
       "id": "failure_injection_protocol",
       "section_8": [1],
-      "status": "pending",
-      "detail": "Every kill/restart family at RECALITH_CRASH_REPS=20 (100 is for a release candidate, which this is not).",
+      "status": "passed",
+      "detail": "Every kill/restart family at RECALITH_CRASH_REPS=20 (100 is for a release candidate, which this is not): 13 families, 128 failpoint cases × 20 reps, 128 passed in 6343.01 s on Linux (Task 18 checkpoint). The retention family gained retention.after_record_aging, and a deliberate mutation there was caught only by this matrix. macOS and Windows run the same families at the default 3 repetitions in CI; the 20-repetition run is Linux only.",
       "evidence": ["tests/integration/test_capture_recovery.py", "tests/integration/test_worker.py", "tests/integration/test_claude_adapter.py"]
     },
     {
