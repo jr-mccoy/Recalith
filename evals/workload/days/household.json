@@ -1,0 +1,379 @@
+{
+ "day_schema": 1,
+ "project": "household",
+ "start": "2026-11-05T08:00:00.000000Z",
+ "duration_seconds": 28800,
+ "synthetic": true,
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "gold": {
+  "tasks": 4,
+  "task_of_session": {
+   "S1": "grocery-budget",
+   "S2": "meal-plan",
+   "S3": "utilities",
+   "S4": "trip",
+   "S5": "grocery-budget",
+   "S6": "meal-plan",
+   "S7": "utilities",
+   "S8": "trip"
+  }
+ },
+ "events": [
+  {
+   "at": 900,
+   "session": "S1",
+   "kind": "start"
+  },
+  {
+   "at": 944,
+   "session": "S1",
+   "kind": "prompt",
+   "text": "For my household planning: keep the grocery budget under $600 per month. Add a groceries row to budget.csv."
+  },
+  {
+   "at": 962,
+   "session": "S1",
+   "kind": "read",
+   "path": "budget.csv",
+   "content": "category,monthly_limit_usd,notes\nrent,1850,fixed\n"
+  },
+  {
+   "at": 1010,
+   "session": "S1",
+   "kind": "edit",
+   "path": "budget.csv",
+   "old": "eating_out,150,",
+   "new": "eating_out,150,\ngroceries,600,"
+  },
+  {
+   "at": 1032,
+   "session": "S1",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 4200,
+   "session": "S2",
+   "kind": "start"
+  },
+  {
+   "at": 4261,
+   "session": "S2",
+   "kind": "prompt",
+   "text": "Draft next month's grocery list in groceries.csv and summarize it in meal-plan.md."
+  },
+  {
+   "at": 4286,
+   "session": "S2",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n\nNo plan yet for next month.\n"
+  },
+  {
+   "at": 4324,
+   "session": "S2",
+   "kind": "write",
+   "path": "groceries.csv",
+   "content": "item,cost_usd\nproduce,180\npantry,140\nprotein,160\ndairy,60\n"
+  },
+  {
+   "at": 4373,
+   "session": "S2",
+   "kind": "write",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n\nGroceries total $540.\n"
+  },
+  {
+   "at": 4437,
+   "session": "S2",
+   "kind": "bash",
+   "command": "python -c \"import csv;print(sum(float(r['cost_usd']) for r in csv.DictReader(open('groceries.csv'))))\"",
+   "exit_code": 0,
+   "output": "540.0"
+  },
+  {
+   "at": 4502,
+   "session": "S2",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 7800,
+   "session": "S3",
+   "kind": "start"
+  },
+  {
+   "at": 7866,
+   "session": "S3",
+   "kind": "prompt",
+   "text": "Electricity went up in September in utilities-log.csv. Brainstorm why; I have not checked anything."
+  },
+  {
+   "at": 7907,
+   "session": "S3",
+   "kind": "read",
+   "path": "utilities-log.csv",
+   "content": "month,electricity_usd,water_usd,internet_usd\n2026-09,131,42,60\n"
+  },
+  {
+   "at": 7926,
+   "session": "S3",
+   "kind": "stop",
+   "reply": "Possibly cooling; unverified."
+  },
+  {
+   "at": 11400,
+   "session": "S4",
+   "kind": "start"
+  },
+  {
+   "at": 11449,
+   "session": "S4",
+   "kind": "prompt",
+   "text": "Compare the two trip ideas in trip-ideas.md by cost and write trip-plan.md."
+  },
+  {
+   "at": 11514,
+   "session": "S4",
+   "kind": "read",
+   "path": "trip-ideas.md",
+   "content": "# Trip ideas\n"
+  },
+  {
+   "at": 11561,
+   "session": "S4",
+   "kind": "bash",
+   "command": "python tools/cost.py trip-ideas.md",
+   "exit_code": 2,
+   "output": "python: can't open file 'tools/cost.py': [Errno 2] No such file or directory"
+  },
+  {
+   "at": 11629,
+   "session": "S4",
+   "kind": "write",
+   "path": "trip-plan.md",
+   "content": "# Trip plan\n\nCoast weekend: $420.\n"
+  },
+  {
+   "at": 11669,
+   "session": "S4",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 15600,
+   "session": "S5",
+   "kind": "start"
+  },
+  {
+   "at": 15669,
+   "session": "S5",
+   "kind": "prompt",
+   "text": "Correction: the grocery budget is now $700 per month, not $600. Update budget.csv."
+  },
+  {
+   "at": 15720,
+   "session": "S5",
+   "kind": "read",
+   "path": "budget.csv",
+   "content": "groceries,600,\n"
+  },
+  {
+   "at": 15761,
+   "session": "S5",
+   "kind": "edit",
+   "path": "budget.csv",
+   "old": "groceries,600,",
+   "new": "groceries,700,"
+  },
+  {
+   "at": 15799,
+   "session": "S5",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 19200,
+   "session": "S6",
+   "kind": "start"
+  },
+  {
+   "at": 19226,
+   "session": "S6",
+   "kind": "prompt",
+   "text": "Redo the grocery list for a month with a dinner party within the budget."
+  },
+  {
+   "at": 19294,
+   "session": "S6",
+   "kind": "read",
+   "path": "groceries.csv",
+   "content": "item,cost_usd\n"
+  },
+  {
+   "at": 19345,
+   "session": "S6",
+   "kind": "write",
+   "path": "groceries.csv",
+   "content": "item,cost_usd\nproduce,190\npantry,150\nprotein,180\ndinner party,160\n"
+  },
+  {
+   "at": 19393,
+   "session": "S6",
+   "kind": "write",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n\nLimit $700; total $680.\n"
+  },
+  {
+   "at": 19405,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19432,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19466,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19493,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19534,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19573,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19638,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19649,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19704,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19750,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19813,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19868,
+   "session": "S6",
+   "kind": "read",
+   "path": "meal-plan.md",
+   "content": "# Meal plan\n"
+  },
+  {
+   "at": 19919,
+   "session": "S6",
+   "kind": "compact"
+  },
+  {
+   "at": 19954,
+   "session": "S6",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 24000,
+   "session": "S7",
+   "kind": "start"
+  },
+  {
+   "at": 24062,
+   "session": "S7",
+   "kind": "prompt",
+   "text": "Write utilities-plan.md with next month's utilities estimate from utilities-log.csv."
+  },
+  {
+   "at": 24087,
+   "session": "S7",
+   "kind": "read",
+   "path": "utilities-log.csv",
+   "content": "month,electricity_usd\n"
+  },
+  {
+   "at": 24154,
+   "session": "S7",
+   "kind": "write",
+   "path": "utilities-plan.md",
+   "content": "# Utilities plan\n\nEstimate $235.\n"
+  },
+  {
+   "at": 24182,
+   "session": "S7",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 27300,
+   "session": "S8",
+   "kind": "start"
+  },
+  {
+   "at": 27356,
+   "session": "S8",
+   "kind": "prompt",
+   "text": "Remember for planning: trips are booked only on weekends. Update trip-plan.md accordingly."
+  },
+  {
+   "at": 27407,
+   "session": "S8",
+   "kind": "edit",
+   "path": "trip-plan.md",
+   "old": "Coast weekend",
+   "new": "Coast weekend (Sat-Sun)"
+  },
+  {
+   "at": 27430,
+   "session": "S8",
+   "kind": "stop",
+   "reply": "Done."
+  }
+ ]
+}

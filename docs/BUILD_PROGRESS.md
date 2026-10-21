@@ -645,6 +645,65 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - Windows 3.13: 979 passed, 93 skipped (tests 3125.07 s).
 - Next action: Task 18 preview (the release gate: 12-scenario comparative smoke against a clean no-memory baseline, three default-budget workload days, the profile-required deterministic/failure tests, native-platform hook latency/usefulness and the release checklist). B1 still blocks every live check.
 
+### 2026-10-21 — Task 18 (preview slice): evaluation harness, release gate evidence and hardening
+
+- **Files.**
+  - New evaluation code: `evals/{__init__,agent,baselines,curator,trial,workload,demos,report}.py` and `evals/oracles/__init__.py`. The Task 1 `oracles/smoke.py` stays; the package is the plan's `oracles.py`. `evals/run.py` is rewritten. `evals/workload/days/{ledgerlite,fieldnotes,household}.json` hold 107, 105 and 55 events. `evals/README.md` is updated.
+  - New tools: `tools/measure_release_latency.py` (the §7 gate), `tools/fixtures/hook_fault.py` (one armed failpoint in a fresh hook process), `tools/build_release.py` and `tools/release_checklist.py`. `tools/measure_worker_latency.py` gains macOS (`ps`) and Windows (`GetProcessTimes`, `K32GetProcessMemoryInfo`) accounting.
+  - Workflows: `.github/workflows/release.yml` builds unsigned digested artifacts and publishes nothing. `.github/workflows/measure.yml` runs the latency gate and the idle measurement on Linux, macOS and Windows runners.
+  - Edited source:
+    - `privacy/retention.py`: derived revision-body aging, `records_aged`, record pins in the closure;
+    - `fast/failpoints.py`: `retention.after_record_aging`;
+    - `working/reducer.py`: an aged closed task is frozen;
+    - `service.py`: `show` gives the `expired` marker;
+    - `fast/context.py`, `retrieval/search.py`, `controller/revalidate.py`: the live dependency label for every claim kind;
+    - `fast/claude_capture.py`: 2.1.306 certified after review.
+  - Tests:
+    - new `tests/integration/test_evaluation.py` (the plan's manifest and replay tests);
+    - `tests/unit/test_eval_harness.py`: 8 new tests;
+    - `tests/integration/test_retention.py`: 5 aging tests;
+    - `tests/integration/retention_scenarios.py`: derived-state judging;
+    - `tests/integration/test_worker.py`: the retention matrix judges derived state;
+    - `tests/integration/test_retrieval.py`: the dependency label for every claim kind;
+    - `tests/integration/test_claude_adapter.py`: the 2.1.306 review tests;
+    - `tests/fixtures/hosts/claude/2.1.306/`: reviewed request-capture fixtures.
+  - Docs:
+    - decision 0020;
+    - SYSTEM_SPEC §8.2 (the live dependency check) and §11 (derived revision bodies);
+    - DATA_CONTRACTS §5 (`show` of an aged head);
+    - IMPLEMENTATION_PLAN Task 15/18 files;
+    - `docs/OPERATIONS.md` (automatic, fallback and missing capabilities);
+    - `docs/release/{claude_preview_checklist,DEPENDENCIES}.json`;
+    - `docs/evaluations/preview-recorded-2026-10-21/` (the recorded run);
+    - `docs/measurements/release-gate-latency-linux.json` and `worker-idle-linux.json`;
+    - `docs/host-compatibility.json` (2.1.306);
+    - coverage manifest.
+- **Behavior:** see decision 0020 (15 items). Summary:
+  - **Two harness modes.** `live` refuses (exit 4, printing the operator commands) until a certified route and a `live` host record exist. `scripted` replaces only the working agent (fixed policies) and the model (recorded proposals at the worker's `Backend` interface). It drives the real hook path, worker, admission, review, revalidation, projections, fences and receipts on a virtual clock, and is labeled mechanics-only everywhere.
+  - **Evidence horizon** before every session: the spool is ingested first; a store holding a later or not-yet-run session's evidence refuses the trial with `future_evidence`.
+  - **Native memory is observed** through request capture with a planted `MEMORY.md` sentinel. On 2.1.306 it is `disabled` with `autoMemoryEnabled: false` plus `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`; the control loaded the sentinel. Anything else labels a live trial `contaminated`.
+  - **Initialization** uses `recalith init --operator-token-file` in a child that inherits the harness environment unchanged; from this host-marked process the guard refuses (6). The in-process initializer is allowed only in scripted runs and is labeled in every manifest.
+  - **Task 15 item closed: derived revision-body aging** (90 days for closed tasks, 180 days for episodes after task closure, pins kept).
+  - **Task 11 defect fixed:** a changed dependency is shown as `needs_revalidation` for every claim kind, not only failure lessons. It was found by the R4 smoke scenario.
+- **Commands** (Linux x86_64 container, 4 vCPU Xeon @ 2.80 GHz, ext4, SQLite 3.45.1, Python 3.13.16, Claude Code CLI **2.1.306** at `/opt/node22/bin/claude`):
+  - **Baseline** before any change: `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` → exit 0, 1044 passed, 28 skipped in 1925.46 s. The 8 real-host smoke tests skipped because the installed 2.1.306 was not yet capture-certified.
+  - **Fixture capture:** `tools/capture_claude_fixtures.py --output <scratch>` → exit 0. It observed the same 12 events as 2.1.305 and removed 23 owned hooks, with unrelated settings preserved. After a field-by-field review against 2.1.305 (multiset equality for subagent records), 2.1.306 is certified and the copy is in `tests/fixtures/hosts/claude/2.1.306/`.
+  - **Tests first:**
+    - `pytest tests/integration/test_evaluation.py` → exit 1, 2 failed in 4.95 s. The manifest lacked the plan's owners (A49/A52/A54 Task 3b, A61 Task 18, A67 Task 4, A73 Task 14), and `evals.agent` was absent.
+    - The 5 aging tests → 5 failed in 4.36 s.
+    - The dependency-label test → 1 failed (freshness stayed `current` after the out-of-band edit).
+  - **After implementation:**
+    - `test_retention.py` → 23 passed;
+    - retrieval, delivery, import audits and consolidation → 115 passed, 1 skipped;
+    - harness and evaluation → 12 passed;
+    - the real-host platform tests on 2.1.306 → 56 passed, 4 skipped in 211.74 s;
+    - the retention matrix at 3 reps → 9 passed.
+  - **Scripted gate:** `python evals/run.py gate --mode scripted --init-route test_fixture --out <scratch>/gate` → exit 8 (`blocked`: B1 and not live). It ran the 24 trials, the three days, the five demonstrations and the report; copied to `docs/evaluations/preview-recorded-2026-10-21/` with no paths or secrets.
+  - **Release build:** `python tools/build_release.py --out <scratch>/dist` → exit 0. It produced the wheel and sdist with SHA256SUMS and RELEASE_MANIFEST.json; the wheel holds exactly `src/recalith` plus metadata; the runtime closure matches `DEPENDENCIES.json`; there are no foreign copyright headers. The artifacts are unsigned.
+  - **Checklist:** `python tools/release_checklist.py` → exit 0 (record consistent; verdict `blocked`).
+  - «TBD: crash matrix, latency gate, idle, full suites, ruff, generator checks»
+- «TBD: results sections»
+
 Add each later checkpoint with:
 
 - Date and commit when available; completed task slice and changed files.

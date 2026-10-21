@@ -1,0 +1,49 @@
+name: measure
+
+# Native-platform measurements for the preview gate (ACCEPTANCE_TESTS §7): hook latency and
+# usefulness in fresh interpreters (500 warm, 500 cold/missing packet, 50 first launches, the
+# stale-cache, busy-writer, concurrent-hook, slow-fsync and Windows transient-rename cases) and the
+# idle worker's CPU and memory over 10 minutes. Each platform is measured on its own runner and
+# reported separately; nothing is extrapolated across platforms. Results are printed and uploaded.
+
+on:
+  push:
+    paths:
+      - "src/recalith/fast/**"
+      - "src/recalith/controller/worker.py"
+      - "tools/measure_release_latency.py"
+      - "tools/measure_worker_latency.py"
+      - "tools/fixtures/hook_fault.py"
+      - ".github/workflows/measure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: measure (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Install locked dependencies
+        run: uv sync --locked --python 3.13
+      - name: Hook latency and usefulness gate (fresh interpreters)
+        continue-on-error: true
+        run: uv run --locked python tools/measure_release_latency.py --output measurements/release-latency-${{ runner.os }}.json
+      - name: Idle worker footprint over 10 minutes (and typed-state latency)
+        continue-on-error: true
+        run: uv run --locked python tools/measure_worker_latency.py --trials 20 --start-trials 5 --idle-seconds 600 --output measurements/worker-${{ runner.os }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: measurements-${{ runner.os }}
+          path: measurements/
+          retention-days: 14

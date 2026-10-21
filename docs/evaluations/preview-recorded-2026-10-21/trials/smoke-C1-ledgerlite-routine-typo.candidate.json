@@ -1,0 +1,327 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "update_task": 1
+  },
+  "estimated_input_tokens": 42674,
+  "estimated_output_tokens": 100,
+  "harness_drain_seconds": 1.274,
+  "jobs_by_state": {
+   "completed": 5
+  },
+  "model_calls": 4,
+  "tokens": 42774,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [
+  {
+   "job_id": "job_852f8cca-3332-46a9-8ff0-8c02b0f960a9",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 29131
+  },
+  {
+   "job_id": "job_cb51c258-cf90-46e1-82d2-ccc8b3fb8792",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 28760
+  },
+  {
+   "job_id": "job_e3b3fd25-0745-46b4-9471-dfb9aa7bb755",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 37848
+  },
+  {
+   "job_id": "job_a4404f83-681f-4c70-be80-08ea90b26950",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 32280
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "A typo was fixed in README.md."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any durable lesson about README editing."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 20,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-02T14:04:41.000000Z",
+   "events": 8,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:c1"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_ad5cf246-6ea4-45b4-9309-50ef2bba5305",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_c7999f12-afc0-41a5-8a6f-6bf68a7414c7"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "c1",
+  "checks": {
+   "suite_passes": true,
+   "total_has_docstring": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 42774,
+  "detours": 1,
+  "elapsed_seconds": 0.264,
+  "foreground_tokens": 375,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": true,
+   "spec": {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python -m unittest discover -s tests",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-C1-ledgerlite-routine-typo",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Edit"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:04.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 3
+   },
+   "elapsed_seconds": 0.04,
+   "host_session_id": "452f9817-2736-56f3-b5bf-7166d987c42f",
+   "name": "A",
+   "overlays": [
+    "README.md"
+   ],
+   "project": "ledgerlite",
+   "reply": "Fixed the typo."
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "python -m unittest discover -s tests",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:04:41.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:42.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:43.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:45.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:47.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:04:49.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 2
+   },
+   "elapsed_seconds": 0.224,
+   "host_session_id": "418d5802-8b6d-5e92-99cc-30f804628694",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Added the docstring."
+  }
+ ],
+ "trial_schema": 1
+}

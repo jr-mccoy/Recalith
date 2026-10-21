@@ -1,0 +1,351 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "revalidate": 1,
+   "review_claims": 2,
+   "update_task": 1
+  },
+  "estimated_input_tokens": 59840,
+  "estimated_output_tokens": 1581,
+  "harness_drain_seconds": 1.204,
+  "jobs_by_state": {
+   "completed": 8
+  },
+  "model_calls": 7,
+  "tokens": 61421,
+  "usage_source": "engine estimates charged by the budget ledger (no provider usage reported)"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_89952cc2-ff03-45a4-ba00-de3e42a75f04",
+   "freshness": "current",
+   "kind": "failure_lesson",
+   "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+   "revision": 5,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "job_id": "job_219b1e05-7ff9-461d-822d-6be01efc71c5",
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims",
+   "request_bytes": 36591
+  },
+  {
+   "job_id": "job_0c126d1d-00f6-44c4-a32e-c274881b3d85",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 15894
+  },
+  {
+   "job_id": "job_043d4c3b-2aa6-4c5c-b153-9af8118eff4d",
+   "operations": [],
+   "purpose": "build_episode",
+   "request_bytes": 23979
+  },
+  {
+   "job_id": "job_6775f3d8-72cd-4ab5-b6fe-0cdfd7a8df66",
+   "operations": [
+    "revise_claim"
+   ],
+   "purpose": "revalidate",
+   "request_bytes": 22940
+  },
+  {
+   "job_id": "job_c8450744-3090-452c-b194-99ee826afd96",
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims",
+   "request_bytes": 19036
+  },
+  {
+   "job_id": "job_c00a02e5-05e4-466c-bcd8-20a2779b305d",
+   "operations": [],
+   "purpose": "extract_claims",
+   "request_bytes": 37466
+  },
+  {
+   "job_id": "job_d0de9726-8d77-4593-819e-3d3c80c3969e",
+   "operations": [],
+   "purpose": "update_task",
+   "request_bytes": 23608
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A plain discovery failed with ModuleNotFoundError.",
+   "Before C, tests/__init__.py was added."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tests/__init__.py (absent in A)",
+    "kind": "failure_lesson",
+    "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+    "retry_condition": "Retry if the test package changes import setup."
+   }
+  ]
+ },
+ "hook_replies": 16,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-02T09:00:00.000000Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-11-02T14:09:44.000000Z",
+   "events": 10,
+   "host_sessions": 1
+  }
+ ],
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "kind": "scripted",
+    "live": false,
+    "policy": "evals/agent.py:r2"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "reason": "scripted agent: no host session, no host-native memory",
+    "state": "not_applicable"
+   },
+   "recalith_installation": {
+    "init": {
+     "label": "in-process engine initializer, as the test suites build installations; not an operator workflow",
+     "route": "test_fixture"
+    },
+    "installation_id": "inst_6e38f0f4-bacd-4ab7-b739-35654446ee18",
+    "manifest": {
+     "certified": false,
+     "delivery_paths": [
+      "session_start",
+      "prompt",
+      "pre_action",
+      "compact_restore"
+     ],
+     "host_version": "2.1.305",
+     "kind": "controlled_test_manifest",
+     "worker_autostart": false
+    },
+    "project_id": "proj_82a11c9b-663a-4408-bc34-e8538f839ae4"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "scripted",
+ "oracle": {
+  "check": "r2",
+  "checks": {
+   "plain_discovery_passes": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 61421,
+  "detours": 0,
+  "elapsed_seconds": 0.366,
+  "foreground_tokens": 859,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "needs_revalidation",
+     "text": "Failure lesson: Plain discovery fails to import ledgerlite without PYTHONPATH=src. Observed: `python -m unittest discover -s tests -t .` failed: the tests direc"
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python -m unittest discover -s tests -t .",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-R2-ledgerlite-import-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests -t .",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": 0,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T09:00:00.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:01.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:02.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:04.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T09:00:06.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 4
+   },
+   "elapsed_seconds": 0.225,
+   "host_session_id": "1586bf86-07d8-51b6-ac1a-c9e99397914b",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "`python -m unittest discover -s tests -t .` cannot import the tests or ledgerlite; `PYTHONPATH=src python -m unittest discover -s tests` works."
+  },
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests -t .",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "deliveries": [
+    {
+     "at": "2026-11-02T14:09:44.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "2026-11-02T14:09:45.000000Z",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Failure lesson: Plain discovery fails to import ledgerlite without PYTHONPATH=src. Observed: `python -m unittest discover -s tests -t .` failed: the tests directory and ledgerlite are not importable without help. Alternative: Set PYTHONPATH=src.\n  why: lexical_match \u2014 matches without, pythonpath, tests, python; dependency_false; freshness_needs_revalidation\n  applies: true \u00b7 freshness: needs_revalidation \u00b7 basis: inferred\n  conditions: depends on file tests/__init__.py\n  retry: Retry plain discovery if tests/__init__.py adds src to sys.path.\n  sources: claim_89952cc2-ff03-45a4-ba00-de3e42a75f04 r2; evt_684e30191178df7f62db8aa7c76e46660eafac79db33175bcdc27d62fcd6d31e; evt_c01b6830c816949a5fcc75f0f5b7d414da06540e185b5cba20c3c5f10e93ae39",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "2026-11-02T14:09:46.000000Z",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "drain": {
+    "virtual_idle_horizon_s": 10800,
+    "worked_polls": 6
+   },
+   "elapsed_seconds": 0.141,
+   "host_session_id": "b7d17de8-b5bb-5031-9c0c-591158af1427",
+   "name": "C",
+   "overlays": [
+    "tests/__init__.py"
+   ],
+   "project": "ledgerlite",
+   "reply": "Reported the test result."
+  }
+ ],
+ "trial_schema": 1
+}

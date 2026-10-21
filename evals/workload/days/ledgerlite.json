@@ -1,0 +1,775 @@
+{
+ "day_schema": 1,
+ "project": "ledgerlite",
+ "start": "2026-11-03T08:00:00.000000Z",
+ "duration_seconds": 28800,
+ "synthetic": true,
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "gold": {
+  "tasks": 7,
+  "task_of_session": {
+   "S1": "test-setup",
+   "S2": "close-account",
+   "S3": "close-account",
+   "S4": "money-module",
+   "S5": "transfer-refactor",
+   "S6": "decimal-decision",
+   "S7": "readme",
+   "S8": "balance-report",
+   "S9": "balance-report"
+  }
+ },
+ "events": [
+  {
+   "at": 300,
+   "session": "S1",
+   "kind": "start"
+  },
+  {
+   "at": 336,
+   "session": "S1",
+   "kind": "prompt",
+   "text": "Run the ledgerlite unit tests and get them running."
+  },
+  {
+   "at": 399,
+   "session": "S1",
+   "kind": "bash",
+   "command": "python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "E\n======================================================================\nERROR: test_ledger (unittest.loader._FailedTest.test_ledger)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_ledger\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 3, in <module>\n    from ledgerlite import Ledger\nModuleNotFoundError: No module named 'ledgerlite'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)"
+  },
+  {
+   "at": 442,
+   "session": "S1",
+   "kind": "read",
+   "path": "README.md",
+   "content": "..."
+  },
+  {
+   "at": 504,
+   "session": "S1",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 540,
+   "session": "S1",
+   "kind": "stop",
+   "reply": "Tests run with PYTHONPATH=src."
+  },
+  {
+   "at": 2400,
+   "session": "S2",
+   "kind": "start"
+  },
+  {
+   "at": 2462,
+   "session": "S2",
+   "kind": "prompt",
+   "text": "Add Ledger.close(name) that refuses nonzero balances, with a test."
+  },
+  {
+   "at": 2507,
+   "session": "S2",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 2527,
+   "session": "S2",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 2546,
+   "session": "S2",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 2605,
+   "session": "S2",
+   "kind": "edit",
+   "path": "tests/test_ledger.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 2645,
+   "session": "S2",
+   "kind": "bash",
+   "command": "python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "E\n======================================================================\nERROR: test_ledger (unittest.loader._FailedTest.test_ledger)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_ledger\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 3, in <module>\n    from ledgerlite import Ledger\nModuleNotFoundError: No module named 'ledgerlite'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)"
+  },
+  {
+   "at": 2683,
+   "session": "S2",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_close (tests.test_ledger.LedgerTests.test_close)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 14, in test_close\n    self.assertEqual(Decimal('1'), Decimal('0'))\nAssertionError: Decimal('1') != Decimal('0')\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 2731,
+   "session": "S2",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 2778,
+   "session": "S2",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 2792,
+   "session": "S2",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 5700,
+   "session": "S3",
+   "kind": "start"
+  },
+  {
+   "at": 5727,
+   "session": "S3",
+   "kind": "prompt",
+   "text": "Continue with close: document it and run the suite again."
+  },
+  {
+   "at": 5744,
+   "session": "S3",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 5757,
+   "session": "S3",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 5799,
+   "session": "S3",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 5845,
+   "session": "S3",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 8400,
+   "session": "S4",
+   "kind": "start"
+  },
+  {
+   "at": 8433,
+   "session": "S4",
+   "kind": "prompt",
+   "text": "Add src/ledgerlite/money.py with parse(value) -> Decimal rejecting non-positive values, plus tests."
+  },
+  {
+   "at": 8502,
+   "session": "S4",
+   "kind": "write",
+   "path": "src/ledgerlite/money.py",
+   "content": "from decimal import Decimal\n"
+  },
+  {
+   "at": 8538,
+   "session": "S4",
+   "kind": "write",
+   "path": "tests/test_money.py",
+   "content": "import unittest\n"
+  },
+  {
+   "at": 8587,
+   "session": "S4",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_parse_rejects_zero (tests.test_money.MoneyTests.test_parse_rejects_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_money.py\", line 14, in test_parse_rejects_zero\n    self.assertEqual(None, ValueError)\nAssertionError: None != ValueError\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 8642,
+   "session": "S4",
+   "kind": "edit",
+   "path": "src/ledgerlite/money.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 8689,
+   "session": "S4",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_parse_rejects_zero (tests.test_money.MoneyTests.test_parse_rejects_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_money.py\", line 14, in test_parse_rejects_zero\n    self.assertEqual(None, ValueError)\nAssertionError: None != ValueError\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 8738,
+   "session": "S4",
+   "kind": "edit",
+   "path": "src/ledgerlite/money.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 8756,
+   "session": "S4",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_parse_rejects_zero (tests.test_money.MoneyTests.test_parse_rejects_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_money.py\", line 14, in test_parse_rejects_zero\n    self.assertEqual(None, ValueError)\nAssertionError: None != ValueError\n\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 8803,
+   "session": "S4",
+   "kind": "edit",
+   "path": "src/ledgerlite/money.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 8811,
+   "session": "S4",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 8822,
+   "session": "S4",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 12000,
+   "session": "S5",
+   "kind": "start"
+  },
+  {
+   "at": 12020,
+   "session": "S5",
+   "kind": "prompt",
+   "text": "Refactor Ledger.transfer to use money.parse; keep the suite green. This will be a long session."
+  },
+  {
+   "at": 12084,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12107,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12153,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_transfer (tests.test_ledger.LedgerTests.test_transfer)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 14, in test_transfer\n    self.assertEqual(Decimal('2'), Decimal('3'))\nAssertionError: Decimal('2') != Decimal('3')\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 12162,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12219,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 12256,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12284,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12320,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12365,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 12426,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12446,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 12494,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12520,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 12559,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12567,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12617,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12630,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 12667,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12716,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 12741,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_transfer (tests.test_ledger.LedgerTests.test_transfer)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 14, in test_transfer\n    self.assertEqual(Decimal('2'), Decimal('3'))\nAssertionError: Decimal('2') != Decimal('3')\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 12775,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12818,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 12885,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 12946,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 12959,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13012,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 13036,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 13064,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 13104,
+   "session": "S5",
+   "kind": "compact"
+  },
+  {
+   "at": 13130,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 13139,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 13151,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13195,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 13252,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 13266,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 13299,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 13313,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13375,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_transfer (tests.test_ledger.LedgerTests.test_transfer)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 14, in test_transfer\n    self.assertEqual(Decimal('2'), Decimal('3'))\nAssertionError: Decimal('2') != Decimal('3')\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 13401,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 13433,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 13445,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 13514,
+   "session": "S5",
+   "kind": "read",
+   "path": "src/ledgerlite/money.py",
+   "content": "..."
+  },
+  {
+   "at": 13523,
+   "session": "S5",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 13585,
+   "session": "S5",
+   "kind": "read",
+   "path": "tests/test_ledger.py",
+   "content": "..."
+  },
+  {
+   "at": 13636,
+   "session": "S5",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 13657,
+   "session": "S5",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 18000,
+   "session": "S6",
+   "kind": "start"
+  },
+  {
+   "at": 18067,
+   "session": "S6",
+   "kind": "prompt",
+   "text": "Decision: ledger amounts are always Decimal; never use float anywhere in ledgerlite."
+  },
+  {
+   "at": 18133,
+   "session": "S6",
+   "kind": "read",
+   "path": "src/ledgerlite/__init__.py",
+   "content": "..."
+  },
+  {
+   "at": 18144,
+   "session": "S6",
+   "kind": "bash",
+   "command": "grep -rn float src",
+   "exit_code": 1,
+   "output": ""
+  },
+  {
+   "at": 18182,
+   "session": "S6",
+   "kind": "stop",
+   "reply": "No float usage found."
+  },
+  {
+   "at": 20700,
+   "session": "S7",
+   "kind": "start"
+  },
+  {
+   "at": 20770,
+   "session": "S7",
+   "kind": "prompt",
+   "text": "Update the README with the test command and a usage example."
+  },
+  {
+   "at": 20823,
+   "session": "S7",
+   "kind": "read",
+   "path": "README.md",
+   "content": "..."
+  },
+  {
+   "at": 20856,
+   "session": "S7",
+   "kind": "edit",
+   "path": "README.md",
+   "old": "ledger library",
+   "new": "ledger library. Run tests with PYTHONPATH=src."
+  },
+  {
+   "at": 20890,
+   "session": "S7",
+   "kind": "bash",
+   "command": "python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "E\n======================================================================\nERROR: test_ledger (unittest.loader._FailedTest.test_ledger)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_ledger\nTraceback (most recent call last):\n  File \"tests/test_ledger.py\", line 3, in <module>\n    from ledgerlite import Ledger\nModuleNotFoundError: No module named 'ledgerlite'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)"
+  },
+  {
+   "at": 20902,
+   "session": "S7",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 20959,
+   "session": "S7",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 24000,
+   "session": "S8",
+   "kind": "start"
+  },
+  {
+   "at": 24025,
+   "session": "S8",
+   "kind": "prompt",
+   "text": "Add Ledger.report() returning sorted (name, balance) pairs, test first."
+  },
+  {
+   "at": 24054,
+   "session": "S8",
+   "kind": "write",
+   "path": "tests/test_report.py",
+   "content": "import unittest\n"
+  },
+  {
+   "at": 24067,
+   "session": "S8",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 1,
+   "output": "F\n======================================================================\nFAIL: test_report (tests.test_report.ReportTests.test_report)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"tests/test_report.py\", line 14, in test_report\n    self.assertEqual([], [('a', 0)])\nAssertionError: [] != [('a', 0)]\n\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nFAILED (failures=1)"
+  },
+  {
+   "at": 24094,
+   "session": "S8",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 24123,
+   "session": "S8",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 24192,
+   "session": "S8",
+   "kind": "stop",
+   "reply": "Done."
+  },
+  {
+   "at": 27000,
+   "session": "S9",
+   "kind": "start"
+  },
+  {
+   "at": 27056,
+   "session": "S9",
+   "kind": "prompt",
+   "text": "Polish report(): handle empty ledgers and rerun the tests."
+  },
+  {
+   "at": 27123,
+   "session": "S9",
+   "kind": "edit",
+   "path": "src/ledgerlite/__init__.py",
+   "old": "pass",
+   "new": "return None"
+  },
+  {
+   "at": 27138,
+   "session": "S9",
+   "kind": "bash",
+   "command": "PYTHONPATH=src python -m unittest discover -s tests",
+   "exit_code": 0,
+   "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.001s\n\nOK"
+  },
+  {
+   "at": 27161,
+   "session": "S9",
+   "kind": "stop",
+   "reply": "Done."
+  }
+ ]
+}

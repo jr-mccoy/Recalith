@@ -200,7 +200,7 @@ Every dependency key has a registered resolution rule. `file` keys are normalize
 
 `ModelProvenance = {provider_id: str, configured_model: str, resolved_model: str|null, adapter_version: str, prompt_id: str, prompt_digest: Digest, job_id: Id}`.
 
-Claim revisions are immutable except explicit privacy purging. `status` in an old revision remains historical; the `claim_heads` table points to the current revision. Superseding creates a new claim ID when the proposition is replaced; clarification/narrowing of the same proposition creates a new revision. A `confirms` evidence attachment also creates a revision. Record titles may change without changing IDs. A forgotten claim retains only a content-free tombstone/head marker; `show` returns that marker instead of reconstructing a required proposition body.
+Claim revisions are immutable except explicit privacy purging. `status` in an old revision remains historical; the `claim_heads` table points to the current revision. Superseding creates a new claim ID when the proposition is replaced; clarification/narrowing of the same proposition creates a new revision. A `confirms` evidence attachment also creates a revision. Record titles may change without changing IDs. A forgotten claim retains only a content-free tombstone/head marker; `show` returns that marker instead of reconstructing a required proposition body. A closed task or settled/archived episode whose revision bodies aged out under retention (decision 0020) keeps its head and status; `show` of that head answers `{"body": null, "content": "expired"}`, and an undo over an aged body is a `body_unavailable` conflict.
 
 ## 6. Evidence capsules and relations
 

@@ -855,15 +855,21 @@ def guidance(q: Any, ctx: InstallationContext, claim: ClaimRevision, query: Cont
         dependency = conditions.dependency_applicability(claim.dependencies, values)
         if dependency != conditions.TRUE:
             reasons.append(f"dependency_{dependency}")
-    if claim.freshness != "current":
-        reasons.append(f"freshness_{claim.freshness}")
+    elif claim.dependencies and current:
+        # Any other claim kind: a changed dependency observed live is never shown as current (decision 0020).
+        dependency = conditions.dependency_applicability(claim.dependencies, current)
+        if dependency == conditions.FALSE:
+            reasons.append("dependency_false")
+    freshness = "needs_revalidation" if claim.freshness == "current" and dependency == conditions.FALSE else claim.freshness
+    if freshness != "current":
+        reasons.append(f"freshness_{freshness}")
     if claim.status == "disputed":
-        return Guidance("conflict" if applicable != conditions.FALSE else None, applicable, dependency, claim.freshness, tuple(reasons + ["disputed"]))
+        return Guidance("conflict" if applicable != conditions.FALSE else None, applicable, dependency, freshness, tuple(reasons + ["disputed"]))
     if claim.status == "candidate":
-        return Guidance("context" if applicable != conditions.FALSE else None, applicable, dependency, claim.freshness, tuple(reasons + ["candidate"]))
+        return Guidance("context" if applicable != conditions.FALSE else None, applicable, dependency, freshness, tuple(reasons + ["candidate"]))
     caution_candidate = claim.kind == "failure_lesson" and claim.strength in ("supported", "corroborated") and dependency == conditions.TRUE
-    advice = conditions.advice_for(applicable, claim.freshness, caution_candidate=caution_candidate)
-    return Guidance(advice, applicable, dependency, claim.freshness, tuple(reasons))
+    advice = conditions.advice_for(applicable, freshness, caution_candidate=caution_candidate)
+    return Guidance(advice, applicable, dependency, freshness, tuple(reasons))
 
 
 def plus_days(moment: str, days: int) -> str:

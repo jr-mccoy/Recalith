@@ -743,3 +743,31 @@ def test_older_development_store_is_refused(tmp_path):
     with pytest.raises(RecalithError) as refused:
         db.open_store(p.ctx)
     assert refused.value.code == "invalid_schema" and "explicit migration" in str(refused.value)
+
+
+def test_uncaptured_dependency_change_labels_every_claim_kind(p):
+    """A claim of any kind whose registered file dependency changed outside any captured tool is never shown as current.
+
+    The bounded live dependency check (§7.4) runs for every live claim with
+    registered dependencies, not only failure lessons: a changed value labels
+    the item ``needs_revalidation`` (§8.2 table row 2) with ``dependency_false``
+    in both compilers; restoring the bytes makes it current again. Found by the
+    Task 18 smoke run (R4: a stored storage fact stayed "current" after the
+    code it describes changed).
+    """
+    body = adm.claim("The fixture dependency file holds version one.", subject="dependency file version")
+    body["dependencies"] = [{"kind": "file", "key": cs.DEP, "fingerprint": None, "record": None}]
+    claim_id = adm.created_claim(adm.extract(p, [osc.op("f", "propose_claim", body, evidence=[adm.link(cs.failure(p))])]))
+    adm.admit(p, claim_id)
+    q = rs.query(p, "prompt", text="Which version does the fixture dependency file hold?")
+    rs.publish(p)
+
+    def items():
+        return [rs.by_id(rs.service(p, q))[claim_id], rs.by_id(rs.hook(p, q)["packet"])[claim_id]]
+
+    assert [i["freshness"] for i in items()] == ["current", "current"]
+    (p.root / cs.DEP).write_bytes(b"fixture v2, edited outside the host\n")
+    for item in items():
+        assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
+    (p.root / cs.DEP).write_bytes(b"fixture v1\n")
+    assert [i["freshness"] for i in items()] == ["current", "current"]

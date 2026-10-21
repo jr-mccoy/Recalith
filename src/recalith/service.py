@@ -639,8 +639,11 @@ def show(ctx: InstallationContext, record_id: str, *, revision: int | None = Non
                 # The content-free marker of a forgotten or quarantined head (DATA_CONTRACTS §5), never a reconstructed body.
                 epoch = view.execute("SELECT MAX(epoch) FROM tombstones").fetchone()[0]
                 return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": None, "content": head[1], "tombstone_epoch": epoch}
+            if body is None and revision is None and kind in ("task", "episode") and head[1] in ("completed", "abandoned", "settled", "archived"):
+                # Age retention emptied this closed record's history (decision 0020): a content-free marker.
+                return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": None, "content": "expired"}
             if body is None:
-                raise RecalithError("invalid_schema", "no such revision, or its content was forgotten")
+                raise RecalithError("invalid_schema", "no such revision, or its content was forgotten or aged out")
             return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": body}
         if prefix == "evt":
             row = view.execute("SELECT envelope, payload FROM events WHERE event_id = ?", (record_id,)).fetchone()

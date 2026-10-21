@@ -1,0 +1,115 @@
+{
+  "checklist_schema": 1,
+  "profile": "claude_preview",
+  "source": "docs/ACCEPTANCE_TESTS.md §8 (preview column); IMPLEMENTATION_PLAN Task 13 'Cut 1 release gate' and Task 18",
+  "engine": "0.1.0.dev0",
+  "checked_by": "tools/release_checklist.py (tests/unit/test_eval_harness.py::test_release_checklist_and_dependency_inventory_are_consistent)",
+  "verdict": "blocked",
+  "verdict_reason": "B1: no certified inference route and no live host certification, so the live comparative smoke, the live workload days, live extraction quality and live delivery certification have not run; a scripted/recorded run is never a pass",
+  "items": [
+    {
+      "id": "deterministic_case_variants",
+      "section_8": [1],
+      "status": "blocked",
+      "detail": "Every deterministic suite passes locally on Python 3.12/3.13/3.14 and in CI on Linux, macOS and Windows (see the Task 18 checkpoint); the manifest maps every one of the 67 preview IDs and their §2.1 partial variants to existing tests. No case is marked passed: several preview variants include live-host parts (A27, A28, A29, A30, A61, A67 and the live delivery paths) that need B1.",
+      "blocker": "B1 (live variants)",
+      "evidence": ["tests/coverage_manifest.json", "tests/integration/test_evaluation.py::test_acceptance_manifest_covers_A01_through_A73_by_profile", "docs/BUILD_PROGRESS.md"]
+    },
+    {
+      "id": "inference_isolation_and_delivery_certified",
+      "section_8": [2],
+      "status": "blocked",
+      "detail": "Request-capture isolation passes on the installed Claude Code CLI (clean and host-marked parents); the live route, the operator attestation and the live nonce certification of start/prompt (and the optional pre-action/compaction paths) have not run.",
+      "blocker": "B1: route and attestation not configured; live echo not run",
+      "evidence": ["docs/host-compatibility.json", "docs/probes/LOCAL_CONFIG.md", "docs/probes/DELIVERY_PROBE.md"]
+    },
+    {
+      "id": "smoke_quality_gates",
+      "section_8": [3],
+      "status": "blocked",
+      "detail": "The live 12-scenario comparative smoke has not run. The scripted/recorded run (mechanics only) is in docs/evaluations/preview-recorded-2026-10-21/ with its unmet expectations stated; preview may only be published as an explicitly experimental build until the live gate passes.",
+      "blocker": "B1 (no live trial); recorded run shows unmet smoke expectations (see the report)",
+      "evidence": ["evals/run.py", "evals/report.py", "docs/evaluations/preview-recorded-2026-10-21/report.md"]
+    },
+    {
+      "id": "backup_restore_forget_retention_guards_isolation",
+      "section_8": [4, 6],
+      "status": "passed",
+      "detail": "Deterministic and kill/restart suites pass for backup, verified restore, forgetting with suppression-aware restore, pin-aware retention (with derived revision-body aging), the operator-command guard and cross-installation isolation; the scripted §6.1 demonstrations reproduce forgetting/restore and isolation end to end. Migration/upgrade and transfers are full-only.",
+      "evidence": ["tests/integration/test_retention.py", "tests/integration/test_forgetting.py", "tests/integration/test_restore.py", "tests/integration/test_cli.py", "tests/integration/test_installations.py", "tests/integration/test_retrieval.py::test_two_installations_never_cross", "evals/demos.py"]
+    },
+    {
+      "id": "dependency_and_license_inventory",
+      "section_8": [5],
+      "status": "passed",
+      "detail": "tools/build_release.py checks the runtime closure of requirements.lock with each package's declared license against docs/release/DEPENDENCIES.json, the wheel's contents against src/recalith, and the absence of foreign copyright headers (no upstream source is adapted, so no THIRD_PARTY_NOTICES.md ships). The project's own license is not declared in pyproject.toml: that is an owner decision and a publication blocker, recorded under release_artifacts.",
+      "evidence": ["tools/build_release.py", "docs/release/DEPENDENCIES.json", "docs/SOURCES_AND_REUSE.md"]
+    },
+    {
+      "id": "operator_documentation",
+      "section_8": [7],
+      "status": "passed",
+      "detail": "docs/OPERATIONS.md separates automatic operation, fallback operation (each degraded condition with what still works and its status reason) and missing capabilities (the 16 deferred features and the other full-only forms).",
+      "evidence": ["docs/OPERATIONS.md"]
+    },
+    {
+      "id": "evaluation_report_contents",
+      "section_8": [8],
+      "status": "passed",
+      "detail": "The report format carries unsuccessful runs, all seven §5.2 measures, the observed native-memory setting, scenario authorship, pilot status and the §6.2 arithmetic labeled as illustrative, actual costs, limitations and no superiority claim; the recorded run's report is checked into docs/evaluations/. The live report is pending B1.",
+      "evidence": ["evals/report.py", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.json"]
+    },
+    {
+      "id": "review_focus_rechecked",
+      "section_8": [9],
+      "status": "passed",
+      "detail": "All five Review focus items rechecked at the Task 18 gate, with the cross-component tests rerun (see the Task 18 checkpoint in docs/BUILD_PROGRESS.md).",
+      "focus_items": [
+        "same source event twice across a crash: one support root, one effect",
+        "quoted or repeated through agent memory: no added authority or corroboration",
+        "correction or forget before the final delivery fence: old guidance excluded, in-flight emission bounded",
+        "paths across Windows, worktrees and relocation: only registered boundaries",
+        "provider or host version change: capability rechecked, no silent autonomy claim"
+      ],
+      "evidence": ["docs/BUILD_PROGRESS.md"]
+    },
+    {
+      "id": "explicit_reports",
+      "section_8": [10],
+      "status": "passed",
+      "detail": "Reported explicitly: the fast-path import audits (tests/platform/test_hook_imports.py), private-path restriction coverage (probed_limited on the installed host; preview installs none), the three default-budget workload days (recorded mode, with the input-estimate pool exhaustion they show) and fresh post-forget recovery (the post-forget verified backup and the forget/restore kill/restart matrix).",
+      "evidence": ["tests/platform/test_hook_imports.py", "evals/workload.py", "docs/evaluations/preview-recorded-2026-10-21/report.md", "tests/integration/test_worker.py"]
+    },
+    {
+      "id": "readiness_names_profile_and_unavailable_features",
+      "section_8": [2, 7],
+      "status": "passed",
+      "profile": "claude_preview",
+      "unavailable_features": ["codex_capture", "codex_delivery", "generic_json", "mcp", "capsules", "export", "import", "breadcrumbs_import", "workspace_attach", "project_fork", "session_worker", "shared_integration", "ipc_wake", "revision_chain", "private_path_install", "side_by_side_upgrade"],
+      "detail": "recalith status / health(ctx) report release_profile claude_preview, every required and optional capability with its reason, and these 16 deferred features unavailable with deferred_full_release.",
+      "evidence": ["tests/integration/test_health.py", "src/recalith/contracts/health.py"]
+    },
+    {
+      "id": "hook_latency_usefulness_per_platform",
+      "section_8": [1, 10],
+      "status": "pending",
+      "detail": "tools/measure_release_latency.py runs the §7 populations per native platform (Linux in this container; macOS and Windows on their CI runners through .github/workflows/measure.yml); the results are recorded in docs/measurements/ and the Task 18 checkpoint.",
+      "evidence": ["tools/measure_release_latency.py", ".github/workflows/measure.yml"]
+    },
+    {
+      "id": "failure_injection_protocol",
+      "section_8": [1],
+      "status": "pending",
+      "detail": "Every kill/restart family at RECALITH_CRASH_REPS=20 (100 is for a release candidate, which this is not).",
+      "evidence": ["tests/integration/test_capture_recovery.py", "tests/integration/test_worker.py", "tests/integration/test_claude_adapter.py"]
+    },
+    {
+      "id": "release_artifacts",
+      "section_8": [5],
+      "status": "blocked",
+      "detail": "tools/build_release.py and .github/workflows/release.yml build the wheel and sdist with SHA-256 digests and a release manifest. They are unsigned, and nothing is tagged or published.",
+      "blocker": "signing needs operator material (a signing key or attestation identity) and the project license is undeclared; publication needs the owner's go-ahead",
+      "evidence": ["tools/build_release.py", ".github/workflows/release.yml"]
+    }
+  ]
+}

@@ -757,6 +757,29 @@ def test_reviewed_2_1_305_transcripts_parse_without_gaps():
     assert texts >= 3
 
 
+@pytest.mark.parametrize("scenario", ["lifecycle", "subagent", "denied", "secret_and_resume"])
+def test_reviewed_2_1_306_fixtures_map_like_2_1_305(tmp_path, scenario):
+    """The 2.1.306 review (decision 0020): the same mapping as 2.1.305.
+
+    The background subagent's events interleave differently between captures
+    (timing, not format), so that scenario compares the mapped records as a
+    multiset; the others compare in order.
+    """
+    assert "2.1.306" in claude_capture.CERTIFIED_VERSIONS
+    new, old = _mapped(tmp_path, "2.1.306", scenario), _mapped(tmp_path, "2.1.305", scenario)
+    assert (sorted(new) == sorted(old)) if scenario == "subagent" else (new == old)
+
+
+def test_reviewed_2_1_306_transcripts_parse_without_gaps():
+    parse = claude_capture.transcript_line_parser("inst_11111111-1111-4111-8111-111111111111", host_version="2.1.306")
+    base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / "2.1.306"
+    texts = 0
+    for path in base.glob("*.transcript.jsonl"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            texts += len(parse(json.loads(line), line))
+    assert texts >= 3
+
+
 # --------------------------------------------------------------------------
 # Capture, delivery and compaction restoration through the installed hooks (deterministic; the real host is the smoke test)
 

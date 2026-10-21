@@ -262,26 +262,37 @@ def dependency_applicability(dependencies: list, current: dict) -> str:
 
 
 def guidance(item: dict, app: str, current: dict) -> tuple:
-    """Stdlib twin of ``revalidate.guidance``: (advice or None, dependency result, reasons)."""
+    """Stdlib twin of ``revalidate.guidance``: (advice or None, dependency result, reasons, displayed freshness).
+
+    A live dependency check that finds a changed value shows the item
+    ``needs_revalidation`` whatever its kind (decision 0020); an unknown value
+    leaves the stored freshness.
+    """
     reasons = []
     status, freshness = item["status"], item["freshness"]
     if status not in LIVE:
-        return None, None, ("retired",)
+        return None, None, ("retired",), freshness
     dependency = None
     if item.get("claim_kind") == "failure_lesson":
         dependency = dependency_applicability(item.get("dependencies") or [], current)
         if dependency != TRUE:
             reasons.append(f"dependency_{dependency}")
+    elif item.get("dependencies") and current:
+        dependency = dependency_applicability(item["dependencies"], current)
+        if dependency == FALSE:
+            reasons.append("dependency_false")
+    if freshness == "current" and dependency == FALSE:
+        freshness = "needs_revalidation"
     if freshness != "current":
         reasons.append(f"freshness_{freshness}")
     if status == "disputed":
-        return ("conflict" if app != FALSE else None), dependency, tuple(reasons + ["disputed"])
+        return ("conflict" if app != FALSE else None), dependency, tuple(reasons + ["disputed"]), freshness
     if status == "candidate":
-        return ("context" if app != FALSE else None), dependency, tuple(reasons + ["candidate"])
+        return ("context" if app != FALSE else None), dependency, tuple(reasons + ["candidate"]), freshness
     if app == FALSE:
-        return None, dependency, tuple(reasons)
+        return None, dependency, tuple(reasons), freshness
     capable = item.get("claim_kind") == "failure_lesson" and item.get("strength") in ("supported", "corroborated") and dependency == TRUE
-    return ("caution" if capable and app == TRUE and freshness == "current" else "context"), dependency, tuple(reasons)
+    return ("caution" if capable and app == TRUE and freshness == "current" else "context"), dependency, tuple(reasons), freshness
 
 
 # --------------------------------------------------------------------------
@@ -460,7 +471,7 @@ def relevant(cand: dict, match: dict) -> bool:
     return bool(reasons)
 
 
-def finish_item(cand: dict, advice: str, app: str, match: dict, query: dict, extra_reasons=()) -> dict:
+def finish_item(cand: dict, advice: str, app: str, match: dict, query: dict, extra_reasons=(), freshness=None) -> dict:
     """The ContextItem primitive: why[0] is the strongest registered reason code."""
     reasons = match["reasons"]
     if cand.get("tentative"):
@@ -478,7 +489,7 @@ def finish_item(cand: dict, advice: str, app: str, match: dict, query: dict, ext
     why = [code] + [x for x in [explanation, *extra_reasons] if x][:6]
     item = {
         "ref": cand["ref"], "text": cand["text"], "advice": advice, "basis": cand["basis"], "scope": cand.get("scope") or {},
-        "applicability": app, "freshness": cand["freshness"], "why": [w[:512] for w in why], "evidence_refs": cand.get("evidence_refs") or [],
+        "applicability": app, "freshness": freshness or cand["freshness"], "why": [w[:512] for w in why], "evidence_refs": cand.get("evidence_refs") or [],
         "conditions_text": cand.get("conditions_text"), "retry_text": cand.get("retry_text") if advice == "caution" or cand.get("claim_kind") == "failure_lesson" else None,
     }
     return item
@@ -567,17 +578,18 @@ def decide(cand: dict, query: dict, environment: dict, *, family, query_terms, w
         return None
     if cand.get("ref", {}).get("kind") == "claim" and not cand.get("members"):  # a claim (disputed ones too); questions carry members
         current = {}
-        if cand.get("claim_kind") == "failure_lesson" and cand.get("status") == "active" and cand.get("freshness") == "current" and app == TRUE:
+        lesson_gate = cand.get("claim_kind") == "failure_lesson" and cand.get("status") == "active" and app == TRUE
+        if cand.get("dependencies") and cand.get("freshness") == "current" and (lesson_gate or cand.get("claim_kind") != "failure_lesson"):
             current = current_dependencies(cand.get("dependencies") or [], workspace_root=workspace_root, environment=environment, budget=budget, claim_values=claim_values)
-        advice, dependency, why_extra = guidance(cand, app, current)
+        advice, dependency, why_extra, shown = guidance(cand, app, current)
         if advice is None:
             return None
         if advice == "caution" and "exact_action_match" not in match["reasons"] and not _action_conditions_true(cand, query, environment):
             advice = "context"  # caution needs an action-specific match
     else:
-        advice, why_extra = cand.get("advice_ceiling", "context"), ()
+        advice, why_extra, shown = cand.get("advice_ceiling", "context"), (), None
     extra = [r for r in why_extra if r not in ("candidate",)]
-    item = finish_item(cand, advice, app, match, query, extra)
+    item = finish_item(cand, advice, app, match, query, extra, freshness=shown)
     key = suppression_identity(cand, item, query, environment, current if cand.get("ref", {}).get("kind") == "claim" and not cand.get("members") else {})
     return {"item": item, "score": match["score"], "rank_group": 0 if advice in ("caution", "conflict") else 1, "subject": cand.get("subject"), "key": key}
 

@@ -357,7 +357,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Run the preview core slice before Task 16: consistent backups/ledger, default 180-day unpinned event retention, live-reference pins, and explicit missing-support downgrade handling. Capsule preservation and every transfer/importer feature are full-only.
 
-**Files:** Create `privacy/retention.py`, `storage/backup.py`, `transfers/{export,importer,breadcrumbs}.py`, `tests/integration/test_transfers.py`, `tests/integration/test_retention.py`. The preview core (decision 0016) also adds `privacy/__init__.py`, `storage/migrations/0009.sql` (schema 9), the test builders `tests/integration/retention_scenarios.py` and the kill/restart matrix `test_retention_backup_crash_matches_reference` (`failpoints.RETENTION`, `failpoints.BACKUP`); `transfers/*` and `test_transfers.py` belong to the full slice and are not created yet.
+**Files:** Create `privacy/retention.py`, `storage/backup.py`, `transfers/{export,importer,breadcrumbs}.py`, `tests/integration/test_transfers.py`, `tests/integration/test_retention.py`. The preview core (decision 0016) also adds `privacy/__init__.py`, `storage/migrations/0009.sql` (schema 9), the test builders `tests/integration/retention_scenarios.py` and the kill/restart matrix `test_retention_backup_crash_matches_reference` (`failpoints.RETENTION`, `failpoints.BACKUP`); `transfers/*` and `test_transfers.py` belong to the full slice and are not created yet. Task 18 (decision 0020) closes the open preview item of age pruning of derived revision bodies in `privacy/retention.py` (`age_records`, failpoint `retention.after_record_aging`) with its tests in `test_retention.py`.
 
 **Interfaces:** Preview produces `backup` and pin-aware retention/ledger operations. Full adds `export_memory`, `import_memory`, `import_breadcrumbs`, and capsules using DATA_CONTRACTS signatures.
 
@@ -401,7 +401,7 @@ Preview cannot omit backup/restore merely because most of Task 15 is deferred. I
 
 **Release slice:** Begin fixture/harness work during Tasks 1/7–13. Preview runs its explicitly scoped gate below; full evaluation and deferred acceptance variants remain pending until Cut 2.
 
-**Files:** Extend the early `evals/` and `tests/coverage_manifest.json` fixtures; create `evals/{run,oracles,baselines,report}.py`, performance harnesses, release workflow, and operator documentation.
+**Files:** Extend the early `evals/` and `tests/coverage_manifest.json` fixtures; create `evals/{run,oracles,baselines,report}.py`, performance harnesses, release workflow, and operator documentation. The preview slice (decision 0020) keeps the Task 1 oracles as the package `evals/oracles/` (the plan's `oracles.py`) and adds `evals/{agent,curator,trial,workload,demos}.py` (the scripted working agent and host-payload bridge, the labeled recorded curator, one trial with its evidence horizon, the three workload days with their seeded day files in `evals/workload/days/`, the §6.1 demonstrations), `tests/integration/test_evaluation.py` (the plan-named manifest and replay tests), `tools/measure_release_latency.py` with `tools/fixtures/hook_fault.py` (the §7 gate per platform), `tools/build_release.py`, `tools/release_checklist.py`, `docs/release/` (the checklist and the dependency inventory), `.github/workflows/{release,measure}.yml` and `docs/OPERATIONS.md`.
 
 **Interfaces:** Consume only public service/host interfaces. Evaluation reports include all measures, populations, versions, and failures from ACCEPTANCE_TESTS.
 

@@ -1,0 +1,186 @@
+{
+ "demonstrations": {
+  "changed_condition_revision": {
+   "demonstrated": true,
+   "scenarios": {
+    "smoke-R1-fieldnotes-check-env-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+       "active",
+       "current",
+       5
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "needs_revalidation",
+         "text": "Failure lesson: tools/check.py fails with KeyError unless NOTES_HOME is set. Observed: `python tools/check.py` failed with KeyError: 'NOTES_HOME'. Alternative: "
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "NOTES_HOME",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [
+      "revalidate:revise_claim"
+     ],
+     "task_success": true
+    },
+    "smoke-R2-ledgerlite-import-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+       "active",
+       "current",
+       5
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "needs_revalidation",
+         "text": "Failure lesson: Plain discovery fails to import ledgerlite without PYTHONPATH=src. Observed: `python -m unittest discover -s tests -t .` failed: the tests direc"
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "PYTHONPATH",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [
+      "revalidate:revise_claim"
+     ],
+     "task_success": true
+    }
+   }
+  },
+  "forgetting_and_restore": {
+   "backup_before": {
+    "external_copy": true,
+    "manifest_digest": "636e95f570ad8fb756997ecb199a3c5616abfded194d3562868015bb57d4ec5d",
+    "store_hits_before": 20
+   },
+   "delivered_after_forget": false,
+   "delivered_after_restore": false,
+   "demonstrated": true,
+   "forget": {
+    "backup_state": "verified",
+    "deleted_backups": 1,
+    "limits": [
+     "external_exports_not_recallable",
+     "remote_provider_copies_not_recallable",
+     "operator_backup_copies_not_recallable",
+     "filesystem_forensics_outside_guarantee",
+     "ledger_digest_membership_disclosure",
+     "paraphrase_not_detected"
+    ],
+    "purge_state": "completed",
+    "purged": 24,
+    "quarantined": 0,
+    "recorded_pre_forget_backup_deleted": true
+   },
+   "guarded_cli_from_this_process": {
+    "exit": 6,
+    "refusal": "host_marker_present"
+   },
+   "restore": {
+    "applied_schema": 10,
+    "deleted_backup_ids": [],
+    "limits": [
+     "external_copy_holds_suppressed_content",
+     "external_exports_not_recallable",
+     "remote_provider_copies_not_recallable",
+     "operator_backup_copies_not_recallable",
+     "filesystem_forensics_outside_guarantee",
+     "ledger_digest_membership_disclosure",
+     "paraphrase_not_detected"
+    ],
+    "preserved_tombstone_epoch": 1,
+    "restored_revision": 97,
+    "source_contains_suppressed": true,
+    "suppressed_record_count": 24
+   },
+   "route": "service operator actor (test-fixture route, as the Task 16 suites)",
+   "scenario": "smoke-L3-household-grocery-budget",
+   "selector": {
+    "claims": 1,
+    "tasks": 1
+   },
+   "store_hits_after_forget": 0,
+   "store_hits_after_restore": 0
+  },
+  "fresh_session_reuse": {
+   "admitted": [
+    "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+    "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root."
+   ],
+   "baseline_repeated_mistakes": 1,
+   "candidate_first_test_command_in_B": "PYTHONPATH=src python -m unittest discover -s tests",
+   "candidate_repeated_mistakes": 0,
+   "demonstrated": true,
+   "note": "session B's knowledge came through delivered context (the scripted agent consults nothing else); the session-start point is unmet by design (decision 0013: a fresh start with no task binding carries only open intent questions) and the prompt packet carried it",
+   "remember_instruction": false,
+   "retrieval_points": [
+    {
+     "delivered": true,
+     "items": [],
+     "satisfied": false,
+     "spec": {
+      "must_include": "PYTHONPATH=src",
+      "purpose": "session_start",
+      "session": "B"
+     }
+    }
+   ],
+   "scenario": "smoke-L1-ledgerlite-test-command"
+  },
+  "isolation": {
+   "cross_project_leak_commands": 0,
+   "cross_record_ids": [],
+   "cross_text_in_search": [],
+   "demonstrated": true,
+   "fieldnotes_active_claims": [
+    "tools/check.py fails with KeyError unless NOTES_HOME is set."
+   ],
+   "fieldnotes_session_b_delivered": [],
+   "installations": {
+    "distinct": true,
+    "fieldnotes": "inst_8c437d36-96b2-450a-a661-173fdfddbbc1",
+    "ledgerlite": "inst_d092ef80-d9e7-4ba4-a460-b5119b89c481"
+   },
+   "ledgerlite_active_claims": [
+    "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+    "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root."
+   ],
+   "scenario": "smoke-C4-cross-project-near-match",
+   "task_success": true
+  },
+  "zero_interventions": {
+   "demonstrated": true,
+   "jobs_awaiting_a_human": 0,
+   "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+   "operator_interventions": 0,
+   "trials": 24,
+   "workload_days": 3
+  }
+ },
+ "label": "scripted agent + recorded curator through the real engine; not a live demonstration (B1)",
+ "mode": "scripted"
+}

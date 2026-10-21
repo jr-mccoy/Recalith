@@ -15,8 +15,9 @@
   (spawn to exit) when the hook starts the worker and when it finds one
   running. The hook never waits for the worker to come up.
 * ``idle``: CPU time and resident memory of an idle worker over the window
-  (Linux ``/proc``; other platforms report unavailable). Targets: < 1 % of
-  one core over 10 idle minutes, ≤ 150 MiB resident.
+  (Linux ``/proc``, macOS ``ps``, Windows ``GetProcessTimes`` and
+  ``K32GetProcessMemoryInfo``; anything else reports unavailable). Targets:
+  < 1 % of one core over 10 idle minutes, ≤ 150 MiB resident.
 
 The worker is the real process started by the hook's registered start path.
 The OS page cache is not dropped. Nothing here involves a model provider.
@@ -79,12 +80,57 @@ def idle_status(root: Path) -> dict | None:
     return s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None
 
 
+def _ps(pid: int) -> tuple[float, float] | None:
+    """macOS/BSD: (cpu seconds, rss MiB) from ``ps`` (cumulative CPU time ``[dd-]hh:mm:ss.cc``)."""
+    import subprocess
+
+    try:
+        out = subprocess.run(["ps", "-o", "time=,rss=", "-p", str(pid)], capture_output=True, text=True, timeout=10, check=False).stdout.split()
+        clock, rss = out[0], int(out[1])
+    except (OSError, IndexError, ValueError):
+        return None
+    days, _, rest = clock.rpartition("-")
+    parts = [float(x) for x in rest.split(":")]
+    seconds = sum(v * 60 ** i for i, v in enumerate(reversed(parts))) + (int(days) * 86400 if days else 0)
+    return seconds, rss / 1024
+
+
+def _windows(pid: int) -> tuple[float, float] | None:  # pragma: no cover - native Windows
+    """Windows: (cpu seconds, working set MiB) from ``GetProcessTimes`` and ``K32GetProcessMemoryInfo``."""
+    import ctypes
+    from ctypes import wintypes
+
+    class Counters(ctypes.Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD), ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t), ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t), ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    handle = kernel32.OpenProcess(0x1000 | 0x0010, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ
+    if not handle:
+        return None
+    try:
+        times = [wintypes.FILETIME() for _ in range(4)]
+        if not kernel32.GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
+            return None
+        cpu = sum(((t.dwHighDateTime << 32) | t.dwLowDateTime) for t in times[2:]) / 1e7
+        counters = Counters()
+        counters.cb = ctypes.sizeof(Counters)
+        if not kernel32.K32GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
+            return None
+        return cpu, counters.WorkingSetSize / (1024 * 1024)
+    finally:
+        kernel32.CloseHandle(handle)
+
+
 def proc_cpu_seconds(pid: int) -> float | None:
     try:
         fields = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").rsplit(")", 1)[1].split()
         return (int(fields[11]) + int(fields[12])) / os.sysconf("SC_CLK_TCK")
     except (OSError, IndexError, ValueError):
-        return None
+        pass
+    other = _windows(pid) if os.name == "nt" else _ps(pid)
+    return None if other is None else other[0]
 
 
 def proc_rss_mib(pid: int) -> float | None:
@@ -93,8 +139,9 @@ def proc_rss_mib(pid: int) -> float | None:
             if line.startswith("VmRSS:"):
                 return int(line.split()[1]) / 1024
     except (OSError, ValueError):
-        return None
-    return None
+        pass
+    other = _windows(pid) if os.name == "nt" else _ps(pid)
+    return None if other is None else other[1]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -161,11 +208,11 @@ def main(argv: list[str] | None = None) -> int:
         time.sleep(args.idle_seconds)
         cpu1, t1 = proc_cpu_seconds(pid), time.monotonic()
         if cpu0 is None or cpu1 is None:
-            report["idle"] = {"state": "unavailable", "reason": "no /proc process accounting on this platform"}
+            report["idle"] = {"state": "unavailable", "reason": "no process accounting (procfs, ps or the Windows process API) on this platform"}
         else:
             share = (cpu1 - cpu0) / (t1 - t0) * 100
             rss = proc_rss_mib(pid)
-            report["idle"] = {"window_seconds": round(t1 - t0, 1), "cpu_percent_of_one_core": round(share, 4), "cpu_target_percent": 1.0, "cpu_met": share < 1.0, "rss_mib": None if rss is None else round(rss, 1), "rss_target_mib": 150, "rss_met": rss is not None and rss <= 150}
+            report["idle"] = {"accounting": "procfs" if Path(f"/proc/{pid}/stat").exists() else ("windows_process_api" if os.name == "nt" else "ps"), "window_seconds": round(t1 - t0, 1), "cpu_percent_of_one_core": round(share, 4), "cpu_target_percent": 1.0, "cpu_met": share < 1.0, "rss_mib": None if rss is None else round(rss, 1), "rss_target_mib": 150, "rss_met": rss is not None and rss <= 150}
     finally:
         wh.stop_worker(replayer.root)
     args.output.parent.mkdir(parents=True, exist_ok=True)

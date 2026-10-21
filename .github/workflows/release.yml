@@ -1,0 +1,45 @@
+name: release-artifacts
+
+# Builds digested, unsigned release artifacts with the repository's own process
+# (tools/build_release.py: uv build, SHA-256 digests, shipped-code and dependency/license
+# inventory checks). It publishes nothing: no tag, no GitHub release, no package upload.
+# Signing needs operator material the repository does not hold (decision 0020).
+
+on:
+  push:
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "requirements.lock"
+      - "bootstrap.py"
+      - "tools/build_release.py"
+      - "docs/release/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build digested artifacts (unsigned)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Install locked dependencies
+        run: uv sync --locked --python 3.13
+      - name: Build, digest and check the inventories
+        run: uv run --locked python tools/build_release.py --out dist-release
+      - name: Show the release manifest and digests
+        run: |
+          cat dist-release/SHA256SUMS
+          python3 -c "import json; m = json.load(open('dist-release/RELEASE_MANIFEST.json')); print(json.dumps({k: m[k] for k in ('version', 'commit', 'artifacts', 'problems', 'signing')}, indent=1))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recalith-release-unsigned
+          path: dist-release/
+          retention-days: 14

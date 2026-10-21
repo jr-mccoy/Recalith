@@ -1,0 +1,108 @@
+{
+ "authorship": {
+  "held_out": "none (full release; intentionally empty)",
+  "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
+  "smoke": {
+   "independent_of_system_spec_7": false,
+   "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC \u00a77; development fixtures, not held out",
+   "route": [
+    "repository author (coding agent)"
+   ]
+  },
+  "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions"
+ },
+ "blockers": [
+  "B1: provider_not_configured; start_prompt_delivery_not_certified: no host record given (B1: live nonce certification not run)"
+ ],
+ "init_route": "test_fixture",
+ "limitations": [
+  "B1: no certified inference route and no live host certification, so no live trial ran; every number here is recorded-mode mechanics, not a live measurement.",
+  "The working agent is a fixed scripted policy (evals/agent.py) that reads only the delivered context at its branch points; it measures whether the engine delivered the right thing, not how a live agent uses it.",
+  "The curator is recorded proposals (evals/curator.py) written with knowledge of the gold; \u00a75.1 extraction quality is therefore not measured (precision and recall reflect the deterministic pipeline admitting or rejecting those proposals).",
+  "Hooks run in process through the real stdlib hook path with Claude Code 2.1.305-shaped payloads (map_hook, handle_hook) and a controlled delivery manifest; the installed launcher and the real host are not in the loop.",
+  "Scheduling runs on a virtual clock (sessions two hours apart, worker drains to a three-hour idle horizon); provider latency and queue time are not real.",
+  "Background tokens are the engine's own charged estimates (ceil(bytes/3) and output allowances); the recorded backend reports no provider usage.",
+  "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC \u00a77; no held-out or independent corpus exists.",
+  "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+  "Each smoke store holds only a few claims, so hook views always contain every relevant claim here; at reference scale (10,000 heads) the hook's query-independent views omit prompt-specific facts (decision 0020 item 15, docs/measurements/release-gate-latency-linux.json), which this run cannot show."
+ ],
+ "mode": "scripted",
+ "native_memory": {
+  "installed_host_observation": {
+   "configuration": {
+    "env": [
+     "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+    ],
+    "settings": {
+     "autoMemoryEnabled": false
+    }
+   },
+   "control": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": true
+   },
+   "disabled": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": false
+   },
+   "host_version": "2.1.306 (Claude Code)",
+   "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+   "state": "disabled"
+  },
+  "scripted_arms": "not applicable: the scripted agent has no host-native memory"
+ },
+ "operator_action": [
+  "From an ordinary OS terminal outside any agent session (no CLAUDECODE or other host marker in its environment):",
+  "1. cp tools/probe_config.example.json probe-private/local-config.json and set executable, expected_version (the installed `claude --version`), the explicit model for both sections, an API-key auth_route naming only the key's environment variable, and operator_attestation checked_eligible with basis/checked_on after checking the account's terms for unattended background use.",
+  "2. export ANTHROPIC_API_KEY=... (or the selected key name) in that terminal only.",
+  "3. python tools/probe_provider.py --config probe-private/local-config.json --output docs/host-compatibility.json --route-out /path/to/project   (expect exit 0)",
+  "4. python tools/check_provider_runtime.py --config probe-private/local-config.json --output docs/host-compatibility.json   (expect exit 0)",
+  "5. In the project: .recalith/bin/recalith integrate claude",
+  "6. python tools/probe_delivery.py --config probe-private/local-config.json --engine-project /path/to/project --output docs/host-compatibility.json   (expect exit 0: live start/prompt)",
+  "7. .recalith/bin/recalith operator-token create --output /secure/eval-token.json   (at that terminal; the harness never mints one)",
+  "8. python evals/run.py gate --mode live --init-route operator_token --operator-token-file /secure/eval-token.json --route /path/to/project/.recalith/provider.json --host-record /path/to/project/.recalith/host.json --out /path/to/results"
+ ],
+ "preflight": {
+  "delivery": {
+   "reasons": [
+    "start_prompt_delivery_not_certified: no host record given (B1: live nonce certification not run)"
+   ],
+   "state": "unavailable"
+  },
+  "exit": 4,
+  "inference": {
+   "reasons": [
+    "provider_not_configured"
+   ],
+   "state": "unavailable"
+  }
+ },
+ "profile": "claude_preview",
+ "run_schema": 1,
+ "started_at": "2026-10-21T13:20:56Z",
+ "versions": {
+  "certified_capture_versions": [
+   "2.1.301",
+   "2.1.305",
+   "2.1.306"
+  ],
+  "commit": "b6598eedd242b851ec5a5e99452b3f35cbd41ada",
+  "engine": "0.1.0.dev0",
+  "installed_host": "2.1.306 (Claude Code)",
+  "platform": "Linux 6.18.44-fc-v139 x86_64",
+  "prompts": {
+   "build_episode": "build_episode@1",
+   "extract_claims": "extract_claims@1",
+   "revalidate": "revalidate@1",
+   "review_claims": "review_claims@1",
+   "update_task": "update_task@1"
+  },
+  "python": "3.13.16",
+  "schema": 10,
+  "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)",
+  "sqlite": "3.45.1",
+  "tree_clean": false
+ }
+}

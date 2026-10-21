@@ -5,7 +5,7 @@
       "claude_cli": {
         "probe": "tools/probe_provider.py",
         "probe_schema": 1,
-        "tested_at": "2026-10-21T03:35:20.999993Z",
+        "tested_at": "2026-10-21T12:58:40.162746Z",
         "platform": {
           "os": "linux",
           "arch": "x86_64",
@@ -20,7 +20,7 @@
           "billing": "none",
           "selected_env_key_names": [],
           "expected_api_key_source": null,
-          "description": "B1: no explicitly configured build route; this session's credentials are never used.",
+          "description": "B1: no explicitly configured build account route",
           "alternate_route_keys_present_in_invoking_environment": [
             "ANTHROPIC_BASE_URL",
             "AWS_ACCESS_KEY_ID",
@@ -30,9 +30,9 @@
         },
         "operator_attestation": {
           "background_use": "unchecked",
-          "basis": "not checked",
+          "basis": "not checked (B1)",
           "checked_on": null,
-          "managed_policy": "none known"
+          "managed_policy": "none recorded"
         },
         "managed_settings_paths_present": [],
         "invocation": {
@@ -57,7 +57,7 @@
           ],
           "stdin": "probe input (fixed text, no secrets)",
           "cwd": "<fixture>/project/work (fresh private root; never a user checkout)",
-          "executable_sha256": "86cb722ab68348877dba7971e4d0c659919e05e6228c05e006e83da320e656ef",
+          "executable_sha256": "520bc6c1f40af466bd03a278b5ae1af1a2938bc7de5b9e5cb15526da20d71cfe",
           "probe_system_prompt_sha256": "70b7a9c7685551c3f322ee0d1b6336d45a3ec825c4a77a978dcddc35a67d8566",
           "probe_input_sha256": "88fdbd108f7cefd47a24c8cd9af741365ecca2ce82f6fd4896f4db1592fd5cc0"
         },
@@ -69,8 +69,8 @@
           "body_bytes": 24000
         },
         "host_version": {
-          "observed": "2.1.305 (Claude Code)",
-          "expected": "2.1.305"
+          "observed": "2.1.306 (Claude Code)",
+          "expected": "2.1.306"
         },
         "request_capture": {
           "method": "Installed CLI launched against a loopback recording endpoint with a placeholder key; the probe inspects the exact outbound request. No account is used; this cannot certify authentication.",
@@ -80,13 +80,13 @@
               "mode": "request_capture",
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 3546,
+                "stdout_bytes": 3551,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 492,
+                "duration_ms": 902,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -144,7 +144,7 @@
                 "tools": [],
                 "mcp_servers": [],
                 "api_key_source": "ANTHROPIC_API_KEY",
-                "host_version": "2.1.305",
+                "host_version": "2.1.306",
                 "model": "recalith-probe-unselected-model",
                 "permission_mode": "default",
                 "skills_count": 0,
@@ -187,7 +187,7 @@
                   "tools"
                 ],
                 "system_block_digests": [
-                  "25d1d25952bd6057120155db13b1599867d2915e7d739e9d5ec6d9727d28c63d"
+                  "d2734eac164323ff2c2885f40bf9f477a598cf90fd8dc447766f0130c881e90b"
                 ]
               }
             },
@@ -202,7 +202,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 450,
+                "duration_ms": 699,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -260,7 +260,7 @@
                 "tools": [],
                 "mcp_servers": [],
                 "api_key_source": "ANTHROPIC_API_KEY",
-                "host_version": "2.1.305",
+                "host_version": "2.1.306",
                 "model": "recalith-probe-unselected-model",
                 "permission_mode": "default",
                 "skills_count": 0,
@@ -303,7 +303,7 @@
                   "tools"
                 ],
                 "system_block_digests": [
-                  "25d1d25952bd6057120155db13b1599867d2915e7d739e9d5ec6d9727d28c63d"
+                  "d2734eac164323ff2c2885f40bf9f477a598cf90fd8dc447766f0130c881e90b"
                 ]
               }
             }
@@ -315,13 +315,13 @@
                 "label": "control",
                 "process": {
                   "returncode": 0,
-                  "stdout_bytes": 6764,
+                  "stdout_bytes": 6768,
                   "stderr_bytes_retained": 98,
                   "stdout_overflow": false,
                   "stderr_truncated": false,
                   "timed_out": false,
                   "killed": false,
-                  "duration_ms": 730,
+                  "duration_ms": 1227,
                   "process_tree_cleaned": true,
                   "descendants_outlived_exit": false
                 },
@@ -359,7 +359,7 @@
                   "stderr_truncated": false,
                   "timed_out": false,
                   "killed": false,
-                  "duration_ms": 800,
+                  "duration_ms": 1654,
                   "process_tree_cleaned": true,
                   "descendants_outlived_exit": false
                 },
@@ -421,7 +421,7 @@
                 "stderr_truncated": false,
                 "timed_out": true,
                 "killed": true,
-                "duration_ms": 10028,
+                "duration_ms": 10033,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -442,7 +442,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": true,
-                "duration_ms": 1541,
+                "duration_ms": 1736,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -463,7 +463,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 481,
+                "duration_ms": 522,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -483,7 +483,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 472,
+                "duration_ms": 566,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -504,7 +504,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 490,
+                "duration_ms": 667,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -587,7 +587,7 @@
       "claude_code": {
         "probe": "tools/probe_delivery.py",
         "probe_schema": 1,
-        "tested_at": "2026-10-21T03:35:42.401543Z",
+        "tested_at": "2026-10-21T12:59:06.874083Z",
         "platform": {
           "os": "linux",
           "arch": "x86_64",
@@ -606,7 +606,7 @@
           "kind": "not_configured",
           "billing": "none",
           "selected_env_key_names": [],
-          "description": "B1: no explicitly configured build route; this session's credentials are never used."
+          "description": "B1: no explicitly configured build account route"
         },
         "protocol": {
           "controls_per_kind": 3,
@@ -646,7 +646,7 @@
         },
         "invocation": {
           "executable": "/opt/node22/bin/claude",
-          "executable_sha256": "86cb722ab68348877dba7971e4d0c659919e05e6228c05e006e83da320e656ef",
+          "executable_sha256": "520bc6c1f40af466bd03a278b5ae1af1a2938bc7de5b9e5cb15526da20d71cfe",
           "session_args": [
             "-p",
             "--setting-sources",
@@ -667,8 +667,8 @@
           "cwd": "<workspace-root>/workspace (disposable git checkout)"
         },
         "host_version": {
-          "observed": "2.1.305 (Claude Code)",
-          "expected": "2.1.305"
+          "observed": "2.1.306 (Claude Code)",
+          "expected": "2.1.306"
         },
         "request_capture": {
           "paths": {
@@ -706,7 +706,7 @@
               "trial_id": "request_capture-session_start-positive-1",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "d6735771772ba4487466d430509cb5d90baa95c9962751f1d244ad2d53279d07",
+              "nonce_sha256": "2a0812ea3050251d830a54fecce724e2e693202c4613bb0722d42fa58bfe0531",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5520,
@@ -715,7 +715,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 601,
+                "duration_ms": 804,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -750,7 +750,7 @@
               "trial_id": "request_capture-session_start-positive-2",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "56c9252d0d691c65b336e98ce595abc90976ffe5c69383bd8d129fd09d8312c4",
+              "nonce_sha256": "cbae4ace73aa2f7552c02b3c33635bdb370ad4290dfda342f8cd691f23435ec4",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5520,
@@ -759,7 +759,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 623,
+                "duration_ms": 757,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -794,7 +794,7 @@
               "trial_id": "request_capture-session_start-positive-3",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "ebbfde3b60baf45ec80379ef2a1cbba41f2ee2287283c278b8d16b60a7954ade",
+              "nonce_sha256": "6ef9f4be1816fae6c1bff1ce4f633f41346dbba6d50c5dacca010e3aa05624ba",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5520,
@@ -803,7 +803,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 633,
+                "duration_ms": 828,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -838,7 +838,7 @@
               "trial_id": "request_capture-session_start-negative-1",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "99a56cc60675e8a335821a8642fabc6652d54d958aa89316ccc5c9472360e33b",
+              "nonce_sha256": "089541ec4c391b849beac000663c3e1a7afe9303b6d0bba27838473e8e0c6535",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5220,
@@ -847,7 +847,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 586,
+                "duration_ms": 769,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -880,7 +880,7 @@
               "trial_id": "request_capture-session_start-negative-2",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "7f96e1e68c923f62e248a1468acdcfaa636b77c1afaa2faef6192a128d3872ce",
+              "nonce_sha256": "bf91729ca0aedaf24651c655b8342f942d146ee42edd7c081b390f489531becb",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5220,
@@ -889,7 +889,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 633,
+                "duration_ms": 882,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -922,7 +922,7 @@
               "trial_id": "request_capture-session_start-negative-3",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "f9733d4aa9e5930f82c6f6b0330ca7ad1b01d8eb3bb9cc8bb53ff144f94d45e0",
+              "nonce_sha256": "24c5ae7a80a1e13c78a55720870f1872a084717fdca086ce6325439e6c421b20",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5220,
@@ -931,7 +931,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 613,
+                "duration_ms": 811,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -964,7 +964,7 @@
               "trial_id": "request_capture-prompt-positive-1",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "d59424b841366a84e42259c52cc71e75d2d2508d8db8b35e69bca3fd39d5e0ea",
+              "nonce_sha256": "d1b07cc1132f25da171e256c2dfa034fa1dc8fefceda02e4fd0b865a2eb1b8f5",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -973,7 +973,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 633,
+                "duration_ms": 803,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1008,7 +1008,7 @@
               "trial_id": "request_capture-prompt-positive-2",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "f5618c2f5e99914e76eab92054104a0832cb7588a8daa7ae67e41a8f6faa1adf",
+              "nonce_sha256": "60026896c7a6a723778e1858ed5975d5d641b5e51a54cb5e1a4c1cb96e4429dc",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -1017,7 +1017,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 595,
+                "duration_ms": 780,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1052,7 +1052,7 @@
               "trial_id": "request_capture-prompt-positive-3",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "edc9776b1529518c78cb9c024cb75893bdf875e2340a9c0491c73788d9d7c947",
+              "nonce_sha256": "a7d1150716a4f2e6eeebd40da377b6622cc3e1292bc7d39a7a16dda3b91e8863",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -1061,7 +1061,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 653,
+                "duration_ms": 749,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1096,7 +1096,7 @@
               "trial_id": "request_capture-prompt-negative-1",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "1ffa22bc7c388aa2c456264eb2946055ffcb8036e749bdf981473852610f84e7",
+              "nonce_sha256": "d1b7239645ef3036eaa348e1a004ff3fad1dd6b45d5874091a969f06f30aeeb3",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -1105,7 +1105,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 643,
+                "duration_ms": 780,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1138,7 +1138,7 @@
               "trial_id": "request_capture-prompt-negative-2",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "d9a99846e706bddace0f0fd6ef070a8384e1bae0fdf461ed039c908cbdee126c",
+              "nonce_sha256": "30f74f4097c4031bce6d1a968f5abc5e48a04ac6d86e13c45050648e76a21e89",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -1147,7 +1147,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 643,
+                "duration_ms": 751,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1180,7 +1180,7 @@
               "trial_id": "request_capture-prompt-negative-3",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "eadc95f788e08ccd431254a1da7c2bf5d87a2ad10b935422e0fa68275bc33cee",
+              "nonce_sha256": "0abe03b8ff85dc20983f66c635938d3d63f23c3873155ae523259e0aebdafe13",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 5213,
@@ -1189,7 +1189,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 653,
+                "duration_ms": 732,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1222,7 +1222,7 @@
               "trial_id": "request_capture-pre_action-positive-1",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "f92dcfb18f3d29c422018465f7407d9d372aa965832703291cb94de6f94bbea5",
+              "nonce_sha256": "a06d37a875a63c7542976d5e43a46f16b56d01f46503117230672337bf9377ef",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1231,7 +1231,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 745,
+                "duration_ms": 912,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1275,7 +1275,7 @@
               "trial_id": "request_capture-pre_action-positive-2",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "745f68d9237093146924ed44755201378dba16a06eb9d0cc80c6ca2a9b2bcfa5",
+              "nonce_sha256": "cc795c40e7bc094e590a0478e5adef4444ec6a7d4b44d6fed6f5cb73a4884b0b",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1284,7 +1284,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 767,
+                "duration_ms": 942,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1328,7 +1328,7 @@
               "trial_id": "request_capture-pre_action-positive-3",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "15a2c79dc0feccea3d6dba18823a7bec9c7d96b25adfc0f5b2b938f3454e0a91",
+              "nonce_sha256": "b3116749a20cce4954ea42e2fb1ee7402380d10cabc420842146af15e542ab2c",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1337,7 +1337,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 858,
+                "duration_ms": 965,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1381,7 +1381,7 @@
               "trial_id": "request_capture-pre_action-negative-1",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "869617860fcd40aa0e456ee096510d5b2c63be28a8f566c8ece327aba8f3d2a1",
+              "nonce_sha256": "a3b751691320a56a8fc2be8b77d288a26af7e49b263da903ef12d7b682d3c0b5",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1390,7 +1390,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 716,
+                "duration_ms": 921,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1432,7 +1432,7 @@
               "trial_id": "request_capture-pre_action-negative-2",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "fa10ed8e8bb6aeda0b2acad8bd25d219c432baef36421950a65ec4b8e9fd81a2",
+              "nonce_sha256": "2033f9c04177749b74fd34049d0878c05f3016d04fc8ab468c05fedc926f7556",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1441,7 +1441,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 766,
+                "duration_ms": 885,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1483,7 +1483,7 @@
               "trial_id": "request_capture-pre_action-negative-3",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "0b446f7c160fe1a7387ab10baf61519ef44aaae8b3d13878c1cc03f12d4601c2",
+              "nonce_sha256": "0e8c423ef5129c4cc2d150dcea374c88f16bf51f525abfb3d43e72641f948691",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 6357,
@@ -1492,7 +1492,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 746,
+                "duration_ms": 941,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1534,16 +1534,16 @@
               "trial_id": "request_capture-compact-positive-1",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "873c864fffd2dd7303a89bd72a1424ef33b572a1888a1368cdee4db99aae312a",
+              "nonce_sha256": "08f4c6c069dd2ae38b0bc2dab117ed797eb0a89714db6382471eb2c3b22b6e7b",
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 16824,
+                "stdout_bytes": 16825,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 776,
+                "duration_ms": 982,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1592,16 +1592,16 @@
               "trial_id": "request_capture-compact-positive-2",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "f00c57e276dcd92182e1c27682f74e60c7d1a31921c55a16944706a38dd15bda",
+              "nonce_sha256": "9dd0a44e998523cce4c7edbeb968ec97689ac753da1ca4295b611a6757e68ff2",
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 16824,
+                "stdout_bytes": 16826,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 735,
+                "duration_ms": 1387,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1650,7 +1650,7 @@
               "trial_id": "request_capture-compact-positive-3",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "89b98d3a1c68f05c67e465829b807366f395f91fc96714bd7e6aae8295dee0fd",
+              "nonce_sha256": "35f470f0da24231c3ddb20559bb5a47b4c2af0a9429fe4053d7365ca8f116f69",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 16824,
@@ -1659,7 +1659,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 754,
+                "duration_ms": 934,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1708,16 +1708,16 @@
               "trial_id": "request_capture-compact-negative-1",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "ef3cb040967dec498fd4d16513c0466e2bdca31280bef2aefa40a4d3700d45c2",
+              "nonce_sha256": "6945c50172d1aaa04c47b4534657fd0dc090825af30f86380507120f4b13ae6c",
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 16525,
+                "stdout_bytes": 16529,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 788,
+                "duration_ms": 962,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1764,16 +1764,16 @@
               "trial_id": "request_capture-compact-negative-2",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "8d32e1aa004c1df5f8e9c3ac39711d8da580ec9ecd704f9bbab07a56eb0ec384",
+              "nonce_sha256": "61279cb5e0cf7358bb18c401661cd53c570851b5f130b0e3d5b31eccd439f821",
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 16524,
+                "stdout_bytes": 16530,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 779,
+                "duration_ms": 1140,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1820,7 +1820,7 @@
               "trial_id": "request_capture-compact-negative-3",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "3b35f2e58a8fbbc5039df6d37339687fd3ced85930b254ef5452a5ca46a2ca4c",
+              "nonce_sha256": "6180908d227c15f350b99477acef5b40ea56fde76661d846576c04188c3dfd83",
               "process": {
                 "returncode": 0,
                 "stdout_bytes": 16524,
@@ -1829,7 +1829,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 761,
+                "duration_ms": 1015,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -1925,14 +1925,15 @@
         "capture_state": "capture_only",
         "certified_capture_versions": [
           "2.1.301",
-          "2.1.305"
+          "2.1.305",
+          "2.1.306"
         ],
-        "observed_version": "2.1.305",
+        "observed_version": "2.1.306",
         "transcript_parser": "claude_code_transcript@2.1.301",
         "evidence_mode": "request_capture",
         "evidence_note": "Real installed-host hook payloads and transcript structure; model turns came from a loopback scripted endpoint with a placeholder key. Not a live certification and not evidence of model-visible delivery.",
-        "fixtures": "tests/fixtures/hosts/claude/2.1.305",
-        "captured_at": "2026-10-21T02:52:58.082099Z",
+        "fixtures": "tests/fixtures/hosts/claude/2.1.306",
+        "captured_at": "2026-10-21T13:00:13.862706Z",
         "platform": {
           "arch": "x86_64",
           "os": "linux",
@@ -2002,7 +2003,7 @@
     "provider_runtime": {
       "claude_cli": {
         "tool": "tools/check_provider_runtime.py",
-        "tested_at": "2026-10-21T03:35:42.040216Z",
+        "tested_at": "2026-10-21T12:59:05.778820Z",
         "platform": {
           "os": "linux",
           "arch": "x86_64",
@@ -2013,8 +2014,8 @@
         "adapter": "recalith.providers.claude_cli",
         "adapter_version": "1",
         "executable": "/opt/node22/bin/claude",
-        "executable_sha256": "86cb722ab68348877dba7971e4d0c659919e05e6228c05e006e83da320e656ef",
-        "host_version": "2.1.305",
+        "executable_sha256": "520bc6c1f40af466bd03a278b5ae1af1a2938bc7de5b9e5cb15526da20d71cfe",
+        "host_version": "2.1.306",
         "tested_flags": [
           "-p",
           "--bare",
@@ -2051,12 +2052,12 @@
           "clean": {
             "verdict": "pass",
             "failures": [],
-            "host_version": "2.1.305",
+            "host_version": "2.1.306",
             "init": {
               "tools": [],
               "mcp_servers": [],
               "non_builtin_plugins": [],
-              "host_version": "2.1.305",
+              "host_version": "2.1.306",
               "api_key_source": "ANTHROPIC_API_KEY",
               "model": "recalith-probe-unselected-model",
               "skills_count": 0,
@@ -2116,18 +2117,18 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 411
+              "duration_ms": 667
             }
           },
           "host_marked": {
             "verdict": "pass",
             "failures": [],
-            "host_version": "2.1.305",
+            "host_version": "2.1.306",
             "init": {
               "tools": [],
               "mcp_servers": [],
               "non_builtin_plugins": [],
-              "host_version": "2.1.305",
+              "host_version": "2.1.306",
               "api_key_source": "ANTHROPIC_API_KEY",
               "model": "recalith-probe-unselected-model",
               "skills_count": 0,
@@ -2187,7 +2188,7 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 419
+              "duration_ms": 693
             }
           }
         },
@@ -2200,13 +2201,13 @@
           "provider_id": "claude_cli",
           "backend": "claude_cli",
           "configured_model": "recalith-probe-unselected-model",
-          "observed_version": "2.1.305",
+          "observed_version": "2.1.306",
           "certified_version": null,
           "auth_route": "env_api_key",
           "auth_key_names": [
             "ANTHROPIC_API_KEY"
           ],
-          "checked_at": "2026-10-21T03:35:42.021711Z",
+          "checked_at": "2026-10-21T12:59:05.743861Z",
           "recertification_required": false
         },
         "certifies": false,
@@ -2219,7 +2220,7 @@
     },
     "delivery_engine": {
       "claude_code": {
-        "host_version": "2.1.305",
+        "host_version": "2.1.306",
         "engine_mode": true,
         "synthetic_states": [
           "nonce memories admitted with recorded proposals over real captured fixture events",
@@ -2228,7 +2229,7 @@
         ],
         "request_capture": {
           "lifecycle": {
-            "host_version": "2.1.305",
+            "host_version": "2.1.306",
             "returncode": 0,
             "event_kinds": [
               "assistant_message",
@@ -2255,7 +2256,7 @@
             "deliveries": {
               "session_start": 2,
               "prompt": 3,
-              "pre_action": 5,
+              "pre_action": 4,
               "compact_restore": 1
             },
             "unrelated_settings_preserved": "byte_identical"
@@ -2311,7 +2312,7 @@
               "trial_id": "request_capture-session_start-positive-1",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "d045ea12324880b7b63aec89d5213c65349a2aa2e7651a14e8baeb8297304f81",
+              "nonce_sha256": "fa34a61ed6808d8064b6c5274feddcefa78252704ac87f98eaec1fc74f855cd5",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -2324,7 +2325,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1081,
+                "duration_ms": 1412,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2352,7 +2353,7 @@
               "trial_id": "request_capture-session_start-positive-2",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "2a0bc832233b05819f644c01ea397bb2134b03dd32ccda9b2fa062b32cf491f6",
+              "nonce_sha256": "7728a67fd2544286d5194d0219a9ec696825eaf6222db393d37ed0ab8a9f05d5",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -2365,7 +2366,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1022,
+                "duration_ms": 1359,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2393,7 +2394,7 @@
               "trial_id": "request_capture-session_start-positive-3",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "06246b707488b91405e4924859555cb2c6f19650e1465e26f8d2efa2fc350658",
+              "nonce_sha256": "79b894917f7c32015e4c34ab5a77512eb5102ef04985287267ada00388806cc0",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -2406,7 +2407,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1020,
+                "duration_ms": 1454,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2434,7 +2435,7 @@
               "trial_id": "request_capture-session_start-negative-1",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "a03c98c35c6788737b9f531125bdd3506b35254e164e2b0b300583a4a22520fc",
+              "nonce_sha256": "a5e32375dffdbf15937e75c64cb9ca58033f3cd7273a05fb79a0581444d039db",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -2447,7 +2448,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1025,
+                "duration_ms": 1295,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2473,7 +2474,7 @@
               "trial_id": "request_capture-session_start-negative-2",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "5c91f51080f625d0bfbc717884e9d8b6d54b3dd0c5a1d48c55b9a9d8b803cd6d",
+              "nonce_sha256": "76f1e4b2b76275b57f5fe66a5028bd32be4ccf1572d2120242a8be367ea8efb3",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -2486,7 +2487,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1145,
+                "duration_ms": 1528,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2512,7 +2513,7 @@
               "trial_id": "request_capture-session_start-negative-3",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "fbf264dae27d3cbbfaea670b73c3eb8e6307016dcb8ffe5bbc1bb925a7b13f9f",
+              "nonce_sha256": "1adcea64665f71ce46e10ad69e6c1e1e7a2b3c721306c90bf9a099f9e7e708b0",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -2525,7 +2526,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1030,
+                "duration_ms": 1388,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2551,7 +2552,7 @@
               "trial_id": "request_capture-prompt-positive-1",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "8f346105195ac8eb2ce421a7cfeee31e757cfee09867ffc59575a6788b2a9ffa",
+              "nonce_sha256": "639dc6c36f382ef80212b7217d9ffe8a559e2cee6d5ae72221907a440ddd7f50",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -2564,7 +2565,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1082,
+                "duration_ms": 1391,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2592,7 +2593,7 @@
               "trial_id": "request_capture-prompt-positive-2",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "c90305d91f4e61aa264c86ccaa51812e97301f6740bf68e669560d7b13a7da80",
+              "nonce_sha256": "d36c7c4125fb4a2ba2cbe672797cbda2a75f8619a383f8c22f9b0fa0c69c84c2",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -2605,7 +2606,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1076,
+                "duration_ms": 1363,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2633,7 +2634,7 @@
               "trial_id": "request_capture-prompt-positive-3",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "0f41f0a30c9936c75489acb13dde14874986bc91529a94b145c030b0085e5d1f",
+              "nonce_sha256": "f31db413c4670cecb07f9ac615f5e136177c7f5274d5b847e24947e644ed80f2",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -2646,7 +2647,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1093,
+                "duration_ms": 1395,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2674,7 +2675,7 @@
               "trial_id": "request_capture-prompt-negative-1",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "bad3f0974e66596c7dc72323a55f0a1dc3216d2c8e56ba8dfd10f65de32293c8",
+              "nonce_sha256": "4445f3ce79084f2dd6406a86ff660192be78a9611feaf200f76c9a77159c7d82",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -2687,7 +2688,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1056,
+                "duration_ms": 1354,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2711,7 +2712,7 @@
               "trial_id": "request_capture-prompt-negative-2",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "14cdd1c280d675f67d6fc9cee67218c0a3ff69c314a4607076e165158b5d6a3a",
+              "nonce_sha256": "1a33619148273d852eb38e3c08f9abe2c3923a95134c34ed201d74d1ea52b59d",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -2724,7 +2725,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1106,
+                "duration_ms": 1476,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2748,7 +2749,7 @@
               "trial_id": "request_capture-prompt-negative-3",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "3d3e8c69950915a7db9ef4df9cb37c9e9bdf6734a8cc694257b4ff47ae0ed500",
+              "nonce_sha256": "cf45ac5219db951de414cfaaca57688377159777480a0d9f32f4e5a89fc115bd",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -2761,7 +2762,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1092,
+                "duration_ms": 1520,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2785,7 +2786,7 @@
               "trial_id": "request_capture-pre_action-positive-1",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "63549542fe0767441d6f185164fad8aead291c67e7a8884472be14e19223e18a",
+              "nonce_sha256": "6a0368d3c5b7a8537d41d211b5ce35cd9347d310b5187df02f388d25dcf9e717",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -2798,7 +2799,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1248,
+                "duration_ms": 1598,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2828,7 +2829,7 @@
               "trial_id": "request_capture-pre_action-positive-2",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "93da0671e8138481288a276d8cd4f862ac033d2de433f8edaab5985ab744e518",
+              "nonce_sha256": "a45dcc438af9ce1011a61c5592a79a819fd11a24b02bb4dce378adef34694a40",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -2841,7 +2842,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1153,
+                "duration_ms": 1781,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2871,7 +2872,7 @@
               "trial_id": "request_capture-pre_action-positive-3",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "81d23cab97c1e57c8d08a1ef48b040982a86a3f9b70dbedd132e0aebfaeff823",
+              "nonce_sha256": "a340485f14c8a9750d218d4c5c8fb5da206351a205568da2c5c4a79556facf30",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -2884,7 +2885,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1259,
+                "duration_ms": 1634,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2914,7 +2915,7 @@
               "trial_id": "request_capture-pre_action-negative-1",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "808e96c300def257bec2c5b7395531e5527078d054ccdd5eb3367f0263df2afa",
+              "nonce_sha256": "88a924a56d8e55ba39b74eb1d26e0908f3b8947f2480c80489b787e3de5b93f8",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -2927,7 +2928,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1186,
+                "duration_ms": 1620,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2953,7 +2954,7 @@
               "trial_id": "request_capture-pre_action-negative-2",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "0b8ae847bf79bc3def0b5d4b27529f57646c7a88df126ad3fb49a7fcd9d65739",
+              "nonce_sha256": "15a68411de2e0e07981336eba7da130775ccd02360befe35ad1c235dcb6a1c0d",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -2966,7 +2967,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1214,
+                "duration_ms": 1729,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -2992,7 +2993,7 @@
               "trial_id": "request_capture-pre_action-negative-3",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "ec19148b2586e59b724027cc09423f24d8c911b6703abe1012ffb2b55f21bd89",
+              "nonce_sha256": "e6e05dacaff5b92ab3f13d31b799ca678b01a4d0ac732490d3261e51c8444d6f",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -3005,7 +3006,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1182,
+                "duration_ms": 1639,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3031,7 +3032,7 @@
               "trial_id": "request_capture-compact-positive-1",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "1cdb53c01f793fda6fd97c5a781385896888f6e6421a8a316cb7233191d2181d",
+              "nonce_sha256": "ab5d56a34eba468576cee1fdf5d4b9280eddecaa4da3123738666558c9a15c4c",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -3044,7 +3045,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1559,
+                "duration_ms": 2067,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3072,7 +3073,7 @@
               "trial_id": "request_capture-compact-positive-2",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "9faef9112b2d257f1e0cba2a3d797dc68505fd4c79de2394ca116a705aea93ac",
+              "nonce_sha256": "339a7bef76670d70d619c95d89ef9b042ee0458a3b2bfef745bfc26ed774ff81",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -3085,7 +3086,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1647,
+                "duration_ms": 2267,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3113,7 +3114,7 @@
               "trial_id": "request_capture-compact-positive-3",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "cf785538d04cc9ac22680cdade39301c6bc707ee9cf050b78f26d3a7e7d2a30c",
+              "nonce_sha256": "f988f558db1d08fbcc61bb6e802ebdef7c2187f7fef30ca4214333fd981a5fd2",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -3126,7 +3127,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1661,
+                "duration_ms": 2087,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3154,20 +3155,20 @@
               "trial_id": "request_capture-compact-negative-1",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "71875d3a312ffaae6250f93104c242d907be09d5595a76ae6369d6db109a4a98",
+              "nonce_sha256": "61604fc962e4fc741f499d68ce4cf830d49aaefb47960563e8f0947a12d0f0f0",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22120,
+                "stdout_bytes": 22121,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1712,
+                "duration_ms": 2137,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3193,7 +3194,7 @@
               "trial_id": "request_capture-compact-negative-2",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "3369208cb92917c88abeb715012db7e7e2dcaa83bd02c278c1fb583eb29388fc",
+              "nonce_sha256": "b70cdb0b17b72928782d09f790162ff849a05a835340569eee03f72f978296a6",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -3206,7 +3207,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1703,
+                "duration_ms": 2167,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3232,7 +3233,7 @@
               "trial_id": "request_capture-compact-negative-3",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "dca26645c4ee1668e854f9925bdec014808ed86ee7381dc42e10f348d908a7ba",
+              "nonce_sha256": "380f2c5d2a517a08273239807547b77f323039bc6d39eb55ffe68be4c791c050",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -3245,7 +3246,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1600,
+                "duration_ms": 2099,
                 "process_tree_cleaned": true,
                 "descendants_outlived_exit": false
               },
@@ -3673,6 +3674,11 @@
               "alive_after": true,
               "ingested_after": true
             },
+            "worker_killed_then_next_session": {
+              "worker_killed": true,
+              "restarted_by": "hook",
+              "backlog_ingested": true
+            },
             "terminal_hangup": {
               "spawned_by": "hook",
               "method": "posix_session",
@@ -3686,15 +3692,15 @@
           "status": "not_run",
           "reason": "no_auth_route_configured"
         },
-        "report_digest": "d478e3fb21dca455f29962e1e2e11c5a840a6555d20eef3b450a05fc4bb08bd8",
+        "report_digest": "45a6e15c81dcdf4c18b323907b451ab42ad430e547e1348930949e01d97b180c",
         "host_record": {
           "certification_schema": 1,
-          "installation_id": "inst_dea62d49-c7d6-4217-a110-e3a6066d4b52",
+          "installation_id": "inst_8400ca5a-c13a-467b-a4f6-3912ea9f8ace",
           "host_id": "claude_code",
-          "host_version": "2.1.305",
+          "host_version": "2.1.306",
           "mode": "request_capture",
-          "certified_at": "2026-10-21T03:37:27.276181Z",
-          "report_digest": "d478e3fb21dca455f29962e1e2e11c5a840a6555d20eef3b450a05fc4bb08bd8",
+          "certified_at": "2026-10-21T13:06:46.269414Z",
+          "report_digest": "45a6e15c81dcdf4c18b323907b451ab42ad430e547e1348930949e01d97b180c",
           "delivery": {
             "session_start": "unavailable",
             "prompt": "unavailable",
@@ -3706,7 +3712,7 @@
         },
         "probe": "tools/probe_delivery.py --engine-project",
         "probe_schema": 1,
-        "tested_at": "2026-10-21T03:37:27.791351Z",
+        "tested_at": "2026-10-21T13:06:46.944066Z",
         "platform": {
           "os": "linux",
           "arch": "x86_64",
@@ -3721,7 +3727,7 @@
         },
         "invocation": {
           "executable": "/opt/node22/bin/claude",
-          "executable_sha256": "86cb722ab68348877dba7971e4d0c659919e05e6228c05e006e83da320e656ef"
+          "executable_sha256": "520bc6c1f40af466bd03a278b5ae1af1a2938bc7de5b9e5cb15526da20d71cfe"
         },
         "paths": {
           "session_start": {
@@ -3758,5 +3764,5 @@
       }
     }
   },
-  "updated_at": "2026-10-21T03:37:46.038285Z"
+  "updated_at": "2026-10-21T13:06:59.675954Z"
 }
