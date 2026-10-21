@@ -637,7 +637,12 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - **Reproduced locally** with `TextIOWrapper` streams in `cp1252` and `ascii`: `test_cli.py::test_machine_output_is_utf8_whatever_the_console_encoding` failed on both before the fix.
   - **Fix:** `cli/main.py` writes UTF-8 bytes to the stream's buffer for both streams. The forward-slash spelling fix in the deny-rule test stays: it was needed too.
   - **Checks after the fix:** the unit, CLI, adapter and health suites → 504 passed in 462.91 s.
-- CI after the fix: recorded in the next follow-up docs commit.
+- **CI run 86 (d436a1c): all five jobs green.** The 3 extra tests per job are the parametrized UTF-8 regression test.
+  - Linux 3.12: 1045 passed, 27 skipped (tests 1366.21 s).
+  - Linux 3.13: 1045 passed, 27 skipped (tests 1282.30 s), plus the requirements-lock check and offline provisioning (1 passed, 3.93 s).
+  - Linux 3.14: 1045 passed, 27 skipped (tests 1146.38 s).
+  - macOS 3.13: 1045 passed, 27 skipped (tests 1611.80 s).
+  - Windows 3.13: 979 passed, 93 skipped (tests 3125.07 s).
 - Next action: Task 18 preview (the release gate: 12-scenario comparative smoke against a clean no-memory baseline, three default-budget workload days, the profile-required deterministic/failure tests, native-platform hook latency/usefulness and the release checklist). B1 still blocks every live check.
 
 Add each later checkpoint with:
