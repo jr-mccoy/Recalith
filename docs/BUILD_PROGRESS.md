@@ -879,7 +879,15 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
     - the full 3.13 suite → exit 0, 1075 passed, 20 skipped in 2147.71 s (the new aging-lock test is the extra one).
 
     3.12 and 3.14 for this commit are covered by CI.
-  - «TBD: the CI run for 84cd043»
+  - **Run 95 (`604f0f8`, with the fixes): all five jobs green.**
+
+    | Job | Result | Tests time |
+    |---|---|---|
+    | Linux 3.12 | 1068 passed, 27 skipped | 1829.72 s |
+    | Linux 3.13 | 1068 passed, 27 skipped, plus offline provisioning 1 passed in 3.01 s | 1157.97 s |
+    | Linux 3.14 | 1068 passed, 27 skipped | 1318.63 s |
+    | macOS 3.13 | 1068 passed, 27 skipped | 1424.90 s |
+    | Windows 3.13 | 1002 passed, 93 skipped | 5103.44 s, a slow runner; no test failed |
 - Next action: the live preview gate once B1 clears. Run the B1 operator commands, then `evals/run.py gate --mode live …` with an operator-provisioned token, from an ordinary terminal. Before that, a Task 11 follow-up is needed for prompt usefulness at scale (item 15), and the Windows cold-cache tail needs fixing. Then Cut 2.
 
 Add each later checkpoint with:
