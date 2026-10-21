@@ -18,8 +18,9 @@ Healthy populations (the gate, per platform):
 * ``warm`` — current views; alternating pre-action (a caution) and prompt
   (context) trials. Target p95 ≤ 300 ms, p99 ≤ 750 ms, healthy eligible
   delivery ≥ 99 %, degradation ≤ 1 %.
-* ``cold_missing`` — no packet cache at all (views deleted): the bounded
-  stdlib fallback. Target p95 ≤ 300 ms, p99 ≤ 750 ms, delivery ≥ 95 %,
+* ``cold_missing`` — no packet cache (every view deleted, the worker's
+  pre-rendered fallback rows kept): the hook reads at most 32 fallback rows
+  and filters them live with the stdlib. Target p95 ≤ 300 ms, p99 ≤ 750 ms, delivery ≥ 95 %,
   degradation ≤ 5 %.
 
 Usefulness counts a trial *eligible-delivered* only when the expected lesson
@@ -127,10 +128,12 @@ def verdict(name: str, pop: dict) -> dict:
 
 
 def drop_views(root: Path) -> None:
+    """A missing packet cache: every pre-serialized view is gone; the bounded fallback rows the worker also publishes stay."""
     db = root / ".recalith" / "state" / "memory.sqlite"
     conn = sqlite3.connect(db, timeout=5)
     try:
-        conn.execute("DELETE FROM context_views")
+        conn.execute("DELETE FROM context_views WHERE purpose != 'fallback'")
+        # The hook never reads projection_state; resetting it makes the next publish rebuild the views.
         conn.execute("UPDATE projection_state SET views_store_revision = -1, views_guidance_epoch = -1")
         conn.commit()
     finally:
@@ -222,8 +225,6 @@ def main(argv: list[str] | None = None) -> int:
         # Healthy gate populations.
         report["populations"]["warm"] = regime(args.warm, prompt_or_pre)
         report["gate"]["warm"] = verdict("warm", report["populations"]["warm"])
-        snapshot = tmp / "views-snapshot.sqlite"
-        shutil.copyfile(p.root / ".recalith" / "state" / "memory.sqlite", snapshot)
         drop_views(p.root)
         report["populations"]["cold_missing"] = regime(args.cold, prompt_or_pre)
         report["gate"]["cold_missing"] = verdict("cold_missing", report["populations"]["cold_missing"])
