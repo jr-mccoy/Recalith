@@ -366,6 +366,9 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     cap.coverage = {k: route.get(k) for k in ("source", "provider_id", "backend", "configured_model", "certified_version", "auth_route", "auth_key_names") if k in route}
     if route.get("state") == "certified":
         cap.certified_version = route.get("certified_version")
+        failure = route.get("last_call_failure")
+        if isinstance(failure, dict) and isinstance(failure.get("code"), str):
+            cap.flag("degraded", failure["code"])  # e.g. endpoint_unreachable, provider_rate_limited (decision 0023)
     elif route.get("state") == "checking":
         cap.flag("degraded", "isolation_recheck_pending")
     else:

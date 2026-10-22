@@ -180,7 +180,8 @@ def _route_keys(root: Path) -> list[str]:
         config = base.load_provider_config(root)
     except RecalithError:
         return []
-    return list(config.auth_env_keys) if config is not None else []
+    # The route's auth key names and its network (proxy/TLS) key names: the worker must carry both to its curator.
+    return list(dict.fromkeys([*config.auth_env_keys, *config.network_env_keys])) if config is not None else []
 
 
 # --------------------------------------------------------------------------

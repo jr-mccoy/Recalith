@@ -11,6 +11,13 @@ reservation, a real bounded child through ``providers.base.ProviderBackend``
 (the fake JSON process in ``narrative`` mode: it answers the request it
 received and keeps a sleeping grandchild, a tree that must not outlive a
 crashed worker), proposal persistence and application.
+
+Decision 0023 adds the direct-API variant: ``crash_project(..., api_url=URL)``
+records a loopback fake provider (``fake_api_server.FakeProvider`` in
+``narrative`` mode, owned by the test process and alive across the kill and
+the restart) and the driver launches the production stdlib HTTP transport
+through the same ``ProviderBackend``; each transport child's pid is logged so
+the test can prove none outlives a crashed worker.
 """
 
 from __future__ import annotations
@@ -44,7 +51,7 @@ def green_reruns() -> list[dict[str, Any]]:
     return out
 
 
-def crash_project(tmp: Path, name: str) -> Path:
+def crash_project(tmp: Path, name: str, *, api_url: str | None = None) -> Path:
     p = wks.Project(tmp, name)
     p.scenario("lifecycle")
     p.drain()
@@ -55,7 +62,10 @@ def crash_project(tmp: Path, name: str) -> Path:
     apply.apply_operations(osc.operator(p.root), [osc._op(op)], read_set=osc.read_set(p.root), submission_id=derived_id("op", [name, "claim"]), now=utc_now())
     latest = max(t["last_activity_at"] for t in p.tasks())
     clock = format_utc(parse_utc(latest) + _dt.timedelta(hours=1))  # every narrative job is due and its task quiet
-    (p.root / SCENARIO).write_text(json.dumps({"clock": clock, "pidlog": str(tmp / f"{name}.pids")}), encoding="utf-8")
+    spec = {"clock": clock, "pidlog": str(tmp / f"{name}.pids")}
+    if api_url is not None:
+        spec["api_url"] = api_url
+    (p.root / SCENARIO).write_text(json.dumps(spec), encoding="utf-8")
     return p.root
 
 
@@ -71,12 +81,42 @@ def backend_config(ctx: Any, pidlog: str) -> ProviderConfig:
     )
 
 
+def api_config(ctx: Any, url: str) -> ProviderConfig:
+    """A loopback (local-server) Chat Completions route without auth; never certified."""
+    return ProviderConfig(
+        provider_id="fake_api", installation_id=ctx.installation_id, backend="openai_compatible", executable=None, configured_model="fake-model",
+        auth_route="none", auth_env_keys=[], invocation_args=[],
+        endpoint={"url": url, "dialect": "chat_completions", "auth_header": "none", "output_cap_field": "max_completion_tokens", "json_mode": "json_object", "api_version": None},
+        certification={"certified": False},
+    )
+
+
+def api_backend(ctx: Any, url: str, pidlog: str | None = None):
+    """The production backend for the API route; logs each transport child's pid (test-only subclass)."""
+    import os
+
+    from recalith.providers import base
+
+    class LoggingBackend(base.ProviderBackend):
+        def _spawned(self, pid: int, pgid: int | None, root: Path) -> Path | None:
+            if pidlog is not None:
+                with open(pidlog, "a", encoding="utf-8") as fh:
+                    fh.write(f"{pid}\n")
+            return super()._spawned(pid, pgid, root)
+
+    inherited = {k: os.environ[k] for k in ("PATH", "SYSTEMROOT", "WINDIR", "SYSTEMDRIVE", "TEMP", "TMP", "TMPDIR") if k in os.environ}
+    return LoggingBackend(api_config(ctx, url), inherited=inherited, mode="live", run_dir=Path(ctx.root) / ".recalith" / "run")
+
+
 def runtime(ctx: Any, spec: dict[str, Any], clock: Any):
     """The production backend and preparer (request capture: no route keys; a fake is never certified)."""
     from recalith.controller import worker
     from recalith.providers import base
 
-    backend = base.ProviderBackend(backend_config(ctx, spec["pidlog"]), mode="request_capture", run_dir=Path(ctx.root) / ".recalith" / "run")
+    if spec.get("api_url"):
+        backend = api_backend(ctx, spec["api_url"], spec["pidlog"])
+    else:
+        backend = base.ProviderBackend(backend_config(ctx, spec["pidlog"]), mode="request_capture", run_dir=Path(ctx.root) / ".recalith" / "run")
     return worker.ModelRuntime(backend=backend, prepare=requests.runtime_preparer(ctx, now=clock.now))
 
 
@@ -104,4 +144,4 @@ def extra_state(root: Path) -> dict[str, Any]:
     return {"review_batches": tuple(batches), "episode_titles": titles, "next_actions": next_actions}
 
 
-__all__ = ["crash_project", "scenario", "runtime", "outstanding", "extra_state", "RecordRef"]
+__all__ = ["crash_project", "scenario", "runtime", "api_config", "api_backend", "outstanding", "extra_state", "RecordRef"]

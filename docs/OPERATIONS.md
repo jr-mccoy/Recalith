@@ -30,7 +30,9 @@ No routine memory operation needs a person: nobody approves a queue of memories,
 
 | Condition | What still works | What stops | Status reason |
 |---|---|---|---|
-| No certified inference route (B1 today) | Capture, typed task state, episodes, deterministic retrieval of existing knowledge, forgetting, backup, restore | New long-term knowledge: model jobs wait visibly | `provider_not_configured`, `request_capture_only`, `route_uncertified` |
+| No certified inference route (B1 today) | Capture, typed task state, episodes, deterministic retrieval of existing knowledge, forgetting, backup, restore | New long-term knowledge: model jobs wait visibly | `provider_not_configured`, `request_capture_only`, `route_uncertified`, `certification_failed_<check>` |
+| A certified API route withdrawn by a reply (decision 0023) | As above | Model calls until the route is recertified (or the worker restarts after an auth fix) | `model_mismatch`, `output_cap_exceeded`, `provider_auth_rejected`, `provider_not_found`, `provider_redirect_refused`, `isolation_tools_exposed`; an adapter changed by an engine update is `adapter_changed` |
+| A certified API route's last call failed transiently | Everything; the failed call is charged and retried on the normal backoff | Nothing beyond the backoff | `endpoint_unreachable`, `tls_verification_failed`, `provider_rate_limited`, `provider_server_error`, `provider_overloaded`, `provider_timeout` (degraded) |
 | Start/prompt delivery not certified for the installed Claude Code version | Capture and learning | Automatic delivery into sessions (the hook stays silent) | `delivery_not_certified`, `delivery_request_capture_only`, `host_version_changed` |
 | Budget pool exhausted for the UTC day | Capture, deterministic work, delivery of existing knowledge | New model calls until the next UTC day; protected review keeps its own reserve | `budget_exhausted:<pool>.<dimension>` |
 | Privacy maintenance (forget or restore) in progress | Capture | Delivery and model launches until cleanup finished | `maintenance_in_progress` |
@@ -59,8 +61,27 @@ Administrative commands are refused inside an agent's process tree, even with a 
 
 1. Provision the runtime: `python bootstrap.py install` (hash-locked wheelhouse; no hook-triggered download).
 2. `recalith init --project . --profile coding --release-profile claude_preview` at the terminal. For automation, first create a standalone token at the terminal with `recalith operator-token create --output FILE`, then `recalith init --operator-token-file FILE` from the automation; a token is never minted noninteractively.
-3. Certify the inference route and the host (B1's operator commands in [BUILD_PROGRESS](BUILD_PROGRESS.md#blockers-and-decisions)): `tools/probe_provider.py --route-out`, `tools/check_provider_runtime.py`, `recalith integrate claude`, `tools/probe_delivery.py --engine-project`.
+3. Certify the inference route and the host (B1's operator commands in [BUILD_PROGRESS](BUILD_PROGRESS.md#blockers-and-decisions)): `tools/probe_provider.py --backend BACKEND --route-out`, `tools/check_provider_runtime.py --backend BACKEND`, `recalith integrate claude`, `tools/probe_delivery.py --engine-project`.
 4. `recalith status` → exit 0.
+
+### Choosing the curator backend (decision 0023)
+
+The background curator needs one explicitly configured route. Pick what you have; nothing ever falls back to another provider, model, key or endpoint.
+
+| You have | `backend` | Start from |
+|---|---|---|
+| The Claude Code CLI with an API key (or `apiKeyHelper`, or cloud credentials) | `claude_cli` | `tools/probe_config.example.json` |
+| An Anthropic API key | `anthropic_messages` | `tools/probe_config.anthropic_messages.example.json` |
+| An API key for an OpenAI-compatible Chat Completions provider (OpenAI, Azure OpenAI, OpenRouter, Groq, Together, Gemini's OpenAI-compatible endpoint, …) | `openai_compatible` | `tools/probe_config.openai_compatible.example.json` |
+| A local OpenAI-compatible server (Ollama, LM Studio, vLLM) | `openai_compatible` with a loopback `http` URL and `auth_route: none` | `tools/probe_config.local_server.example.json` |
+
+Copy the example to `probe-private/local-config.json`, set the explicit model identifier (no model name is built in), the endpoint URL, the key's environment-variable *name*, and the attestation; export the key in that terminal only; then run the probe (live certification) and the runtime check with `--backend`, and `recalith status`. Notes:
+
+- **Anthropic key funded by a Max or Team plan's included API credits.** It is an ordinary API key: use `anthropic_messages` with `x-api-key`. Check that plan's terms for unattended background use before attesting `checked_eligible`. A subscription login (OAuth) is not this route; subscription harnesses are separate future routes (decision 0023 item 11).
+- **A hard spending stop.** Recalith reserves its own daily invocation and token budgets before every call, but the provider bills what it serves. If you want the provider to stop rather than overspend, turn off auto-reload or overage billing in the provider's console and set a spend limit there; a call the provider refuses for credit then fails visibly with the status it returns (for example `provider_request_rejected` or `provider_rate_limited`), is charged against the local budget and backs off.
+- **OpenAI-compatible providers.** Use the provider's full `…/chat/completions` URL (Azure: the deployment or v1 URL with its `api-version` query and `auth_header: api-key`). If the provider reports a different model identifier than the one you send (an alias or a deployment name), set `expected_resolved_model` to the identifier it reports; otherwise the call fails with `model_mismatch`. If the server rejects `max_completion_tokens` or JSON mode, use `output_cap_field: max_tokens` or `json_mode: none`; the live probe shows which one the server enforces. A provider that cannot enforce a hard output cap cannot be certified.
+- **Local server.** Use `http://127.0.0.1:PORT/v1/chat/completions`, `auth_route: none`, `auth_header: none` and the attestation `not_applicable_local`. The live probe still checks the output cap, the JSON body and the reported model; usage the server does not report is charged at Recalith's own estimates.
+- **Proxies and corporate CA bundles** reach the curator only when named in `network_env_keys` (`HTTPS_PROXY`, `NO_PROXY`, `SSL_CERT_FILE`, `SSL_CERT_DIR`). TLS verification cannot be turned off.
 
 Re-run step 3 after any Claude Code upgrade: a new host version needs a fixture capture and review before it is certified (decision 0019), and delivery stays off for an uncertified version.
 

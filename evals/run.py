@@ -61,10 +61,10 @@ EXIT_OK, EXIT_USAGE, EXIT_UNAVAILABLE, EXIT_GATE = 0, 2, 4, 8
 EVAL_PROJECT_ID = "proj_70707070-7070-4070-8070-707070707070"
 OPERATOR_STEPS = [
     "From an ordinary OS terminal outside any agent session (no CLAUDECODE or other host marker in its environment):",
-    "1. cp tools/probe_config.example.json probe-private/local-config.json and set executable, expected_version (the installed `claude --version`), the explicit model for both sections, an API-key auth_route naming only the key's environment variable, and operator_attestation checked_eligible with basis/checked_on after checking the account's terms for unattended background use.",
-    "2. export ANTHROPIC_API_KEY=... (or the selected key name) in that terminal only.",
-    "3. python tools/probe_provider.py --config probe-private/local-config.json --output docs/host-compatibility.json --route-out /path/to/project   (expect exit 0)",
-    "4. python tools/check_provider_runtime.py --config probe-private/local-config.json --output docs/host-compatibility.json   (expect exit 0)",
+    "1. cp tools/probe_config.example.json probe-private/local-config.json and choose the curator backend in its provider section (docs/probes/LOCAL_CONFIG.md): claude_cli (executable, expected_version = the installed `claude --version`, the certified argument array), anthropic_messages or openai_compatible (an endpoint object; no executable), with the explicit model, an auth_route naming only the key's environment variable (or none for a loopback local server), and operator_attestation checked_eligible with basis/checked_on after checking the provider's terms for unattended background use (not_applicable_local only for a loopback server). Set the delivery section for the working agent's Claude Code host.",
+    "2. export THE_SELECTED_KEY_NAME=... in that terminal only (the name the auth_route selects).",
+    "3. python tools/probe_provider.py --config probe-private/local-config.json --backend BACKEND --output docs/host-compatibility.json --route-out /path/to/project   (expect exit 0)",
+    "4. python tools/check_provider_runtime.py --config probe-private/local-config.json --backend BACKEND --output docs/host-compatibility.json   (expect exit 0)",
     "5. In the project: .recalith/bin/recalith integrate claude",
     "6. python tools/probe_delivery.py --config probe-private/local-config.json --engine-project /path/to/project --output docs/host-compatibility.json   (expect exit 0: live start/prompt)",
     "7. .recalith/bin/recalith operator-token create --output /secure/eval-token.json   (at that terminal; the harness never mints one)",

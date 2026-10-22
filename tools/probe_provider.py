@@ -20,6 +20,14 @@ curator launch and checks the *effective* launch, not the flags:
   route, checks the host's own diagnostics, sentinel markers, the child
   environment, the selected auth route and a model-visible negative canary.
 
+For a direct-API backend (``backend: anthropic_messages`` or
+``openai_compatible``; decision 0023) the same command runs
+``tools/probe_api.py``, which uses the engine's shipped adapter: request
+capture verifies the exact request on a loopback capture endpoint, and live
+mode checks the operator's own route (auth, reported model, a schema-valid
+body, an enforced output cap, the endpoint origin). ``--backend`` must name
+the configured backend.
+
 Both modes run from a clean and a deliberately host-marked parent environment.
 Exit 0 only for complete observed certification (live mode, every dimension
 passing, operator background-use eligibility checked). Exit 4 reports an
@@ -49,9 +57,11 @@ FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "providers" / "isolation"
 SECTION = "provider_isolation"
 CONFIG_SCHEMA = 1
 MODES = ("request_capture", "live")
-AUTH_KINDS = ("not_configured", "env_api_key", "env_cloud")
+AUTH_KINDS = ("not_configured", "env_api_key", "env_cloud", "none")
+BACKENDS = ("claude_cli", "anthropic_messages", "openai_compatible")
+API_BACKENDS = ("anthropic_messages", "openai_compatible")
 BILLING = ("none", "api", "subscription", "cloud")
-ATTESTATION = ("checked_eligible", "checked_ineligible", "unchecked")
+ATTESTATION = ("checked_eligible", "checked_ineligible", "unchecked", "not_applicable_local")
 ENVELOPES = ("claude_stream_json",)
 DUMMY_KEY = "recalith-probe-placeholder-not-a-credential"
 UNSELECTED_MODEL = "recalith-probe-unselected-model"
@@ -88,6 +98,9 @@ PROBE_INPUT = (
 )
 
 DEFAULTS: dict[str, Any] = {
+    "backend": "claude_cli",
+    "endpoint": None,
+    "expected_resolved_model": None,
     "expected_version": None,
     "model": None,
     "envelope": "claude_stream_json",
@@ -117,6 +130,9 @@ DEFAULT_LIMITS = {
     "body_bytes": 24000,
 }
 REQUIRED = ("provider_id", "executable", "invocation_args", "auth_route", "operator_attestation")
+API_REQUIRED = ("provider_id", "backend", "model", "endpoint", "auth_route", "operator_attestation")
+# Settings that belong to the Claude CLI probe only; an API configuration may not carry them.
+CLI_ONLY = ("executable", "invocation_args", "expected_version", "envelope", "control_args", "control_resume_args", "request_capture_env", "home_env", "alternate_auth_env_keys")
 TOP_LEVEL = {"config_schema", "$comment", "provider", "delivery"}
 
 
@@ -140,7 +156,7 @@ def _str_map(value: Any, name: str) -> dict[str, str]:
     return dict(value)
 
 
-def load_config(path: Path) -> dict[str, Any]:
+def load_config(path: Path, *, backend: str | None = None) -> dict[str, Any]:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
@@ -160,9 +176,18 @@ def load_config(path: Path) -> dict[str, Any]:
     unknown = sorted(set(raw) - known)
     if unknown:
         raise ConfigError(f"unknown config fields: {unknown}")
+    configured = raw.get("backend", "claude_cli")
+    if configured not in BACKENDS:
+        raise ConfigError(f"backend must be one of {BACKENDS} (json_process has no certification procedure)")
+    if backend is not None and backend != configured:
+        raise ConfigError(f"--backend {backend} does not match the configured backend {configured}")
+    if configured in API_BACKENDS:
+        return _load_api(raw)
     missing = [k for k in REQUIRED if k not in raw]
     if missing:
         raise ConfigError(f"missing config fields: {missing}")
+    if raw.get("endpoint") is not None or raw.get("expected_resolved_model") is not None:
+        raise ConfigError("endpoint and expected_resolved_model belong to direct-API backends")
     cfg = {**DEFAULTS, **{k: v for k, v in raw.items() if k != "$comment"}}
     if not isinstance(cfg["provider_id"], str) or not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", cfg["provider_id"]):
         raise ConfigError("provider_id must be a lowercase identifier")
@@ -235,6 +260,85 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ConfigError("a checked attestation needs checked_on (YYYY-MM-DD)")
     if "live" in cfg["modes"] and cfg["model"] is None and auth["kind"] != "not_configured":
         raise ConfigError("live mode with a configured route requires an explicit model")
+    if auth["kind"] == "none" or att["background_use"] == "not_applicable_local":
+        raise ConfigError("auth_route none and the not_applicable_local attestation apply to a loopback API endpoint only")
+    return cfg
+
+
+def _common(cfg: dict[str, Any]) -> None:
+    """Fields shared by both probe kinds: modes, key lists, switches, limits, auth route and attestation."""
+    cfg["modes"] = _str_list(cfg["modes"], "modes")
+    if not cfg["modes"] or any(m not in MODES for m in cfg["modes"]) or len(set(cfg["modes"])) != len(cfg["modes"]):
+        raise ConfigError(f"modes must be a nonempty subset of {MODES}")
+    for key in ("platform_env_keys", "network_env_keys", "host_markers"):
+        cfg[key] = _str_list(cfg[key], key)
+    cfg["nonsecret_env"] = _str_map(cfg["nonsecret_env"], "nonsecret_env")
+    for key, value in cfg["nonsecret_env"].items():
+        if key in cfg["host_markers"] or key in pc.ROLE_MARKERS:
+            raise ConfigError(f"nonsecret_env may not set marker {key}")
+        if pc._SECRETISH.search(value) or re.search(r"(KEY|TOKEN|SECRET|PASSWORD)", key, re.I):
+            raise ConfigError(f"nonsecret_env must not carry credentials ({key})")
+    limits = dict(DEFAULT_LIMITS)
+    if not isinstance(cfg["limits"], dict):
+        raise ConfigError("limits must be an object")
+    for key, value in cfg["limits"].items():
+        if key not in DEFAULT_LIMITS:
+            raise ConfigError(f"unknown limit {key}")
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            raise ConfigError(f"limit {key} must be a positive integer")
+        limits[key] = value
+    cfg["limits"] = limits
+    auth = cfg["auth_route"]
+    if not isinstance(auth, dict) or set(auth) - {"kind", "billing", "env_keys", "expected_api_key_source", "description"}:
+        raise ConfigError("auth_route must be an object with kind, billing, env_keys, expected_api_key_source, description")
+    if auth.get("kind") not in AUTH_KINDS or auth.get("billing", "none") not in BILLING:
+        raise ConfigError(f"auth_route.kind must be one of {AUTH_KINDS} and billing one of {BILLING}")
+    auth.setdefault("billing", "none")
+    auth["env_keys"] = _str_list(auth.get("env_keys", []), "auth_route.env_keys")
+    auth.setdefault("expected_api_key_source", None)
+    auth.setdefault("description", "")
+    att = cfg["operator_attestation"]
+    if not isinstance(att, dict) or set(att) - {"background_use", "basis", "checked_on", "managed_policy"}:
+        raise ConfigError("operator_attestation must contain only background_use, basis, checked_on, managed_policy")
+    if att.get("background_use") not in ATTESTATION:
+        raise ConfigError(f"operator_attestation.background_use must be one of {ATTESTATION}")
+    att.setdefault("basis", "")
+    att.setdefault("checked_on", None)
+    att.setdefault("managed_policy", "")
+    if att["background_use"] != "unchecked" and not att["checked_on"]:
+        raise ConfigError("a checked attestation needs checked_on (YYYY-MM-DD)")
+
+
+def _load_api(raw: dict[str, Any]) -> dict[str, Any]:
+    """A direct-API probe configuration (decision 0023): validated through the engine's own ``ProviderConfig``."""
+    present = sorted(k for k in CLI_ONLY if k in raw)
+    if present:
+        raise ConfigError(f"{present} belong to the Claude CLI probe; an API backend runs the shipped adapter")
+    missing = [k for k in API_REQUIRED if raw.get(k) is None]
+    if missing:
+        raise ConfigError(f"missing config fields: {missing}")
+    cfg = {**DEFAULTS, **{k: v for k, v in raw.items() if k != "$comment"}}
+    for key in CLI_ONLY:
+        cfg.pop(key, None)
+    if not isinstance(cfg["provider_id"], str) or not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", cfg["provider_id"]):
+        raise ConfigError("provider_id must be a lowercase identifier")
+    if not isinstance(cfg["model"], str) or not cfg["model"]:
+        raise ConfigError("an API backend needs the explicit model identifier")
+    _common(cfg)
+    if cfg["auth_route"]["expected_api_key_source"] is not None:
+        raise ConfigError("expected_api_key_source is a Claude CLI diagnostic; leave it null for an API backend")
+    if cfg["auth_route"]["kind"] == "env_cloud":
+        raise ConfigError("an API backend uses env_api_key (one named key) or none (loopback only)")
+    import probe_api
+
+    try:
+        config = probe_api.provider_config(cfg, installation_id=cfg["probe_installation_id"])
+    except ValueError as exc:  # pydantic's ValidationError is a ValueError
+        raise ConfigError(f"invalid API route: {str(exc).splitlines()[0]} ({len(str(exc).splitlines())} lines)") from None
+    from recalith.contracts.config import is_loopback_url
+
+    if cfg["operator_attestation"]["background_use"] == "not_applicable_local" and not is_loopback_url(config.endpoint.url):
+        raise ConfigError("not_applicable_local attests a loopback (local) endpoint only; a remote provider's terms must be checked")
     return cfg
 
 
@@ -907,11 +1011,15 @@ def write_route(project_root: Path, cfg: dict[str, Any], section: dict[str, Any]
 # Entry point
 
 
-def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool = False, route_out: Path | None = None) -> int:
+def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool = False, route_out: Path | None = None, backend: str | None = None) -> int:
     try:
-        cfg = load_config(config_path)
+        cfg = load_config(config_path, backend=backend)
     except ConfigError as exc:
         return pc.die_usage(str(exc))
+    if cfg["backend"] in API_BACKENDS:
+        import probe_api
+
+        return probe_api.run(cfg, output_path, route_out=route_out)
 
     exe = cfg["executable"]
     resolved = exe if os.path.isabs(exe) else shutil.which(exe)
@@ -1026,8 +1134,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path, help="compatibility report to update")
     parser.add_argument("--keep-fixture", action="store_true", help="keep the disposable fixture tree for debugging")
     parser.add_argument("--route-out", type=Path, default=None, help="project root whose .recalith/provider.json records this route (certified only by a complete live pass)")
+    parser.add_argument("--backend", choices=BACKENDS, default=None, help="the backend you intend to certify; must equal the configuration's backend")
     ns = parser.parse_args(argv)
-    return probe_provider(ns.config, ns.output, keep_fixture=ns.keep_fixture, route_out=ns.route_out)
+    return probe_provider(ns.config, ns.output, keep_fixture=ns.keep_fixture, route_out=ns.route_out, backend=ns.backend)
 
 
 if __name__ == "__main__":
