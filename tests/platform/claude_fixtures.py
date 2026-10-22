@@ -29,6 +29,9 @@ FIXTURES = ROOT / "tests" / "fixtures" / "hosts" / "claude" / VERSION
 ADAPTER_ACTOR = Actor(kind="adapter", id="claude-hook", channel="hook")
 PROJECT_ID = "proj_99999999-9999-4999-8999-999999999999"
 SRC = str(ROOT / "src")
+# The release profile new fixture installations get. Full-profile tests (decision 0024) set it to "full" for one
+# test with monkeypatch; ``init --release-profile full`` itself stays refused until the full release (Cut 2).
+RELEASE_PROFILE = "claude_preview"
 
 
 def records(scenario: str) -> list[dict[str, Any]]:
@@ -51,7 +54,7 @@ class Replay:
         self.host_tmp = tmp / "host-tmp"
         self.host_tmp.mkdir()
         if init:
-            identity.initialize_installation(self.root, ProjectConfig.defaults_for(PROJECT_ID))
+            identity.initialize_installation(self.root, ProjectConfig.defaults_for(PROJECT_ID, release_profile=RELEASE_PROFILE))
             self.ctx = identity.resolve_installation(self.root, actor=ADAPTER_ACTOR)
             write_hook_context(self.ctx, adapter_id="claude_code", host_version=host_version)
         self.slug = "-replay-workspace"

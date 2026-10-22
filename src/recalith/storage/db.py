@@ -6,6 +6,10 @@ written; without an explicit compatible reader it does not open at all.
 Transport layers receive a :class:`Store`, never a raw connection.
 
 No model or network call may run inside :meth:`Store.transaction`.
+
+In a ``release_profile: full`` store every write transaction that changes a
+chained row appends its revision-chain entry before it commits
+(:mod:`recalith.storage.integrity`, decision 0024); preview stores never do.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from typing import Any, Iterator, Sequence
 
 from recalith.contracts.common import InstallationContext, ReadSet, RecordRef, utc_now
 from recalith.errors import RecalithError
+from recalith.storage import integrity
 
 SCHEMA_VERSION = 11  # 0011: the hook's bounded lexical lookup (decision 0021)
 MIN_SQLITE = (3, 37, 0)  # STRICT tables
@@ -94,6 +99,8 @@ def create_database(path: Path, *, project_id: str, installation_id: str, engine
             "INSERT INTO workspaces (workspace_id, canonical_root, root_identity, attachment_state, registered_at) VALUES (?, ?, ?, 'primary', ?)",
             (workspace["workspace_id"], workspace["canonical_root"], workspace["root_identity"], now),
         )
+        if release_profile == "full":
+            integrity.establish_baseline(conn, reason="init")
         conn.execute("COMMIT")
     except BaseException:
         if conn.in_transaction:
@@ -146,6 +153,7 @@ class Txn:
         self.meta = meta
         self._advance_store = False
         self._advance_guidance = False
+        self._purge = False
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Cursor:
         return self._conn.execute(sql, params)
@@ -162,6 +170,10 @@ class Txn:
         """
         self._advance_store = True
         self._advance_guidance = self._advance_guidance or serving_relevant
+
+    def purged(self) -> None:
+        """Mark this transaction as an authorized retention/forget purge: its chain entry is a purge entry (full profile)."""
+        self._purge = True
 
     @property
     def next_store_revision(self) -> int:
@@ -248,6 +260,9 @@ class Store:
             _guard_identity(self.ctx, meta)
             if expected is not None:
                 _check_read_set(self._conn, meta, expected)
+            chained = meta.release_profile == "full"
+            if chained:
+                integrity.arm(self._conn)
             txn = Txn(self._conn, meta)
             yield txn
             if txn._advance_store:
@@ -255,6 +270,8 @@ class Store:
                     "UPDATE installation_meta SET store_revision = store_revision + 1, guidance_epoch = guidance_epoch + ? WHERE singleton = 1",
                     (1 if txn._advance_guidance else 0,),
                 )
+            if chained:
+                integrity.seal(self._conn, purge=txn._purge)
             self._conn.execute("COMMIT")
         except BaseException:
             if self._conn.in_transaction:

@@ -631,6 +631,7 @@ def purge(txn: Txn, ctx: InstallationContext, cl: Closure, *, now: str) -> dict[
     from recalith.retrieval import index
 
     txn.execute("PRAGMA secure_delete = ON")  # deleted cells are overwritten, not left in free pages
+    txn.purged()  # an authorized purge: its chain entry carries the purge marker (full profile)
     state = index.state(txn)
     backend = state["backend"] if state is not None else None
     _purge_events(txn, ctx, cl.events, now=now)

@@ -1622,3 +1622,64 @@ def test_forget_restore_crash_matches_reference(tmp_path, failpoint):
         restart = _driver(root, log)
         assert restart.returncode == 0, restart.stderr
         assert fsc.forget_state(root) == reference, (failpoint, rep)
+
+
+CHAIN_MATRIX = [*failpoints.CHAIN, *failpoints.WORKER]
+
+
+@pytest.mark.parametrize("failpoint", CHAIN_MATRIX)
+def test_full_profile_chain_crash_matches_reference(tmp_path, monkeypatch, failpoint):
+    """Full profile (decision 0024): killed while sealing a chain entry or at a worker boundary, then restarted.
+
+    The Task 5 kill/restart scenario (real captured events, real operations,
+    worker-written claim/task/episode revisions) in a ``release_profile: full``
+    store. ``chain.before_seal`` falls after a transaction's rows are written
+    and before its chain entry; ``chain.after_seal`` after the entry, before
+    the commit. Chain kills are spread evenly over every chained transaction a
+    counting run of the same driver hits; worker kills use the worker family's
+    hits. After the restart the store equals the full-profile reference, and
+    the chain is contiguous, ends at the store's revision and verifies over
+    every current row.
+    """
+    import claude_fixtures as cf
+    from recalith.storage import integrity
+
+    monkeypatch.setattr(cf, "RELEASE_PROFILE", "full")
+    reference_root = osc.crash_project(tmp_path, "reference")
+    assert _driver(reference_root, tmp_path / "reference.calls").returncode == 0
+    reference = osc.normalized(reference_root)
+    assert reference["applications"] == REFERENCE_APPLICATIONS
+    assert reference["counts"].pop("revision_chain") > 0
+    assert integrity.verify(ws.context(reference_root), full=True)["state"] == "verified"
+    ordinals = [0, 1, 2]
+    if failpoint in failpoints.CHAIN:
+        count_root = osc.crash_project(tmp_path, "count")
+        hits_log = tmp_path / "count.hits"
+        counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
+        assert counted.returncode == 0, counted.stderr
+        n = sum(1 for line in hits_log.read_text(encoding="utf-8").splitlines() if line.split()[0] == failpoint)
+        assert n >= 3, f"{failpoint} is reached {n} times"
+        spread = max(3, min(REPS, n))
+        ordinals = sorted({round(k * (n - 1) / (spread - 1)) for k in range(spread)})
+    crashed = 0
+    for rep in range(REPS):
+        root = osc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        if result.returncode == failpoints.KILL_STATUS:
+            crashed += 1
+            restart = _driver(root, log)
+            assert restart.returncode == 0, restart.stderr
+        else:
+            assert result.returncode == 0, result.stderr
+        state = osc.normalized(root)
+        assert state["counts"].pop("revision_chain") > 0
+        assert state == reference, (failpoint, rep)
+        report = integrity.verify(ws.context(root), full=True)
+        assert report["state"] == "verified" and report["complete_coverage"] is True, (failpoint, rep, report["findings"])
+        with db.open_store(ws.context(root), readonly=True) as store, store.read() as view:
+            sequences = [r[0] for r in view.execute("SELECT sequence FROM revision_chain ORDER BY sequence").fetchall()]
+            last = json.loads(view.execute("SELECT row_digests FROM revision_chain ORDER BY sequence DESC LIMIT 1").fetchone()[0])
+            revision = store.meta().store_revision
+        assert sequences == list(range(1, len(sequences) + 1)) and last["store_revision"] == revision
+    assert crashed >= max(1, REPS // 2), f"{failpoint} was not reached often enough to test it"

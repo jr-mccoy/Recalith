@@ -63,7 +63,7 @@ from recalith.core.identity import Layout, load_project_config
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, process_env, session, spool
 from recalith.operations import autostart
-from recalith.storage import db
+from recalith.storage import db, integrity
 
 HOST_FILE = Path(".recalith") / "host.json"
 HOST_FILE_MAX_BYTES = 16 * 1024
@@ -74,6 +74,8 @@ BACKUP_JOURNALS = Path(".recalith") / "run" / "backups"  # storage.backup.JOURNA
 LATEST_LEDGER = Path(".recalith") / "state" / "ledger.json"  # storage.backup.LATEST_LEDGER
 MAX_DEGRADED_CODES = 32
 DEFERRED_REASONS: dict[str, tuple[str, ...]] = {"revision_chain": ("revision_chain_unavailable_in_preview",)}
+# Deferred full-release features this engine builds: reported from their own state in a full store (decision 0024).
+BUILT_FULL_CAPABILITIES = frozenset({"revision_chain"})
 GUARD_MARKERS = frozenset((*process_env.HOST_MARKERS, process_env.WORKER_MARKER, process_env.CURATOR_MARKER))
 
 
@@ -204,6 +206,7 @@ def _store_facts(ctx: InstallationContext, *, now: str, deep: bool) -> dict[str,
         out["reviews_waiting"] = view.execute("SELECT COUNT(*) FROM jobs WHERE kind IN ('review_claims', 'revalidate') AND state NOT IN ('completed', 'failed', 'cancelled')").fetchone()[0]
         out["retention"] = retention.summary(view, ctx, now=now, config=config.retention)
         out["last_sweep"] = retention.last_report(view)
+        out["chain"] = integrity.chain_state(ctx, view)  # O(1) chain reads; verification is doctor's (decision 0024)
         out["integrity"] = None
         if deep:
             out["integrity"] = view.execute("PRAGMA quick_check").fetchone()[0]
@@ -496,9 +499,14 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     # ---------------------------------------------------------------- deferred full-release features
     profile = meta.release_profile if meta is not None else load_project_config(Layout(root)).release_profile
     for name in DEFERRED_FULL_CAPABILITIES:
+        if name in BUILT_FULL_CAPABILITIES and profile == "full":
+            continue
         reasons = ("deferred_full_release", *DEFERRED_REASONS.get(name, ())) if profile == "claude_preview" else ("not_built_in_this_engine",)
         caps[name].flag("unavailable", *reasons)
-    gaps.append("revision_chain_unavailable_in_preview")
+    if profile == "claude_preview":
+        gaps.append("revision_chain_unavailable_in_preview")
+    else:
+        _chain_capability(caps["revision_chain"], facts.get("chain"), schema_state, gaps)
 
     # ---------------------------------------------------------------- summaries
     retention_summary = facts.get("retention")
@@ -531,6 +539,35 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
         source_conflicts=[ConflictEntry(conflict_id=c, original_event_id=e, adapter_id=a, payload_digest=d, first_seen_at=t) for c, e, a, d, t in facts.get("conflicts", [])],
         source_conflict_count=facts.get("conflict_count") or 0, privacy_maintenance=pm, autonomous_ready=ready,
     )
+
+
+def _chain_capability(cap: _Cap, chain: dict[str, Any] | None, schema_state: str, gaps: list[str]) -> None:
+    """The full profile's revision chain (decision 0024): what the store and the verifier's checkpoint say, never a new check.
+
+    Not required for readiness. Healthy only when the chain has its baseline, the
+    checkpoint is trusted and descends from a clean full check, and the last
+    check found nothing; the entries after the checkpoint are reported as not yet verified.
+    """
+    if chain is None:
+        cap.flag("unavailable", SCHEMA_REASON.get(schema_state, "store_unreadable"))
+        return
+    cap.coverage = dict(chain)
+    if chain["state"] == "missing_baseline":
+        cap.flag("unavailable", "revision_chain_missing_baseline")
+    last = chain.get("last_result") or {}
+    checkpoint = chain["checkpoint"]
+    if last.get("state") == "findings":
+        cap.flag("degraded", "revision_chain_findings")
+    if checkpoint["state"] == "missing":
+        cap.flag("degraded", "revision_chain_not_verified")
+    elif checkpoint["state"] == "untrusted":
+        cap.flag("degraded", "revision_chain_checkpoint_untrusted")
+    elif not checkpoint["complete"]:
+        cap.flag("degraded", "revision_chain_full_check_required")
+    if cap.state != "healthy":
+        gaps.append(cap.reasons[0])
+    elif chain["entries_since_checkpoint"]:
+        gaps.append(f"revision_chain_unverified_entries:{chain['entries_since_checkpoint']}")
 
 
 def _wall(now: str) -> float:
