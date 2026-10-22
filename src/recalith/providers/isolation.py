@@ -131,13 +131,20 @@ def curator_overrides(config: ProviderConfig, root: PrivateRoot, *, capture: Map
     return overrides
 
 
-def curator_environment(config: ProviderConfig, root: PrivateRoot, inherited: Mapping[str, str], *, mode: str = "live", capture: Mapping[str, str] | None = None) -> tuple[dict[str, str], dict[str, Any]]:
-    """``(environment, report)`` for one curator call; the report lists key names only."""
-    manifest = process_env.role_manifest(config.installation_id, purpose="curator", route_keys=route_keys(config, mode=mode), overrides=curator_overrides(config, root, capture=capture))
-    env, report = process_env.spawn_environment_report(manifest, inherited, purpose="curator")
+def curator_environment(config: ProviderConfig, root: PrivateRoot, inherited: Mapping[str, str], *, mode: str = "live", capture: Mapping[str, str] | None = None, platform: str = os.name) -> tuple[dict[str, str], dict[str, Any]]:
+    """``(environment, report)`` for one curator call; the report lists key names only.
+
+    Windows environment names are case-insensitive: the helper stores them
+    upper-cased, so a selected name is found whatever its spelling there
+    (``https_proxy`` and ``HTTPS_PROXY`` are one variable).
+    """
+    keys = route_keys(config, mode=mode)
+    manifest = process_env.role_manifest(config.installation_id, purpose="curator", route_keys=keys, overrides=curator_overrides(config, root, capture=capture), platform=platform)
+    env, report = process_env.spawn_environment_report(manifest, inherited, purpose="curator", platform=platform)
+    norm = (lambda name: name.upper()) if platform == "nt" else (lambda name: name)
     report["mode"] = mode
-    report["route_keys"] = sorted(route_keys(config, mode=mode))
-    report["missing_route_keys"] = sorted(k for k in route_keys(config, mode=mode) if k not in env)
+    report["route_keys"] = sorted(keys)
+    report["missing_route_keys"] = sorted(k for k in keys if norm(k) not in env)
     return env, report
 
 

@@ -420,6 +420,18 @@ def test_proxy_settings_reach_the_child_only_when_named():
         assert proxied.code == "endpoint_unreachable"  # the named proxy is used (and is dead here)
 
 
+def test_selected_keys_are_found_case_insensitively_on_windows(tmp_path):
+    """Regression (CI run 113, Windows): a route naming ``http_proxy`` beside ``HTTP_PROXY`` was reported missing
+    because Windows names are stored upper-cased, which withdrew the route as ``selected_auth_missing``."""
+    cfg = api_config("openai_compatible", "http://127.0.0.1:9/v1/chat/completions", network_env_keys=["HTTP_PROXY", "http_proxy"], auth_env_keys=["fake_provider_api_key"])
+    inherited = {"PATH": "C:\\bin", "SYSTEMROOT": "C:\\Windows", "Fake_Provider_Api_Key": VALUE, "http_proxy": "http://127.0.0.1:1"}
+    with isolation.PrivateRoot() as root:
+        env_nt, report_nt = isolation.curator_environment(cfg, root, inherited, platform="nt")
+        _env, report_posix = isolation.curator_environment(cfg, root, inherited, platform="posix")
+    assert report_nt["missing_route_keys"] == [] and env_nt["FAKE_PROVIDER_API_KEY"] == VALUE and env_nt["HTTP_PROXY"] == "http://127.0.0.1:1"
+    assert report_posix["missing_route_keys"] == ["HTTP_PROXY", "fake_provider_api_key"]  # POSIX names are case-sensitive
+
+
 def test_curator_environment_holds_only_constructed_keys():
     with fas.FakeProvider("ok") as fake:
         inherited = env(**DECOYS, CLAUDECODE="1", CLAUDE_CODE_CHILD_SESSION="1", RECALITH_WORKER_INSTALLATION="inst_99999999-9999-4999-8999-999999999999")
