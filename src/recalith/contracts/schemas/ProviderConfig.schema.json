@@ -1,8 +1,78 @@
 {
   "$defs": {
+    "ApiEndpoint": {
+      "additionalProperties": false,
+      "description": "Where and how a direct-API backend sends its one request (decision 0023).\n\n``url`` is the full resource URL the engine POSTs to: ``https``, or\n``http`` only for a loopback host (a local server). It carries no user\ninformation, no fragment and no credential-shaped query; the key travels\nonly in ``auth_header``, read from the environment by name in the child.\n``output_cap_field`` names the request field that carries the hard output\nlimit and ``json_mode`` the native JSON mode (Chat Completions only);\n``api_version`` is the ``anthropic-version`` header (Messages only).",
+      "properties": {
+        "api_version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Api Version"
+        },
+        "auth_header": {
+          "enum": [
+            "x-api-key",
+            "authorization_bearer",
+            "api-key",
+            "none"
+          ],
+          "title": "Auth Header",
+          "type": "string"
+        },
+        "dialect": {
+          "enum": [
+            "messages",
+            "chat_completions"
+          ],
+          "title": "Dialect",
+          "type": "string"
+        },
+        "json_mode": {
+          "enum": [
+            "none",
+            "json_object"
+          ],
+          "title": "Json Mode",
+          "type": "string"
+        },
+        "output_cap_field": {
+          "enum": [
+            "max_tokens",
+            "max_completion_tokens"
+          ],
+          "title": "Output Cap Field",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 2048,
+          "minLength": 10,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "dialect",
+        "auth_header",
+        "output_cap_field",
+        "json_mode"
+      ],
+      "title": "ApiEndpoint",
+      "type": "object"
+    },
     "ProviderCertification": {
       "additionalProperties": false,
-      "description": "What a successful probe of this exact route observed (Task 0 / Task 7).\n\n``certified`` is true only for a complete *live* observation with the\noperator's checked background-use eligibility. The route is usable only\nwhile the executable digest, host version, auth route and invocation\nstill equal what was certified; any change requires recertification.",
+      "description": "What a successful probe of this exact route observed (Task 0 / Task 7; decision 0023).\n\n``certified`` is true only for a complete *live* observation with the\noperator's checked background-use eligibility (``not_applicable_local``\nonly for a loopback API endpoint, checked by ``ProviderConfig``). The\nroute is usable only while the launched program's digest (the CLI\nexecutable, or the shipped API adapter sources), host version, auth route,\ninvocation and, for an API route, the resolved model still equal what was\ncertified; any change requires recertification. ``failed_checks`` lists\nwhat a non-passing probe run failed.",
       "properties": {
         "auth_env_keys": {
           "items": {
@@ -53,6 +123,15 @@
           "default": null,
           "title": "Expected Api Key Source"
         },
+        "failed_checks": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Failed Checks",
+          "type": "array"
+        },
         "host_version": {
           "anyOf": [
             {
@@ -99,7 +178,8 @@
           "enum": [
             "checked_eligible",
             "checked_ineligible",
-            "unchecked"
+            "unchecked",
+            "not_applicable_local"
           ],
           "title": "Operator Attestation",
           "type": "string"
@@ -115,6 +195,20 @@
           ],
           "default": null,
           "title": "Report Digest"
+        },
+        "resolved_model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolved Model"
         }
       },
       "required": [
@@ -126,7 +220,7 @@
   },
   "$id": "recalith:contracts/ProviderConfig",
   "additionalProperties": false,
-  "description": "Explicit backend/model/auth reference; never chosen because a CLI is on PATH.\n\nLocal to one installation (``.recalith/provider.json``, never tracked):\n``installation_id`` binds it, so a copied configuration is refused.\n``invocation_args`` may contain ``{model}`` and ``{system_prompt}``.\n``nonsecret_env`` holds nonsecret switches for the curator child;\n``network_env_keys`` names managed proxy/TLS keys carried with the route.",
+  "description": "Explicit backend/model/auth reference; never chosen because a CLI is on PATH.\n\nLocal to one installation (``.recalith/provider.json``, never tracked):\n``installation_id`` binds it, so a copied configuration is refused.\nProcess backends (``claude_cli``, ``json_process``) launch ``executable``\nwith ``invocation_args`` (which may contain ``{model}`` and\n``{system_prompt}``); direct-API backends (``anthropic_messages``,\n``openai_compatible``) have no executable and send one request to\n``endpoint`` through the shipped stdlib transport (decision 0023).\n``nonsecret_env`` holds nonsecret switches for the curator child;\n``network_env_keys`` names managed proxy/TLS keys carried with the route.\n``expected_resolved_model`` is the model an API provider must report back\nwhen it differs from ``configured_model`` (null: the same identifier).",
   "properties": {
     "auth_env_keys": {
       "items": {
@@ -141,7 +235,8 @@
         "env_api_key",
         "env_oauth_token",
         "env_cloud",
-        "api_key_helper"
+        "api_key_helper",
+        "none"
       ],
       "title": "Auth Route",
       "type": "string"
@@ -149,7 +244,9 @@
     "backend": {
       "enum": [
         "claude_cli",
-        "json_process"
+        "json_process",
+        "anthropic_messages",
+        "openai_compatible"
       ],
       "title": "Backend",
       "type": "string"
@@ -163,11 +260,30 @@
       "title": "Configured Model",
       "type": "string"
     },
+    "endpoint": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApiEndpoint"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "executable": {
-      "maxLength": 4096,
-      "minLength": 1,
-      "title": "Executable",
-      "type": "string"
+      "anyOf": [
+        {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Executable"
     },
     "expected_api_key_source": {
       "anyOf": [
@@ -181,6 +297,20 @@
       ],
       "default": null,
       "title": "Expected Api Key Source"
+    },
+    "expected_resolved_model": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Resolved Model"
     },
     "installation_id": {
       "title": "Installation Id",
@@ -239,11 +369,9 @@
     "provider_id",
     "installation_id",
     "backend",
-    "executable",
     "configured_model",
     "auth_route",
     "auth_env_keys",
-    "invocation_args",
     "certification"
   ],
   "title": "ProviderConfig",

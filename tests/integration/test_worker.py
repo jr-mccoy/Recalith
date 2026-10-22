@@ -1232,6 +1232,60 @@ def test_provider_path_crash_matches_reference(tmp_path, failpoint):
         assert {s for _, s in state["usage"]} == {"charged"}  # the killed call stays charged; nothing dangles
 
 
+@pytest.mark.parametrize("failpoint", PROVIDER_MATRIX)
+def test_api_provider_path_crash_matches_reference(tmp_path, failpoint):
+    """Decision 0023: the same kill/restart matrix through the direct-API backend.
+
+    The worker launches the production stdlib HTTP transport (``python -I
+    http_transport.py``) against a loopback fake Chat Completions provider
+    owned by this test, which answers each real request after a short delay,
+    so a kill at ``provider.after_spawn`` leaves a live transport child
+    between its spawn record and its result. The restarted store must equal
+    the reference and no transport child may outlive the crashed worker.
+    """
+    import provider_scenarios as ps
+
+    sys.path.insert(0, str(HERE.parent / "fixtures" / "providers"))
+    import fake_api_server as fas
+
+    with fas.FakeProvider("narrative", delay=0.3) as fake:
+        url = fake.url("/v1/chat/completions")
+        reference_root = ps.crash_project(tmp_path, "reference", api_url=url)
+        hits_log = tmp_path / "reference.hits"
+        counted = _count_hits(reference_root, tmp_path / "reference.calls", hits_log)
+        assert counted.returncode == 0, counted.stderr
+        reference = osc.normalized(reference_root)
+        reference_extra = ps.extra_state(reference_root)
+        assert {"build_episode", "review_claims", "service", "update_task"} <= set(reference["applications"])
+        assert reference_extra["review_batches"] == (1, 1) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
+        assert "Continue from the last checkpoint." in reference_extra["next_actions"]
+        assert fake.snapshot(), "the reference run never reached the provider"
+        assert wh_wait(lambda: not _alive_pids(tmp_path / "reference.pids"))
+        hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+        mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
+        assert mine, f"{failpoint} is never reached while a model job is unfinished"
+        ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+        for rep in range(REPS):
+            root = ps.crash_project(tmp_path, f"crash-{rep}", api_url=url)
+            pidlog = tmp_path / f"crash-{rep}.pids"
+            log = tmp_path / f"crash-{rep}.calls"
+            result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+            assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+            assert (osc.normalized(root), ps.extra_state(root)) != (reference, reference_extra), "the kill must land before the work under test is complete"
+            if failpoint == failpoints.PROVIDER_AFTER_SPAWN:
+                # The transport child exits on its own once its parent's pipe closes, so survival alone cannot show
+                # reapability: the spawn record must already exist when the worker dies after the spawn.
+                assert list((root / ".recalith" / "run" / "curators").glob("*.json")), "the transport child was spawned without a spawn record"
+            restart = _driver(root, log)
+            assert restart.returncode == 0, restart.stderr
+            assert osc.normalized(root) == reference, (failpoint, rep)
+            assert ps.extra_state(root) == reference_extra, (failpoint, rep)
+            assert wh_wait(lambda pidlog=pidlog: not _alive_pids(pidlog)), f"a transport child outlived the crashed worker at {failpoint}"
+            assert not list((root / ".recalith" / "run" / "curators").glob("*.json"))
+            state = ws.state(root)
+            assert {s for _, s in state["usage"]} == {"charged"}
+
+
 def wh_wait(predicate, timeout: float = 15) -> bool:
     import worker_hosts as wh
 

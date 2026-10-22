@@ -1,0 +1,60 @@
+{
+  "$comment": "Decision 0023: a local OpenAI-compatible server (Ollama, LM Studio, vLLM) on loopback, no key. Copy to probe-private/local-config.json (git-ignored) and edit the port and path. Schema: docs/probes/LOCAL_CONFIG.md.",
+  "config_schema": 1,
+  "provider": {
+    "provider_id": "local_model",
+    "backend": "openai_compatible",
+    "model": "EXPLICIT-LOCAL-MODEL-NAME",
+    "expected_resolved_model": null,
+    "endpoint": {
+      "url": "http://127.0.0.1:11434/v1/chat/completions",
+      "dialect": "chat_completions",
+      "auth_header": "none",
+      "output_cap_field": "max_tokens",
+      "json_mode": "json_object",
+      "api_version": null
+    },
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "nonsecret_env": {},
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "none",
+      "billing": "none",
+      "env_keys": [],
+      "description": "Local server on this machine; no account."
+    },
+    "operator_attestation": {
+      "background_use": "not_applicable_local",
+      "basis": "Loopback local server; no provider terms apply.",
+      "checked_on": "YYYY-MM-DD",
+      "managed_policy": ""
+    }
+  },
+  "delivery": {
+    "$comment": "Task 0b. The probe session uses a disposable workspace and a private HOME per trial; credentials come from the named env keys.",
+    "host_id": "claude_code",
+    "executable": "/absolute/path/to/claude",
+    "expected_version": "2.1.301",
+    "model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "nonsecret_env": {
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+      "DISABLE_AUTOUPDATER": "1"
+    },
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "env_api_key",
+      "billing": "api",
+      "env_keys": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "description": "Account route the working agent normally uses."
+    }
+  }
+}

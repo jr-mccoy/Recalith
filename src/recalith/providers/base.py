@@ -19,7 +19,11 @@ the route unavailable with ``host_version_changed`` until it is recertified
 (review focus 5). A configured ``json_process`` route has no certification
 procedure in this build and stays unavailable. Each call additionally
 re-checks the host's own init diagnostic (:mod:`claude_cli`); a violation
-disables the backend.
+disables the backend. Direct-API routes (``anthropic_messages``,
+``openai_compatible``; decision 0023) pin the shipped adapter's digest instead
+of an executable, observe no host version, and each reply is read strictly by
+:mod:`api` (a different reported model, a tool call or a cap overrun
+withdraws the route).
 
 **Calls.** :class:`ProviderBackend` runs one call in a fresh private root with
 the curator environment from the shared stdlib helper, bounded by
@@ -38,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -46,7 +51,7 @@ from typing import Any, Mapping
 from pydantic import ValidationError
 
 from recalith.contracts.common import InstallationContext, canonical_json, digest_of, utc_now
-from recalith.contracts.config import MODEL_INPUT_CAP, ProviderConfig, body_cap_for, estimate_tokens
+from recalith.contracts.config import API_BACKENDS, MODEL_INPUT_CAP, PURPOSE_OUTPUT_ALLOWANCE, ProviderConfig, body_cap_for, estimate_tokens
 from recalith.contracts.jobs import LocalUsage
 from recalith.contracts.operations import ModelRequest, ModelResponse, ResponseProvenance, UsageReport
 from recalith.controller import launch
@@ -54,7 +59,7 @@ from recalith.controller.budgets import OutputRejected, decode_purpose_body
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
 from recalith.prompts import CURATOR_SYSTEM_PROMPT
-from recalith.providers import claude_cli, isolation, json_process
+from recalith.providers import api, claude_cli, isolation, json_process
 from recalith.providers.errors import IsolationViolation, ProviderCallFailed
 
 PROVIDER_FILE = "provider.json"
@@ -62,7 +67,9 @@ CHECK_FILE = "provider-check.json"
 PROVIDER_SCHEMA = 1
 ADAPTER_VERSION = "1"
 VERSION_TIMEOUT_SECONDS = 30
-ADAPTERS = {"claude_cli": claude_cli, "json_process": json_process}
+ADAPTERS = {"claude_cli": claude_cli, "json_process": json_process, "anthropic_messages": api, "openai_compatible": api}
+# The output cap a request-capture isolation check asks for (no purpose allowance applies to it).
+CHECK_OUTPUT_CAP = 64
 MANAGED_SETTINGS_PATHS = (
     "/etc/claude-code/managed-settings.json",
     "/Library/Application Support/ClaudeCode/managed-settings.json",
@@ -101,6 +108,25 @@ def _count(value: Any) -> int | None:
 
 def evaluate_outcome(outcome: LaunchOutcome, backend: Any, *, purpose: str, body_cap: int, estimate: int, adapter_version: str = ADAPTER_VERSION, wire_cap: int | None = None) -> Evaluation:
     """Bound and decode one launch; the wire is checked before the envelope, the body before parsing."""
+    result = _evaluate(outcome, backend, purpose=purpose, body_cap=body_cap, estimate=estimate, adapter_version=adapter_version, wire_cap=wire_cap)
+    note = getattr(backend, "note_outcome", None)
+    if callable(note):
+        note(result.code)
+    return result
+
+
+def _reported(usage: Mapping[str, Any], *, estimate: int, output_estimate: int, duration_ms: int) -> UsageReport:
+    return UsageReport(
+        input_tokens=_count(usage.get("input_tokens")),
+        output_tokens=_count(usage.get("output_tokens")),
+        estimated_input_tokens=estimate,
+        estimated_output_tokens=output_estimate,
+        provider_request_id=usage.get("provider_request_id") if isinstance(usage.get("provider_request_id"), str) and len(usage["provider_request_id"]) <= 256 else None,
+        duration_ms=max(0, int(duration_ms)),
+    )
+
+
+def _evaluate(outcome: LaunchOutcome, backend: Any, *, purpose: str, body_cap: int, estimate: int, adapter_version: str, wire_cap: int | None) -> Evaluation:
     from recalith.contracts.config import WIRE_STDOUT_CAP
 
     cap = WIRE_STDOUT_CAP if wire_cap is None else min(wire_cap, WIRE_STDOUT_CAP)
@@ -114,17 +140,13 @@ def evaluate_outcome(outcome: LaunchOutcome, backend: Any, *, purpose: str, body
         body, usage = backend.unwrap(outcome.stdout)
     except IsolationViolation as exc:
         return Evaluation(exc.code, None, None, None)
+    except ProviderCallFailed as exc:  # an API reply that is a failure: charged, with any usage the provider reported
+        reported = _reported(exc.usage, estimate=estimate, output_estimate=0, duration_ms=outcome.duration_ms) if exc.usage else None
+        return Evaluation(exc.code, None, reported, None)
     except (ValueError, TypeError, KeyError, UnicodeDecodeError):
         return Evaluation("envelope_invalid", None, None, None)
     local = LocalUsage(input_estimate=estimate, output_estimate=estimate_tokens(len(body)))
-    reported = UsageReport(
-        input_tokens=_count(usage.get("input_tokens")),
-        output_tokens=_count(usage.get("output_tokens")),
-        estimated_input_tokens=estimate,
-        estimated_output_tokens=local.output_estimate,
-        provider_request_id=usage.get("provider_request_id") if isinstance(usage.get("provider_request_id"), str) and len(usage["provider_request_id"]) <= 256 else None,
-        duration_ms=max(0, int(outcome.duration_ms)),
-    )
+    reported = _reported(usage, estimate=estimate, output_estimate=local.output_estimate, duration_ms=outcome.duration_ms)
     try:
         operations, no_op_reason, malformed = decode_purpose_body(body, purpose=purpose, body_cap=body_cap)
     except OutputRejected as exc:
@@ -174,7 +196,18 @@ def save_provider_config(root: Path | str, config: ProviderConfig) -> Path:
 
 
 def invocation_digest(config: ProviderConfig) -> str:
-    """What a certification pins about the launch besides executable, version and auth."""
+    """What a certification pins about the launch besides executable, version and auth.
+
+    For an API route (decision 0023): the configured and expected models, the
+    whole endpoint (URL, dialect, auth header, cap field, JSON mode, API
+    version), the auth key names, nonsecret switches and network key names.
+    """
+    if config.backend in API_BACKENDS:
+        assert config.endpoint is not None
+        return digest_of([
+            config.backend, config.provider_id, config.configured_model, config.expected_resolved_model, config.endpoint.model_dump(mode="json"),
+            sorted(config.auth_env_keys), [list(kv) for kv in sorted(config.nonsecret_env.items())], sorted(config.network_env_keys),
+        ])
     return digest_of([config.backend, config.provider_id, config.configured_model, list(config.invocation_args), [list(kv) for kv in sorted(config.nonsecret_env.items())], sorted(config.network_env_keys)])
 
 
@@ -226,7 +259,7 @@ class RouteStatus:
         }
 
 
-RECERTIFY = frozenset({"executable_changed", "host_version_changed", "auth_route_changed", "invocation_changed"})
+RECERTIFY = frozenset({"executable_changed", "adapter_changed", "host_version_changed", "auth_route_changed", "invocation_changed"})
 
 
 def route_status(config: ProviderConfig | None, *, installation_id: str, inherited: Mapping[str, str], observe: bool = True) -> RouteStatus:
@@ -243,11 +276,20 @@ def route_status(config: ProviderConfig | None, *, installation_id: str, inherit
         reasons.append("foreign_provider_config")
     if config.backend == "json_process":
         reasons.append("backend_certification_unavailable")
-    else:
+    elif config.backend == "claude_cli":
         reasons.extend(f"invocation_not_isolated:{p}"[:64] for p in claude_cli.argument_problems(config.invocation_args))
     if not cert.certified:
         reasons.append("request_capture_only" if cert.mode == "request_capture" else "route_uncertified")
-    executable = isolation.resolve_executable(config.executable, inherited)
+        reasons.extend(f"certification_failed:{c}"[:64] for c in cert.failed_checks)
+    if config.backend in API_BACKENDS:
+        # The shipped adapter is the launched program: its digest is pinned, no host version exists to observe.
+        if cert.executable_sha256 is not None and cert.executable_sha256 != api.adapter_digest():
+            reasons.append("adapter_changed")
+        _auth_and_invocation(config, cert, reasons, inherited)
+        status.reasons = list(dict.fromkeys(reasons))
+        status.state = "unavailable" if status.reasons else "certified"
+        return status
+    executable = isolation.resolve_executable(config.executable or "", inherited)
     status.executable = executable
     if executable is None:
         reasons.append("executable_missing")
@@ -260,6 +302,13 @@ def route_status(config: ProviderConfig | None, *, installation_id: str, inherit
                 reasons.append("host_version_unobserved")
             elif cert.host_version is not None and status.observed_version != cert.host_version:
                 reasons.append("host_version_changed")
+    _auth_and_invocation(config, cert, reasons, inherited)
+    status.reasons = list(dict.fromkeys(reasons))
+    status.state = "unavailable" if status.reasons else "certified"
+    return status
+
+
+def _auth_and_invocation(config: ProviderConfig, cert: Any, reasons: list[str], inherited: Mapping[str, str]) -> None:
     if cert.certified:
         if sorted(config.auth_env_keys) != sorted(cert.auth_env_keys) or config.expected_api_key_source != cert.expected_api_key_source:
             reasons.append("auth_route_changed")
@@ -268,9 +317,6 @@ def route_status(config: ProviderConfig | None, *, installation_id: str, inherit
     missing = [k for k in config.auth_env_keys if not inherited.get(k)]
     if missing:
         reasons.append("selected_auth_missing")
-    status.reasons = list(dict.fromkeys(reasons))
-    status.state = "unavailable" if status.reasons else "certified"
-    return status
 
 
 # --------------------------------------------------------------------------
@@ -284,9 +330,11 @@ class ProviderBackend:
     route keys and expects nothing of the auth source; it never certifies.
     """
 
-    def __init__(self, config: ProviderConfig, *, inherited: Mapping[str, str] | None = None, mode: str = "live", capture: Mapping[str, str] | None = None, executable: str | None = None, run_dir: Path | None = None) -> None:
+    def __init__(self, config: ProviderConfig, *, inherited: Mapping[str, str] | None = None, mode: str = "live", capture: Mapping[str, str] | None = None, executable: str | None = None, run_dir: Path | None = None, endpoint_url: str | None = None) -> None:
         if mode not in ("live", "request_capture"):
             raise ValueError("mode is live or request_capture")
+        if endpoint_url is not None and mode != "request_capture":
+            raise ValueError("only a request-capture check points an API route at another endpoint")
         self.config = config
         self.adapter = ADAPTERS[config.backend]
         self.provider_id = config.provider_id
@@ -294,10 +342,20 @@ class ProviderBackend:
         self.mode = mode
         self.capture = dict(capture or {})
         self.inherited = inherited
-        self.executable = executable or isolation.resolve_executable(config.executable, self._env()) or config.executable
+        self.is_api = config.backend in API_BACKENDS
+        self.endpoint_url = endpoint_url
         cert = config.certification
         live = mode == "live"
-        self.expect = claude_cli.Expectations(host_version=cert.host_version if live else None, api_key_source=cert.expected_api_key_source if live else None)
+        if self.is_api:
+            assert config.endpoint is not None
+            self.executable = executable or sys.executable  # the worker's own interpreter runs the shipped transport
+            self.expect: Any = api.Expect(dialect=config.endpoint.dialect, model=api.expected_model(config))
+        else:
+            self.executable = executable or isolation.resolve_executable(config.executable or "", self._env()) or config.executable or ""
+            self.expect = claude_cli.Expectations(host_version=cert.host_version if live else None, api_key_source=cert.expected_api_key_source if live else None)
+        self.last_failure: dict[str, Any] | None = None
+        self.last_curator_marker: str | None = None
+        self.last_spec: dict[str, Any] | None = None
         self.unavailable_reason: str | None = None
         self.last_environment_report: dict[str, Any] | None = None
         self.last_result: launch.BoundedResult | None = None
@@ -316,28 +374,54 @@ class ProviderBackend:
             if self.unavailable_reason is None:
                 self.unavailable_reason = reason[:64]
 
+    def note_outcome(self, code: str | None) -> None:
+        """Remember the last call's failure (content-free) for status; a success clears it."""
+        self.last_failure = None if code is None else {"code": code[:64], "at": utc_now()}
+
     def argv(self) -> list[str]:
+        if self.is_api:
+            return api.argv(self.executable)
         return self.adapter.argv(self.executable, self.config.invocation_args, model=self.config.configured_model, system_prompt=CURATOR_SYSTEM_PROMPT)
 
-    def launch(self, request: bytes, *, timeout_s: float, purpose: str) -> LaunchOutcome:
+    def stdin_for(self, request: bytes, *, timeout_s: float, purpose: str, output_cap: int | None = None) -> bytes:
+        """What the child reads: the request itself, or for an API route the transport specification around the exact body."""
+        if not self.is_api:
+            return request
+        cap = output_cap if output_cap is not None else PURPOSE_OUTPUT_ALLOWANCE.get(purpose, CHECK_OUTPUT_CAP)
+        body = api.build_body(self.config, request, output_cap=cap)
+        spec = api.transport_spec(self.config, body, output_cap=cap, timeout_s=timeout_s, url=self.endpoint_url)
+        self.last_spec = {k: v for k, v in spec.items() if k != "body"}
+        return json.dumps(spec, ensure_ascii=False).encode("utf-8")
+
+    def _spawned(self, pid: int, pgid: int | None, root: Path) -> Path | None:
+        """Record a launched child before anything waits on it (a test may observe the pid here)."""
+        if self.run_dir is None:
+            return None
+        return record_spawn(self.run_dir, pid=pid, pgid=pgid, root=root)
+
+    def launch(self, request: bytes, *, timeout_s: float, purpose: str, output_cap: int | None = None) -> LaunchOutcome:
         if self.unavailable_reason is not None:
             raise RecalithError("capability_unavailable", f"the provider route is unavailable: {self.unavailable_reason}")
         with isolation.PrivateRoot() as root:
             env, report = isolation.curator_environment(self.config, root, self._env(), mode=self.mode, capture=self.capture)
             self.last_environment_report = report
+            self.last_curator_marker = env.get(isolation.process_env.CURATOR_MARKER)
             if self.mode == "live" and report["missing_route_keys"]:
                 self.disable("selected_auth_missing")
                 raise RecalithError("capability_unavailable", "the selected auth keys are not present")
             spawned: list[Path] = []
 
             def on_spawn(pid: int, pgid: int | None) -> None:
-                if self.run_dir is not None:
-                    spawned.append(record_spawn(self.run_dir, pid=pid, pgid=pgid, root=root.base))
+                path = self._spawned(pid, pgid, root.base)
+                if path is not None:
+                    spawned.append(path)
                 failpoints.hit(failpoints.PROVIDER_AFTER_SPAWN)
 
+            timeout = min(timeout_s, self.config.timeout_seconds)
+            stdin = self.stdin_for(request, timeout_s=timeout, purpose=purpose, output_cap=output_cap)
             try:
                 result = launch.run_bounded(
-                    self.argv(), env=env, cwd=root.work, stdin_data=request, timeout_s=min(timeout_s, self.config.timeout_seconds),
+                    self.argv(), env=env, cwd=root.work, stdin_data=stdin, timeout_s=timeout,
                     stdout_cap=self.config.max_wire_stdout_bytes, stderr_cap=self.config.max_stderr_bytes, observe_env=True, on_spawn=on_spawn,
                 )
             finally:
@@ -353,7 +437,7 @@ class ProviderBackend:
         try:
             return self.adapter.unwrap(stdout, expect=self.expect)
         except IsolationViolation as exc:
-            self.disable(exc.code)  # the effective launch no longer matches its certification
+            self.disable(exc.code)  # the effective launch (or the provider's reply) no longer matches its certification
             raise
 
 
@@ -537,6 +621,7 @@ class ProviderSupervisor:
             "state": state,
             "reasons": reasons,
             "isolation_recheck": None if self.check is None else {k: self.check.get(k) for k in ("verdict", "failures", "mode", "certifies", "host_version")},
+            "last_call_failure": None if self.backend is None else self.backend.last_failure,
             "managed_settings_paths_present": sorted(p for p in MANAGED_SETTINGS_PATHS if os.path.exists(p)),
         }
 

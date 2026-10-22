@@ -1,0 +1,62 @@
+{
+  "$comment": "Decision 0023: the Anthropic Messages API as the curator route. Copy to probe-private/local-config.json (git-ignored) and edit. Names only: the key VALUE comes from the invoking terminal's environment. Schema: docs/probes/LOCAL_CONFIG.md.",
+  "config_schema": 1,
+  "provider": {
+    "provider_id": "anthropic_api",
+    "backend": "anthropic_messages",
+    "model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+    "expected_resolved_model": null,
+    "endpoint": {
+      "url": "https://api.anthropic.com/v1/messages",
+      "dialect": "messages",
+      "auth_header": "x-api-key",
+      "output_cap_field": "max_tokens",
+      "json_mode": "none",
+      "api_version": "2026-10-21"
+    },
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "nonsecret_env": {},
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "env_api_key",
+      "billing": "api",
+      "env_keys": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "description": "Dedicated API key for this project's background curation."
+    },
+    "operator_attestation": {
+      "background_use": "unchecked",
+      "basis": "State the provider terms / policy page you checked; no secrets.",
+      "checked_on": null,
+      "managed_policy": "Describe any organization policy that applies."
+    }
+  },
+  "delivery": {
+    "$comment": "Task 0b. The probe session uses a disposable workspace and a private HOME per trial; credentials come from the named env keys.",
+    "host_id": "claude_code",
+    "executable": "/absolute/path/to/claude",
+    "expected_version": "2.1.301",
+    "model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+    "modes": [
+      "request_capture",
+      "live"
+    ],
+    "nonsecret_env": {
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+      "DISABLE_AUTOUPDATER": "1"
+    },
+    "network_env_keys": [],
+    "auth_route": {
+      "kind": "env_api_key",
+      "billing": "api",
+      "env_keys": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "description": "Account route the working agent normally uses."
+    }
+  }
+}

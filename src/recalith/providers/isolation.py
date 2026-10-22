@@ -32,6 +32,17 @@ worker marker. A hook that ran and was ignored because of the recursion
 marker fails: the marker is a second defense, not no-hooks proof. Request
 capture uses no account and therefore never certifies a route; it can only
 withdraw one.
+
+**Direct-API routes** (decision 0023) have no harness to plant sentinels in:
+:func:`api_isolation_check` points the shipped transport at a loopback
+:class:`CaptureEndpoint` (the configured path and query, a placeholder value
+under the selected key name) and verifies the bytes received — method,
+path, the exact header-name set, the credential only in the configured
+header, no other inherited credential anywhere, a body byte-identical to the
+one the engine built with exactly the dialect's keys (no tool fields), the
+pinned model, the output cap and the JSON mode — then parses the capture's
+reply with the production reader and checks the child's observed
+environment.
 """
 
 from __future__ import annotations
@@ -51,7 +62,7 @@ from recalith.contracts.config import ProviderConfig
 from recalith.controller import launch
 from recalith.fast import process_env
 from recalith.prompts import CURATOR_SYSTEM_PROMPT
-from recalith.providers import claude_cli
+from recalith.providers import api, claude_cli
 
 SENTINEL_DIR = Path(__file__).resolve().parent / "sentinels"
 PLACEHOLDER_KEY = "recalith-probe-placeholder-not-a-credential"
@@ -298,6 +309,105 @@ class RecordingEndpoint:
             return list(self.requests)
 
 
+def episode_body(size: int) -> str:
+    """A strictly valid ``build_episode`` body of about ``size`` UTF-8 bytes (the probe's 15 KB bounds case)."""
+    count = max(2, -(-size // 6000))
+    per_step = max(100, (size - 1200) // count - 260)
+    supported = lambda text: {"text": text, "evidence": [], "basis": "observed"}  # noqa: E731
+    episode = {
+        "task_id": "task_00000000-0000-4000-8000-000000000000", "title": "Probe episode", "started_at": "2026-10-15T12:00:00.000000Z",
+        "objective": supported("Exercise the decoded-body allowance."),
+        "steps": [{"ordinal": i, "action": supported("x" * per_step), "outcome": "failure" if i % 2 == 0 else "success"} for i in range(count)],
+        "outcome": supported("Bounded."), "source_event_ids": ["evt_" + "0" * 64],
+    }
+    return json.dumps({"operations": [{"local_ref": "op1", "kind": "create_episode", "depends_on": [], "target": None, "payload": episode, "evidence": [], "reason": "probe"}]})
+
+
+class CaptureEndpoint:
+    """Loopback capture of one direct-API request: method, path, header names and values, raw body.
+
+    It answers in the configured dialect with the expected model.
+    ``behavior`` drives the probe's bounds checks: ``ok`` (a valid no-op),
+    ``large`` (a valid 15 KB episode body), ``hang``, ``flood`` (a body past
+    the wire cap), ``oversize`` (a valid reply whose body exceeds the purpose
+    cap) and ``malformed``. Credentials sent to it are the placeholder.
+    """
+
+    def __init__(self, config: ProviderConfig, *, behavior: str = "ok") -> None:
+        self.records: list[dict[str, Any]] = []
+        self._lock = threading.Lock()
+        self._closing = threading.Event()
+        self.behavior = behavior
+        capture = self
+        dialect = config.endpoint.dialect if config.endpoint is not None else "chat_completions"
+        model = api.expected_model(config)
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def log_message(self, *args: Any) -> None:
+                return
+
+            def do_GET(self) -> None:  # noqa: N802
+                self._record(b"")
+                self._send(404, b"{}")
+
+            def do_POST(self) -> None:  # noqa: N802
+                length = int(self.headers.get("content-length") or 0)
+                raw = self.rfile.read(length) if length else b""
+                self._record(raw)
+                if capture.behavior == "hang":
+                    capture._closing.wait(600)
+                    return
+                if capture.behavior == "flood":
+                    self._send(200, b"{\"pad\": \"" + b"z" * (300 * 1024) + b"\"}")
+                    return
+                if capture.behavior == "malformed":
+                    self._send(200, b"{\"id\": \"msg_check\", \"type\": \"mess")
+                    return
+                text = json.dumps({"operations": [], "no_op_reason": "isolation check"})
+                if capture.behavior in ("large", "oversize"):
+                    text = episode_body(16_800 if capture.behavior == "large" else 30_000)
+                if dialect == "messages":
+                    reply = {"id": "msg_check", "type": "message", "role": "assistant", "model": model, "content": [{"type": "text", "text": text}], "stop_reason": "end_turn", "stop_sequence": None, "usage": {"input_tokens": 1, "output_tokens": 1}}
+                else:
+                    reply = {"id": "chatcmpl-check", "object": "chat.completion", "model": model, "choices": [{"index": 0, "message": {"role": "assistant", "content": text, "refusal": None}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 1, "completion_tokens": 1}}
+                self._send(200, json.dumps(reply).encode("utf-8"))
+
+            def _record(self, raw: bytes) -> None:
+                with capture._lock:
+                    capture.records.append({"method": self.command, "path": self.path, "headers": [(k.lower(), v) for k, v in self.headers.items()], "body": raw})
+
+            def _send(self, status: int, data: bytes) -> None:
+                self.send_response(status)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+        self._server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self._server.daemon_threads = True
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+
+    @property
+    def url(self) -> str:
+        host, port = self._server.server_address[:2]
+        return f"http://{host}:{port}"
+
+    def __enter__(self) -> "CaptureEndpoint":
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        self._closing.set()
+        self._server.shutdown()
+        self._server.server_close()
+
+    def snapshot(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return list(self.records)
+
+
 def capture_overrides(endpoint_url: str) -> dict[str, str]:
     return {"ANTHROPIC_BASE_URL": endpoint_url, "ANTHROPIC_API_KEY": PLACEHOLDER_KEY, "NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"}
 
@@ -335,6 +445,8 @@ def environment_failures(observed: Sequence[str] | None, constructed: Mapping[st
 
 def isolation_check(config: ProviderConfig, *, inherited: Mapping[str, str], timeout_s: float = CHECK_TIMEOUT_SECONDS, python: str = sys.executable) -> dict[str, Any]:
     """One request-capture launch of the configured route with planted sentinels (never certifies)."""
+    if config.backend in api_backends():
+        return api_isolation_check(config, inherited=inherited, timeout_s=timeout_s)
     out: dict[str, Any] = {"mode": "request_capture", "backend": config.backend, "certifies": False, "failures": []}
     if config.backend != "claude_cli":
         out.update(verdict="unavailable", failures=["backend_certification_unavailable"])
@@ -411,4 +523,139 @@ def isolation_check(config: ProviderConfig, *, inherited: Mapping[str, str], tim
     return out
 
 
-__all__ = ["PrivateRoot", "PrivateRootError", "curator_environment", "route_keys", "Sentinels", "RecordingEndpoint", "isolation_check", "environment_failures", "resolve_executable", "sentinel_spec"]
+# --------------------------------------------------------------------------
+# Direct-API request capture (decision 0023)
+
+
+CREDENTIAL_NAME = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH)", re.I)
+TOOL_FIELDS = frozenset({"tools", "tool_choice", "functions", "function_call", "parallel_tool_calls", "tool_config", "mcp_servers"})
+
+
+def api_backends() -> frozenset:
+    from recalith.contracts.config import API_BACKENDS
+
+    return API_BACKENDS
+
+
+def endpoint_path(url: str) -> str:
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(url)
+    return (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
+
+
+def capture_launch(config: ProviderConfig, *, inherited: Mapping[str, str], behavior: str = "ok", timeout_s: float = CHECK_TIMEOUT_SECONDS, request: bytes = CHECK_INPUT, output_cap: int | None = None) -> tuple[Any, Any, list[dict[str, Any]], Any]:
+    """One request-capture launch of an API route: ``(backend, launch outcome, captured records, unwrap result or failure)``."""
+    from recalith.providers import base
+
+    cap = base.CHECK_OUTPUT_CAP if output_cap is None else output_cap
+    with CaptureEndpoint(config, behavior=behavior) as endpoint:
+        overrides = {key: PLACEHOLDER_KEY for key in config.auth_env_keys}
+        overrides.update({"NO_PROXY": "127.0.0.1,localhost", "no_proxy": "127.0.0.1,localhost"})
+        backend = base.ProviderBackend(config, inherited=inherited, mode="request_capture", capture=overrides, endpoint_url=endpoint.url + endpoint_path(config.endpoint.url))
+        outcome = backend.launch(request, timeout_s=timeout_s, purpose="isolation_check", output_cap=cap)
+        records = endpoint.snapshot()
+    try:
+        parsed: Any = backend.adapter.unwrap(outcome.stdout, expect=backend.expect)
+    except Exception as exc:  # noqa: BLE001 - reported as the reply's failure code
+        parsed = exc
+    return backend, outcome, records, parsed
+
+
+def api_isolation_check(config: ProviderConfig, *, inherited: Mapping[str, str], timeout_s: float = CHECK_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """Request capture for a direct-API route: the engine sent exactly the certified request, and nothing else."""
+    from recalith.providers import base
+
+    out: dict[str, Any] = {"mode": "request_capture", "backend": config.backend, "certifies": False, "failures": []}
+    assert config.endpoint is not None
+    backend, result, records, parsed = capture_launch(config, inherited=inherited, timeout_s=timeout_s)
+    f = out["failures"]
+    if result.timed_out:
+        f.append("timeout")
+    if result.overflowed:
+        f.append("wire_stdout_oversized")
+    if result.tree_cleaned is False:
+        f.append("process_tree_survived")
+    report = backend.last_environment_report or {}
+    constructed = {k: "" for k in report.get("permitted", [])}
+    constructed[process_env.CURATOR_MARKER] = backend.last_curator_marker or ""
+    env_failures, env_detail = environment_failures(result.observed_env_keys, constructed, report, installation_id=config.installation_id)
+    f.extend(env_failures)
+    expected_body = api.build_body(config, CHECK_INPUT, output_cap=base.CHECK_OUTPUT_CAP)
+    detail: dict[str, Any] = {"message_request_count": len(records), "model_visible_tools": [], "body_identical": False}
+    if len(records) != 1:
+        f.append("no_model_request_observed" if not records else "multiple_requests_sent")
+    if records:
+        record = records[0]
+        names = sorted({k for k, _ in record["headers"]})
+        expected_names = api.expected_header_names(config)
+        wire = record["body"] + json.dumps(record["headers"]).encode("utf-8")
+        detail.update(path=record["path"], method=record["method"], header_names=names, unexpected_header_names=sorted(set(names) - set(expected_names)), missing_header_names=sorted(set(expected_names) - set(names)))
+        if record["method"] != "POST":
+            f.append("request_method_unexpected")
+        if record["path"] != endpoint_path(config.endpoint.url):
+            f.append("request_path_mismatch")
+        if detail["unexpected_header_names"] or detail["missing_header_names"]:
+            f.append("request_header_names_unexpected")
+        auth = api.auth_spec(config)
+        values = dict(record["headers"])
+        carriers = sorted(k for k, v in record["headers"] if PLACEHOLDER_KEY in v)
+        if auth is not None:
+            wanted = f"Bearer {PLACEHOLDER_KEY}" if auth["scheme"] == "bearer" else PLACEHOLDER_KEY
+            if values.get(auth["header"]) != wanted:
+                f.append("auth_header_mismatch")
+            carriers = [k for k in carriers if k != auth["header"]]
+        if carriers or PLACEHOLDER_KEY.encode("utf-8") in record["body"]:
+            f.append("credential_outside_selected_header")
+        selected = set(config.auth_env_keys)
+        leaked = sorted(k for k, v in inherited.items() if k not in selected and CREDENTIAL_NAME.search(k) and isinstance(v, str) and len(v) >= 8 and v.encode("utf-8") in wire)
+        if leaked:
+            f.append("unselected_credential_present")
+        detail["unselected_credential_names"] = leaked
+        detail["body_identical"] = record["body"] == expected_body
+        if not detail["body_identical"]:
+            f.append("request_body_differs")
+        try:
+            body = json.loads(record["body"])
+        except ValueError:
+            body = None
+        if not isinstance(body, dict):
+            f.append("request_body_invalid")
+        else:
+            keys = set(body)
+            detail["body_keys"] = sorted(keys)
+            detail["model_visible_tools"] = sorted(keys & TOOL_FIELDS)
+            if detail["model_visible_tools"]:
+                f.append("request_offers_tools")
+            if keys != api.expected_body_keys(config):
+                f.append("request_body_keys_unexpected")
+            if body.get("model") != config.configured_model:
+                f.append("request_model_mismatch")
+            if body.get(config.endpoint.output_cap_field) != base.CHECK_OUTPUT_CAP:
+                f.append("output_cap_missing")
+            if (body.get("response_format") == {"type": "json_object"}) != (config.endpoint.json_mode == "json_object"):
+                f.append("json_mode_mismatch")
+            text = CHECK_INPUT.decode("utf-8")
+            if config.endpoint.dialect == "messages":
+                shaped = body.get("system") == CURATOR_SYSTEM_PROMPT and body.get("messages") == [{"role": "user", "content": text}]
+            else:
+                shaped = body.get("messages") == [{"role": "system", "content": CURATOR_SYSTEM_PROMPT}, {"role": "user", "content": text}]
+            if not shaped:
+                f.append("request_messages_unexpected")
+    if isinstance(parsed, Exception):
+        f.append(f"reply_unparsed:{getattr(parsed, 'code', type(parsed).__name__)}"[:64])
+    out.update(
+        {
+            "host_version": None,
+            "endpoint": {"path": endpoint_path(config.endpoint.url), "dialect": config.endpoint.dialect, "auth_header": config.endpoint.auth_header},
+            "environment": env_detail,
+            "request_capture": detail,
+            "process": {"returncode": result.returncode, "timed_out": result.timed_out, "stdout_overflow": result.overflowed, "tree_bound": result.tree_bound, "tree_cleaned": result.tree_cleaned, "duration_ms": result.duration_ms},
+        }
+    )
+    out["failures"] = sorted(set(out["failures"]))
+    out["verdict"] = "fail" if out["failures"] else "pass"
+    return out
+
+
+__all__ = ["CaptureEndpoint", "api_isolation_check", "capture_launch", "endpoint_path", "PrivateRoot", "PrivateRootError", "curator_environment", "route_keys", "Sentinels", "RecordingEndpoint", "isolation_check", "environment_failures", "resolve_executable", "sentinel_spec"]

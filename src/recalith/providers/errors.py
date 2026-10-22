@@ -17,8 +17,13 @@ class IsolationViolation(ValueError):
 
 
 class ProviderCallFailed(Exception):
-    """One provider call produced no acceptable response (``code`` names why); it is charged."""
+    """One provider call produced no acceptable response (``code`` names why); it is charged.
 
-    def __init__(self, code: str) -> None:
+    ``usage`` carries what the provider reported for the failed call (for
+    example a reply stopped at the output cap), so the charge uses it.
+    """
+
+    def __init__(self, code: str, *, usage: dict | None = None) -> None:
         super().__init__(code)
         self.code = code[:64]
+        self.usage = usage

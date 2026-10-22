@@ -846,7 +846,8 @@
             "tests/integration/test_worker.py::test_same_owner_release_is_fenced_by_generation",
             "tests/integration/test_worker.py::test_service_write_crash_matches_reference",
             "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
-            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference"
+            "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
+            "tests/integration/test_worker.py::test_api_provider_path_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -854,7 +855,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies."
         }
       ]
     },
@@ -1131,7 +1132,13 @@
             "tests/platform/test_provider_isolation.py::test_provider_never_receives_other_project",
             "tests/unit/test_provider_contract.py::test_unknown_capabilities_leave_the_worker_without_a_backend",
             "tests/unit/test_provider_probe.py::test_probe_uses_the_engine_spawn_environment",
-            "tests/integration/test_claude_adapter.py::test_curator_session_is_ignored"
+            "tests/integration/test_claude_adapter.py::test_curator_session_is_ignored",
+            "tests/unit/test_api_providers.py::test_request_capture_check_proves_the_exact_request",
+            "tests/unit/test_api_providers.py::test_request_capture_check_catches_a_changed_request",
+            "tests/unit/test_api_providers.py::test_curator_environment_holds_only_constructed_keys",
+            "tests/unit/test_api_providers.py::test_supervisor_recheck_gates_an_api_route",
+            "tests/unit/test_api_probe.py::test_runtime_check_records_the_production_request_capture",
+            "tests/platform/test_hook_imports.py::test_api_transport_child_is_stdlib_only"
           ],
           "platforms": [
             "linux",
@@ -1139,7 +1146,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 7: the production curator launch (shared spawn_environment curator role, fresh private root outside any checkout, certified argument array) is checked for effective isolation with the Task 0 sentinels planted, from clean and host-marked parents with decoy credentials, through the fake CLI on every platform and the installed Claude Code 2.1.302 in request-capture mode; a hook that runs despite the recursion marker fails and withdraws a route; the hook-started worker rechecks its own curator launch (run/provider-check.json); a request carries only its own installation's records. Live certification is still B1 (no route); request capture never certifies. Task 13: a curator-marked process running the installed hook command captures nothing, starts no worker and prints nothing."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 7: the production curator launch (shared spawn_environment curator role, fresh private root outside any checkout, certified argument array) is checked for effective isolation with the Task 0 sentinels planted, from clean and host-marked parents with decoy credentials, through the fake CLI on every platform and the installed Claude Code 2.1.302 in request-capture mode; a hook that runs despite the recursion marker fails and withdraws a route; the hook-started worker rechecks its own curator launch (run/provider-check.json); a request carries only its own installation's records. Live certification is still B1 (no route); request capture never certifies. Task 13: a curator-marked process running the installed hook command captures nothing, starts no worker and prints nothing. Decision 0023: a direct-API route (anthropic_messages, openai_compatible) has no harness to plant sentinels in; its isolation is the exact request, proven by loopback request capture of the bytes the shipped stdlib transport sends (header-name set, the key only in the configured header, no other credential, a body identical to the engine's with no tool fields, model, output cap, JSON mode) from clean and host-marked parents, and the worker's recheck from its own environment withdraws a changed route. Request capture never certifies; no API route is live-certified (B1)."
         }
       ]
     },
@@ -1174,7 +1181,15 @@
             "tests/integration/test_health.py::test_missing_provider_is_degraded_not_ready",
             "tests/integration/test_health.py::test_exhausted_budget_pools_are_reported",
             "tests/integration/test_claude_adapter.py::test_status_reports_b1_without_a_host_certification",
-            "tests/platform/test_claude_smoke.py::test_certification_writes_only_a_request_capture_record"
+            "tests/platform/test_claude_smoke.py::test_certification_writes_only_a_request_capture_record",
+            "tests/unit/test_api_providers.py::test_route_status_reasons_for_api_routes",
+            "tests/unit/test_api_providers.py::test_no_fallback_from_an_unavailable_api_route",
+            "tests/unit/test_api_providers.py::test_copied_route_is_foreign_and_never_launched",
+            "tests/unit/test_api_providers.py::test_response_outcomes_map_to_failure_classes",
+            "tests/unit/test_api_providers.py::test_unreachable_endpoint_is_transient_and_reported",
+            "tests/integration/test_api_worker.py::test_status_names_api_route_reasons_without_keys",
+            "tests/integration/test_api_worker.py::test_health_degrades_on_the_last_call_failure_of_a_certified_api_route",
+            "tests/unit/test_api_probe.py::test_live_failures_block_certification"
           ],
           "platforms": [
             "linux",
@@ -1182,7 +1197,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain. Task 17: health names capability loss — a missing or request-capture-only route (B1) is inference unavailable and readiness degraded, never ready; a claude on PATH is not a route; capture stays live; exhausted pools degrade inference/admission with the pool named; status exits 8. Task 13: with the integration installed and the request-capture host record written, health still names provider_not_configured and readiness stays degraded (B1)."
+          "notes": "Task 7: route_status lists every reason (uncertified, request-capture only, json_process uncertifiable, non-isolated arguments, missing/changed executable, host version change, auth route change, missing selected auth, foreign config); no reason selects another provider, model, account or billing route; the worker gets no backend and model jobs wait with provider_unavailable while capture continues; a per-call auth-source or isolation mismatch disables the backend; malformed envelopes/bodies fail and are charged with backoff (Task 4). Health composition (Task 17) and real-host loss (Task 13) remain. Task 17: health names capability loss — a missing or request-capture-only route (B1) is inference unavailable and readiness degraded, never ready; a claude on PATH is not a route; capture stays live; exhausted pools degrade inference/admission with the pool named; status exits 8. Task 13: with the integration installed and the request-capture host record written, health still names provider_not_configured and readiness stays degraded (B1). Decision 0023: API routes report adapter_changed, certification_failed:<check>, invocation_changed, auth_route_changed, foreign_provider_config and selected_auth_missing; a reply with another model, a tool call, an output count above the cap, an auth rejection, a 404 or a redirect withdraws the route; transient failures (endpoint_unreachable, rate limits, server errors) are charged, backed off and shown degraded; nothing falls back. Live variant blocked by B1."
         }
       ]
     },
@@ -1218,7 +1233,13 @@
             "tests/unit/test_provider_contract.py::test_15kb_episode_response_is_accepted",
             "tests/unit/test_provider_contract.py::test_envelope_is_bounded_before_body_validation",
             "tests/unit/test_provider_contract.py::test_model_text_cannot_supply_usage_or_provenance",
-            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference"
+            "tests/integration/test_worker.py::test_provider_path_crash_matches_reference",
+            "tests/unit/test_api_providers.py::test_hung_server_is_killed_at_the_timeout",
+            "tests/unit/test_api_providers.py::test_15kb_episode_is_accepted",
+            "tests/unit/test_api_providers.py::test_response_outcomes_map_to_failure_classes",
+            "tests/unit/test_api_providers.py::test_https_is_verified_against_system_or_managed_trust",
+            "tests/unit/test_api_providers.py::test_transport_refuses_plain_http_to_a_non_loopback_host",
+            "tests/unit/test_api_providers.py::test_no_tls_verification_bypass_exists"
           ],
           "platforms": [
             "linux",
@@ -1226,7 +1247,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1."
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1. Decision 0023: the API transport runs through the same bounded launcher (timeout and tree kill, 256 KiB wire and 64 KiB stderr caps); a hung loopback server is killed at the timeout, a flood is wire_stdout_oversized, a valid 15 KB episode body is accepted, truncated and malformed replies are rejected and charged."
         }
       ]
     },
@@ -1939,7 +1960,9 @@
             "tests/integration/test_claude_adapter.py::test_reviewed_2_1_305_fixtures_map_like_2_1_301",
             "tests/integration/test_claude_adapter.py::test_missing_executable_records_unknown_version",
             "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_fixtures_map_like_2_1_305",
-            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_transcripts_parse_without_gaps"
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_transcripts_parse_without_gaps",
+            "tests/unit/test_api_providers.py::test_response_outcomes_map_to_failure_classes",
+            "tests/unit/test_api_providers.py::test_expected_resolved_model_is_explicit"
           ],
           "platforms": [
             "linux",
@@ -1947,7 +1970,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020)."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020). Decision 0023: an unknown API reply shape is envelope_invalid, never parsed leniently; a different reported model is model_mismatch (never a silent substitution)."
         },
         {
           "variant": "full_only",
@@ -2076,7 +2099,9 @@
             "tests/integration/test_claim_admission.py::test_five_candidates_one_fitting_batch_and_exact_verdict_rules",
             "tests/integration/test_claim_admission.py::test_typed_declaration_waits_for_review",
             "tests/integration/test_claim_admission.py::test_fenced_quoted_pasted_and_email_text_is_never_a_declaration",
-            "tests/integration/test_claim_admission.py::test_unextracted_statement_is_not_a_ready_declaration"
+            "tests/integration/test_claim_admission.py::test_unextracted_statement_is_not_a_ready_declaration",
+            "tests/integration/test_api_worker.py::test_api_lane_applies_what_the_process_lane_applies",
+            "tests/integration/test_api_worker.py::test_certified_api_route_reserves_charges_failures_and_backs_off"
           ],
           "platforms": [
             "linux",
@@ -2084,7 +2109,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted. Task 7: reservations use the exact estimate of the prepared request; narrative is scheduled in the ordinary pool, coalesced; the review batch is persisted before launch. Task 9: test_five_candidates_use_one_review_call now passes for real (no xfail): one real extraction through the production preparer proposes five candidates, its application schedules one fitting review batch, the batch is persisted before launch and the assessments admit all five; two calls, one ordinary and one protected. Partitions split by count (8/8/4), output body and exact serialized input; an oversized candidate is deferred. Typed declarations and extracted declarations with eligible direct user evidence get correction_or_declaration priority; attributed (quoted) text does not; an unextracted statement creates no candidate or review."
+          "notes": "Task 4 mechanics: pool rules and borrow direction, purpose allowances, 48-call arithmetic, separate wire/body caps, code-assigned priority (mixed batch takes the highest), no in-flight kill, exhaustion blocks priority work, expansion rounds charged. Task 6: typed task reduction (bindings, typed facts, the continuity link) completes with zero model calls while a provider call is in flight and with both pools exhausted. Task 7: reservations use the exact estimate of the prepared request; narrative is scheduled in the ordinary pool, coalesced; the review batch is persisted before launch. Task 9: test_five_candidates_use_one_review_call now passes for real (no xfail): one real extraction through the production preparer proposes five candidates, its application schedules one fitting review batch, the batch is persisted before launch and the assessments admit all five; two calls, one ordinary and one protected. Partitions split by count (8/8/4), output body and exact serialized input; an oversized candidate is deferred. Typed declarations and extracted declarations with eligible direct user evidence get correction_or_declaration priority; attributed (quoted) text does not; an unextracted statement creates no candidate or review. Decision 0023: the API lane reserves before launch, charges provider-reported usage beside the engine's estimates, charges a failed (rate-limited) attempt and backs it off; its applied state equals the JSON-process lane's."
         }
       ]
     },
@@ -2857,7 +2882,12 @@
             "tests/platform/test_provider_isolation.py::test_user_level_hooks_and_memory_are_absent",
             "tests/platform/test_provider_isolation.py::test_installed_cli_isolation_from_a_host_marked_parent",
             "tests/platform/test_provider_isolation.py::test_recursion_marker_is_not_no_hooks_proof",
-            "tests/unit/test_provider_contract.py::test_auth_route_change_is_visible"
+            "tests/unit/test_provider_contract.py::test_auth_route_change_is_visible",
+            "tests/unit/test_api_providers.py::test_curator_environment_holds_only_constructed_keys",
+            "tests/unit/test_api_providers.py::test_proxy_settings_reach_the_child_only_when_named",
+            "tests/unit/test_api_providers.py::test_exact_request_shape_per_dialect",
+            "tests/integration/test_api_worker.py::test_certified_api_route_reserves_charges_failures_and_backs_off",
+            "tests/integration/test_api_worker.py::test_hook_started_worker_carries_the_routes_network_keys"
           ],
           "platforms": [
             "linux",
@@ -2865,7 +2895,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 0 harness plus the Task 4 hops: hook→worker from clean and host-marked parents (fresh allowlist, markers and inherited RECALITH_* removed, own worker marker, names-only diagnostics, Linux /proc cross-check) and worker→model child through spawn_environment(purpose=curator) with only the selected route key. Live provider route and effective isolation remain Tasks 7/13 (B1). Task 7: hook→worker→curator with real processes: the real hook entry from a host-marked parent with decoy credentials starts the worker (worker role marker), whose provider recheck launches the curator (installed Claude 2.1.302 in request capture, or the fake CLI) from the worker's environment; the observed child keys (Linux /proc) are only constructed keys with the curator marker naming the installation, no host or worker marker, no decoys; effective hooks/MCP/memory/tools are checked separately and fail isolation when present. Live auth route unchanged is B1."
+          "notes": "Task 0 harness and request-capture observations only; live certification not run (B1); worker/curator path is Tasks 4/7/13. Task 0 harness plus the Task 4 hops: hook→worker from clean and host-marked parents (fresh allowlist, markers and inherited RECALITH_* removed, own worker marker, names-only diagnostics, Linux /proc cross-check) and worker→model child through spawn_environment(purpose=curator) with only the selected route key. Live provider route and effective isolation remain Tasks 7/13 (B1). Task 7: hook→worker→curator with real processes: the real hook entry from a host-marked parent with decoy credentials starts the worker (worker role marker), whose provider recheck launches the curator (installed Claude 2.1.302 in request capture, or the fake CLI) from the worker's environment; the observed child keys (Linux /proc) are only constructed keys with the curator marker naming the installation, no host or worker marker, no decoys; effective hooks/MCP/memory/tools are checked separately and fail isolation when present. Live auth route unchanged is B1. Decision 0023: the API transport child's observed environment holds only the constructed platform, selected-key and named network keys with the curator marker; unnamed proxies, CA bundles, decoy credentials and host markers never reach it; the hook-started worker now carries the route's network key names as well as its auth key names."
         }
       ]
     },

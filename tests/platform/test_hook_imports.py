@@ -21,7 +21,7 @@ import pytest
 import claude_fixtures as cf
 
 ROOT = Path(__file__).resolve().parents[2]
-FORBIDDEN_MODULES = ("pydantic", "pydantic_core", "packaging", "sqlite3", "_sqlite3", "socket", "ssl", "http", "urllib.request", "subprocess", "tomllib", "dataclasses", "typing", "recalith.contracts", "recalith.capture", "recalith.storage", "recalith.core", "recalith.errors")
+FORBIDDEN_MODULES = ("pydantic", "pydantic_core", "packaging", "sqlite3", "_sqlite3", "socket", "ssl", "http", "urllib.request", "subprocess", "tomllib", "dataclasses", "typing", "recalith.contracts", "recalith.capture", "recalith.storage", "recalith.core", "recalith.errors", "recalith.providers")
 AUDIT_EVENTS = ("sqlite3.connect", "socket.connect", "socket.getaddrinfo", "socket.bind", "subprocess.Popen", "os.exec", "os.posix_spawn", "os.spawn", "os.system", "os.startfile", "ctypes.dlopen")
 
 PROBE = r"""
@@ -102,6 +102,40 @@ def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     _assert_clean(report, allowed=("sqlite3", "_sqlite3") if module in ("recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence") else ())
     if module in ("recalith", "recalith.fast"):
         assert [m for m in report["new"] if m.startswith("recalith")] == (["recalith"] if module == "recalith" else ["recalith", "recalith.fast"])
+
+
+def test_api_transport_child_is_stdlib_only(tmp_path):
+    """Decision 0023: the curator's HTTP transport child imports the standard library only (never recalith,
+    never Pydantic), and its only network effect is the one connection to the configured loopback endpoint."""
+    sys.path.insert(0, str(ROOT / "tests" / "fixtures" / "providers"))
+    import fake_api_server as fas
+
+    transport = ROOT / "src" / "recalith" / "providers" / "http_transport.py"
+    probe = (
+        "import json, os, runpy, sys\n"
+        "seen = []\n"
+        "sys.addaudithook(lambda e, a: seen.append([e, str(a[1]) if e == 'socket.connect' else None]) if e.startswith(('socket.connect', 'subprocess.Popen', 'os.exec', 'sqlite3.connect', 'os.system')) else None)\n"
+        "baseline = set(sys.modules)\n"
+        "out = sys.stdout\n"
+        "import io\n"
+        "sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding='utf-8')\n"
+        "try:\n"
+        "    runpy.run_path(sys.argv[1], run_name='__main__')\n"
+        "except SystemExit:\n"
+        "    pass\n"
+        "out.write(json.dumps({'new': sorted(set(sys.modules) - baseline), 'audit': seen, 'stdlib': sorted(sys.stdlib_module_names)}))\n"
+    )
+    with fas.FakeProvider("ok") as fake:
+        spec = {"transport_schema": 1, "method": "POST", "url": fake.url("/v1/chat/completions"), "headers": {"content-type": "application/json", "accept": "application/json", "user-agent": "recalith-test"}, "auth": None, "body": "{}", "timeout_seconds": 20, "max_response_bytes": 262144, "echo": {}}
+        env = cf.child_env()
+        proc = subprocess.run([sys.executable, "-I", "-c", probe, str(transport)], input=json.dumps(spec), capture_output=True, text=True, encoding="utf-8", env=env, timeout=60, check=False)
+    assert proc.returncode == 0, proc.stderr[-3000:]
+    report = json.loads(proc.stdout)
+    stdlib = set(report["stdlib"])
+    assert [m for m in report["new"] if m.split(".")[0] not in stdlib] == [], report["new"]
+    assert not [m for m in report["new"] if m.startswith(("recalith", "pydantic"))]
+    connects = [a for e, a in report["audit"] if e == "socket.connect"]
+    assert [e for e, _ in report["audit"] if e != "socket.connect"] == [] and len(connects) == 1 and str(fake.port) in connects[0]
 
 
 def test_fast_entry_imports_only_stdlib_and_fast(tmp_path):

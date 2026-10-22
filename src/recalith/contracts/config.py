@@ -189,24 +189,100 @@ class ProjectConfig(StrictModel):
         )
 
 
-AuthRouteKind = Literal["env_api_key", "env_oauth_token", "env_cloud", "api_key_helper"]
+AuthRouteKind = Literal["env_api_key", "env_oauth_token", "env_cloud", "api_key_helper", "none"]
 EnvKeyName = Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")]
 # Names an explicit route or nonsecret switch may never use (SYSTEM_SPEC §9.1, §13.1).
 FORBIDDEN_ENV_NAMES = frozenset({"CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION"})
 _CREDENTIAL_NAME = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)
+ModelName = Annotated[str, Field(min_length=1, max_length=128)]
+CheckName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")]
+
+# Decision 0023: direct-API backends are adapters Recalith ships; process backends launch a configured executable.
+PROCESS_BACKENDS = frozenset({"claude_cli", "json_process"})
+API_BACKENDS = frozenset({"anthropic_messages", "openai_compatible"})
+BACKEND_DIALECT = {"anthropic_messages": "messages", "openai_compatible": "chat_completions"}
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
 
 def _forbidden_env_name(name: str) -> bool:
     return name.upper().startswith("RECALITH_") or name.upper() in FORBIDDEN_ENV_NAMES
 
 
+def url_host(url: str) -> str | None:
+    from urllib.parse import urlsplit
+
+    try:
+        return urlsplit(url).hostname
+    except ValueError:
+        return None
+
+
+def is_loopback_url(url: str) -> bool:
+    return (url_host(url) or "").lower() in LOOPBACK_HOSTS
+
+
+class ApiEndpoint(StrictModel):
+    """Where and how a direct-API backend sends its one request (decision 0023).
+
+    ``url`` is the full resource URL the engine POSTs to: ``https``, or
+    ``http`` only for a loopback host (a local server). It carries no user
+    information, no fragment and no credential-shaped query; the key travels
+    only in ``auth_header``, read from the environment by name in the child.
+    ``output_cap_field`` names the request field that carries the hard output
+    limit and ``json_mode`` the native JSON mode (Chat Completions only);
+    ``api_version`` is the ``anthropic-version`` header (Messages only).
+    """
+
+    url: Annotated[str, Field(min_length=10, max_length=2048)]
+    dialect: Literal["messages", "chat_completions"]
+    auth_header: Literal["x-api-key", "authorization_bearer", "api-key", "none"]
+    output_cap_field: Literal["max_tokens", "max_completion_tokens"]
+    json_mode: Literal["none", "json_object"]
+    api_version: Annotated[str, Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._-]+$")] | None = None
+
+    @model_validator(mode="after")
+    def _safe_endpoint(self) -> "ApiEndpoint":
+        from urllib.parse import parse_qsl, urlsplit
+
+        from recalith.fast import redact
+
+        if any(ord(c) < 33 or ord(c) == 127 for c in self.url):
+            raise ValueError("the endpoint URL contains whitespace or control characters")
+        try:
+            parts = urlsplit(self.url)
+            parts.port  # noqa: B018 - raises on an invalid port
+        except ValueError:
+            raise ValueError("the endpoint URL is not a valid URL") from None
+        if parts.scheme not in ("https", "http") or not parts.hostname:
+            raise ValueError("the endpoint URL must be https://host/path (http only for a loopback host)")
+        if parts.scheme == "http" and parts.hostname.lower() not in LOOPBACK_HOSTS:
+            raise ValueError("plain http is allowed only to a loopback host (127.0.0.1, ::1, localhost)")
+        if parts.username is not None or parts.password is not None or "@" in parts.netloc:
+            raise ValueError("the endpoint URL may not carry user information")
+        if parts.fragment or "#" in self.url:
+            raise ValueError("the endpoint URL may not carry a fragment")
+        for name, value in parse_qsl(parts.query, keep_blank_values=True):
+            if _CREDENTIAL_NAME.search(name) or redact.contains_secret(value):
+                raise ValueError("the endpoint URL may not carry a credential; keys travel only in the auth header")
+        if self.dialect == "messages":
+            if self.auth_header not in ("x-api-key", "authorization_bearer") or self.output_cap_field != "max_tokens" or self.json_mode != "none" or self.api_version is None:
+                raise ValueError("the messages dialect uses x-api-key or bearer auth, max_tokens, no native JSON mode, and an api_version")
+        elif self.api_version is not None:
+            raise ValueError("api_version is the messages dialect's anthropic-version header")
+        return self
+
+
 class ProviderCertification(StrictModel):
-    """What a successful probe of this exact route observed (Task 0 / Task 7).
+    """What a successful probe of this exact route observed (Task 0 / Task 7; decision 0023).
 
     ``certified`` is true only for a complete *live* observation with the
-    operator's checked background-use eligibility. The route is usable only
-    while the executable digest, host version, auth route and invocation
-    still equal what was certified; any change requires recertification.
+    operator's checked background-use eligibility (``not_applicable_local``
+    only for a loopback API endpoint, checked by ``ProviderConfig``). The
+    route is usable only while the launched program's digest (the CLI
+    executable, or the shipped API adapter sources), host version, auth route,
+    invocation and, for an API route, the resolved model still equal what was
+    certified; any change requires recertification. ``failed_checks`` lists
+    what a non-passing probe run failed.
     """
 
     certified: bool
@@ -215,23 +291,25 @@ class ProviderCertification(StrictModel):
     report_digest: Digest | None = None
     executable_sha256: Digest | None = None
     mode: Literal["live", "request_capture"] | None = None
-    operator_attestation: Literal["checked_eligible", "checked_ineligible", "unchecked"] = "unchecked"
+    operator_attestation: Literal["checked_eligible", "checked_ineligible", "unchecked", "not_applicable_local"] = "unchecked"
     auth_env_keys: list[EnvKeyName] = Field(default_factory=list)
     expected_api_key_source: Annotated[str, Field(max_length=128)] | None = None
     invocation_digest: Digest | None = None
+    resolved_model: ModelName | None = None
+    failed_checks: Annotated[list[CheckName], Field(max_length=32)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _complete(self) -> "ProviderCertification":
         if self.certified:
-            missing = [f for f in ("certified_at", "host_version", "report_digest", "executable_sha256", "invocation_digest") if getattr(self, f) is None]
+            missing = [f for f in ("certified_at", "report_digest", "executable_sha256", "invocation_digest") if getattr(self, f) is None]
             if missing:
                 raise ValueError(f"a certified route records {missing}")
             if self.mode != "live":
                 raise ValueError("request-capture observations never certify a route")
-            if self.operator_attestation != "checked_eligible":
+            if self.operator_attestation not in ("checked_eligible", "not_applicable_local"):
                 raise ValueError("certification requires the operator's checked background-use eligibility")
-            if not self.auth_env_keys:
-                raise ValueError("a certified route records its selected auth key names")
+            if self.failed_checks:
+                raise ValueError("a certified route has no failed checks")
         return self
 
 
@@ -240,33 +318,43 @@ class ProviderConfig(StrictModel):
 
     Local to one installation (``.recalith/provider.json``, never tracked):
     ``installation_id`` binds it, so a copied configuration is refused.
-    ``invocation_args`` may contain ``{model}`` and ``{system_prompt}``.
+    Process backends (``claude_cli``, ``json_process``) launch ``executable``
+    with ``invocation_args`` (which may contain ``{model}`` and
+    ``{system_prompt}``); direct-API backends (``anthropic_messages``,
+    ``openai_compatible``) have no executable and send one request to
+    ``endpoint`` through the shipped stdlib transport (decision 0023).
     ``nonsecret_env`` holds nonsecret switches for the curator child;
     ``network_env_keys`` names managed proxy/TLS keys carried with the route.
+    ``expected_resolved_model`` is the model an API provider must report back
+    when it differs from ``configured_model`` (null: the same identifier).
     """
 
     provider_id: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")]
     installation_id: Id
-    backend: Literal["claude_cli", "json_process"]
-    executable: Annotated[str, Field(min_length=1, max_length=4096)]
-    configured_model: Annotated[str, Field(min_length=1, max_length=128)]
+    backend: Literal["claude_cli", "json_process", "anthropic_messages", "openai_compatible"]
+    executable: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    configured_model: ModelName
+    expected_resolved_model: ModelName | None = None
     auth_route: AuthRouteKind
     auth_env_keys: list[EnvKeyName]
     expected_api_key_source: Annotated[str, Field(max_length=128)] | None = None
     network_env_keys: list[EnvKeyName] = Field(default_factory=list)
     nonsecret_env: dict[EnvKeyName, Annotated[str, Field(max_length=1024)]] = Field(default_factory=dict)
-    invocation_args: list[str]
+    invocation_args: list[str] = Field(default_factory=list)
+    endpoint: ApiEndpoint | None = None
     certification: ProviderCertification
     timeout_seconds: PositiveInt = 120
     max_wire_stdout_bytes: PositiveInt = WIRE_STDOUT_CAP
     max_stderr_bytes: PositiveInt = STDERR_CAP
 
+    @property
+    def is_api(self) -> bool:
+        return self.backend in API_BACKENDS
+
     @model_validator(mode="after")
     def _no_unsafe_args(self) -> "ProviderConfig":
         if "--json-schema" in self.invocation_args:
             raise ValueError("--json-schema adds a model-visible tool on certified Claude builds (decision 0002)")
-        if not self.auth_env_keys:
-            raise ValueError("an explicit auth route must name its environment keys")
         for name in [*self.auth_env_keys, *self.network_env_keys, *self.nonsecret_env]:
             if _forbidden_env_name(name):
                 raise ValueError("a route never names a host or recalith role marker")
@@ -275,4 +363,44 @@ class ProviderConfig(StrictModel):
                 raise ValueError("nonsecret_env must not carry credentials")
         if self.max_wire_stdout_bytes > WIRE_STDOUT_CAP or self.max_stderr_bytes > STDERR_CAP:
             raise ValueError("provider output caps cannot exceed the hard 256 KiB wire / 64 KiB stderr limits")
+        if self.backend in API_BACKENDS:
+            self._check_api()
+        else:
+            if self.executable is None or self.endpoint is not None or self.expected_resolved_model is not None:
+                raise ValueError("a process backend names its executable and has no API endpoint")
+            if self.auth_route == "none" or not self.auth_env_keys:
+                raise ValueError("an explicit auth route must name its environment keys")
+        cert = self.certification
+        if cert.certified:
+            if self.backend in API_BACKENDS:
+                if cert.resolved_model is None:
+                    raise ValueError("a certified API route records the resolved model its provider reported")
+                if cert.operator_attestation == "not_applicable_local" and not is_loopback_url(self.endpoint.url):  # type: ignore[union-attr]
+                    raise ValueError("not_applicable_local attests only a loopback (local) endpoint; a remote provider's terms must be checked")
+            else:
+                if cert.host_version is None:
+                    raise ValueError("a certified Claude CLI route records its host version")
+                if cert.operator_attestation != "checked_eligible":
+                    raise ValueError("certification requires the operator's checked background-use eligibility")
+                if not cert.auth_env_keys:
+                    raise ValueError("a certified route records its selected auth key names")
         return self
+
+    def _check_api(self) -> None:
+        endpoint = self.endpoint
+        if self.executable is not None or self.invocation_args:
+            raise ValueError("an API backend runs the shipped adapter: no executable and no argument array")
+        if endpoint is None:
+            raise ValueError("an API backend names its endpoint")
+        if endpoint.dialect != BACKEND_DIALECT[self.backend]:
+            raise ValueError(f"backend {self.backend} speaks the {BACKEND_DIALECT[self.backend]} dialect")
+        if self.expected_api_key_source is not None:
+            raise ValueError("expected_api_key_source is a Claude CLI diagnostic; an API route has none")
+        if self.auth_route == "none":
+            if self.auth_env_keys or endpoint.auth_header != "none" or not is_loopback_url(endpoint.url):
+                raise ValueError("no auth is allowed only for a loopback endpoint, with no key names and no auth header")
+        else:
+            if self.auth_route != "env_api_key":
+                raise ValueError("an API route reads its key from one named environment variable (env_api_key) or uses none")
+            if len(self.auth_env_keys) != 1 or endpoint.auth_header == "none":
+                raise ValueError("an API key route names exactly one environment key and the header that carries it")
