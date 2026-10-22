@@ -81,7 +81,13 @@ It then dispatched Windows worker-only runs of `.github/workflows/measure.yml`: 
 
 ## Consequences
 
-- The Windows typed-state verdict is decided by the corrected measurement on the runners. The results are recorded in BUILD_PROGRESS.
-- The checklist item `hook_latency_usefulness_per_platform` becomes `passed` only if every platform meets every healthy §7 target.
+- **Result on the final code (b3f1f1f).** Typed-state p95:
+  - Windows: 4.821 and 4.923 s in full measure runs 21 and 24 (n = 20); 4.746 and 4.620 s in worker-only runs 22 and 23 (n = 60);
+  - Linux: 4.476 and 4.469 s;
+  - macOS: 4.545 and 4.393 s;
+  - this container: 4.74 s (n = 100).
+
+  Every platform also meets the hook gate and the idle footprint in both full runs. A single stalled ingesting poll still produces a trial over 5 s on Windows (max 8.59 s); that is within a p95 target that SYSTEM_SPEC §6.1 says is not a maximum-latency guarantee. The series are in `docs/measurements/ci-typed-state-2026-10-22/`.
+- The checklist item `hook_latency_usefulness_per_platform` is `passed`, because every platform meets every healthy §7 target. It would return to `failed` on a measured miss.
 - A typed-state p95 over 5 s on a later Windows run is read from `poll.timing` and the observer's stall records before anything else is changed.
 - Full release (IPC wake, 2 s target) is unaffected. A wake hint shortens the wait for the next poll, not a stalled commit.
