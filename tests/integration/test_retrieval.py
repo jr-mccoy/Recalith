@@ -722,7 +722,7 @@ def test_worker_publishes_projection_and_is_idempotent(p):
     cs.lesson(p)
     p.drain()
     with db.open_store(p.ctx) as store:
-        assert rc.projection_due(store) == {"index": False, "views": False}
+        assert rc.projection_due(store) == {"index": False, "views": False, "lookup": False}
         assert rc.refresh_projection(store, p.ctx) == {}
     assert rs.view_count(p) > 0
     before = osc.meta(p.root)

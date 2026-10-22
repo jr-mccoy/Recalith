@@ -159,11 +159,13 @@ def load_doc(q: Any, kind: str, record_id: str, revision: int, status: str) -> D
 
 def state(q: Any) -> dict[str, Any] | None:
     row = q.execute(
-        "SELECT lexical_backend, indexed_store_revision, views_store_revision, views_guidance_epoch, views_policy_revision, views_tombstone_epoch FROM projection_state WHERE singleton = 1"
+        "SELECT lexical_backend, indexed_store_revision, views_store_revision, views_guidance_epoch, views_policy_revision, views_tombstone_epoch, "
+        "lookup_guidance_epoch, lookup_policy_revision, lookup_tombstone_epoch FROM projection_state WHERE singleton = 1"
     ).fetchone()
     if row is None:
         return None
-    return dict(zip(("backend", "indexed", "views_store", "views_guidance", "views_policy", "views_tombstone"), row, strict=True))
+    keys = ("backend", "indexed", "views_store", "views_guidance", "views_policy", "views_tombstone", "lookup_guidance", "lookup_policy", "lookup_tombstone")
+    return dict(zip(keys, row, strict=True))
 
 
 def _ensure_fts(txn: Txn) -> None:

@@ -95,7 +95,7 @@ def _assert_clean(report: dict, *, allowed: tuple = ()) -> None:
     assert not [m for m in report["baseline"] if m.split(".")[0] in ("pydantic", "packaging", "sqlite3")]
 
 
-@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.fence", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.claude", "recalith.fast.process_env", "recalith.fast.entry"])
+@pytest.mark.parametrize("module", ["recalith", "recalith.fast", "recalith.fast.context", "recalith.fast.delivery", "recalith.fast.cache", "recalith.fast.lookup", "recalith.fast.fence", "recalith.fast.wire", "recalith.fast.wire_generated", "recalith.fast.spool", "recalith.fast.failpoints", "recalith.fast.redact", "recalith.fast.parsers", "recalith.fast.normalize", "recalith.fast.session", "recalith.fast.claude_capture", "recalith.fast.claude", "recalith.fast.process_env", "recalith.fast.entry"])
 def test_each_fast_module_and_package_initializer_is_stdlib_only(module):
     report = _run_probe(["package", module])
     # The read-only snapshot modules (and the delivery branch on them) may import sqlite3; nothing else may.
@@ -198,6 +198,7 @@ def test_hook_context_compiler_is_stdlib_and_read_only(tmp_path):
         assert all("mode=ro" in a and "immutable" not in a for a in connects), connects
         assert not [m for m in rep["new"] if m.startswith(("recalith.retrieval", "recalith.storage", "recalith.contracts", "recalith.controller"))]
     assert {e for e, _ in report["audit"]} == {"sqlite3.connect", "sqlite3.connect/handle"}  # snapshots and the fresh fence only
+    assert "recalith.fast.lookup" in report["new"]  # the prompt case reads the bounded lexical lookup (decision 0021)
 
 
 def test_hook_delivery_branch_is_stdlib_and_read_only(tmp_path):

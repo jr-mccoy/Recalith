@@ -40,7 +40,10 @@ No routine memory operation needs a person: nobody approves a queue of memories,
 
 A fallback is never promoted to "ready", and an unavailable capability never counts as a passed check.
 
-**Known limit (not a health condition): prompt context at scale.** The hook delivers only what the worker's pre-serialized views hold: the task's claims, action-family claims (cautions), disputed claims and the 32 strongest active claims. In a large store (measured at 200 and 10,000 claim heads), a fact that matches the prompt but is outside that slice is not injected by the hook. `recalith search` and `recalith context` (full lexical search) still find it. Pre-action cautions are unaffected. The §7 prompt usefulness target is therefore unmet, and the preview is experimental on that point (decision 0020 item 15).
+**Known limit (not a health condition): prompt context at scale.** Since decision 0021 the hook reaches prompt-relevant facts beyond the worker's views through a bounded lexical lookup that the worker maintains. Each prompt can add up to 16 extra candidates, found through the 8 rarest of its first 32 terms. The same filters and the final fence apply as for every other candidate. At 10,000 claim heads this delivers the prompt-specific fact on every warm and cold trial measured (§7; the Task 11 follow-up checkpoint in BUILD_PROGRESS has the per-platform figures). Three limits remain:
+- **Rebuild lag.** After a large import, a forget, a restore, or a change of environment or policy, the worker rebuilds the lookup in batches of 512 claims (about a quarter of a millisecond per claim). Until it finishes, claims it has not reached are found by `recalith search` and `recalith context` (full lexical search), not by the hook.
+- **Common words.** A claim whose only matching words are very common in the store can still fall outside the hook's bounded read.
+- **Pre-action cautions.** At corpus scale these still come from the views' 64-claim action-family slice.
 
 ## 3. Missing capabilities (not in this build)
 

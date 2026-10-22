@@ -72,7 +72,7 @@ def publish(p: wks.Project) -> dict[str, int]:
     """The worker's projection step, repeated until nothing is due (the index is bounded per transaction)."""
     total: dict[str, int] = {}
     with db.open_store(p.ctx) as store:
-        for _ in range(100):
+        for _ in range(200):
             did = rc.refresh_projection(store, p.ctx)
             if not did:
                 return total
@@ -224,8 +224,9 @@ def outstanding(root: Path) -> str:
     conn = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)
     try:
         meta = conn.execute("SELECT store_revision, guidance_epoch, policy_revision, tombstone_epoch FROM installation_meta").fetchone()
-        state = conn.execute("SELECT indexed_store_revision, views_guidance_epoch, views_policy_revision, views_tombstone_epoch FROM projection_state").fetchone()
-        lag = state is None or state[0] != meta[0] or tuple(state[1:]) != tuple(meta[1:])
+        state = conn.execute("SELECT indexed_store_revision, views_guidance_epoch, views_policy_revision, views_tombstone_epoch, "
+                             "lookup_guidance_epoch, lookup_policy_revision, lookup_tombstone_epoch FROM projection_state").fetchone()
+        lag = state is None or state[0] != meta[0] or tuple(state[1:4]) != tuple(meta[1:]) or tuple(state[4:]) != tuple(meta[1:])
         owed_docs = 0
         for kind, (heads, _revisions, key, column, ok) in index.HEADS.items():
             marks = ",".join("?" for _ in ok)
@@ -236,6 +237,15 @@ def outstanding(root: Path) -> str:
             ).fetchone()[0]
         views = conn.execute("SELECT COUNT(*), SUM(guidance_epoch != ? OR policy_revision != ? OR tombstone_epoch != ?) FROM context_views", tuple(meta[1:])).fetchone()
         owed_views = views[0] == 0 or bool(views[1])
+        # Lookup rows owed: a live head without a row at its revision, or a row whose head is no longer live (decision 0021).
+        owed_docs += conn.execute(
+            "SELECT COUNT(*) FROM claim_heads h LEFT JOIN lookup_candidates l ON l.claim_id = h.claim_id AND l.claim_revision = h.revision "
+            "WHERE h.status IN ('candidate', 'active', 'disputed') AND l.claim_id IS NULL"
+        ).fetchone()[0]
+        owed_docs += conn.execute(
+            "SELECT COUNT(*) FROM lookup_candidates l LEFT JOIN claim_heads h ON h.claim_id = l.claim_id AND h.revision = l.claim_revision AND h.status IN ('candidate', 'active', 'disputed') "
+            "WHERE h.claim_id IS NULL"
+        ).fetchone()[0]
     except sqlite3.Error:
         lag, owed_docs, owed_views = True, 1, True
     finally:
@@ -275,9 +285,17 @@ def projection_state(root: Path) -> dict[str, Any]:
         terms = sorted((_norm(t, names, keys, ctx), k, names.get(r, r)) for t, k, r in view.execute("SELECT term, record_kind, record_id FROM lexical_index").fetchall())
         docs = sorted((k, names.get(r, r), s, n) for k, r, s, n in view.execute("SELECT record_kind, record_id, status, term_count FROM retrieval_docs").fetchall())
         rows = view.execute("SELECT view_id, purpose, guidance_epoch, policy_revision, tombstone_epoch, body FROM context_views ORDER BY view_id").fetchall()
+        # The lookup (decision 0021): rows and postings, IDs normalized; render epochs differ legitimately across restarts.
+        lookup_rows = sorted(
+            (names.get(c, c), rev, volatile, _norm(cited, names, keys, ctx), _norm(quoted, names, keys, ctx), _norm(json.dumps(json.loads(b), sort_keys=True), names, keys, ctx) if b else None)
+            for c, rev, volatile, cited, quoted, b in view.execute("SELECT claim_id, claim_revision, volatile, cited_ids, quoted_states, body FROM lookup_candidates").fetchall()
+        )
+        postings = sorted((_norm(t, names, keys, ctx), names.get(c, c), base) for t, c, base in view.execute("SELECT term, claim_id, base FROM lookup_postings").fetchall())
     out_views = sorted((re.sub(r":\d{4}:", ":RANK:", _norm(v, names, keys, ctx)), purpose, g, pol, t, _sorted_candidates(_norm(_strip_revisions(b), names, keys, ctx))) for v, purpose, g, pol, t, b in rows)
-    current = state is not None and state["indexed"] == meta.store_revision and (state["views_guidance"], state["views_policy"], state["views_tombstone"]) == (meta.guidance_epoch, meta.policy_revision, meta.tombstone_epoch)
-    return {"current": current, "backend": state and state["backend"], "terms": terms, "docs": docs, "views": out_views, "epoch": meta.guidance_epoch}
+    epochs = (meta.guidance_epoch, meta.policy_revision, meta.tombstone_epoch)
+    current = (state is not None and state["indexed"] == meta.store_revision and (state["views_guidance"], state["views_policy"], state["views_tombstone"]) == epochs
+               and (state["lookup_guidance"], state["lookup_policy"], state["lookup_tombstone"]) == epochs)
+    return {"current": current, "backend": state and state["backend"], "terms": terms, "docs": docs, "views": out_views, "lookup": lookup_rows, "postings": postings, "epoch": meta.guidance_epoch}
 
 
 def _sorted_candidates(text: str) -> str:

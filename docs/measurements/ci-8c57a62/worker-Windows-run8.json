@@ -1,0 +1,223 @@
+{
+  "command": "python tools/measure_worker_latency.py --trials 20 --start-trials 5 --idle-seconds 600 --output measurements/worker-Windows.json",
+  "environment": {
+    "logical_cpus": 4,
+    "machine": "AMD64",
+    "os_page_cache": "not dropped",
+    "platform": "Windows-2025Server-10.0.26100-SP0",
+    "python": "3.13.16"
+  },
+  "hook_with_worker_start": {
+    "max": 198.778,
+    "mean": 163.742,
+    "n": 5,
+    "p50": 160.282,
+    "p95": 192.832,
+    "p99": 197.588,
+    "unit": "ms",
+    "worker_states": {
+      "worker_started": 5
+    }
+  },
+  "hook_worker_running": {
+    "max": 570.908,
+    "mean": 204.841,
+    "n": 5,
+    "p50": 110.332,
+    "p95": 488.51,
+    "p99": 554.429,
+    "unit": "ms",
+    "worker_states": {
+      "deadline_worker_start_skipped": 1,
+      "worker_running": 4
+    }
+  },
+  "host_fixture_version": "2.1.301",
+  "idle": {
+    "accounting": "windows_process_api",
+    "cpu_met": true,
+    "cpu_percent_of_one_core": 0.1536,
+    "cpu_target_percent": 1.0,
+    "rss_met": true,
+    "rss_mib": 15.5,
+    "rss_target_mib": 150,
+    "window_seconds": 600.0
+  },
+  "measured_at": "2026-10-21T22:48:17Z",
+  "measurement": "preview worker typed-state latency (idle 5 s polling, no IPC), hook start cost, idle footprint",
+  "spawn": {
+    "degraded_reasons": [
+      "job_membership_unverified"
+    ],
+    "in_job": true,
+    "method": "windows_breakaway",
+    "spawned_by": "hook",
+    "state": "degraded"
+  },
+  "typed_state": {
+    "arrivals": "uniform random phase of the idle cycle",
+    "from_hook_ack": {
+      "max": 6.599,
+      "mean": 3.212,
+      "n": 20,
+      "p50": 3.139,
+      "p95": 6.544,
+      "p99": 6.588,
+      "unit": "s"
+    },
+    "from_hook_spawn": {
+      "max": 6.686,
+      "mean": 3.345,
+      "n": 20,
+      "p50": 3.225,
+      "p95": 6.651,
+      "p99": 6.679,
+      "unit": "s"
+    },
+    "idle_poll_seconds": 5,
+    "met": false,
+    "series": [
+      {
+        "from_hook_ack_s": 3.65,
+        "hook_wall_s": 0.212,
+        "phase_s": 1.18,
+        "slowest_poll_s": 0.068,
+        "trial": 0
+      },
+      {
+        "from_hook_ack_s": 0.47,
+        "hook_wall_s": 0.085,
+        "phase_s": 0.516,
+        "slowest_poll_s": 0.003,
+        "trial": 1
+      },
+      {
+        "from_hook_ack_s": 2.994,
+        "hook_wall_s": 0.085,
+        "phase_s": 1.98,
+        "slowest_poll_s": 0.079,
+        "trial": 2
+      },
+      {
+        "from_hook_ack_s": 0.205,
+        "hook_wall_s": 0.087,
+        "phase_s": 0.775,
+        "slowest_poll_s": 0.003,
+        "trial": 3
+      },
+      {
+        "from_hook_ack_s": 4.629,
+        "hook_wall_s": 0.085,
+        "phase_s": 0.333,
+        "slowest_poll_s": 0.052,
+        "trial": 4
+      },
+      {
+        "from_hook_ack_s": 6.541,
+        "hook_wall_s": 0.109,
+        "phase_s": 2.008,
+        "slowest_poll_s": 0.059,
+        "trial": 5
+      },
+      {
+        "from_hook_ack_s": 3.673,
+        "hook_wall_s": 0.844,
+        "phase_s": 4.59,
+        "slowest_poll_s": 2.818,
+        "trial": 6
+      },
+      {
+        "from_hook_ack_s": 2.273,
+        "hook_wall_s": 0.087,
+        "phase_s": 4.002,
+        "slowest_poll_s": 1.306,
+        "trial": 7
+      },
+      {
+        "from_hook_ack_s": 2.133,
+        "hook_wall_s": 0.088,
+        "phase_s": 3.826,
+        "slowest_poll_s": 0.054,
+        "trial": 8
+      },
+      {
+        "from_hook_ack_s": 4.826,
+        "hook_wall_s": 0.115,
+        "phase_s": 1.11,
+        "slowest_poll_s": 0.051,
+        "trial": 9
+      },
+      {
+        "from_hook_ack_s": 3.282,
+        "hook_wall_s": 0.086,
+        "phase_s": 2.683,
+        "slowest_poll_s": 0.051,
+        "trial": 10
+      },
+      {
+        "from_hook_ack_s": 4.661,
+        "hook_wall_s": 0.087,
+        "phase_s": 1.383,
+        "slowest_poll_s": 0.049,
+        "trial": 11
+      },
+      {
+        "from_hook_ack_s": 0.097,
+        "hook_wall_s": 0.087,
+        "phase_s": 0.863,
+        "slowest_poll_s": 0.003,
+        "trial": 12
+      },
+      {
+        "from_hook_ack_s": 4.436,
+        "hook_wall_s": 0.087,
+        "phase_s": 0.531,
+        "slowest_poll_s": 0.049,
+        "trial": 13
+      },
+      {
+        "from_hook_ack_s": 6.599,
+        "hook_wall_s": 0.087,
+        "phase_s": 1.072,
+        "slowest_poll_s": 0.051,
+        "trial": 14
+      },
+      {
+        "from_hook_ack_s": 2.996,
+        "hook_wall_s": 0.086,
+        "phase_s": 4.637,
+        "slowest_poll_s": 2.332,
+        "trial": 15
+      },
+      {
+        "from_hook_ack_s": 1.848,
+        "hook_wall_s": 0.086,
+        "phase_s": 4.145,
+        "slowest_poll_s": 0.546,
+        "trial": 16
+      },
+      {
+        "from_hook_ack_s": 1.948,
+        "hook_wall_s": 0.089,
+        "phase_s": 4.033,
+        "slowest_poll_s": 0.067,
+        "trial": 17
+      },
+      {
+        "from_hook_ack_s": 1.974,
+        "hook_wall_s": 0.09,
+        "phase_s": 4.002,
+        "slowest_poll_s": 0.052,
+        "trial": 18
+      },
+      {
+        "from_hook_ack_s": 4.999,
+        "hook_wall_s": 0.088,
+        "phase_s": 0.967,
+        "slowest_poll_s": 0.066,
+        "trial": 19
+      }
+    ],
+    "target_p95_seconds": 5.0
+  }
+}

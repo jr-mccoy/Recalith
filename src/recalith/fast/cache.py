@@ -15,7 +15,10 @@ live store's (store-revision-only bookkeeping keeps it valid). Otherwise, with
 at least 60 ms left, it reads at most 32 pre-rendered fallback rows and keeps
 only those whose record head is unchanged and still servable, whose support
 events still hold available evidence and which no newer tombstone names; a
-policy change has no fallback. Conditions are evaluated live with the stdlib
+policy change has no fallback. A prompt compile, on either path, adds at
+most 16 live-filtered rows of the worker's lexical lookup
+(:mod:`recalith.fast.lookup`, decision 0021) when at least 60 ms remain.
+Conditions are evaluated live with the stdlib
 twin (PEP 440 results reused only for the exact consulted value), failure
 lessons get the bounded live dependency check, and the packet must pass the
 fresh final fence (:mod:`recalith.fast.fence`). A stale projection is never
@@ -31,6 +34,7 @@ import time
 import urllib.parse
 
 from recalith.fast import context as fc
+from recalith.fast import lookup
 from recalith.fast.wire import is_valid
 
 STATE_DB = os.path.join(".recalith", "state", "memory.sqlite")
@@ -189,7 +193,7 @@ def _decide_all(conn, ctx: dict, cands: list, query: dict, environment: dict, *,
     budget = fc.DependencyBudget(deadline)
     entries = []
     for cand in cands:
-        values = _claim_values(conn, cand) if live else {k: v["value"] for k, v in (cand.get("claim_values") or {}).items()}
+        values = _claim_values(conn, cand) if live or cand.get("lookup") else {k: v["value"] for k, v in (cand.get("claim_values") or {}).items()}
         entry = fc.decide(cand, query, environment, family=family, query_terms=query_terms, workspace_root=ctx["workspace_root"], budget=budget, claim_values=values, restore_ids=restore_ids)
         if entry is not None:
             entries.append(entry)
@@ -212,6 +216,7 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
     except SnapshotUnavailable:
         return {"packet": fc.empty_packet(ctx, purpose, None, ["store_snapshot_unavailable"]), "source": None, "fence": None}
     source = None
+    found: list = []
     try:
         meta = read_meta(conn)
         if meta is None or (meta["project_id"], meta["installation_id"]) != (ctx["project_id"], ctx["installation_id"]):
@@ -222,7 +227,8 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
         view = json.loads(row[0]) if row else None
         if view is not None and _epochs(view) == live_epochs:
             source, cands, packet_meta = "view", view["candidates"], {k: view[k] for k in ("store_revision", "guidance_epoch", "policy_revision", "tombstone_epoch")}
-            environment = {**(view.get("environment") or {}), **(query.get("environment") or {})}
+            base_environment = view.get("environment") or {}
+            environment = {**base_environment, **(query.get("environment") or {})}
         else:
             reasons.append("view_stale" if view is not None else "view_missing")
             if deadline - time.monotonic() < fc.FALLBACK_MIN_REMAINING:
@@ -235,8 +241,18 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
                 bodies = []
             tombstoned = _tombstoned(conn, min((b["tombstone_epoch"] for b in bodies), default=meta["tombstone_epoch"]))
             cands = [b["candidate"] for b in bodies if _live_candidate(conn, b["candidate"], b, tombstoned)]
-            environment = {**((bodies[0].get("environment") if bodies else None) or {}), **(query.get("environment") or {})}
+            base_environment = (bodies[0].get("environment") if bodies else None) or {}
+            environment = {**base_environment, **(query.get("environment") or {})}
             source, packet_meta = "fallback", {k: meta[k] for k in ("store_revision", "guidance_epoch", "policy_revision", "tombstone_epoch")}
+        if purpose in lookup.PURPOSES and fc.terms(q.get("text") or ""):
+            if deadline - time.monotonic() < lookup.MIN_REMAINING:
+                reasons.append("deadline_lookup_skipped")
+            else:
+                extra, why = lookup.candidates(conn, q["workspace_id"], q.get("text") or "", meta, environment, base_environment=base_environment,
+                                               exclude=frozenset(c["ref"]["id"] for c in cands))
+                reasons += why
+                cands = [*cands, *extra]
+                found = [c["ref"]["id"] for c in extra]
         restore = restored_ids(conn, query["session_id"], restore_ids) if purpose == "compact_restore" else frozenset()
         entries, dep_reasons = _decide_all(conn, ctx, cands, q, environment, deadline=deadline, live=source == "fallback", restore_ids=restore)
         reasons += dep_reasons
@@ -249,11 +265,11 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
     keyed = {id(e["item"]): e["key"] for e in entries}
     keys = [keyed[id(item)] for item in assembled["items"]]
     if not is_valid("ContextPacket", packet):
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["packet_invalid"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"]}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["packet_invalid"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"], "lookup": found}
     if deadline - time.monotonic() < fc.FENCE_TAIL / 2:
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["deadline_delivery_skipped"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"]}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + ["deadline_delivery_skipped"]), "source": source, "fence": None, "keys": [], "environment": environment, "task_id": q["task_id"], "lookup": found}
     result = fence.check(ctx["root"], packet, deadline=deadline)
     if not result["ok"]:
-        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + [result["reason"]]), "source": source, "fence": result, "keys": [], "environment": environment, "task_id": q["task_id"]}
+        return {"packet": fc.empty_packet(ctx, purpose, packet_meta, reasons + [result["reason"]]), "source": source, "fence": result, "keys": [], "environment": environment, "task_id": q["task_id"], "lookup": found}
     # ``keys`` (aligned with the packet items) are the suppression identities the delivery branch accounts.
-    return {"packet": packet, "source": source, "fence": result, "keys": keys, "environment": environment, "task_id": q["task_id"]}
+    return {"packet": packet, "source": source, "fence": result, "keys": keys, "environment": environment, "task_id": q["task_id"], "lookup": found}

@@ -642,6 +642,9 @@ def purge(txn: Txn, ctx: InstallationContext, cl: Closure, *, now: str) -> dict[
     cancelled = _cancel_jobs(txn, ids, cl.events | cl.spool_events)
     counts = _purge_bookkeeping(txn, ids, cl.events | cl.spool_events)
     _purge_projections(txn)
+    from recalith.retrieval import lookup
+
+    lookup.purge(txn, set(ids))
     txn.mutated(serving_relevant=True)
     return {"events": len(cl.events), "spool_events": len(cl.spool_events), "forgotten": len(cl.forgotten), "quarantined": len(cl.quarantined), "jobs_cancelled": len(cancelled), **counts}
 
@@ -1341,7 +1344,10 @@ def _stage(ctx: InstallationContext, verified: Any, source: Path, staged: Path, 
 
 def _reset_projections(txn: Txn) -> None:
     """The restored projections are rebuilt from the authoritative heads after the swap."""
+    from recalith.retrieval import lookup
+
     txn.execute("DELETE FROM context_views")
+    lookup.reset(txn)
     txn.execute("DELETE FROM lexical_index")
     txn.execute("DELETE FROM retrieval_docs")
     if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None:

@@ -235,6 +235,25 @@ def claim_candidate(q: Any, ctx: InstallationContext, claim: ClaimRevision, *, e
     }
 
 
+def servable_candidate(q: Any, ctx: InstallationContext, claim: ClaimRevision | None, *, environment: dict[str, str], workspace_id: str | None = None) -> dict[str, Any] | None:
+    """The one eligibility gate before a claim is decided or pre-rendered (views, fallback and lookup rows, service gathering; decision 0021).
+
+    A live head with sufficient evidence (the field, or some support event's
+    live payload state), inside ``workspace_id``'s scope when one is named;
+    ``None`` otherwise. Applicability, relevance and the advice gate are the
+    query's (:func:`decide` and its stdlib twin).
+    """
+    if claim is None or claim.status not in fc.LIVE:
+        return None
+    cand = claim_candidate(q, ctx, claim, environment=environment)
+    if cand["evidence"] not in fc.SUFFICIENT_EVIDENCE:
+        return None
+    workspaces = (cand.get("scope") or {}).get("workspace_ids") or []
+    if workspace_id is not None and workspaces and workspace_id not in workspaces:
+        return None
+    return cand
+
+
 def task_candidate(q: Any, task_id: str) -> dict[str, Any] | None:
     head = records.head(q, "task", task_id)
     if head is None or head[1] == "linked":
@@ -535,7 +554,9 @@ def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int 
         if claim is None:
             continue
         considered += 1
-        cand = claim_candidate(q, ctx, claim, environment=eq.environment)
+        cand = servable_candidate(q, ctx, claim, environment=eq.environment, workspace_id=eq.workspace_id)
+        if cand is None:
+            continue  # the gate views and lookup rows also pass (decide would refuse it too)
         if claim_id in linked:
             cand["linked"] = linked[claim_id]
         if claim_id in member_of:
