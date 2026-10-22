@@ -19,9 +19,9 @@
       "id": "inference_isolation_and_delivery_certified",
       "section_8": [2],
       "status": "blocked",
-      "detail": "Request-capture isolation passes on the installed Claude Code CLI (clean and host-marked parents); the live route, the operator attestation and the live nonce certification of start/prompt (and the optional pre-action/compaction paths) have not run.",
-      "blocker": "B1: route and attestation not configured; live echo not run",
-      "evidence": ["docs/host-compatibility.json", "docs/probes/LOCAL_CONFIG.md", "docs/probes/DELIVERY_PROBE.md"]
+      "detail": "Request-capture isolation passes on the installed Claude Code CLI (clean and host-marked parents), and since decision 0023 the operator may instead certify a direct-API curator route (anthropic_messages or openai_compatible, including a loopback local server) whose exact request passes loopback request capture; no route of any backend has been live-certified, no operator attestation exists, and the live nonce certification of start/prompt (and the optional pre-action/compaction paths) has not run.",
+      "blocker": "B1: no live-certified inference route (any backend) and no operator attestation; live echo not run",
+      "evidence": ["docs/host-compatibility.json", "docs/probes/LOCAL_CONFIG.md", "docs/probes/DELIVERY_PROBE.md", "docs/decisions/0023-direct-api-inference-backends.md"]
     },
     {
       "id": "smoke_quality_gates",

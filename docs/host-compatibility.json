@@ -581,6 +581,994 @@
           "A model-visible negative canary is evidence about this trial, not proof of future behavior.",
           "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
         ]
+      },
+      "anthropic_api": {
+        "probe": "tools/probe_provider.py",
+        "probe_schema": 1,
+        "tested_at": "2026-10-22T14:00:00.613379Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "provider_id": "anthropic_api",
+        "backend": "anthropic_messages",
+        "engine_build": "0.1.0.dev0",
+        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "origin": "https://api.anthropic.com",
+          "path": "/v1/messages",
+          "dialect": "messages",
+          "auth_header": "x-api-key",
+          "output_cap_field": "max_tokens",
+          "json_mode": "none",
+          "api_version": "2026-10-21"
+        },
+        "auth_route": {
+          "kind": "env_api_key",
+          "billing": "api",
+          "selected_env_key_names": [
+            "ANTHROPIC_API_KEY"
+          ],
+          "description": "Dedicated API key for this project's background curation.",
+          "note": "Names only. No other credential is forwarded to the transport."
+        },
+        "operator_attestation": {
+          "background_use": "unchecked",
+          "basis": "State the provider terms / policy page you checked; no secrets.",
+          "checked_on": null,
+          "managed_policy": "Describe any organization policy that applies."
+        },
+        "adapter": {
+          "transport": "src/recalith/providers/http_transport.py (python -I, by path)",
+          "dialects": "src/recalith/providers/api.py",
+          "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659"
+        },
+        "limits": {
+          "timeout_seconds": 120,
+          "bounds_timeout_seconds": 10,
+          "wire_stdout_bytes": 262144,
+          "stderr_bytes": 65536,
+          "body_bytes": 24000
+        },
+        "request_capture": {
+          "method": "The shipped transport sent to a loopback capture endpoint with a placeholder under the selected key name; the engine verified the bytes received. No account is used; this cannot certify.",
+          "isolated_runs": {
+            "clean": {
+              "mode": "request_capture",
+              "backend": "anthropic_messages",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/messages",
+                "dialect": "messages",
+                "auth_header": "x-api-key"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 163
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/messages",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "anthropic-version",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent",
+                  "x-api-key"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_tokens",
+                  "messages",
+                  "model",
+                  "system"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 109
+              },
+              "verdict": "pass"
+            },
+            "host_marked": {
+              "mode": "request_capture",
+              "backend": "anthropic_messages",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/messages",
+                "dialect": "messages",
+                "auth_header": "x-api-key"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 169
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/messages",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "anthropic-version",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent",
+                  "x-api-key"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_tokens",
+                  "messages",
+                  "model",
+                  "system"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 115
+              },
+              "verdict": "pass"
+            }
+          },
+          "bounds": {
+            "hang": {
+              "pass": true,
+              "code": "provider_timeout",
+              "expected": "provider_timeout",
+              "duration_ms": 10012,
+              "tree_cleaned": true
+            },
+            "flood": {
+              "pass": true,
+              "code": "wire_stdout_oversized",
+              "expected": "wire_stdout_oversized",
+              "duration_ms": 143,
+              "tree_cleaned": true
+            },
+            "oversize": {
+              "pass": true,
+              "code": "response_body_oversized",
+              "expected": "response_body_oversized",
+              "duration_ms": 115,
+              "tree_cleaned": true
+            },
+            "large": {
+              "pass": true,
+              "code": null,
+              "expected": null,
+              "duration_ms": 147,
+              "tree_cleaned": true
+            },
+            "malformed": {
+              "pass": true,
+              "code": "envelope_invalid",
+              "expected": "envelope_invalid",
+              "duration_ms": 108,
+              "tree_cleaned": true
+            }
+          }
+        },
+        "live": null,
+        "dimensions": {
+          "request_shape": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "environment_isolation": {
+            "verdict": "pass",
+            "failures": [],
+            "observed_through": "request_capture"
+          },
+          "bounds_and_cancellation": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "auth_route": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "model_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "schema_output": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "endpoint_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "live_launch": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "output_cap": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "usage": {
+            "verdict": "informational",
+            "reported": null
+          },
+          "operator_attestation": {
+            "verdict": "not_run",
+            "failures": [
+              "background_use_unchecked"
+            ]
+          }
+        },
+        "certified": false,
+        "verdict": "unavailable",
+        "blocking_dimensions": [
+          "auth_route",
+          "endpoint_identity",
+          "live_launch",
+          "model_identity",
+          "operator_attestation",
+          "output_cap",
+          "schema_output"
+        ],
+        "failed_checks": [
+          "background_use_unchecked"
+        ],
+        "resolved_model": null,
+        "usable_route": null,
+        "limitations": [
+          "Request capture observes the exact client-side request on loopback; provider-side behavior is observed only in live mode.",
+          "An aggregator may route the same model across hosts server-side; only the reported model is checkable.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
+      },
+      "openai_compatible_api": {
+        "probe": "tools/probe_provider.py",
+        "probe_schema": 1,
+        "tested_at": "2026-10-22T14:00:16.709980Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "provider_id": "openai_compatible_api",
+        "backend": "openai_compatible",
+        "engine_build": "0.1.0.dev0",
+        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "origin": "https://provider.example",
+          "path": "/v1/chat/completions",
+          "dialect": "chat_completions",
+          "auth_header": "authorization_bearer",
+          "output_cap_field": "max_completion_tokens",
+          "json_mode": "json_object",
+          "api_version": null
+        },
+        "auth_route": {
+          "kind": "env_api_key",
+          "billing": "api",
+          "selected_env_key_names": [
+            "PROVIDER_API_KEY"
+          ],
+          "description": "Dedicated API key for this project's background curation.",
+          "note": "Names only. No other credential is forwarded to the transport."
+        },
+        "operator_attestation": {
+          "background_use": "unchecked",
+          "basis": "State the provider terms / policy page you checked; no secrets.",
+          "checked_on": null,
+          "managed_policy": "Describe any organization policy that applies."
+        },
+        "adapter": {
+          "transport": "src/recalith/providers/http_transport.py (python -I, by path)",
+          "dialects": "src/recalith/providers/api.py",
+          "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659"
+        },
+        "limits": {
+          "timeout_seconds": 120,
+          "bounds_timeout_seconds": 10,
+          "wire_stdout_bytes": 262144,
+          "stderr_bytes": 65536,
+          "body_bytes": 24000
+        },
+        "request_capture": {
+          "method": "The shipped transport sent to a loopback capture endpoint with a placeholder under the selected key name; the engine verified the bytes received. No account is used; this cannot certify.",
+          "isolated_runs": {
+            "clean": {
+              "mode": "request_capture",
+              "backend": "openai_compatible",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/chat/completions",
+                "dialect": "chat_completions",
+                "auth_header": "authorization_bearer"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "PROVIDER_API_KEY",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "PROVIDER_API_KEY",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 163
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/chat/completions",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "authorization",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_completion_tokens",
+                  "messages",
+                  "model",
+                  "response_format"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 153
+              },
+              "verdict": "pass"
+            },
+            "host_marked": {
+              "mode": "request_capture",
+              "backend": "openai_compatible",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/chat/completions",
+                "dialect": "chat_completions",
+                "auth_header": "authorization_bearer"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "PROVIDER_API_KEY",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "PROVIDER_API_KEY",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 170
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/chat/completions",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "authorization",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_completion_tokens",
+                  "messages",
+                  "model",
+                  "response_format"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 102
+              },
+              "verdict": "pass"
+            }
+          },
+          "bounds": {
+            "hang": {
+              "pass": true,
+              "code": "provider_timeout",
+              "expected": "provider_timeout",
+              "duration_ms": 10013,
+              "tree_cleaned": true
+            },
+            "flood": {
+              "pass": true,
+              "code": "wire_stdout_oversized",
+              "expected": "wire_stdout_oversized",
+              "duration_ms": 158,
+              "tree_cleaned": true
+            },
+            "oversize": {
+              "pass": true,
+              "code": "response_body_oversized",
+              "expected": "response_body_oversized",
+              "duration_ms": 112,
+              "tree_cleaned": true
+            },
+            "large": {
+              "pass": true,
+              "code": null,
+              "expected": null,
+              "duration_ms": 163,
+              "tree_cleaned": true
+            },
+            "malformed": {
+              "pass": true,
+              "code": "envelope_invalid",
+              "expected": "envelope_invalid",
+              "duration_ms": 121,
+              "tree_cleaned": true
+            }
+          }
+        },
+        "live": null,
+        "dimensions": {
+          "request_shape": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "environment_isolation": {
+            "verdict": "pass",
+            "failures": [],
+            "observed_through": "request_capture"
+          },
+          "bounds_and_cancellation": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "auth_route": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "model_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "schema_output": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "endpoint_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "live_launch": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "output_cap": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "usage": {
+            "verdict": "informational",
+            "reported": null
+          },
+          "operator_attestation": {
+            "verdict": "not_run",
+            "failures": [
+              "background_use_unchecked"
+            ]
+          }
+        },
+        "certified": false,
+        "verdict": "unavailable",
+        "blocking_dimensions": [
+          "auth_route",
+          "endpoint_identity",
+          "live_launch",
+          "model_identity",
+          "operator_attestation",
+          "output_cap",
+          "schema_output"
+        ],
+        "failed_checks": [
+          "background_use_unchecked"
+        ],
+        "resolved_model": null,
+        "usable_route": null,
+        "limitations": [
+          "Request capture observes the exact client-side request on loopback; provider-side behavior is observed only in live mode.",
+          "An aggregator may route the same model across hosts server-side; only the reported model is checkable.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
+      },
+      "local_model": {
+        "probe": "tools/probe_provider.py",
+        "probe_schema": 1,
+        "tested_at": "2026-10-22T14:00:33.024783Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "provider_id": "local_model",
+        "backend": "openai_compatible",
+        "engine_build": "0.1.0.dev0",
+        "configured_model": "EXPLICIT-LOCAL-MODEL-NAME",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "origin": "http://127.0.0.1:11434",
+          "path": "/v1/chat/completions",
+          "dialect": "chat_completions",
+          "auth_header": "none",
+          "output_cap_field": "max_tokens",
+          "json_mode": "json_object",
+          "api_version": null
+        },
+        "auth_route": {
+          "kind": "none",
+          "billing": "none",
+          "selected_env_key_names": [],
+          "description": "Local server on this machine; no account.",
+          "note": "Names only. No other credential is forwarded to the transport."
+        },
+        "operator_attestation": {
+          "background_use": "not_applicable_local",
+          "basis": "Loopback local server; no provider terms apply.",
+          "checked_on": "YYYY-MM-DD",
+          "managed_policy": ""
+        },
+        "adapter": {
+          "transport": "src/recalith/providers/http_transport.py (python -I, by path)",
+          "dialects": "src/recalith/providers/api.py",
+          "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659"
+        },
+        "limits": {
+          "timeout_seconds": 120,
+          "bounds_timeout_seconds": 10,
+          "wire_stdout_bytes": 262144,
+          "stderr_bytes": 65536,
+          "body_bytes": 24000
+        },
+        "request_capture": {
+          "method": "The shipped transport sent to a loopback capture endpoint with a placeholder under the selected key name; the engine verified the bytes received. No account is used; this cannot certify.",
+          "isolated_runs": {
+            "clean": {
+              "mode": "request_capture",
+              "backend": "openai_compatible",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/chat/completions",
+                "dialect": "chat_completions",
+                "auth_header": "none"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 163
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/chat/completions",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_tokens",
+                  "messages",
+                  "model",
+                  "response_format"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 123
+              },
+              "verdict": "pass"
+            },
+            "host_marked": {
+              "mode": "request_capture",
+              "backend": "openai_compatible",
+              "certifies": false,
+              "failures": [],
+              "host_version": null,
+              "endpoint": {
+                "path": "/v1/chat/completions",
+                "dialect": "chat_completions",
+                "auth_header": "none"
+              },
+              "environment": {
+                "method": "linux_proc_environ",
+                "child_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "constructed_keys": [
+                  "HOME",
+                  "LC_CTYPE",
+                  "NO_PROXY",
+                  "PATH",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "no_proxy"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 170
+              },
+              "request_capture": {
+                "message_request_count": 1,
+                "model_visible_tools": [],
+                "body_identical": true,
+                "path": "/v1/chat/completions",
+                "method": "POST",
+                "header_names": [
+                  "accept",
+                  "accept-encoding",
+                  "connection",
+                  "content-length",
+                  "content-type",
+                  "host",
+                  "user-agent"
+                ],
+                "unexpected_header_names": [],
+                "missing_header_names": [],
+                "unselected_credential_names": [],
+                "body_keys": [
+                  "max_tokens",
+                  "messages",
+                  "model",
+                  "response_format"
+                ]
+              },
+              "process": {
+                "returncode": 0,
+                "timed_out": false,
+                "stdout_overflow": false,
+                "tree_bound": "contained",
+                "tree_cleaned": true,
+                "duration_ms": 121
+              },
+              "verdict": "pass"
+            }
+          },
+          "bounds": {
+            "hang": {
+              "pass": true,
+              "code": "provider_timeout",
+              "expected": "provider_timeout",
+              "duration_ms": 10012,
+              "tree_cleaned": true
+            },
+            "flood": {
+              "pass": true,
+              "code": "wire_stdout_oversized",
+              "expected": "wire_stdout_oversized",
+              "duration_ms": 110,
+              "tree_cleaned": true
+            },
+            "oversize": {
+              "pass": true,
+              "code": "response_body_oversized",
+              "expected": "response_body_oversized",
+              "duration_ms": 131,
+              "tree_cleaned": true
+            },
+            "large": {
+              "pass": true,
+              "code": null,
+              "expected": null,
+              "duration_ms": 112,
+              "tree_cleaned": true
+            },
+            "malformed": {
+              "pass": true,
+              "code": "envelope_invalid",
+              "expected": "envelope_invalid",
+              "duration_ms": 140,
+              "tree_cleaned": true
+            }
+          }
+        },
+        "live": null,
+        "dimensions": {
+          "request_shape": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "environment_isolation": {
+            "verdict": "pass",
+            "failures": [],
+            "observed_through": "request_capture"
+          },
+          "bounds_and_cancellation": {
+            "verdict": "pass",
+            "failures": []
+          },
+          "auth_route": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "model_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "schema_output": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "endpoint_identity": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "live_launch": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "output_cap": {
+            "verdict": "not_run",
+            "failures": [],
+            "reason": "live mode not selected in config"
+          },
+          "usage": {
+            "verdict": "informational",
+            "reported": null
+          },
+          "operator_attestation": {
+            "verdict": "pass",
+            "failures": []
+          }
+        },
+        "certified": false,
+        "verdict": "unavailable",
+        "blocking_dimensions": [
+          "auth_route",
+          "endpoint_identity",
+          "live_launch",
+          "model_identity",
+          "output_cap",
+          "schema_output"
+        ],
+        "failed_checks": [],
+        "resolved_model": null,
+        "usable_route": null,
+        "limitations": [
+          "Request capture observes the exact client-side request on loopback; provider-side behavior is observed only in live mode.",
+          "An aggregator may route the same model across hosts server-side; only the reported model is checkable.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
       }
     },
     "delivery": {
@@ -2216,6 +3204,671 @@
           "Request capture uses a loopback endpoint and a placeholder key: it observes the client-side launch, never an account route, and cannot certify.",
           "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
         ]
+      },
+      "anthropic_api": {
+        "tool": "tools/check_provider_runtime.py",
+        "tested_at": "2026-10-22T14:00:15.993908Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "engine_build": "0.1.0.dev0",
+        "backend": "anthropic_messages",
+        "adapter": "recalith.providers.api",
+        "adapter_version": "1",
+        "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659",
+        "transport": "python -I src/recalith/providers/http_transport.py (stdlib only), launched by controller.launch.run_bounded",
+        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "dialect": "messages",
+          "auth_header": "x-api-key",
+          "output_cap_field": "max_tokens",
+          "json_mode": "none",
+          "api_version": "2026-10-21",
+          "path": "/v1/messages"
+        },
+        "expected_header_names": [
+          "accept",
+          "accept-encoding",
+          "anthropic-version",
+          "connection",
+          "content-length",
+          "content-type",
+          "host",
+          "user-agent",
+          "x-api-key"
+        ],
+        "expected_body_keys": [
+          "max_tokens",
+          "messages",
+          "model",
+          "system"
+        ],
+        "nonsecret_env_names": [],
+        "environment_builder": "recalith.fast.process_env.spawn_environment (purpose curator); no second filter",
+        "isolation_checks": {
+          "clean": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/messages",
+              "dialect": "messages",
+              "auth_header": "x-api-key"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 163
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/messages",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "anthropic-version",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent",
+                "x-api-key"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_tokens",
+                "messages",
+                "model",
+                "system"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 102
+            }
+          },
+          "host_marked": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/messages",
+              "dialect": "messages",
+              "auth_header": "x-api-key"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 170
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/messages",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "anthropic-version",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent",
+                "x-api-key"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_tokens",
+                "messages",
+                "model",
+                "system"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 101
+            }
+          }
+        },
+        "route_status": {
+          "state": "unavailable",
+          "reasons": [
+            "route_uncertified",
+            "selected_auth_missing"
+          ],
+          "provider_id": "anthropic_api",
+          "backend": "anthropic_messages",
+          "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+          "observed_version": null,
+          "certified_version": null,
+          "auth_route": "env_api_key",
+          "auth_key_names": [
+            "ANTHROPIC_API_KEY"
+          ],
+          "checked_at": "2026-10-22T14:00:15.993148Z",
+          "recertification_required": false
+        },
+        "certifies": false,
+        "verdict": "unavailable",
+        "limitations": [
+          "Request capture uses a loopback endpoint and a placeholder key: it observes the exact client-side request, never an account route, and cannot certify.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
+      },
+      "openai_compatible_api": {
+        "tool": "tools/check_provider_runtime.py",
+        "tested_at": "2026-10-22T14:00:32.396030Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "engine_build": "0.1.0.dev0",
+        "backend": "openai_compatible",
+        "adapter": "recalith.providers.api",
+        "adapter_version": "1",
+        "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659",
+        "transport": "python -I src/recalith/providers/http_transport.py (stdlib only), launched by controller.launch.run_bounded",
+        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "dialect": "chat_completions",
+          "auth_header": "authorization_bearer",
+          "output_cap_field": "max_completion_tokens",
+          "json_mode": "json_object",
+          "api_version": null,
+          "path": "/v1/chat/completions"
+        },
+        "expected_header_names": [
+          "accept",
+          "accept-encoding",
+          "authorization",
+          "connection",
+          "content-length",
+          "content-type",
+          "host",
+          "user-agent"
+        ],
+        "expected_body_keys": [
+          "max_completion_tokens",
+          "messages",
+          "model",
+          "response_format"
+        ],
+        "nonsecret_env_names": [],
+        "environment_builder": "recalith.fast.process_env.spawn_environment (purpose curator); no second filter",
+        "isolation_checks": {
+          "clean": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/chat/completions",
+              "dialect": "chat_completions",
+              "auth_header": "authorization_bearer"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "PROVIDER_API_KEY",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "PROVIDER_API_KEY",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 163
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/chat/completions",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "authorization",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_completion_tokens",
+                "messages",
+                "model",
+                "response_format"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 142
+            }
+          },
+          "host_marked": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/chat/completions",
+              "dialect": "chat_completions",
+              "auth_header": "authorization_bearer"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "PROVIDER_API_KEY",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "PROVIDER_API_KEY",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 170
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/chat/completions",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "authorization",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_completion_tokens",
+                "messages",
+                "model",
+                "response_format"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 127
+            }
+          }
+        },
+        "route_status": {
+          "state": "unavailable",
+          "reasons": [
+            "route_uncertified",
+            "selected_auth_missing"
+          ],
+          "provider_id": "openai_compatible_api",
+          "backend": "openai_compatible",
+          "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+          "observed_version": null,
+          "certified_version": null,
+          "auth_route": "env_api_key",
+          "auth_key_names": [
+            "PROVIDER_API_KEY"
+          ],
+          "checked_at": "2026-10-22T14:00:32.395849Z",
+          "recertification_required": false
+        },
+        "certifies": false,
+        "verdict": "unavailable",
+        "limitations": [
+          "Request capture uses a loopback endpoint and a placeholder key: it observes the exact client-side request, never an account route, and cannot certify.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
+      },
+      "local_model": {
+        "tool": "tools/check_provider_runtime.py",
+        "tested_at": "2026-10-22T14:00:48.606817Z",
+        "platform": {
+          "os": "linux",
+          "arch": "x86_64",
+          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
+          "python": "3.13.16"
+        },
+        "engine_build": "0.1.0.dev0",
+        "backend": "openai_compatible",
+        "adapter": "recalith.providers.api",
+        "adapter_version": "1",
+        "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659",
+        "transport": "python -I src/recalith/providers/http_transport.py (stdlib only), launched by controller.launch.run_bounded",
+        "configured_model": "EXPLICIT-LOCAL-MODEL-NAME",
+        "expected_resolved_model": null,
+        "endpoint": {
+          "dialect": "chat_completions",
+          "auth_header": "none",
+          "output_cap_field": "max_tokens",
+          "json_mode": "json_object",
+          "api_version": null,
+          "path": "/v1/chat/completions"
+        },
+        "expected_header_names": [
+          "accept",
+          "accept-encoding",
+          "connection",
+          "content-length",
+          "content-type",
+          "host",
+          "user-agent"
+        ],
+        "expected_body_keys": [
+          "max_tokens",
+          "messages",
+          "model",
+          "response_format"
+        ],
+        "nonsecret_env_names": [],
+        "environment_builder": "recalith.fast.process_env.spawn_environment (purpose curator); no second filter",
+        "isolation_checks": {
+          "clean": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/chat/completions",
+              "dialect": "chat_completions",
+              "auth_header": "none"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 163
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/chat/completions",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_tokens",
+                "messages",
+                "model",
+                "response_format"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 112
+            }
+          },
+          "host_marked": {
+            "verdict": "pass",
+            "failures": [],
+            "endpoint": {
+              "path": "/v1/chat/completions",
+              "dialect": "chat_completions",
+              "auth_header": "none"
+            },
+            "environment": {
+              "method": "linux_proc_environ",
+              "child_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "constructed_keys": [
+                "HOME",
+                "LC_CTYPE",
+                "NO_PROXY",
+                "PATH",
+                "RECALITH_CURATOR_INSTALLATION",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "no_proxy"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 170
+            },
+            "request_capture": {
+              "message_request_count": 1,
+              "model_visible_tools": [],
+              "body_identical": true,
+              "path": "/v1/chat/completions",
+              "method": "POST",
+              "header_names": [
+                "accept",
+                "accept-encoding",
+                "connection",
+                "content-length",
+                "content-type",
+                "host",
+                "user-agent"
+              ],
+              "unexpected_header_names": [],
+              "missing_header_names": [],
+              "unselected_credential_names": [],
+              "body_keys": [
+                "max_tokens",
+                "messages",
+                "model",
+                "response_format"
+              ]
+            },
+            "process": {
+              "returncode": 0,
+              "timed_out": false,
+              "stdout_overflow": false,
+              "tree_bound": "contained",
+              "tree_cleaned": true,
+              "duration_ms": 139
+            }
+          }
+        },
+        "route_status": {
+          "state": "unavailable",
+          "reasons": [
+            "route_uncertified"
+          ],
+          "provider_id": "local_model",
+          "backend": "openai_compatible",
+          "configured_model": "EXPLICIT-LOCAL-MODEL-NAME",
+          "observed_version": null,
+          "certified_version": null,
+          "auth_route": "none",
+          "auth_key_names": [],
+          "checked_at": "2026-10-22T14:00:48.606580Z",
+          "recertification_required": false
+        },
+        "certifies": false,
+        "verdict": "unavailable",
+        "limitations": [
+          "Request capture uses a loopback endpoint and a placeholder key: it observes the exact client-side request, never an account route, and cannot certify.",
+          "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
+        ]
       }
     },
     "delivery_engine": {
@@ -3764,5 +5417,5 @@
       }
     }
   },
-  "updated_at": "2026-10-21T13:06:59.675954Z"
+  "updated_at": "2026-10-22T14:00:48.625389Z"
 }
