@@ -311,7 +311,7 @@ class Worker:
         self._store: Store | None = None
         self._seen_sources: dict[str, tuple] = {}
         self._reported_gaps: set[tuple[str, str]] = set()
-        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "clock_jumps": 0, "errors": 0}
+        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "clock_jumps": 0, "errors": 0, "status_write_failures": 0}
         self.lane = ModelLane(self) if model is not None else None
         self.state = "starting"
         self.last_error: str | None = None
@@ -442,8 +442,12 @@ class Worker:
             job = jobs.lease_next(self.ctx, owner=self.owner, now=self.clock.now(), kinds=kinds, store=self.store, config=self.config.budgets)
             if job is None:
                 break
+            if not worked:
+                self._mark("first_job_leased")
             worked = True
             self.run_job(job)
+            if "first_job_done" not in self._marks:
+                self._mark("first_job_done")
         return worked
 
     def run_job(self, job: Job) -> None:
@@ -558,6 +562,7 @@ class Worker:
                     time.sleep(0.01)
         except OSError:
             self.last_error = "status_write_failed"
+            self.counters["status_write_failures"] += 1
 
     # ---------------------------------------------------------------- loop
 

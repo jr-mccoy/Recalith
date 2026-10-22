@@ -368,7 +368,10 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
     """Captured events reach typed state within p95 ≤ 5 s of an idle 5-second-polling worker.
 
     Arrivals are placed at evenly spaced phases of the idle poll cycle, so the
-    sample covers the whole cycle instead of depending on luck. Latency is
+    sample covers the whole cycle instead of depending on luck. Each cycle is
+    read from an idle poll that started after the previous trial reached typed
+    state, never from the stale idle status the ingesting poll has not yet
+    replaced (decision 0022). Latency is
     measured from the hook's acknowledgment (process exit) to the event being
     committed with its ingest job completed, observed from a separate
     read-only connection.
@@ -378,8 +381,9 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
     idle = worker.read_status(replay.root)["poll"]["idle_seconds"]
     assert idle == 5 and worker.read_status(replay.root)["poll"]["ipc_wake"] == "unavailable_in_preview"
     latencies, from_spawn, polls, trials = [], [], [], []
+    previous_done = 0.0
     for trial in range(PHASES):
-        settled = wh.wait_for(lambda: (lambda s: s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None)(worker.read_status(replay.root)), 30)
+        settled = wh.wait_for(lambda after=previous_done: (lambda s: s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] and s["poll"]["last_poll_wall"] > after else None)(worker.read_status(replay.root)), 30)
         assert settled, "worker never returned to idle polling"
         phase = (trial + 0.5) / PHASES * idle
         target = settled["poll"]["last_poll_wall"] + phase
@@ -396,6 +400,7 @@ def test_idle_poll_state_available_within_five_seconds(replay, tmp_path):
         event_id = trial_reply["receipt"]["event_ids"][0]
         assert wh.wait_for(lambda event_id=event_id: event_available(replay.root, event_id), 15, interval=0.01), f"trial {trial} never reached typed state"
         done = time.monotonic()
+        previous_done = time.time()
         latencies.append(done - acked)
         from_spawn.append(done - spawned)
         after = worker.read_status(replay.root) or {}

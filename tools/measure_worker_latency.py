@@ -6,7 +6,8 @@
 
 * ``typed_state``: a real Claude Code 2.1.301 prompt payload is captured by a
   fresh ``python -I -m recalith.fast.entry`` process at a uniformly random
-  moment of an *idle* worker's 5-second poll cycle. Latency runs from the
+  moment of an *idle* worker's 5-second poll cycle, read from an idle poll that
+  started after the previous trial reached typed state (decision 0022). Latency runs from the
   hook's acknowledgment (process exit, after durable publication) to the
   event being committed with its ``ingest`` job completed, observed from a
   separate read-only connection polling every 10 ms. ``from_hook_spawn`` adds
@@ -43,6 +44,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tests" / "platform"), str(ROOT / 
 import claude_fixtures as cf  # noqa: E402
 import worker_hosts as wh  # noqa: E402
 from recalith.controller import worker  # noqa: E402
+from recalith.errors import RecalithError  # noqa: E402
 from recalith.fast import process_env, spool  # noqa: E402
 from recalith.storage import db  # noqa: E402
 
@@ -77,32 +79,41 @@ def available(root: Path, event_id: str) -> bool:
 
 
 class Observer:
-    """Measurement-only timeline, sampled every 10 ms from outside the worker: each status write the worker
-    makes (its poll index, start, step offsets and the sleep before it) and, per trial, when the hook's segment
-    appeared in and left ``spool/ready``, when its event row appeared and when its ingest job completed. All
-    times are wall-clock seconds (``time.time()``), the clock the worker's ``last_poll_wall`` uses."""
+    """Measurement-only timeline, sampled from outside the worker. All times are wall-clock seconds
+    (``time.time()``), the clock the worker's ``last_poll_wall`` uses.
+
+    * The file thread (every 10 ms, no SQLite): each status write the worker makes (its poll index, start,
+      step offsets and the sleep before it), the hook's segment appearing in and leaving ``spool/ready``,
+      each write of the main store file (in WAL mode only a checkpoint writes it), and any gap of more than
+      0.2 s in its own 10 ms loop (a stall of this process or of the machine, not of the worker).
+    * The store thread: while a trial's event is outstanding, one read-only connection checks every 10 ms
+      for the event row and the completed ingest job, and records any of its reads that took over 0.1 s.
+    """
 
     def __init__(self, root: Path, interval: float = 0.01) -> None:
         self.root, self.interval = root, interval
         self.dirs = spool.SpoolDirs(root)
         self.polls: dict[int, dict] = {}
-        # In WAL mode only a checkpoint writes the main database file, so a change of its size or mtime marks one.
         self.store_file = Path(root) / ".recalith" / db.STATE_DB
         self.store_sig: tuple | None = None
         self.checkpoints: list[dict] = []
-        self.write_failures = 0
+        self.file_stalls: list[dict] = []
+        self.slow_reads: list[dict] = []
+        self.status_read_errors = 0
         self.trial: dict | None = None
         self.lock = threading.Lock()
         self.stop = threading.Event()
-        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.threads = [threading.Thread(target=self._files, daemon=True), threading.Thread(target=self._store, daemon=True)]
 
     def __enter__(self) -> "Observer":
-        self.thread.start()
+        for t in self.threads:
+            t.start()
         return self
 
     def __exit__(self, *exc) -> None:
         self.stop.set()
-        self.thread.join(5)
+        for t in self.threads:
+            t.join(10)
 
     def begin(self, trial: int) -> dict:
         with self.lock:
@@ -115,19 +126,21 @@ class Observer:
             return done or {}
 
     def _status(self, now: float) -> None:
-        st = worker.read_status(self.root)
+        try:
+            st = worker.read_status(self.root)
+        except (OSError, ValueError):
+            self.status_read_errors += 1
+            return
         if not st:
             return
         poll, counters = st.get("poll") or {}, st.get("counters") or {}
         index = counters.get("polls")
         if not isinstance(index, int) or index in self.polls:
             return
-        if st.get("last_error") == "status_write_failed":
-            self.write_failures += 1
         self.polls[index] = {"poll": index, "started_wall": poll.get("last_poll_wall"), "status_seen_wall": round(now, 4), "worked": poll.get("last_poll_worked"),
                              "interval": poll.get("interval_seconds"), "state": st.get("state"), "segments_total": counters.get("segments"),
                              "previous_poll_seconds": poll.get("last_poll_seconds"), "timing": poll.get("timing"), "last_error": st.get("last_error"),
-                             "errors": counters.get("errors")}
+                             "errors": counters.get("errors"), "status_write_failures": counters.get("status_write_failures")}
 
     def _store_file(self, now: float) -> None:
         st = os.stat(self.store_file)
@@ -140,7 +153,7 @@ class Observer:
             self.checkpoints.append({"seen_wall": round(now, 4), "mtime_wall": round(st.st_mtime_ns / 1e9, 4), "db_bytes": st.st_size, "wal_bytes": wal})
         self.store_sig = sig
 
-    def _trial(self, now: float) -> None:
+    def _segment(self, now: float) -> None:
         with self.lock:
             t = self.trial
             if t is None:
@@ -150,26 +163,53 @@ class Observer:
                 t["segment"], t["segment_visible_wall"] = sorted(names)[0], round(now, 4)
             elif t["segment"] is not None and "segment_gone_wall" not in t and t["segment"] not in names:
                 t["segment_gone_wall"] = round(now, 4)
-            event_id = t.get("event_id")
-        if event_id is None or "ingest_completed_wall" in t:
-            return
-        ctx = cf.identity.resolve_installation(self.root, actor=cf.ADAPTER_ACTOR)
-        with db.open_store(ctx, readonly=True) as store, store.read() as view:
-            if "event_row_wall" not in t and view.execute("SELECT 1 FROM events WHERE event_id = ?", (event_id,)).fetchone() is not None:
-                t["event_row_wall"] = round(time.time(), 4)
-            if "event_row_wall" in t and view.execute("SELECT 1 FROM jobs WHERE kind = 'ingest' AND state = 'completed' AND body LIKE ?", (f"%{event_id}%",)).fetchone() is not None:
-                t["ingest_completed_wall"] = round(time.time(), 4)
 
-    def _run(self) -> None:
+    def _files(self) -> None:
+        last = time.time()
         while not self.stop.is_set():
             now = time.time()
-            try:
-                self._status(now)
-                self._store_file(now)
-                self._trial(now)
-            except (OSError, ValueError, db.sqlite3.Error):
-                pass  # a busy file or snapshot is retried on the next sample
+            if now - last > 0.2:
+                self.file_stalls.append({"from_wall": round(last, 4), "to_wall": round(now, 4)})
+            last = now
+            for step in (self._status, self._store_file, self._segment):
+                try:
+                    step(now)
+                except (OSError, ValueError):
+                    pass  # a busy file is retried on the next sample
             self.stop.wait(self.interval)
+
+    def _store(self) -> None:
+        ctx = cf.identity.resolve_installation(self.root, actor=cf.ADAPTER_ACTOR)
+        store = None
+        try:
+            while not self.stop.is_set():
+                with self.lock:
+                    t = self.trial
+                    event_id = None if t is None or "ingest_completed_wall" in t else t.get("event_id")
+                if event_id is None:
+                    self.stop.wait(self.interval)
+                    continue
+                began = time.time()
+                try:
+                    if store is None:
+                        store = db.open_store(ctx, readonly=True)
+                    with store.read() as view:
+                        row = view.execute("SELECT 1 FROM events WHERE event_id = ?", (event_id,)).fetchone() is not None
+                        job = row and view.execute("SELECT 1 FROM jobs WHERE kind = 'ingest' AND state = 'completed' AND body LIKE ?", (f"%{event_id}%",)).fetchone() is not None
+                except (OSError, db.sqlite3.Error, RecalithError):
+                    row = job = False
+                ended = time.time()
+                if ended - began > 0.1:
+                    self.slow_reads.append({"from_wall": round(began, 4), "to_wall": round(ended, 4)})
+                with self.lock:
+                    if row and "event_row_wall" not in t:
+                        t["event_row_wall"] = round(ended, 4)
+                    if job:
+                        t["ingest_completed_wall"] = round(ended, 4)
+                self.stop.wait(self.interval)
+        finally:
+            if store is not None:
+                store.close()
 
 
 def poll_rows(polls: dict[int, dict], since: float, until: float) -> list[dict]:
@@ -177,9 +217,17 @@ def poll_rows(polls: dict[int, dict], since: float, until: float) -> list[dict]:
     return [p for _i, p in sorted(polls.items()) if isinstance(p.get("started_wall"), float) and since <= p["started_wall"] <= until]
 
 
-def idle_status(root: Path) -> dict | None:
+def idle_status(root: Path, *, after: float | None = None) -> dict | None:
+    """The worker's status when it reports an idle poll that started after ``after`` (wall seconds).
+
+    Until the ingesting poll writes its own status, the file still holds the idle status from before it; a
+    plan made from that one is a plan against a cycle that already ended (decision 0022). So each trial's
+    arrival is planned from an idle poll that started after the previous trial reached typed state.
+    """
     s = worker.read_status(root)
-    return s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None
+    if not s or s["state"] != "idle" or s["poll"]["last_poll_worked"]:
+        return None
+    return s if after is None or (s["poll"].get("last_poll_wall") or 0.0) > after else None
 
 
 def _ps(pid: int) -> tuple[float, float] | None:
@@ -298,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
         with Observer(replayer.root) as observer:
             previous_done = 0.0
             for trial in range(args.trials):
-                settled = wh.wait_for(lambda: idle_status(replayer.root), 60)
+                settled = wh.wait_for(lambda after=previous_done: idle_status(replayer.root, after=after), 60)
                 assert settled, "worker never returned to idle"
                 phase = rng.uniform(0, settled["poll"]["idle_seconds"])
                 target = settled["poll"]["last_poll_wall"] + phase
@@ -329,7 +377,8 @@ def main(argv: list[str] | None = None) -> int:
             row["polls"] = poll_rows(observer.polls, row["settled_poll_wall"] - 0.01, row["ingest_completed_wall"] + 0.01)
             row["store_file_writes"] = [c for c in observer.checkpoints if row["hook_spawn_wall"] - 0.01 <= c["mtime_wall"] <= row["ingest_completed_wall"] + 0.01]
         report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle", "series": series,
-                                 "observer": {"interval_seconds": observer.interval, "polls_observed": len(observer.polls), "status_write_failures_seen": observer.write_failures, "store_file_writes": observer.checkpoints,
+                                 "observer": {"interval_seconds": observer.interval, "polls_observed": len(observer.polls), "status_read_errors": observer.status_read_errors, "store_file_writes": observer.checkpoints,
+                                              "observer_stalls": observer.file_stalls, "slow_store_reads": observer.slow_reads,
                                               "poll_indices": [min(observer.polls, default=None), max(observer.polls, default=None)]},
                                  "poll_timeline": [observer.polls[i] for i in sorted(observer.polls)]}
         # Idle footprint.
