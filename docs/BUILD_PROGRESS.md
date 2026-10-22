@@ -6,13 +6,13 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 
 | Item | Initial value |
 |---|---|
-| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path; Task 4 preview slice (persistent worker, registered hook start, leases, budgets; fake provider backend); Task 5 preview slice (fenced transactional application, re-evaluation, compensating undo; schema 2); Task 6 (typed task reduction, versioned bindings, continuity link, connected episodes; schema 3); Task 7 (provider boundary: explicit certified routes, isolated curator launch, request preparers, narrative scheduling; no live route); Task 8 (lineage: persisted root classes with aliases, class-based confirmation; tri-state applicability; schema 4); Task 9 (extraction scheduling and bounded selection, mapping/declaration/strength admission, persisted review batches and assessment admission, failure debounce; schema 5; no live route); Task 10 (FailureRecheck and dependency changes in the ingestion transaction, recheck records, revalidation settling, held supersessions, deterministic planner: due reviews, consolidation groups, intent questions; schema 6; no live route); Task 11 (retrieval and bounded context composition: lexical/structural index with FTS5 detection and token fallback, the §8.2 delivery table through the Task 10 advice gate, exact budgets, pre-serialized views and live-filtered fallback rows, the stdlib hook compiler with a fresh read-only fence and bounded live dependency checks; schema 7; no live route); Task 12a (public service and the guarded `recalith` CLI: every DATA_CONTRACTS §12 form, the operator guard on the original caller, pre-init tokens with verifiers in `local.toml`, guarded `declare`/`correct` on the unchanged review/hold/recheck paths, exit codes 6/7/8; no schema change; no live route); Task 12b (delivery accounting, session overlay and corrections at the fence: the hook's delivery branch with scratch reservations, final fence, local emission, receipts through the spool, worker accounting and outcome links; schema 8; delivery enabled only in controlled test manifests; no live route); Task 15 core preview slice (pin-aware retention: live-owner and owed-work pins over whole evidence chains, day-181 expiry of unpinned payloads with the pin recheck in the expiry transaction, chain-availability admission and strength, honest support-loss downgrades, delivery-metadata and proposal aging, scratch settled before pruning; verified backups with the tombstone ledger and a latest ledger copy, recovery, bounded backup retention, the guarded `backup` form and the verifying first phase of `restore`; schema 9; capsules/transfers full-only, not built); Task 16 preview (intentional forgetting: dependency-aware preview, digest-guarded purge with content-free tombstones and quarantined derivatives, replay suppression, persisted phases with worker recovery, the post-forget backup and deletion of affected backups, reconstruction jobs; suppression-aware restore applying the newer ledger in memory before an atomic swap; schema 10; no live route); Task 17 preview slice (profile-aware, read-only `health(ctx)` composing every capture/inference/admission/recovery/forget/operator-guard/delivery capability, pending privacy maintenance, source conflicts, budgets, retention and the store schema; the `HostCertification` record Task 13 will write; `status`/`doctor` exit 0 only when ready, else 8; startup reporting with the hook start as preview's route; schema 10 unchanged; no live route); Task 13 preview slice (`recalith integrate claude` local install/remove with an ownership record and byte-for-byte restoration, the ignored location, 216 certified administrative deny rules, the context_schema 4 manifest enabling only live-certified delivery paths, the stdlib session-start notice, Claude Code 2.1.305 capture certified after fixture review, the engine-mode certification harness writing `.recalith/host.json` (request-capture only under B1), private-path probe `probed_limited`, hook-spawned worker survival on the real host; no live route); Task 18 preview slice (the evaluation harness in live and scripted modes with a clean no-memory arm, observed native memory and evidence horizons; the recorded smoke run, three default-budget workload days and the §6.1 demonstrations, mechanics only; the §7 latency/usefulness gate per native platform; the release build, checklist and operator guide; derived revision-body aging; the live dependency label for every claim kind; Claude Code 2.1.306 certified after review; no live route); Task 11 follow-up (decision 0021: a worker-published, bounded lexical lookup that gives the stdlib hook prompt context at corpus scale; schema 11; no live route) |
+| Implementation | Task 0/0b probe harnesses; Task 1 contracts and fixtures; Task 2 preview slice (installations, store, bootstrap); Task 3 durable capture and source cursors; Task 3b capture-only Claude 2.1.301 adapter and stdlib hook fast path; Task 4 preview slice (persistent worker, registered hook start, leases, budgets; fake provider backend); Task 5 preview slice (fenced transactional application, re-evaluation, compensating undo; schema 2); Task 6 (typed task reduction, versioned bindings, continuity link, connected episodes; schema 3); Task 7 (provider boundary: explicit certified routes, isolated curator launch, request preparers, narrative scheduling; no live route); Task 8 (lineage: persisted root classes with aliases, class-based confirmation; tri-state applicability; schema 4); Task 9 (extraction scheduling and bounded selection, mapping/declaration/strength admission, persisted review batches and assessment admission, failure debounce; schema 5; no live route); Task 10 (FailureRecheck and dependency changes in the ingestion transaction, recheck records, revalidation settling, held supersessions, deterministic planner: due reviews, consolidation groups, intent questions; schema 6; no live route); Task 11 (retrieval and bounded context composition: lexical/structural index with FTS5 detection and token fallback, the §8.2 delivery table through the Task 10 advice gate, exact budgets, pre-serialized views and live-filtered fallback rows, the stdlib hook compiler with a fresh read-only fence and bounded live dependency checks; schema 7; no live route); Task 12a (public service and the guarded `recalith` CLI: every DATA_CONTRACTS §12 form, the operator guard on the original caller, pre-init tokens with verifiers in `local.toml`, guarded `declare`/`correct` on the unchanged review/hold/recheck paths, exit codes 6/7/8; no schema change; no live route); Task 12b (delivery accounting, session overlay and corrections at the fence: the hook's delivery branch with scratch reservations, final fence, local emission, receipts through the spool, worker accounting and outcome links; schema 8; delivery enabled only in controlled test manifests; no live route); Task 15 core preview slice (pin-aware retention: live-owner and owed-work pins over whole evidence chains, day-181 expiry of unpinned payloads with the pin recheck in the expiry transaction, chain-availability admission and strength, honest support-loss downgrades, delivery-metadata and proposal aging, scratch settled before pruning; verified backups with the tombstone ledger and a latest ledger copy, recovery, bounded backup retention, the guarded `backup` form and the verifying first phase of `restore`; schema 9; capsules/transfers full-only, not built); Task 16 preview (intentional forgetting: dependency-aware preview, digest-guarded purge with content-free tombstones and quarantined derivatives, replay suppression, persisted phases with worker recovery, the post-forget backup and deletion of affected backups, reconstruction jobs; suppression-aware restore applying the newer ledger in memory before an atomic swap; schema 10; no live route); Task 17 preview slice (profile-aware, read-only `health(ctx)` composing every capture/inference/admission/recovery/forget/operator-guard/delivery capability, pending privacy maintenance, source conflicts, budgets, retention and the store schema; the `HostCertification` record Task 13 will write; `status`/`doctor` exit 0 only when ready, else 8; startup reporting with the hook start as preview's route; schema 10 unchanged; no live route); Task 13 preview slice (`recalith integrate claude` local install/remove with an ownership record and byte-for-byte restoration, the ignored location, 216 certified administrative deny rules, the context_schema 4 manifest enabling only live-certified delivery paths, the stdlib session-start notice, Claude Code 2.1.305 capture certified after fixture review, the engine-mode certification harness writing `.recalith/host.json` (request-capture only under B1), private-path probe `probed_limited`, hook-spawned worker survival on the real host; no live route); Task 18 preview slice (the evaluation harness in live and scripted modes with a clean no-memory arm, observed native memory and evidence horizons; the recorded smoke run, three default-budget workload days and the §6.1 demonstrations, mechanics only; the §7 latency/usefulness gate per native platform; the release build, checklist and operator guide; derived revision-body aging; the live dependency label for every claim kind; Claude Code 2.1.306 certified after review; no live route); Task 11 follow-up (decision 0021: a worker-published, bounded lexical lookup that gives the stdlib hook prompt context at corpus scale; schema 11; no live route); Windows typed-state latency (decision 0022: the measurement's arrival planning and poll-duration lag corrected, `poll.timing` in the worker status, the worker's WAL checkpoint deferred off the typed-state path at SQLite's frequency; no schema change; no live route) |
 | Engine version | `0.1.0.dev0` (development; no release built) |
 | First release target | `claude_preview` |
 | Live provider certification | **Not established.** Request-capture isolation observed on Claude CLI 2.1.301 (Task 0) and 2.1.302 (Task 7: probe and production adapter, clean and host-marked parents, all isolation dimensions pass); live route + operator attestation not configured (B1); the worker has no backend and model jobs wait with `provider_unavailable`. Task 18 re-ran the probe and runtime check on 2.1.306: isolation passes, route unavailable |
 | Live host delivery certification | **Not established.** Task 13 repeated the protocol through the real engine and installed hooks on Claude Code 2.1.305: all four paths request-visible in request-capture mode (3/3 positives, 3/3 negatives), live echo not run (B1). A request-capture `host.json` certifies no path; `integrate` enables none in a real project. Task 18 repeated it on 2.1.306 with the same outcome |
-| Product tests / benchmarks | Deterministic unit/integration/platform suites and the kill/restart matrix (Task 18 and Task 11 follow-up checkpoints). The §7 hook gate is met on every native platform after decision 0021: this container plus four CI runs per platform; Windows cold-cache p95 155–241 ms. Typed-state latency on Windows is over 5 s in three of four CI runs, cause not established |
-| Next task | Attribute the Windows typed-state latency; the live preview gate once B1 clears (operator commands under B1, then `evals/run.py gate --mode live`); then Cut 2 |
+| Product tests / benchmarks | Deterministic unit/integration/platform suites and the kill/restart matrix (Task 18 and Task 11 follow-up checkpoints). Every healthy §7 target is met on every native platform on b3f1f1f (decision 0022): the hook gate in this container and in full measure runs 21 and 24; typed-state p95 Windows 4.82/4.92 s (n=20) and 4.75/4.62 s (n=60), Linux 4.47–4.48 s, macOS 4.39–4.55 s, this container 4.74 s (n=100); idle < 0.24 % of one core, ≤ 47 MiB |
+| Next task | The live preview gate once B1 clears (operator commands under B1, then `evals/run.py gate --mode live`); then Cut 2 |
 | Known execution blocker | No explicitly configured build account route/model or background-use attestation (see Blockers) |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
@@ -33,7 +33,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 2 | Independent installation and transactional store | Local installation, one workspace, clone/move, missing runtime | Workspace attachment/fork and shared integration | preview slice complete (full-only attach/fork/shared pending) |
 | 3 | Durable event capture and source cursors | Durable capture, source registration, cursor/idempotency rules | Core behavior retained; no separate deferred slice listed | complete (deterministic; real-host payloads are Task 3b) |
 | 3b | Capture-only real Claude adapter and fast-path boundary | Real sanitized Claude capture fixtures and fast boundary | Core behavior retained; no separate deferred slice listed | complete (capture-only; fixtures are request-capture mode; delivery is Tasks 12b/13) |
-| 4 | Queue, budgets, and project worker | Persistent worker, polling, budgets, leases, role environments | Session worker and IPC wake | preview slice complete (fake provider backend; session mode, `fast/wake.py`, IPC wake and the 2 s target pending, full-only) |
+| 4 | Queue, budgets, and project worker | Persistent worker, polling, budgets, leases, role environments | Session worker and IPC wake | preview slice complete (fake provider backend; typed-state p95 ≤ 5 s established per native platform, decision 0022; session mode, `fast/wake.py`, IPC wake and the 2 s target pending, full-only) |
 | 5 | Mutation application and optimistic concurrency | Atomic revisions, evidence/privacy fences, compensating undo | Revision chain and integrity scanner | preview slice complete (structural admission; semantic evidence rules Task 9; revision chain, `storage/integrity.py` and A65 full pending, full-only) |
 | 6 | Tasks, episodes, and cross-session continuity | Task binding, continuity, episodes | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics; live segmentation quality is measured later, ACCEPTANCE_TESTS §5) |
 | 7 | Provider certification and isolated inference | Production isolation and certification for configured route | Core behavior retained; no separate deferred slice listed | blocked on live certification (B1); deterministic and request-capture scope complete |
@@ -48,7 +48,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 15 | Evidence retention and portable transfers | Core backup/ledger, live pins, 180-day unpinned retention | Capsules, transfer/export/import, Breadcrumbs importer | preview core slice complete (derived revision-body aging closed in Task 18, decision 0020; capsules, export/import, Breadcrumbs importer pending, full-only) |
 | 16 | Intentional forgetting and safe restore | Complete forgetting and suppression-aware restore | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics, preview; health composition of pending privacy maintenance and schema migration are Task 17, real-host pause certification Task 13, export/import tombstones full-only with Task 15; A25/A36/A37/A48/A63/A64 in progress, no live variant) |
 | 17 | Health, local upgrades, and independent operations | Health, startup/recovery, profile-aware readiness | Engine/schema upgrade, preview-to-full transition, chain diagnostics | preview slice complete (deterministic; upgrade/transition/rollback, OS startup entries and chain diagnostics pending, full-only; readiness of a real installation needs Task 13's host record and B1's route) |
-| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; gate **blocked** (B1: no live trial); §7 hook latency and usefulness met on every platform after decision 0021; Windows typed-state latency open; scripted runs are mechanics only; full evaluation pending, full-only |
+| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; gate **blocked** (B1: no live trial); every healthy §7 target met on every native platform (decisions 0021, 0022; checklist item passed); scripted runs are mechanics only; full evaluation pending, full-only |
 
 ## Acceptance tracking
 
@@ -1083,6 +1083,122 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - `tools/release_checklist.py` → exit 0 (verdict `blocked`).
 - **Next action:** attribute the Windows typed-state latency (the per-trial series now in the worker report), then the live preview gate once B1 clears, then Cut 2.
 
+### 2026-10-22 — Windows typed-state latency (open §7 item): attribution, measurement fix and deferred WAL checkpoint (decision 0022; commits 0b0af8a, 8caa1cb, 36bbc06, 2190a38, b3f1f1f)
+
+- **Starting point.**
+  - Branch `ccr-b49de118-0mxrev` (3a41f40, 8c57a62, 4880090) is merged into main (PR #19, 6d60c10). This work builds on 6d60c10, and the tree was clean.
+  - Baseline: `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1084 passed, 28 skipped in 1783.28 s**. The 8 extra skips against the last checkpoint are the host smoke tests: the installed CLI is now **Claude Code 2.1.307**, which is not capture-certified and was not certified here.
+  - A first baseline attempt was stopped by PID after `worker.py` was edited while it ran, then restarted on the clean tree.
+- **Attribution** (series in `docs/measurements/ci-typed-state-2026-10-22/`, indexed in its README):
+  - Instrumentation was added first, measurement-only:
+    - the worker status gained `poll.timing`;
+    - the tool gained an outside observer (segment visibility, event row, ingest completion, each status write, store-file writes, its own stalls);
+    - `measure.yml` gained dispatch inputs `runners`, `worker_only`, `trials` and `idle_seconds`.
+  - Windows worker-only dispatches: measure runs 11, 13, 14, 16, 17, 19, 20, 22 and 23 (40–60 trials each). Full runs: 10, 21 and 24.
+  - **The worker's cadence on Windows is exact.** Every sleep matched its request within 10–15 ms, and every segment was ingested by the first poll that started after it appeared. There is no drift and no missed segment.
+  - **Run 8's "idle cycle 1–1.5 s past the cadence" was the tool.**
+    - It planned each arrival from the idle status written *before* the previous trial's ingesting poll, because that poll had not yet replaced it.
+    - Run 11: 25 of 40 plans were stale on Windows; Linux CI had 2 of 20.
+    - The phases were recorded against a cycle that had already ended. This did not raise latencies, because a stale plan sometimes put the arrival in the 1 s active window.
+  - **"Fast polls" was a one-poll lag.** `last_poll_seconds` was set after the status write, so run 8's late trials 5 and 14 (6.54 and 6.60 s) carried their own ingesting polls' 2.82 and 2.33 s into trials 6 and 15.
+  - **The real outliers are slow ingesting polls during runner storage stalls.**
+    - These are polls of 1.8–5 s, against a typical 0.05–0.15 s, split between `ingest_ready`'s commit and the ingest job's commits.
+    - The tool's own file-only loop stalled 0.25–0.73 s in the same windows.
+    - Linux and macOS polls stayed ≤ 0.1 s.
+  - **SQLite's auto-checkpoint ran inside the ingesting poll's commits.**
+    - `ingest_ready` opened a fresh connection with SQLite's defaults.
+    - Locally the main file grew from 0.75 to 5.7 MB before the ingest job committed.
+    - On the runners it was usually quick and never fell in a late trial. It was the heaviest avoidable I/O on the path, not the main cause.
+- **Changes** (decision 0022):
+  - `tools/measure_worker_latency.py`:
+    - `idle_status(root, after=...)` plans each arrival from an idle poll that started after the previous trial reached typed state;
+    - the two-thread observer and per-trial attribution;
+    - recovery of a missed poll from the next status.
+  - `tests/platform/test_worker_lifecycle.py`: the same fresh-settle rule.
+  - `src/recalith/controller/worker.py`:
+    - `poll.timing` (step marks, the sleep before the poll, the previous status write, the previous poll);
+    - `last_poll_seconds` describes the poll the status follows;
+    - counters `checkpoints` and `status_write_failures`;
+    - the worker's connection defers auto-checkpoints, and a PASSIVE checkpoint runs at most once per 60 s in a poll with nothing waiting (after a poll's work once 120 s have passed under continuous work).
+  - The first deferral (2190a38) checkpointed after every burst. Windows runs 19 and 20 showed 61 checkpoints per 60 trials and a 7.6 s one stretching an idle cycle, so b3f1f1f restored SQLite's frequency.
+  - `src/recalith/storage/db.py`: `Store.defer_autocheckpoint`, `Store.checkpoint_passive`.
+  - `src/recalith/capture/pipeline.py`: `ingest_ready(..., store=)`.
+  - `src/recalith/fast/failpoints.py`: `worker.before_checkpoint`, `worker.after_checkpoint` (`failpoints.CHECKPOINT`).
+  - `.github/workflows/measure.yml`: the dispatch inputs (a push still runs the full default set everywhere).
+  - No schema, DTO, wire or spec change. The worker status is not a DATA_CONTRACTS record, and the change is recorded in decision 0022.
+- **Tests first** (each shown failing before its change):
+  - `test_store_checkpoint_waits_until_typed_state_is_committed`: the main file changed (753,664 → 5,709,824 bytes) before the ingest job committed. Removing either the pragma or the shared connection fails it again.
+  - `test_status_reports_the_poll_it_follows`: `None`, then the lag.
+  - `test_deferred_checkpoints_keep_sqlites_frequency`: 4 checkpoints where 1 is allowed, on 2190a38.
+  - `tests/unit/test_measure_worker_latency.py` (2): `idle_status` had no `after` and returned the stale status.
+  - Kill/restart: `test_worker_crash_at_deferred_checkpoint_matches_reference` (before/after the checkpoint). The reopened store equals the reference and passes `integrity_check`; no model job is relaunched.
+- **Local gates** (this container, Python 3.13.16 unless noted):
+  - Affected files before the first fix commit: `pytest tests/integration/test_worker.py tests/integration/test_capture_recovery.py tests/platform/test_capture_only_claude.py tests/platform/test_worker_lifecycle.py tests/unit/test_measure_worker_latency.py tests/platform/test_hook_imports.py` → exit 0, 264 passed, 5 skipped in 1202.20 s.
+  - Full 3.13 on b3f1f1f: `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1091 passed, 28 skipped in 1868.47 s**. That is +7 against the baseline: 3 worker tests, 2 checkpoint crash cases and 2 tool unit tests. The run was restarted once after a container restart killed it.
+  - Full 3.12: `UV_PROJECT_ENVIRONMENT=<scratch>/venv3.12 uv run --locked --python 3.12 python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1091 passed, 28 skipped in 1977.75 s** (run in parallel with 3.14).
+  - Full 3.14: the same with `--python 3.14` → exit 0, **1091 passed, 28 skipped in 1938.51 s**.
+  - Kill/restart families at 20 reps: `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/integration/test_worker.py tests/integration/test_capture_recovery.py -k crash` (125 cases, every worker family plus capture), run as two halves because a single run is near the 2-hour background limit:
+    - `-k "crash and (job_boundaries or deferred_checkpoint or typed_reduction or lineage or admission or provider or failpoints_match)"` → exit 0, **71 passed in 3044.07 s**;
+    - `-k "crash and (revision or projection or service_write or delivery or retention or forget)"` → exit 0, **54 passed in 2886.46 s**. A first attempt reached 51 of 54 before a container restart stopped it; it was rerun whole.
+    - The integration install/remove matrix (`test_claude_adapter.py`) is untouched by this slice and was not rerun.
+  - `uvx ruff@0.14.0 check --select F,E9,B` on every touched Python file → clean. The finding in the untouched `fast/redact.py` (B905) predates this work.
+  - `tools/generate_schemas.py --check` → exit 0; `tools/generate_hook_wire.py --check` → exit 0.
+  - `tools/release_checklist.py` → exit 0, verdict `blocked` (B1 items); `hook_latency_usefulness_per_platform` is now `passed`.
+  - Process note: `tests/coverage_manifest.json` was edited for about a minute while the 3.13 run was in progress, then reverted. The manifest test had already loaded the file at collection, and the edit was re-applied after the suites.
+- **§7 per native platform, final code b3f1f1f** (typed state is timed from hook acknowledgment with 5 s idle polling; target p95 ≤ 5 s):
+
+  | Platform, run | Hook warm p95/p99 ms | Hook cold p95/p99 ms | Warm/cold delivered | Typed-state p50 / p95 / max s | Idle CPU, RSS (600 s) |
+  |---|---|---|---|---|---|
+  | Linux, this container (local) | 108.5 / 117.4 | 105.9 / 117.4 | 1.0 / 1.0 | 2.84 / **4.74** / 4.97 (n = 100) | 0.162 %, 46.6 MiB |
+  | Linux CI, run 21 | 53.0 / 65.7 | 46.6 / 49.7 | 1.0 / 1.0 | 3.30 / **4.48** / 4.64 | 0.083 %, 46.6 MiB |
+  | Linux CI, run 24 | 59.3 / 66.8 | 59.8 / 63.4 | 1.0 / 1.0 | 3.29 / **4.47** / 4.64 | 0.098 %, 47.0 MiB |
+  | macOS CI, run 21 | 92.0 / 214.2 | 62.9 / 79.6 | 1.0 / 1.0 | 3.29 / **4.55** / 4.57 | 0.225 %, 42.0 MiB |
+  | macOS CI, run 24 | 126.1 / 263.2 | 81.7 / 105.7 | 1.0 / 1.0 | 3.24 / **4.39** / 4.62 | 0.235 %, 41.0 MiB |
+  | Windows CI, run 21 | 138.7 / 166.3 | 137.8 / 167.7 | 1.0 / 1.0 | 3.67 / **4.82** / 8.59 | 0.151 %, 16.0 MiB |
+  | Windows CI, run 24 | 135.0 / 154.1 | 148.1 / 189.4 | 0.998 / 1.0 | 3.47 / **4.92** / 5.21 | 0.151 %, 15.4 MiB |
+  | Windows CI, runs 22 and 23 (n = 60, worker-only) | — | — | — | 2.86 / **4.75** / 5.20 and 2.70 / **4.62** / 5.47 | 30 s window only |
+
+  - The CI runs use n = 20 per platform; the hook populations are the defaults (500 warm, 500 cold/missing, …).
+  - The local commands are `tools/measure_worker_latency.py --idle-seconds 600 --output <scratch>/worker-linux-local.json` (exit 0 in 1247 s; hook wall p95 87.5 ms starting the worker, 63.5 ms with it running) and `tools/measure_release_latency.py --output <scratch>/release-gate-latency-linux.json` (exit 0 in 171 s; gate met; the kept `docs/measurements/release-gate-latency-linux.json` verdict is unchanged).
+  - Earlier variants on Windows, for the record:
+    - 36bbc06 (auto-checkpoint, fresh plans): 4.743 and 4.908 s;
+    - 2190a38 (a checkpoint after every burst): 5.354 and 4.635 s.
+  - The remaining Windows tail is single stalled ingesting polls (max 8.59 s). That is within a p95 target that SYSTEM_SPEC §6.1 says is not a maximum-latency guarantee.
+- **CI on b3f1f1f, run 108: all five jobs green.**
+
+  | Job | Result | Tests time |
+  |---|---|---|
+  | Linux 3.12 | 1092 passed, 27 skipped | 1199.11 s |
+  | Linux 3.13 | 1092 passed, 27 skipped (offline provisioning: 1 passed) | 1239.63 s |
+  | Linux 3.14 | 1092 passed, 27 skipped | 1722.53 s |
+  | macOS 3.13 | 1092 passed, 27 skipped | 1446.61 s |
+  | Windows 3.13 | 1026 passed, 93 skipped | 3601.85 s |
+
+  - **CI run 109 (7827b1c: the test fixes and docs): all five jobs green.**
+
+    | Job | Result | Tests time |
+    |---|---|---|
+    | Linux 3.12 | 1092 passed, 27 skipped | 1482.74 s |
+    | Linux 3.13 | 1092 passed, 27 skipped | 1340.68 s |
+    | Linux 3.14 | 1092 passed, 27 skipped | 1686.88 s |
+    | macOS 3.13 | 1092 passed, 27 skipped | 1666.60 s |
+    | Windows 3.13 | 1026 passed, 93 skipped | 5179.75 s (a slow runner) |
+
+  - Runs 104 (0b0af8a) and 106 (36bbc06) are green.
+  - Runs 105 (8caa1cb, a tools-only change) and 107 (2190a38) failed on Windows only, on slow runners (70 and 82 min against about 60):
+    - `test_retention.py::test_pin_expiry_race_never_admits_missing_support` failed in both. It fails identically on main's run 98 (7c3268d, before this work). Its concurrent sweeper did not tolerate the designed 250 ms busy refusal (`storage_failure`, nothing applied) that a stalled runner produces. The sweeper now tolerates that refusal as the extractor already did, and the test requires at least one committed sweep, so the race is still exercised and the no-expired-citation invariant still holds. The test passed 5 of 5 reps here.
+    - `test_delivery.py::test_concurrent_hooks_preserve_budget` failed in run 107 only, and its assertion does not name the unexpected reason. It now reports the reasons. Locally it did not reproduce in 20 reps under four CPU burners, so it stays open and unattributed until a run names the reason.
+- **Checklist:** `hook_latency_usefulness_per_platform` → `passed`. Every platform meets every healthy §7 target on b3f1f1f in two full measure runs. `tools/release_checklist.py` → exit 0, verdict `blocked` (B1).
+- **Test changes outside the slice:** the two Windows CI failures above, in `tests/integration/test_retention.py` and `tests/integration/test_delivery.py`.
+- **Acceptance IDs:** A45 preview (polling, typed-state latency, worker status) and A58 preview (polling/no-IPC and WAL/SHM paths: the deferred checkpoint and its crash cases). Both stay `in_progress` because live variants remain. The manifest is updated.
+- **Not done or unavailable:**
+  - B1 is unchanged, and the probes were not re-run.
+  - Claude Code 2.1.307 is installed and not certified (no fixture capture or review was done).
+  - The 20-repetition crash run is Linux only; macOS and Windows run the families at 3 repetitions in CI.
+  - A deeper reduction of the ingesting poll's fsync'd commits (ingest, lease, completion) was not attempted: it would change the fenced job model.
+  - Full-only work is unchanged.
+- **Next action:** the live preview gate once B1 clears (operator commands under B1), then Cut 2.
+
 Add each later checkpoint with:
 
 - Date and commit when available; completed task slice and changed files.
@@ -1129,6 +1245,8 @@ Status after Task 18 (2026-10-21): unchanged. The installed CLI is now Claude Co
 
 Status after the Task 11 follow-up (2026-10-21): unchanged. The installed CLI is still Claude Code 2.1.306. The provider probe (exit 4), the runtime check (exit 4; isolation passes) and the stub delivery probe (exit 4) were re-run with the ignored config recreated from the tracked example (no credentials); the engine-mode probe was not re-run. The operator action is the eight commands below, from an ordinary terminal.
 
+Status after the Windows typed-state slice (2026-10-22): unchanged. The installed CLI is now **Claude Code 2.1.307**. It is not capture-certified: no fixture capture or field-by-field review was done, and the host smoke tests skip. The probes were not re-run. Certification must use the executable installed then, after a fixture capture and review of its version (decision 0019). The operator commands below are unchanged.
+
 **Operator commands to complete live certification** (an ordinary OS terminal outside any agent or IDE session; no marker such as `CLAUDECODE` in its environment):
 
 1. `cp tools/probe_config.example.json probe-private/local-config.json`, then edit it:
@@ -1149,10 +1267,19 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 
 ## Next-session handoff
 
-Task 18's preview slice and the Task 11 follow-up (decision 0021) are built; see their checkpoints. The preview gate is **blocked** by B1. The §7 usefulness defect of decision 0020 item 15 is fixed: every hook latency and usefulness target is met on every native platform, and the Windows cold-cache p95 is established at 155–241 ms over four CI runs. Next actions, in order:
+Task 18's preview slice, the Task 11 follow-up (decision 0021) and the Windows typed-state slice (decision 0022) are built; see their checkpoints.
 
-1. **Windows typed-state latency** (open §7 item): p95 is over 5 s in three of four CI runs. Run 8's per-trial series (`docs/measurements/ci-8c57a62/worker-Windows-run8.json`) shows missed poll cycles with fast polls, and an idle cycle running 1–1.5 s past the 5 s cadence. Instrument the worker's cycle on a Windows runner (tick start, sleep slices, status writes), find the cause and fix it; a same-runner comparison with the previous commit needs a ref the owner can provide.
-2. **The live preview gate once B1 clears:** the eight operator commands under B1, from an ordinary terminal against the installed executable (2.1.306), then record the live results here. Re-run `integrate claude` after any host upgrade; a new host version needs a fixture capture and review before it is certified (decision 0019).
+- The preview gate is **blocked** by B1.
+- Every healthy §7 target is met on every native platform on b3f1f1f: hook latency and usefulness, typed-state p95 ≤ 5 s and the idle footprint. The checklist item `hook_latency_usefulness_per_platform` is `passed`.
+
+Next actions, in order:
+
+1. **The live preview gate once B1 clears.** Run the eight operator commands under B1 from an ordinary terminal, then record the live results here.
+   - The installed host is now Claude Code 2.1.307, which needs a fixture capture and review before it is certified (decision 0019).
+   - Re-run `integrate claude` after any host upgrade.
+2. **Watch two Windows tests.**
+   - `test_concurrent_hooks_preserve_budget` failed once on a slow Windows runner (CI run 107) with a reason the assertion did not name. It now names it; attribute it on the next occurrence.
+   - A Windows typed-state p95 over 5 s on a later run is read from `poll.timing` and the observer's stall records first (decision 0022).
 3. **Owner decisions before publication:** the project license and the signing material (the release artifacts are unsigned).
 4. **Then Cut 2.**
 

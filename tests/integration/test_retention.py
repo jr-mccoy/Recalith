@@ -313,11 +313,20 @@ def test_pin_expiry_race_never_admits_missing_support(tmp_path):
     late = rsn.day(p, 181)
     stop = threading.Event()
     errors: list[BaseException] = []
+    sweeps = {"completed": 0, "busy": 0}
 
     def sweeper() -> None:
+        # A sweep refused by the 250 ms busy timeout applies nothing, exactly like a refused extraction below;
+        # on a stalled runner either writer can be refused (Windows CI, decision 0022). Anything else is a failure.
         try:
             while not stop.is_set():
-                sweep(p, late)
+                try:
+                    sweep(p, late)
+                    sweeps["completed"] += 1
+                except RecalithError as exc:
+                    if exc.code != "storage_failure":
+                        raise
+                    sweeps["busy"] += 1
         except BaseException as exc:  # noqa: BLE001 - reported below
             errors.append(exc)
 
@@ -333,6 +342,7 @@ def test_pin_expiry_race_never_admits_missing_support(tmp_path):
         stop.set()
         thread.join(30)
     assert not thread.is_alive() and not errors, errors
+    assert sweeps["completed"] >= 1, sweeps  # the race was exercised by at least one committed sweep
     sweep(p, late)
     live = {e: s for e, s in rsn.states(p).items()}
     with p.view() as v:

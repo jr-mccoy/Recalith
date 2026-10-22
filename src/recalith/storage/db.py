@@ -202,6 +202,29 @@ class Store:
             return False
         return busy == 0
 
+    def defer_autocheckpoint(self) -> None:
+        """Stop this connection's commits from checkpointing the WAL on their own (decision 0022).
+
+        SQLite otherwise runs the checkpoint inside whichever commit crosses 1000 WAL pages. The worker turns
+        that off on its own connection and calls :meth:`checkpoint_passive` when a poll has nothing waiting,
+        so the copy and flush never delay typed state. Every other connection keeps SQLite's default.
+        """
+        self._conn.execute("PRAGMA wal_autocheckpoint = 0")
+
+    def checkpoint_passive(self) -> bool:
+        """Copy what the WAL holds into the database file without waiting on any reader or writer.
+
+        True when every WAL frame is now in the database file; False when a reader's snapshot still needs
+        some (they stay in the WAL for a later attempt) or the checkpoint could not run.
+        """
+        if self.readonly or self._conn.in_transaction:
+            return False
+        try:
+            busy, log, done = self._conn.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchone()
+        except sqlite3.Error:
+            return False
+        return busy == 0 and done >= log
+
     @contextlib.contextmanager
     def read(self) -> Iterator["_ReadView"]:
         """A consistent read snapshot (explicit read transaction)."""

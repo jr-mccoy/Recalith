@@ -86,6 +86,7 @@ STATUS_SCHEMA = 1
 LOCK_RETRY_SECONDS = 1.0
 WAIT_SLICE_SECONDS = 0.25
 CLOCK_JUMP_SECONDS = 60.0
+CHECKPOINT_INTERVAL_SECONDS = 60.0
 DETERMINISTIC_BATCH = 50
 SOURCE_BATCH = 32
 DETACHED_METHODS = frozenset({"posix_session", "windows_breakaway"})
@@ -311,7 +312,7 @@ class Worker:
         self._store: Store | None = None
         self._seen_sources: dict[str, tuple] = {}
         self._reported_gaps: set[tuple[str, str]] = set()
-        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "clock_jumps": 0, "errors": 0}
+        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "clock_jumps": 0, "errors": 0, "status_write_failures": 0, "checkpoints": 0}
         self.lane = ModelLane(self) if model is not None else None
         self.state = "starting"
         self.last_error: str | None = None
@@ -322,6 +323,19 @@ class Worker:
         self._last_poll_worked = False
         self._last_poll_seconds: float | None = None
         self._interval = float(self.config.worker.active_poll_seconds)
+        # Where one poll's time goes (status ``poll.timing``): step offsets from poll start, the sleep before it and
+        # the previous status write. Always on, a few clock reads per poll; it is a record, not a switch.
+        self._poll_started: float | None = None
+        self._marks: dict[str, float] = {}
+        self._previous_poll: dict[str, Any] | None = None
+        self._segments_seen = 0
+        self._last_sleep: dict[str, Any] | None = None
+        self._last_status_write: float | None = None
+        # WAL checkpoints are deferred off the typed-state path (decision 0022): owed after a poll that wrote, run
+        # at most once per CHECKPOINT_INTERVAL_SECONDS by a poll with nothing waiting, or after the work of a poll
+        # once twice that has passed under continuous work. The first idle poll after start folds an inherited WAL.
+        self._checkpoint_owed = True
+        self._last_checkpoint = self.clock.monotonic() - CHECKPOINT_INTERVAL_SECONDS
         self.max_clock_jump = 0.0
         self.reaped: list[dict[str, Any]] = []
 
@@ -331,6 +345,8 @@ class Worker:
     def store(self) -> Store:
         if self._store is None:
             self._store = open_store(self.ctx)
+            self._store.defer_autocheckpoint()
+            self._checkpoint_owed = True  # a WAL this connection did not write may be waiting
         return self._store
 
     def close(self) -> None:
@@ -351,20 +367,31 @@ class Worker:
                 self.close()  # an interrupted restore is finished before this worker reads the store again
                 worked |= bool(forget.recover_restore(self.ctx))
             worked |= bool(forget.resume(self.store, self.ctx, now=now))  # persisted forget phases before anything else
+            self._mark("forget")
             worked |= self._recover_sources()
+            self._mark("sources")
             ready = len(spool.ready_segments(self.dirs))
+            self._segments_seen = ready
+            self._mark("spool_scanned")
             if ready:
-                result = pipeline.ingest_ready(self.ctx)
+                result = pipeline.ingest_ready(self.ctx, store=self.store)
                 self.counters["segments"] += ready
                 worked = worked or ready > 0 or bool(result.created_job_ids)
+                self._mark("ingested")
             with self.store.transaction() as txn:
                 jobs.schedule_housekeeping(txn, now=now)
+            self._mark("housekeeping")
             worked |= self._run_deterministic()
+            self._mark("deterministic")
             worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
             worked |= bool(triggers.sweep(self.store, now=now))
+            self._mark("sweeps")
             worked |= bool(planner.run(self.store, self.ctx, now=now))
+            self._mark("planner")
             worked |= bool(projection.refresh_projection(self.store, self.ctx, now=now))
+            self._mark("projection")
             worked |= bool(retention.run(self.store, self.ctx, self.config, now=now))
+            self._mark("retention")
             if self.lane is None or not self.lane.available():
                 jobs.mark_provider_unavailable(self.store)
             self.last_error = None
@@ -424,8 +451,12 @@ class Worker:
             job = jobs.lease_next(self.ctx, owner=self.owner, now=self.clock.now(), kinds=kinds, store=self.store, config=self.config.budgets)
             if job is None:
                 break
+            if not worked:
+                self._mark("first_job_leased")
             worked = True
             self.run_job(job)
+            if "first_job_done" not in self._marks:
+                self._mark("first_job_done")
         return worked
 
     def run_job(self, job: Job) -> None:
@@ -489,6 +520,13 @@ class Worker:
                 "last_poll_worked": self._last_poll_worked,
                 "last_poll_seconds": self._last_poll_seconds,
                 "ipc_wake": "unavailable_in_preview",
+                "timing": {
+                    "marks": dict(self._marks),
+                    "segments_seen": self._segments_seen,
+                    "previous_sleep": self._last_sleep,
+                    "previous_status_write_seconds": self._last_status_write,
+                    "previous_poll": self._previous_poll,
+                },
             },
             "spawn": self.spawn.independence(),
             "environment": {
@@ -508,6 +546,13 @@ class Worker:
         }
 
     def write_status(self, extra: Mapping[str, Any] | None = None) -> None:
+        began = self.clock.monotonic()
+        try:
+            self._write_status(extra)
+        finally:
+            self._last_status_write = round(self.clock.monotonic() - began, 4)
+
+    def _write_status(self, extra: Mapping[str, Any] | None) -> None:
         data = self.status()
         if extra:
             data.update(extra)
@@ -527,6 +572,7 @@ class Worker:
                     time.sleep(0.01)
         except OSError:
             self.last_error = "status_write_failed"
+            self.counters["status_write_failures"] += 1
 
     # ---------------------------------------------------------------- loop
 
@@ -552,9 +598,25 @@ class Worker:
                 self.max_clock_jump = max(self.max_clock_jump, abs(jump))
         self._last_poll_wall, self._last_poll_mono = wall, mono
 
+    def _mark(self, step: str) -> None:
+        if self._poll_started is not None:
+            self._marks[step] = round(self.clock.monotonic() - self._poll_started, 4)
+
     def poll_once(self) -> bool:
         self._note_clock()
+        if self._poll_started is not None:  # a poll whose status was replaced quickly is still on record
+            self._previous_poll = {"seconds": self._last_poll_seconds, "marks": self._marks}
+        self._poll_started = self.clock.monotonic()
+        self._marks = {}
+        self._segments_seen = 0
         worked = self.tick()
+        self._mark("tick_end")
+        if worked:
+            self._checkpoint_owed = True
+        since = self.clock.monotonic() - self._last_checkpoint
+        if self._checkpoint_owed and since >= CHECKPOINT_INTERVAL_SECONDS * (2 if worked else 1):
+            self._checkpoint()
+        self._last_poll_seconds = round(self.clock.monotonic() - self._poll_started, 4)
         self.counters["polls"] += 1
         if worked:
             self.counters["active_polls"] += 1
@@ -565,20 +627,41 @@ class Worker:
         self.state = "running" if (worked or busy) else "idle"
         return worked
 
+    def _checkpoint(self) -> None:
+        """Fold the WAL into the database file, never waiting on a reader; frames a reader still needs stay owed."""
+        failpoints.hit(failpoints.WORKER_BEFORE_CHECKPOINT)
+        try:
+            complete = self.store.checkpoint_passive()
+        except RecalithError:
+            complete = False
+        self._last_checkpoint = self.clock.monotonic()
+        self._checkpoint_owed = not complete
+        self.counters["checkpoints"] += 1
+        failpoints.hit(failpoints.WORKER_AFTER_CHECKPOINT)
+        self._mark("checkpoint")
+
     def cadence_wait(self, started: float) -> float:
         """The rest of this poll's interval: the 1 s / 5 s cadence runs from poll start, so a slow poll
-        (fsync'd transactions, the status write) does not lengthen every idle cycle by its own duration."""
+        (fsync'd transactions, a checkpoint, the status write) does not lengthen every idle cycle by its own duration."""
         elapsed = max(0.0, self.clock.monotonic() - started)
-        self._last_poll_seconds = elapsed
         return max(0.0, self._interval - elapsed)
 
     def _sleep(self, seconds: float) -> None:
-        give_up = self.clock.monotonic() + seconds
-        while not self.stop_requested():
-            remaining = give_up - self.clock.monotonic()
-            if remaining <= 0:
-                return
-            self.clock.wait(min(WAIT_SLICE_SECONDS, remaining), self.stop_event)
+        began = self.clock.monotonic()
+        give_up = began + seconds
+        slices, overshoot = 0, 0.0
+        try:
+            while not self.stop_requested():
+                remaining = give_up - self.clock.monotonic()
+                if remaining <= 0:
+                    return
+                asked = min(WAIT_SLICE_SECONDS, remaining)
+                before = self.clock.monotonic()
+                self.clock.wait(asked, self.stop_event)
+                slices += 1
+                overshoot = max(overshoot, self.clock.monotonic() - before - asked)
+        finally:
+            self._last_sleep = {"requested": round(seconds, 4), "slept": round(self.clock.monotonic() - began, 4), "slices": slices, "max_slice_overshoot": round(overshoot, 4)}
 
     def startup(self) -> None:
         """Recovery while holding the lock: dead workers' leases end, their calls stay charged."""

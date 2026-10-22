@@ -678,6 +678,155 @@ def test_poll_cadence_runs_from_poll_start(root):
         w.close()
 
 
+def test_status_reports_the_poll_it_follows(root):
+    """The status written after a poll gives that poll's duration, not the one before it (decision 0022).
+
+    The typed-state measurement read a slow ingesting poll from the status one poll late and charged it to
+    the next trial, so Windows' late trials looked like missed cycles with fast polls.
+    """
+    clock = ws.FakeClock()
+    w = make_worker(root, ws.FakeBackend(), clock=clock)
+    try:
+        real_tick = w.tick
+        durations = iter([0.8, 0.1])
+
+        def timed_tick() -> bool:
+            clock.advance(next(durations))
+            return real_tick()
+
+        w.tick = timed_tick  # type: ignore[method-assign]
+        w.poll_once()
+        assert w.status()["poll"]["last_poll_seconds"] == pytest.approx(0.8)
+        w.poll_once()
+        assert w.status()["poll"]["last_poll_seconds"] == pytest.approx(0.1)
+        assert w.status()["poll"]["timing"]["marks"]["tick_end"] == pytest.approx(0.1)
+    finally:
+        w.close()
+
+
+def _store_file(ctx) -> Path:
+    return Path(ctx.root) / ".recalith" / db.STATE_DB
+
+
+def _file_signature(path: Path) -> tuple[int, int, str]:
+    import hashlib
+
+    st = os.stat(path)
+    return st.st_size, st.st_mtime_ns, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _fill_wal(path: Path, pages: int) -> None:
+    """Append about ``pages`` WAL frames that nothing has checkpointed yet (as a busy day of commits would)."""
+    import sqlite3
+
+    conn = sqlite3.connect(path, isolation_level=None)
+    try:
+        conn.execute("PRAGMA wal_autocheckpoint = 0")
+        conn.execute("CREATE TABLE IF NOT EXISTS test_wal_fill (b BLOB)")
+        conn.execute("BEGIN IMMEDIATE")
+        conn.executemany("INSERT INTO test_wal_fill VALUES (?)", [(os.urandom(3000),) for _ in range(pages)])
+        conn.execute("COMMIT")
+    finally:
+        conn.close()  # the worker's open connection keeps this close from checkpointing
+
+
+class _SteppedClock(worker.Clock):
+    """Real wall time (ingestion stamps jobs with it); monotonic time a test can move forward."""
+
+    def __init__(self) -> None:
+        self.offset = 0.0
+
+    def monotonic(self) -> float:
+        return time.monotonic() + self.offset
+
+
+def _prompt(replayer, trial: int) -> None:
+    import claude_fixtures as cf
+    import worker_hosts as wh
+
+    proc, _ = cf.run_hook(replayer.root, wh.unique_prompt(replayer, trial), event="UserPromptSubmit")
+    assert proc.returncode == 0
+
+
+def test_store_checkpoint_waits_until_typed_state_is_committed(tmp_path):
+    """ACCEPTANCE_TESTS §7 typed-state latency (decision 0022).
+
+    SQLite's automatic WAL checkpoint (every 1000 pages) ran inside whichever commit crossed the threshold,
+    usually the ingesting poll's own, so about one event in twelve waited for the checkpoint to copy and flush
+    the WAL into the main file before reaching typed state: on Windows CI runners up to 1-3 s. The worker's
+    connection defers it: the main file is untouched until typed state is committed, and a poll with nothing
+    waiting checkpoints once the interval allows.
+    """
+    import claude_fixtures as cf
+
+    replayer = cf.Replay(tmp_path / "replay")
+    ctx = replayer.ctx
+    clock = _SteppedClock()
+    w = worker.Worker(ctx, config=ProjectConfig.defaults_for(cf.PROJECT_ID), clock=clock)
+    try:
+        while w.poll_once():
+            pass
+        main = _store_file(ctx)
+        _fill_wal(main, pages=1200)
+        before = _file_signature(main)
+        _prompt(replayer, 0)
+        typed: list[tuple] = []
+        failpoints.arm(failpoints.JOB_AFTER_COMPLETE, lambda _name: typed.append(_file_signature(main)), times=10**6)
+        assert w.poll_once()  # the ingesting poll
+        assert typed, "the ingest job did not complete in the poll that ingested its segment"
+        assert typed[0] == before, "the store was checkpointed before typed state was committed"
+        assert _ingested(replayer.root)[1] >= 1
+        polls = 0
+        while w.poll_once():  # the active tail
+            polls += 1
+            assert polls < 10
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert not w.poll_once()
+        assert _file_signature(main) != before, "an idle poll past the interval did not checkpoint the WAL"
+    finally:
+        w.close()
+
+
+def test_deferred_checkpoints_keep_sqlites_frequency(tmp_path):
+    """Decision 0022: deferring the checkpoint must not multiply it.
+
+    A checkpoint after every burst cost Windows runners about twelve times as many flushes as SQLite's
+    1000-page rule, and one that runs for seconds during a storage stall stretches the idle cycle it runs
+    in. The worker checkpoints at most once per interval in a poll with nothing waiting, and under
+    continuous work only after the poll's work, once twice the interval has passed.
+    """
+    import claude_fixtures as cf
+
+    replayer = cf.Replay(tmp_path / "replay")
+    clock = _SteppedClock()
+    w = worker.Worker(replayer.ctx, config=ProjectConfig.defaults_for(cf.PROJECT_ID), clock=clock)
+    try:
+        while w.poll_once():
+            pass
+        assert w.counters["checkpoints"] == 1  # the first idle poll folds whatever WAL the worker inherited
+        for trial in range(3):  # three bursts inside one interval
+            _prompt(replayer, trial)
+            while w.poll_once():
+                pass
+            clock.offset += 5.0
+        assert w.counters["checkpoints"] == 1
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert not w.poll_once()
+        assert w.counters["checkpoints"] == 2
+        assert "checkpoint" in w.status()["poll"]["timing"]["marks"]
+        # Continuous work: a worked poll checkpoints after its work only past twice the interval.
+        _prompt(replayer, 3)
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert w.poll_once() and w.counters["checkpoints"] == 2
+        _prompt(replayer, 4)
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert w.poll_once() and w.counters["checkpoints"] == 3
+        marks = w.status()["poll"]["timing"]["marks"]
+        assert marks["checkpoint"] >= marks["deterministic"]  # after typed state, never inside it
+    finally:
+        w.close()
+
+
 def test_resume_coalesces_overdue_jobs(root):
     """A suspend/resume clock jump yields one housekeeping job and no launch burst."""
     clock = ws.FakeClock()
@@ -793,6 +942,34 @@ def test_worker_crash_at_job_boundaries_matches_reference(tmp_path, failpoint):
         assert {s for _, s in state["usage"]} == {"charged"}  # no reservation is left dangling
         assert len(state["usage"]) == len(calls) + (1 if failpoint == failpoints.JOB_AFTER_RESERVE and result.returncode == failpoints.KILL_STATUS else 0)
     assert crashed >= max(1, REPS // 2), f"{failpoint} was not reached often enough to test it"
+
+
+@pytest.mark.parametrize("failpoint", list(failpoints.CHECKPOINT))
+def test_worker_crash_at_deferred_checkpoint_matches_reference(tmp_path, failpoint):
+    """Killed just before or after the deferred WAL checkpoint (decision 0022) and restarted: the same store.
+
+    The scenario's last poll has nothing waiting, so it runs the checkpoint the
+    burst owes. A kill there leaves committed work in the WAL (before) or in
+    the main file (after); either way the reopened store equals the reference,
+    passes SQLite's integrity check, and the restarted worker folds the WAL it
+    inherited at its own first idle poll.
+    """
+    reference_root = osc.crash_project(tmp_path, "reference")
+    assert _driver(reference_root, tmp_path / "reference.calls").returncode == 0
+    reference = osc.normalized(reference_root)
+    for rep in range(REPS):
+        root = osc.crash_project(tmp_path, f"crash-{rep}")
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=0)
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, result.stderr[-2000:])
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert osc.normalized(root) == reference, (failpoint, rep)
+        ctx = ws.context(root)
+        with db.open_store(ctx, readonly=True) as store, store.read() as view:
+            assert view.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        calls = log.read_text(encoding="utf-8").split() if log.exists() else []
+        assert set(calls.count(j) for j in set(calls)) <= {1}, "a model job was relaunched although its result had been committed"
 
 
 def test_backend_bug_fails_its_job_not_the_lane(root):

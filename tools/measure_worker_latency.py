@@ -6,7 +6,8 @@
 
 * ``typed_state``: a real Claude Code 2.1.301 prompt payload is captured by a
   fresh ``python -I -m recalith.fast.entry`` process at a uniformly random
-  moment of an *idle* worker's 5-second poll cycle. Latency runs from the
+  moment of an *idle* worker's 5-second poll cycle, read from an idle poll that
+  started after the previous trial reached typed state (decision 0022). Latency runs from the
   hook's acknowledgment (process exit, after durable publication) to the
   event being committed with its ``ingest`` job completed, observed from a
   separate read-only connection polling every 10 ms. ``from_hook_spawn`` adds
@@ -33,6 +34,7 @@ import random
 import statistics
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -42,7 +44,8 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tests" / "platform"), str(ROOT / 
 import claude_fixtures as cf  # noqa: E402
 import worker_hosts as wh  # noqa: E402
 from recalith.controller import worker  # noqa: E402
-from recalith.fast import process_env  # noqa: E402
+from recalith.errors import RecalithError  # noqa: E402
+from recalith.fast import process_env, spool  # noqa: E402
 from recalith.storage import db  # noqa: E402
 
 
@@ -75,9 +78,165 @@ def available(root: Path, event_id: str) -> bool:
         return view.execute("SELECT 1 FROM jobs WHERE kind = 'ingest' AND state = 'completed' AND body LIKE ?", (f"%{event_id}%",)).fetchone() is not None
 
 
-def idle_status(root: Path) -> dict | None:
+class Observer:
+    """Measurement-only timeline, sampled from outside the worker. All times are wall-clock seconds
+    (``time.time()``), the clock the worker's ``last_poll_wall`` uses.
+
+    * The file thread (every 10 ms, no SQLite): each status write the worker makes (its poll index, start,
+      step offsets and the sleep before it), the hook's segment appearing in and leaving ``spool/ready``,
+      each write of the main store file (in WAL mode only a checkpoint writes it), and any gap of more than
+      0.2 s in its own 10 ms loop (a stall of this process or of the machine, not of the worker).
+    * The store thread: while a trial's event is outstanding, one read-only connection checks every 10 ms
+      for the event row and the completed ingest job, and records any of its reads that took over 0.1 s.
+    """
+
+    def __init__(self, root: Path, interval: float = 0.01) -> None:
+        self.root, self.interval = root, interval
+        self.dirs = spool.SpoolDirs(root)
+        self.polls: dict[int, dict] = {}
+        self.store_file = Path(root) / ".recalith" / db.STATE_DB
+        self.store_sig: tuple | None = None
+        self.checkpoints: list[dict] = []
+        self.file_stalls: list[dict] = []
+        self.slow_reads: list[dict] = []
+        self.status_read_errors = 0
+        self.trial: dict | None = None
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+        self.threads = [threading.Thread(target=self._files, daemon=True), threading.Thread(target=self._store, daemon=True)]
+
+    def __enter__(self) -> "Observer":
+        for t in self.threads:
+            t.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.stop.set()
+        for t in self.threads:
+            t.join(10)
+
+    def begin(self, trial: int) -> dict:
+        with self.lock:
+            self.trial = {"trial": trial, "segments_before": {p.name for p in spool.ready_segments(self.dirs)}, "segment": None, "event_id": None}
+            return self.trial
+
+    def end(self) -> dict:
+        with self.lock:
+            done, self.trial = self.trial, None
+            return done or {}
+
+    def _status(self, now: float) -> None:
+        try:
+            st = worker.read_status(self.root)
+        except (OSError, ValueError):
+            self.status_read_errors += 1
+            return
+        if not st:
+            return
+        poll, counters = st.get("poll") or {}, st.get("counters") or {}
+        index = counters.get("polls")
+        if not isinstance(index, int) or index in self.polls:
+            return
+        self.polls[index] = {"poll": index, "started_wall": poll.get("last_poll_wall"), "status_seen_wall": round(now, 4), "worked": poll.get("last_poll_worked"),
+                             "interval": poll.get("interval_seconds"), "state": st.get("state"), "segments_total": counters.get("segments"),
+                             "previous_poll_seconds": poll.get("last_poll_seconds"), "timing": poll.get("timing"), "last_error": st.get("last_error"),
+                             "errors": counters.get("errors"), "status_write_failures": counters.get("status_write_failures")}
+        previous = (poll.get("timing") or {}).get("previous_poll")
+        sleep = (poll.get("timing") or {}).get("previous_sleep") or {}
+        if index - 1 not in self.polls and isinstance(previous, dict) and isinstance(poll.get("last_poll_wall"), float):
+            # A poll that overran its interval is followed at once, so its own status may live only milliseconds;
+            # the next status carries its duration and step offsets. Its start is estimated from the cadence.
+            seconds = previous.get("seconds") or 0.0
+            self.polls[index - 1] = {"poll": index - 1, "recovered_from_next_status": True, "seconds": seconds,
+                                     "started_wall": round(poll["last_poll_wall"] - (sleep.get("slept") or 0.0) - seconds, 4),
+                                     "timing": {"marks": previous.get("marks") or {}}, "worked": None, "interval": None}
+
+    def _store_file(self, now: float) -> None:
+        st = os.stat(self.store_file)
+        sig = (st.st_size, st.st_mtime_ns)
+        if self.store_sig is not None and sig != self.store_sig:
+            try:
+                wal = os.stat(f"{self.store_file}-wal").st_size
+            except OSError:
+                wal = None
+            self.checkpoints.append({"seen_wall": round(now, 4), "mtime_wall": round(st.st_mtime_ns / 1e9, 4), "db_bytes": st.st_size, "wal_bytes": wal})
+        self.store_sig = sig
+
+    def _segment(self, now: float) -> None:
+        with self.lock:
+            t = self.trial
+            if t is None:
+                return
+            names = {p.name for p in spool.ready_segments(self.dirs)} - t["segments_before"]
+            if t["segment"] is None and names:
+                t["segment"], t["segment_visible_wall"] = sorted(names)[0], round(now, 4)
+            elif t["segment"] is not None and "segment_gone_wall" not in t and t["segment"] not in names:
+                t["segment_gone_wall"] = round(now, 4)
+
+    def _files(self) -> None:
+        last = time.time()
+        while not self.stop.is_set():
+            now = time.time()
+            if now - last > 0.2:
+                self.file_stalls.append({"from_wall": round(last, 4), "to_wall": round(now, 4)})
+            last = now
+            for step in (self._status, self._store_file, self._segment):
+                try:
+                    step(now)
+                except (OSError, ValueError):
+                    pass  # a busy file is retried on the next sample
+            self.stop.wait(self.interval)
+
+    def _store(self) -> None:
+        ctx = cf.identity.resolve_installation(self.root, actor=cf.ADAPTER_ACTOR)
+        store = None
+        try:
+            while not self.stop.is_set():
+                with self.lock:
+                    t = self.trial
+                    event_id = None if t is None or "ingest_completed_wall" in t else t.get("event_id")
+                if event_id is None:
+                    self.stop.wait(self.interval)
+                    continue
+                began = time.time()
+                try:
+                    if store is None:
+                        store = db.open_store(ctx, readonly=True)
+                    with store.read() as view:
+                        row = view.execute("SELECT 1 FROM events WHERE event_id = ?", (event_id,)).fetchone() is not None
+                        job = row and view.execute("SELECT 1 FROM jobs WHERE kind = 'ingest' AND state = 'completed' AND body LIKE ?", (f"%{event_id}%",)).fetchone() is not None
+                except (OSError, db.sqlite3.Error, RecalithError):
+                    row = job = False
+                ended = time.time()
+                if ended - began > 0.1:
+                    self.slow_reads.append({"from_wall": round(began, 4), "to_wall": round(ended, 4)})
+                with self.lock:
+                    if row and "event_row_wall" not in t:
+                        t["event_row_wall"] = round(ended, 4)
+                    if job:
+                        t["ingest_completed_wall"] = round(ended, 4)
+                self.stop.wait(self.interval)
+        finally:
+            if store is not None:
+                store.close()
+
+
+def poll_rows(polls: dict[int, dict], since: float, until: float) -> list[dict]:
+    """Polls that started in [since, until], with their step offsets and the sleep before each."""
+    return [p for _i, p in sorted(polls.items()) if isinstance(p.get("started_wall"), float) and since <= p["started_wall"] <= until]
+
+
+def idle_status(root: Path, *, after: float | None = None) -> dict | None:
+    """The worker's status when it reports an idle poll that started after ``after`` (wall seconds).
+
+    Until the ingesting poll writes its own status, the file still holds the idle status from before it; a
+    plan made from that one is a plan against a cycle that already ended (decision 0022). So each trial's
+    arrival is planned from an idle poll that started after the previous trial reached typed state.
+    """
     s = worker.read_status(root)
-    return s if s and s["state"] == "idle" and not s["poll"]["last_poll_worked"] else None
+    if not s or s["state"] != "idle" or s["poll"]["last_poll_worked"]:
+        return None
+    return s if after is None or (s["poll"].get("last_poll_wall") or 0.0) > after else None
 
 
 def _ps(pid: int) -> tuple[float, float] | None:
@@ -190,35 +349,47 @@ def main(argv: list[str] | None = None) -> int:
         report["hook_worker_running"] = {**summarize(running, "ms"), "worker_states": running_states}
         status = wh.wait_running(replayer.root)
         report["spawn"] = status["spawn"]
-        # Typed-state latency at random idle phases.
+        # Typed-state latency at random idle phases. The observer timestamps every worker poll and, per trial,
+        # segment visibility, the event row and the ingest job's completion, so each trial can be attributed.
         latencies, from_spawn, series = [], [], []
-        for trial in range(args.trials):
-            settled = wh.wait_for(lambda: idle_status(replayer.root), 60)
-            assert settled, "worker never returned to idle"
-            phase = rng.uniform(0, settled["poll"]["idle_seconds"])
-            target = settled["poll"]["last_poll_wall"] + phase
-            while target < time.time() + 0.15:
-                target += settled["poll"]["idle_seconds"]
-            time.sleep(max(0.0, target - time.time()))
-            spawned = time.monotonic()
-            reply, wall = run_hook(replayer, wh.unique_prompt(replayer, trial), "UserPromptSubmit", tmp)
-            acked = spawned + wall
-            event_id = reply["receipt"]["event_ids"][0]
-            slowest = [0.0]
-
-            def reached(event_id=event_id, slowest=slowest) -> bool:
-                st = worker.read_status(replayer.root) or {}
-                slowest[0] = max(slowest[0], (st.get("poll") or {}).get("last_poll_seconds") or 0.0)
-                return available(replayer.root, event_id)
-
-            if not wh.wait_for(reached, 30, interval=0.01):
-                raise SystemExit(f"trial {trial} never reached typed state")
-            done = time.monotonic()
-            latencies.append(done - acked)
-            from_spawn.append(done - spawned)
-            # Per trial, so a late trial reads as a slow poll (worker work) or a missed cycle (arrival phase against the 5 s cadence).
-            series.append({"trial": trial, "phase_s": round(phase, 3), "from_hook_ack_s": round(done - acked, 3), "hook_wall_s": round(wall, 3), "slowest_poll_s": round(slowest[0], 3)})
-        report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle", "series": series}
+        with Observer(replayer.root) as observer:
+            previous_done = 0.0
+            for trial in range(args.trials):
+                settled = wh.wait_for(lambda after=previous_done: idle_status(replayer.root, after=after), 60)
+                assert settled, "worker never returned to idle"
+                phase = rng.uniform(0, settled["poll"]["idle_seconds"])
+                target = settled["poll"]["last_poll_wall"] + phase
+                while target < time.time() + 0.15:
+                    target += settled["poll"]["idle_seconds"]
+                time.sleep(max(0.0, target - time.time()))
+                record = observer.begin(trial)
+                data = wh.unique_prompt(replayer, trial)
+                spawned_wall = time.time()
+                reply, wall = run_hook(replayer, data, "UserPromptSubmit", tmp)
+                acked_wall = spawned_wall + wall
+                with observer.lock:
+                    record["event_id"] = reply["receipt"]["event_ids"][0]
+                if not wh.wait_for(lambda record=record: "ingest_completed_wall" in record, 30, interval=0.01):
+                    raise SystemExit(f"trial {trial} never reached typed state")
+                record = observer.end()
+                done_wall = record["ingest_completed_wall"]
+                latencies.append(done_wall - acked_wall)
+                from_spawn.append(done_wall - spawned_wall)
+                series.append({"trial": trial, "phase_s": round(phase, 3), "from_hook_ack_s": round(done_wall - acked_wall, 3), "hook_wall_s": round(wall, 3),
+                               "settled_poll": (settled.get("counters") or {}).get("polls"), "settled_poll_wall": settled["poll"]["last_poll_wall"],
+                               "settled_after_previous_trial": settled["poll"]["last_poll_wall"] > previous_done, "arrival_target_wall": round(target, 4),
+                               "hook_spawn_wall": round(spawned_wall, 4), "hook_ack_wall": round(acked_wall, 4),
+                               **{k: record.get(k) for k in ("segment_visible_wall", "segment_gone_wall", "event_row_wall", "ingest_completed_wall")}})
+                previous_done = done_wall
+            time.sleep(6.5)  # the polls after the last trial, so its ingesting poll's successor is on record
+        for row in series:
+            row["polls"] = poll_rows(observer.polls, row["settled_poll_wall"] - 0.01, row["ingest_completed_wall"] + 0.01)
+            row["store_file_writes"] = [c for c in observer.checkpoints if row["hook_spawn_wall"] - 0.01 <= c["mtime_wall"] <= row["ingest_completed_wall"] + 0.01]
+        report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle", "series": series,
+                                 "observer": {"interval_seconds": observer.interval, "polls_observed": len(observer.polls), "status_read_errors": observer.status_read_errors, "store_file_writes": observer.checkpoints,
+                                              "observer_stalls": observer.file_stalls, "slow_store_reads": observer.slow_reads,
+                                              "poll_indices": [min(observer.polls, default=None), max(observer.polls, default=None)]},
+                                 "poll_timeline": [observer.polls[i] for i in sorted(observer.polls)]}
         # Idle footprint.
         settled = wh.wait_for(lambda: idle_status(replayer.root), 60)
         pid = settled["pid"]

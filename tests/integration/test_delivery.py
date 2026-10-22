@@ -140,7 +140,8 @@ def test_concurrent_hooks_preserve_budget(built, monkeypatch):
     keys = [(i["record_id"], i["revision"], i["condition_digest"]) for e in s["entries"] for i in e["items"]]
     assert len(keys) == len(set(keys))  # an unchanged item is emitted at most once in the session
     assert s["reserved_tokens"] <= 450  # context items only: none may exceed the allowance
-    assert all(r[0]["delivery"].get("reason") in (None, "scratch_lock_timeout", "nothing_to_deliver") for r in results)
+    reasons = [r[0]["delivery"].get("reason") for r in results]
+    assert all(r in (None, "scratch_lock_timeout", "nothing_to_deliver") for r in reasons), reasons
     ds.ingest(p)
     assert ds.accounting(p, sid)["charged"] == s["reserved_tokens"]
     # Real hook processes racing one pre-action caution in another session: emitted once, accounting consistent.
