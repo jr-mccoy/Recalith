@@ -86,7 +86,7 @@ STATUS_SCHEMA = 1
 LOCK_RETRY_SECONDS = 1.0
 WAIT_SLICE_SECONDS = 0.25
 CLOCK_JUMP_SECONDS = 60.0
-CHECKPOINT_DEFER_SECONDS = 60.0
+CHECKPOINT_INTERVAL_SECONDS = 60.0
 DETERMINISTIC_BATCH = 50
 SOURCE_BATCH = 32
 DETACHED_METHODS = frozenset({"posix_session", "windows_breakaway"})
@@ -331,10 +331,11 @@ class Worker:
         self._segments_seen = 0
         self._last_sleep: dict[str, Any] | None = None
         self._last_status_write: float | None = None
-        # WAL checkpoints are deferred off the typed-state path (decision 0022): owed after a poll that wrote,
-        # run by the next poll with nothing waiting, or after CHECKPOINT_DEFER_SECONDS of continuous work.
+        # WAL checkpoints are deferred off the typed-state path (decision 0022): owed after a poll that wrote, run
+        # at most once per CHECKPOINT_INTERVAL_SECONDS by a poll with nothing waiting, or after the work of a poll
+        # once twice that has passed under continuous work. The first idle poll after start folds an inherited WAL.
         self._checkpoint_owed = True
-        self._last_checkpoint = self.clock.monotonic()
+        self._last_checkpoint = self.clock.monotonic() - CHECKPOINT_INTERVAL_SECONDS
         self.max_clock_jump = 0.0
         self.reaped: list[dict[str, Any]] = []
 
@@ -612,7 +613,8 @@ class Worker:
         self._mark("tick_end")
         if worked:
             self._checkpoint_owed = True
-        if self._checkpoint_owed and (not worked or self.clock.monotonic() - self._last_checkpoint >= CHECKPOINT_DEFER_SECONDS):
+        since = self.clock.monotonic() - self._last_checkpoint
+        if self._checkpoint_owed and since >= CHECKPOINT_INTERVAL_SECONDS * (2 if worked else 1):
             self._checkpoint()
         self._last_poll_seconds = round(self.clock.monotonic() - self._poll_started, 4)
         self.counters["polls"] += 1

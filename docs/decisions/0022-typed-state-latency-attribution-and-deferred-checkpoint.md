@@ -59,13 +59,20 @@ It then dispatched Windows worker-only runs of `.github/workflows/measure.yml`: 
    - the previous poll's duration and offsets, because a poll that overran its interval is followed at once and its own status may live only milliseconds.
 
    `counters` gains `status_write_failures` and `checkpoints`. It costs a few clock reads per poll.
-4. **The worker defers WAL checkpoints off the typed-state path.**
+4. **The worker defers WAL checkpoints off the typed-state path, at SQLite's frequency.**
    - Its own write connection sets `wal_autocheckpoint = 0`.
    - `pipeline.ingest_ready` takes the worker's connection, so ingestion's commits never checkpoint.
-   - After a poll's work, a checkpoint is owed. A poll with nothing waiting runs `PRAGMA wal_checkpoint(PASSIVE)`, which never waits on a hook reader. Frames a reader still needs stay owed for the next such poll.
-   - Under continuous work, the checkpoint runs after the poll's work once `CHECKPOINT_DEFER_SECONDS` (60 s) have passed since the last one, so the WAL stays bounded.
-   - The worker owes one when it opens its connection, because an inherited WAL may be waiting.
+   - After a poll that wrote, a checkpoint is owed. It runs `PRAGMA wal_checkpoint(PASSIVE)`, which never waits on a hook reader, at most once per `CHECKPOINT_INTERVAL_SECONDS` (60 s), in a poll with nothing waiting.
+   - Under continuous work, it runs after a poll's work once twice the interval has passed, so the WAL stays bounded.
+   - Frames a reader still needs stay owed.
+   - The first idle poll after the worker opens its connection folds any WAL it inherited.
    - Every other connection (service, CLI, model lane, backup, forget) keeps SQLite's default. Forgetting keeps its own `TRUNCATE` checkpoint after the purge.
+
+   The first version checkpointed at the first idle poll after *every* burst (2190a38). Windows runs 19 and 20 showed why that was wrong:
+   - it made about 12 times as many checkpoints (61 per 60 trials against about 5);
+   - one that ran for seconds during a storage stall (up to 7.6 s) stretched the idle cycle it ran in.
+
+   A test pins the frequency.
 5. **Kill/restart coverage.** `failpoints.CHECKPOINT` (`worker.before_checkpoint`, `worker.after_checkpoint`) joins the worker family. A real child killed at either point and restarted must reproduce the reference store and pass `PRAGMA integrity_check`, with no model job relaunched.
 6. **What is not changed.**
    - `synchronous=FULL` and the per-commit durability of ingestion stay. A segment is removed only after its commit is durable.

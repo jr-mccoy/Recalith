@@ -730,29 +730,46 @@ def _fill_wal(path: Path, pages: int) -> None:
         conn.close()  # the worker's open connection keeps this close from checkpointing
 
 
+class _SteppedClock(worker.Clock):
+    """Real wall time (ingestion stamps jobs with it); monotonic time a test can move forward."""
+
+    def __init__(self) -> None:
+        self.offset = 0.0
+
+    def monotonic(self) -> float:
+        return time.monotonic() + self.offset
+
+
+def _prompt(replayer, trial: int) -> None:
+    import claude_fixtures as cf
+    import worker_hosts as wh
+
+    proc, _ = cf.run_hook(replayer.root, wh.unique_prompt(replayer, trial), event="UserPromptSubmit")
+    assert proc.returncode == 0
+
+
 def test_store_checkpoint_waits_until_typed_state_is_committed(tmp_path):
     """ACCEPTANCE_TESTS §7 typed-state latency (decision 0022).
 
     SQLite's automatic WAL checkpoint (every 1000 pages) ran inside whichever commit crossed the threshold,
     usually the ingesting poll's own, so about one event in twelve waited for the checkpoint to copy and flush
     the WAL into the main file before reaching typed state: on Windows CI runners up to 1-3 s. The worker's
-    connection defers it: the main file is untouched until typed state is committed, and the first idle poll
-    checkpoints what the burst wrote.
+    connection defers it: the main file is untouched until typed state is committed, and a poll with nothing
+    waiting checkpoints once the interval allows.
     """
     import claude_fixtures as cf
-    import worker_hosts as wh
 
     replayer = cf.Replay(tmp_path / "replay")
     ctx = replayer.ctx
-    w = worker.Worker(ctx, config=ProjectConfig.defaults_for(cf.PROJECT_ID))  # real time: ingestion stamps jobs with it
+    clock = _SteppedClock()
+    w = worker.Worker(ctx, config=ProjectConfig.defaults_for(cf.PROJECT_ID), clock=clock)
     try:
         while w.poll_once():
             pass
         main = _store_file(ctx)
         _fill_wal(main, pages=1200)
         before = _file_signature(main)
-        proc, _ = cf.run_hook(replayer.root, wh.unique_prompt(replayer, 0), event="UserPromptSubmit")
-        assert proc.returncode == 0
+        _prompt(replayer, 0)
         typed: list[tuple] = []
         failpoints.arm(failpoints.JOB_AFTER_COMPLETE, lambda _name: typed.append(_file_signature(main)), times=10**6)
         assert w.poll_once()  # the ingesting poll
@@ -763,7 +780,49 @@ def test_store_checkpoint_waits_until_typed_state_is_committed(tmp_path):
         while w.poll_once():  # the active tail
             polls += 1
             assert polls < 10
-        assert _file_signature(main) != before, "the first idle poll did not checkpoint the WAL"
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert not w.poll_once()
+        assert _file_signature(main) != before, "an idle poll past the interval did not checkpoint the WAL"
+    finally:
+        w.close()
+
+
+def test_deferred_checkpoints_keep_sqlites_frequency(tmp_path):
+    """Decision 0022: deferring the checkpoint must not multiply it.
+
+    A checkpoint after every burst cost Windows runners about twelve times as many flushes as SQLite's
+    1000-page rule, and one that runs for seconds during a storage stall stretches the idle cycle it runs
+    in. The worker checkpoints at most once per interval in a poll with nothing waiting, and under
+    continuous work only after the poll's work, once twice the interval has passed.
+    """
+    import claude_fixtures as cf
+
+    replayer = cf.Replay(tmp_path / "replay")
+    clock = _SteppedClock()
+    w = worker.Worker(replayer.ctx, config=ProjectConfig.defaults_for(cf.PROJECT_ID), clock=clock)
+    try:
+        while w.poll_once():
+            pass
+        assert w.counters["checkpoints"] == 1  # the first idle poll folds whatever WAL the worker inherited
+        for trial in range(3):  # three bursts inside one interval
+            _prompt(replayer, trial)
+            while w.poll_once():
+                pass
+            clock.offset += 5.0
+        assert w.counters["checkpoints"] == 1
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert not w.poll_once()
+        assert w.counters["checkpoints"] == 2
+        assert "checkpoint" in w.status()["poll"]["timing"]["marks"]
+        # Continuous work: a worked poll checkpoints after its work only past twice the interval.
+        _prompt(replayer, 3)
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert w.poll_once() and w.counters["checkpoints"] == 2
+        _prompt(replayer, 4)
+        clock.offset += worker.CHECKPOINT_INTERVAL_SECONDS
+        assert w.poll_once() and w.counters["checkpoints"] == 3
+        marks = w.status()["poll"]["timing"]["marks"]
+        assert marks["checkpoint"] >= marks["deterministic"]  # after typed state, never inside it
     finally:
         w.close()
 
