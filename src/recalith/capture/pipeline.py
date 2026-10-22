@@ -24,6 +24,7 @@ call (a segment is never split across transactions).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -41,7 +42,7 @@ from recalith.core import lineage
 from recalith.errors import RecalithError
 from recalith.fast import redact
 from recalith.storage import failpoints, repository, spool
-from recalith.storage.db import open_store
+from recalith.storage.db import Store, open_store
 
 SEGMENT_MARGIN = 4 * 1024
 QUARANTINE_CODES = frozenset({"foreign_installation", "event_identity_conflict", "invalid_schema"})
@@ -258,13 +259,16 @@ def ingest_in_transaction(txn: Any, ctx: InstallationContext, envelopes: Sequenc
     return counts, job_id
 
 
-def ingest_ready(ctx: InstallationContext, *, limit: int = 100) -> IngestResult:
-    """Commit ready segments to the store, then remove them."""
+def ingest_ready(ctx: InstallationContext, *, limit: int = 100, store: Store | None = None) -> IngestResult:
+    """Commit ready segments to the store, then remove them.
+
+    The worker passes its own connection, whose commits never checkpoint the WAL (decision 0022).
+    """
     dirs = spool.SpoolDirs(ctx.root)
     spool.cleanup_stale_temps(dirs)
     accepted = duplicate = conflict = 0
     created_jobs: list[str] = []
-    with open_store(ctx) as store:
+    with contextlib.nullcontext(store) if store is not None else open_store(ctx) as store:
         for path in spool.ready_segments(dirs)[:limit]:
             try:
                 segment = Segment.model_validate(json.loads(path.read_bytes().decode("utf-8")))

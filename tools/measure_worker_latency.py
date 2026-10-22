@@ -141,6 +141,15 @@ class Observer:
                              "interval": poll.get("interval_seconds"), "state": st.get("state"), "segments_total": counters.get("segments"),
                              "previous_poll_seconds": poll.get("last_poll_seconds"), "timing": poll.get("timing"), "last_error": st.get("last_error"),
                              "errors": counters.get("errors"), "status_write_failures": counters.get("status_write_failures")}
+        previous = (poll.get("timing") or {}).get("previous_poll")
+        sleep = (poll.get("timing") or {}).get("previous_sleep") or {}
+        if index - 1 not in self.polls and isinstance(previous, dict) and isinstance(poll.get("last_poll_wall"), float):
+            # A poll that overran its interval is followed at once, so its own status may live only milliseconds;
+            # the next status carries its duration and step offsets. Its start is estimated from the cadence.
+            seconds = previous.get("seconds") or 0.0
+            self.polls[index - 1] = {"poll": index - 1, "recovered_from_next_status": True, "seconds": seconds,
+                                     "started_wall": round(poll["last_poll_wall"] - (sleep.get("slept") or 0.0) - seconds, 4),
+                                     "timing": {"marks": previous.get("marks") or {}}, "worked": None, "interval": None}
 
     def _store_file(self, now: float) -> None:
         st = os.stat(self.store_file)
