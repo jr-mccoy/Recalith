@@ -86,6 +86,10 @@ class Observer:
         self.root, self.interval = root, interval
         self.dirs = spool.SpoolDirs(root)
         self.polls: dict[int, dict] = {}
+        # In WAL mode only a checkpoint writes the main database file, so a change of its size or mtime marks one.
+        self.store_file = Path(root) / ".recalith" / db.STATE_DB
+        self.store_sig: tuple | None = None
+        self.checkpoints: list[dict] = []
         self.write_failures = 0
         self.trial: dict | None = None
         self.lock = threading.Lock()
@@ -125,6 +129,17 @@ class Observer:
                              "previous_poll_seconds": poll.get("last_poll_seconds"), "timing": poll.get("timing"), "last_error": st.get("last_error"),
                              "errors": counters.get("errors")}
 
+    def _store_file(self, now: float) -> None:
+        st = os.stat(self.store_file)
+        sig = (st.st_size, st.st_mtime_ns)
+        if self.store_sig is not None and sig != self.store_sig:
+            try:
+                wal = os.stat(f"{self.store_file}-wal").st_size
+            except OSError:
+                wal = None
+            self.checkpoints.append({"seen_wall": round(now, 4), "mtime_wall": round(st.st_mtime_ns / 1e9, 4), "db_bytes": st.st_size, "wal_bytes": wal})
+        self.store_sig = sig
+
     def _trial(self, now: float) -> None:
         with self.lock:
             t = self.trial
@@ -150,6 +165,7 @@ class Observer:
             now = time.time()
             try:
                 self._status(now)
+                self._store_file(now)
                 self._trial(now)
             except (OSError, ValueError, db.sqlite3.Error):
                 pass  # a busy file or snapshot is retried on the next sample
@@ -311,8 +327,9 @@ def main(argv: list[str] | None = None) -> int:
             time.sleep(6.5)  # the polls after the last trial, so its ingesting poll's successor is on record
         for row in series:
             row["polls"] = poll_rows(observer.polls, row["settled_poll_wall"] - 0.01, row["ingest_completed_wall"] + 0.01)
+            row["store_file_writes"] = [c for c in observer.checkpoints if row["hook_spawn_wall"] - 0.01 <= c["mtime_wall"] <= row["ingest_completed_wall"] + 0.01]
         report["typed_state"] = {"from_hook_ack": summarize(latencies), "from_hook_spawn": summarize(from_spawn), "target_p95_seconds": 5.0, "met": percentile(latencies, 0.95) <= 5.0, "idle_poll_seconds": 5, "arrivals": "uniform random phase of the idle cycle", "series": series,
-                                 "observer": {"interval_seconds": observer.interval, "polls_observed": len(observer.polls), "status_write_failures_seen": observer.write_failures,
+                                 "observer": {"interval_seconds": observer.interval, "polls_observed": len(observer.polls), "status_write_failures_seen": observer.write_failures, "store_file_writes": observer.checkpoints,
                                               "poll_indices": [min(observer.polls, default=None), max(observer.polls, default=None)]},
                                  "poll_timeline": [observer.polls[i] for i in sorted(observer.polls)]}
         # Idle footprint.
