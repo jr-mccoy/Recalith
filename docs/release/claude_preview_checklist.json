@@ -100,7 +100,7 @@
       "id": "failure_injection_protocol",
       "section_8": [1],
       "status": "passed",
-      "detail": "Every kill/restart family at RECALITH_CRASH_REPS=20 (100 is for a release candidate, which this is not): 13 families, 128 failpoint cases × 20 reps, 128 passed in 6343.01 s on Linux (Task 18 checkpoint). The retention family gained retention.after_record_aging, and a deliberate mutation there was caught only by this matrix. macOS and Windows run the same families at the default 3 repetitions in CI; the 20-repetition run is Linux only.",
+      "detail": "Every kill/restart family at RECALITH_CRASH_REPS=20 (100 is for a release candidate, which this is not): 13 families, 128 failpoint cases × 20 reps, 128 passed in 6343.01 s on Linux (Task 18 checkpoint). The retention family gained retention.after_record_aging, and a deliberate mutation there was caught only by this matrix. macOS and Windows run the same families at the default 3 repetitions in CI; the 20-repetition run is Linux only. Decision 0022 added worker.before_checkpoint and worker.after_checkpoint. Every worker family plus capture (125 cases) passed again at 20 repetitions on the final tree (71 passed in 3044.07 s and 54 passed in 2886.46 s).",
       "evidence": ["tests/integration/test_capture_recovery.py", "tests/integration/test_worker.py", "tests/integration/test_claude_adapter.py"]
     },
     {

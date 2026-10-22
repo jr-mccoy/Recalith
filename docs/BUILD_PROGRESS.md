@@ -1137,7 +1137,10 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   - Full 3.13 on b3f1f1f: `.venv/bin/python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1091 passed, 28 skipped in 1868.47 s**. That is +7 against the baseline: 3 worker tests, 2 checkpoint crash cases and 2 tool unit tests. The run was restarted once after a container restart killed it.
   - Full 3.12: `UV_PROJECT_ENVIRONMENT=<scratch>/venv3.12 uv run --locked --python 3.12 python -m pytest -q -rs -p no:cacheprovider` → exit 0, **1091 passed, 28 skipped in 1977.75 s** (run in parallel with 3.14).
   - Full 3.14: the same with `--python 3.14` → exit 0, **1091 passed, 28 skipped in 1938.51 s**.
-  - Kill/restart families at 20 reps: `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/integration/test_worker.py tests/integration/test_capture_recovery.py -k crash` (125 cases, every worker family plus capture). The result is recorded in the follow-up below.
+  - Kill/restart families at 20 reps: `RECALITH_CRASH_REPS=20 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/integration/test_worker.py tests/integration/test_capture_recovery.py -k crash` (125 cases, every worker family plus capture), run as two halves because a single run is near the 2-hour background limit:
+    - `-k "crash and (job_boundaries or deferred_checkpoint or typed_reduction or lineage or admission or provider or failpoints_match)"` → exit 0, **71 passed in 3044.07 s**;
+    - `-k "crash and (revision or projection or service_write or delivery or retention or forget)"` → exit 0, **54 passed in 2886.46 s**. A first attempt reached 51 of 54 before a container restart stopped it; it was rerun whole.
+    - The integration install/remove matrix (`test_claude_adapter.py`) is untouched by this slice and was not rerun.
   - `uvx ruff@0.14.0 check --select F,E9,B` on every touched Python file → clean. The finding in the untouched `fast/redact.py` (B905) predates this work.
   - `tools/generate_schemas.py --check` → exit 0; `tools/generate_hook_wire.py --check` → exit 0.
   - `tools/release_checklist.py` → exit 0, verdict `blocked` (B1 items); `hook_latency_usefulness_per_platform` is now `passed`.
@@ -1170,6 +1173,16 @@ Current acceptance evidence: **none**. Current product readiness: **not evaluate
   | Linux 3.14 | 1092 passed, 27 skipped | 1722.53 s |
   | macOS 3.13 | 1092 passed, 27 skipped | 1446.61 s |
   | Windows 3.13 | 1026 passed, 93 skipped | 3601.85 s |
+
+  - **CI run 109 (7827b1c: the test fixes and docs): all five jobs green.**
+
+    | Job | Result | Tests time |
+    |---|---|---|
+    | Linux 3.12 | 1092 passed, 27 skipped | 1482.74 s |
+    | Linux 3.13 | 1092 passed, 27 skipped | 1340.68 s |
+    | Linux 3.14 | 1092 passed, 27 skipped | 1686.88 s |
+    | macOS 3.13 | 1092 passed, 27 skipped | 1666.60 s |
+    | Windows 3.13 | 1026 passed, 93 skipped | 5179.75 s (a slow runner) |
 
   - Runs 104 (0b0af8a) and 106 (36bbc06) are green.
   - Runs 105 (8caa1cb, a tools-only change) and 107 (2190a38) failed on Windows only, on slow runners (70 and 82 min against about 60):
