@@ -1025,7 +1025,7 @@ def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool =
     resolved = exe if os.path.isabs(exe) else shutil.which(exe)
     tested_at = pc.utc_now()
     base = Path(tempfile.mkdtemp(prefix="recalith-provider-probe-"))
-    sanitizer = pc.Sanitizer({str(base): "<fixture>", str(Path.home()): "<home>", str(REPO_ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in cfg["auth_route"]["env_keys"]])
+    sanitizer = pc.Sanitizer({str(base): "<fixture>", str(Path.home()): "<home>", str(REPO_ROOT): "<repo>", **pc.model_placeholders(cfg, "curator")}, secrets=[os.environ.get(k, "") for k in cfg["auth_route"]["env_keys"]])
     report: dict[str, Any] = {
         "probe": "tools/probe_provider.py",
         "probe_schema": 1,

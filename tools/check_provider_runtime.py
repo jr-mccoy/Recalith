@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     status = base.route_status(recorded, installation_id=installation_id, inherited=os.environ)
     executable = isolation.resolve_executable(config.executable, os.environ)
     passed = all(c["verdict"] == "pass" for c in checks.values())
-    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>"})
+    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>", **pc.model_placeholders(cfg, "curator")})
     report = {
         "tool": "tools/check_provider_runtime.py",
         "tested_at": pc.utc_now(),
@@ -162,7 +162,7 @@ def api_runtime(cfg: dict, output: Path, route=None) -> int:
     checks = {name: isolation.isolation_check(config, inherited=env) for name, env in parents(config.auth_env_keys).items()}
     status = base.route_status(recorded, installation_id=installation_id, inherited=os.environ)
     passed = all(c["verdict"] == "pass" for c in checks.values())
-    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in config.auth_env_keys])
+    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>", **pc.model_placeholders(cfg, "curator")}, secrets=[os.environ.get(k, "") for k in config.auth_env_keys])
     report = {
         "tool": "tools/check_provider_runtime.py",
         "tested_at": pc.utc_now(),

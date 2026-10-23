@@ -228,8 +228,12 @@ def _origin(url: str) -> str:
     return f"{parts.scheme}://{parts.netloc}"
 
 
-def route_record(cfg: Mapping[str, Any], section: Mapping[str, Any], *, installation_id: str) -> Any:
-    """The installation's ``ProviderConfig``; ``certified`` only after a complete live pass."""
+def route_record(cfg: Mapping[str, Any], section: Mapping[str, Any], *, installation_id: str, resolved_model: str | None = None) -> Any:
+    """The installation's ``ProviderConfig``; ``certified`` only after a complete live pass.
+
+    ``section`` is the tracked (sanitized) report section, which names the model only by role; ``resolved_model`` is
+    the identifier the provider reported, which the private route must pin (the worker compares each reply with it).
+    """
     from recalith.providers import api, base
 
     model = provider_config(cfg, installation_id=installation_id)
@@ -244,13 +248,13 @@ def route_record(cfg: Mapping[str, Any], section: Mapping[str, Any], *, installa
         "operator_attestation": cfg["operator_attestation"]["background_use"],
         "auth_env_keys": list(cfg["auth_route"]["env_keys"]),
         "invocation_digest": base.invocation_digest(model),
-        "resolved_model": section.get("resolved_model") if certified else None,
+        "resolved_model": resolved_model if certified else None,
         "failed_checks": failed,
     }
     return provider_config(cfg, installation_id=installation_id, certification=cert)
 
 
-def write_route(project_root: Path, cfg: Mapping[str, Any], section: Mapping[str, Any]) -> Path:
+def write_route(project_root: Path, cfg: Mapping[str, Any], section: Mapping[str, Any], *, resolved_model: str | None) -> Path:
     if any(marker in os.environ for marker in cfg["host_markers"]):
         raise PermissionError("writing a project's provider route is an operator action; run it from an ordinary terminal outside any agent session")
     import tomllib
@@ -258,7 +262,7 @@ def write_route(project_root: Path, cfg: Mapping[str, Any], section: Mapping[str
     from recalith.providers.base import save_provider_config
 
     installation_id = tomllib.loads((project_root / ".recalith" / "local.toml").read_text(encoding="utf-8"))["installation_id"]
-    return save_provider_config(project_root, route_record(cfg, section, installation_id=installation_id))
+    return save_provider_config(project_root, route_record(cfg, section, installation_id=installation_id, resolved_model=resolved_model))
 
 
 def run(cfg: dict[str, Any], output_path: Path, *, route_out: Path | None = None) -> int:
@@ -268,7 +272,7 @@ def run(cfg: dict[str, Any], output_path: Path, *, route_out: Path | None = None
     placeholder = cfg["probe_installation_id"]
     config = provider_config(cfg, installation_id=placeholder)
     auth = cfg["auth_route"]
-    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(REPO_ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in auth["env_keys"]])
+    sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(REPO_ROOT): "<repo>", **pc.model_placeholders(cfg, "curator")}, secrets=[os.environ.get(k, "") for k in auth["env_keys"]])
     report: dict[str, Any] = {
         "probe": "tools/probe_provider.py", "probe_schema": 1, "tested_at": pc.utc_now(), "platform": pc.platform_facts(), "provider_id": cfg["provider_id"],
         "backend": cfg["backend"], "engine_build": __version__, "configured_model": cfg["model"], "expected_resolved_model": cfg.get("expected_resolved_model"),
@@ -314,7 +318,7 @@ def run(cfg: dict[str, Any], output_path: Path, *, route_out: Path | None = None
     print(json.dumps({"verdict": report["verdict"], "blocking_dimensions": blocking}))
     if route_out is not None:
         try:
-            path = write_route(route_out, cfg, section)
+            path = write_route(route_out, cfg, section, resolved_model=report["resolved_model"])
         except PermissionError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 6

@@ -99,3 +99,31 @@ def test_report_sanitizer_covers_windows_spellings():
     assert san.value(report)["spellings"][0] == "<harness-root>/rc/f05/ws/.recalith/bin/recalith"
     posix = pc.Sanitizer({"/home/someone": "<home>"})
     assert posix.text("/home/someone/x /HOME/SOMEONE/x") == "<home>/x /HOME/SOMEONE/x"
+
+
+def test_model_placeholders_keep_model_ids_out_of_tracked_reports():
+    """The owner's rule: no model identifiers in committed docs. Reports name the configured model by its role; the
+    private route and host records keep the identifier the route pins."""
+    import probe_common as pc
+
+    assert pc.model_placeholders({"model": "vendor-model-7", "expected_resolved_model": "vendor-model-7-0901"}, "curator") == {
+        "vendor-model-7": "<curator-model>", "vendor-model-7-0901": "<curator-resolved-model>"}
+    assert pc.model_placeholders({"model": "abc", "expected_resolved_model": None}, "agent") == {}  # too short to replace safely
+    san = pc.Sanitizer(pc.model_placeholders({"model": "vendor-model-7"}, "agent"))
+    assert san.value({"configured_model": "vendor-model-7", "reported": ["None", "vendor-model-7"]}) == {"configured_model": "<agent-model>", "reported": ["None", "<agent-model>"]}
+
+
+def test_sanitize_report_reapplies_the_harness_sanitizer(tmp_path):
+    """tools/sanitize_report.py applies the probes' own sanitizer to a report written before a sanitizer rule existed."""
+    import sanitize_report as sr
+
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"provider": {"model": "vendor-model-7"}, "delivery": {"model": "vendor-agent-9"}}), encoding="utf-8")
+    report = tmp_path / "report.json"
+    home = str(Path.home())
+    report.write_text(json.dumps({"report_schema": 1, "sections": {"provider_isolation": {"x": {"configured_model": "vendor-model-7", "path": home + "\\a"}},
+                                                                   "delivery": {"y": {"configured_model": "vendor-agent-9"}}}, "updated_at": "t"}), encoding="utf-8")
+    assert sr.main(["--config", str(config), "--report", str(report)]) == 0
+    text = report.read_text(encoding="utf-8")
+    assert "vendor-model-7" not in text and "vendor-agent-9" not in text and "<curator-model>" in text and "<agent-model>" in text
+    assert json.loads(text)["updated_at"] == "t"  # sanitizing changes no recorded result or time

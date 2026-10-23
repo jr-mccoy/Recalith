@@ -144,6 +144,21 @@ def replace_path(value: str, old: str, new: str, *, fold: bool) -> str:
     return re.sub(re.escape(old), lambda _m: new, value, flags=re.IGNORECASE) if fold else value.replace(old, new)
 
 
+def model_placeholders(cfg: Mapping[str, Any], role: str) -> dict[str, str]:
+    """A probe section's explicit model identifiers mapped to role placeholders (``<curator-model>``, ``<agent-model>``).
+
+    Tracked reports name no model (the owner's rule: no model identifiers in committed docs); the private route and
+    host records keep the identifiers the route pins. Values shorter than 4 characters are left alone: replacing them
+    as substrings could rewrite unrelated text.
+    """
+    out: dict[str, str] = {}
+    for key, suffix in (("model", "model"), ("expected_resolved_model", "resolved-model")):
+        value = cfg.get(key)
+        if isinstance(value, str) and len(value) >= 4:
+            out.setdefault(value, f"<{role}-{suffix}>")
+    return out
+
+
 class Sanitizer:
     """Replace local paths (on Windows in every spelling, :func:`path_forms`) with placeholders and scrub secret-shaped text."""
 

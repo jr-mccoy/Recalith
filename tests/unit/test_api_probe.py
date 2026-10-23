@@ -109,7 +109,8 @@ def test_live_local_server_certifies_and_writes_the_route(tmp_path, monkeypatch)
         calls = fake.snapshot()
     rep = section(out)
     assert code == pc.EXIT_CERTIFIED, (rep["blocking_dimensions"], rep["dimensions"])
-    assert rep["resolved_model"] == "fake-model" and rep["dimensions"]["usage"]["reported"] is True
+    assert rep["resolved_model"] == "<curator-model>" and rep["dimensions"]["usage"]["reported"] is True
+    assert "fake-model" not in json.dumps(rep)  # tracked evidence names no model; the private route below keeps it
     assert rep["dimensions"]["output_cap"]["verdict"] == "pass" and rep["dimensions"]["endpoint_identity"]["verdict"] == "pass"
     caps = sorted(json.loads(c["body"]).get("max_completion_tokens") for c in calls)
     assert caps[0] <= 64  # the deliberately small cap call ran against the live endpoint
