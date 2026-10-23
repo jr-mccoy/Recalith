@@ -33,7 +33,6 @@ LATER = {
     "export": "Task 15 full (portable transfers; full release)",
     "import": "Task 15 full (portable transfers; full release)",
     "import_breadcrumbs": "Task 15 full (Breadcrumbs importer; full release)",
-    "upgrade": "Task 17 full (local upgrades; full release)",
     "project_fork": "Task 2 full (project fork; full release)",
     "workspace_attach": "Task 2 full (workspace attachment; full release)",
     "doctor_probe": "the full release (Tasks 13/17 full); in preview the operator harnesses run the probes: tools/probe_delivery.py --engine-project PATH for the host, tools/probe_provider.py for the provider (decision 0019)",
@@ -128,6 +127,11 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
         return out.success(service.retry_job(ctx, args.job_id))
     if k == "backup":
         return out.success(service.submit_backup(ctx, Path(args.output)).report())
+    if k == "upgrade":
+        result = service.upgrade(ctx, Path(args.wheel), expected_digest=args.expected_digest, release_profile=args.release_profile, inherited=environ)
+        if result.state != "activated":
+            return out.failure("storage_failure", f"the profile transition ended {result.state}", 5, result=result.model_dump(mode="json"))
+        return out.success(result.model_dump(mode="json"))
     if k == "restore":
         return out.success(service.restore(ctx, Path(args.path), expected_digest=args.expected_digest).model_dump(mode="json"))
     if k == "forget_apply":

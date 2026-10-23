@@ -59,7 +59,7 @@ from recalith.contracts.health import (
     PrivacyMaintenance,
     PrivacyOperationState,
 )
-from recalith.core.identity import Layout, load_project_config
+from recalith.core.identity import Layout, installation_config, load_project_config
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, process_env, session, spool
 from recalith.operations import autostart
@@ -180,7 +180,7 @@ def _store_facts(ctx: InstallationContext, *, now: str, deep: bool) -> dict[str,
     from recalith.controller import budgets, jobs
     from recalith.privacy import retention
 
-    config = load_project_config(Layout(Path(ctx.root)))
+    config = installation_config(Path(ctx.root))
     out: dict[str, Any] = {}
     with db.open_store(ctx, readonly=True) as store, store.read() as view:
         out["queue"] = jobs.queue_summary(view, now=now)
@@ -402,6 +402,10 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     pinned = pinned_engine(root)
     journals = sorted(p.name for p in (root / BACKUP_JOURNALS).glob("bkp_*.json")) if (root / BACKUP_JOURNALS).is_dir() else []
     restore_journaled = (root / RESTORE_JOURNAL).exists()
+    from recalith.operations import upgrade
+
+    upgrade_phase = upgrade.journal_phase(root)  # an interrupted profile transition (decision 0026)
+    last_upgrade = upgrade.last_result(root)
     ledger_epoch = _ledger_epoch(root)
     cap.coverage = {
         "startup": startup, "engine": {"running": __version__, "pinned": pinned},
@@ -410,6 +414,7 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
         "ledger": {"copy_epoch": ledger_epoch, "store_epoch": facts.get("tombstone_epoch")},
         "backups": {"verified": facts["backups"][0], "latest_verified_at": facts["backups"][1]} if current else None,
         "store_integrity": "not_checked" if not deep or not current else ("ok" if facts["integrity"] == "ok" else "failed"),
+        "upgrade": {"journal": upgrade_phase, "last": None if last_upgrade is None else {k: last_upgrade.get(k) for k in ("operation_id", "state", "source_profile", "target_profile", "retained_pin_count", "error_codes")}},
     }
     if not current:
         cap.flag("unavailable", SCHEMA_REASON[schema_state])
@@ -434,6 +439,8 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
             cap.flag("degraded", "worker_status_unavailable")
     if restore_journaled:
         cap.flag("degraded", "restore_recovery_pending")
+    if upgrade_phase is not None:
+        cap.flag("degraded", "upgrade_recovery_pending")
     if journals:
         cap.flag("degraded", "backup_recovery_pending")
     if current and (ledger_epoch or 0) < facts["tombstone_epoch"]:
@@ -451,7 +458,7 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
     scratch_owed = any(o.status == "cleanup_pending" for o in unfinished)
     latest_backup = facts["backups"][1] if current else None
     failed_backup = [op for op, updated, remaining in facts.get("forget_backups", []) if (remaining.get("backup") or {}).get("state") == "unavailable" and (latest_backup is None or latest_backup <= updated)]
-    pending_work = bool(unfinished) or restore_journaled or autostart.lock_held(os.path.join(process_env.run_dir(root), PRIVACY_LOCK))
+    pending_work = bool(unfinished) or restore_journaled or upgrade_phase is not None or autostart.lock_held(os.path.join(process_env.run_dir(root), PRIVACY_LOCK))
     marker = "absent" if not marker_present else ("active" if pending_work else "stale")
     from recalith.privacy.forget import LIMITS
 

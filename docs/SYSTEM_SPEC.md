@@ -68,7 +68,7 @@ All database keys and queries are installation-local. Cross-project import is an
 
 | Path under project root | Contents | Default tracking |
 |---|---|---|
-| `.recalith/project.toml` | Portable project identity, domain profile, and nonsecret defaults | Track |
+| `.recalith/project.toml` | Portable project identity, domain profile, and nonsecret defaults (explicit retention overrides in a `[retention]` table, decision 0026) | Track |
 | `.recalith/engine.lock` | Exact engine release, artifact digest, Python requirement, adapter contract versions | Track |
 | `.recalith/bin/` | Small project-relative launchers for POSIX and Windows | Track |
 | `.recalith/runtime/<release>/` | Independently installed wheel and virtual environment | Ignore |
@@ -457,6 +457,8 @@ For profile-default retention, stage the change from 180 to 30 days; retain expl
 Re-register target-build capabilities and probe the configured host/provider before leaving maintenance. Full makes additional features eligible for explicit configuration; it does not activate Codex/MCP, change providers, or report untested delivery healthy. Activate the new engine, store, profile/default-policy revision and capability registry as one recoverable upgrade state, advance policy/guidance fences, and record the source/target profile and retention/baseline outcome in the autonomy log. A crash before activation leaves or restores the previous complete preview state; after activation, recovery completes the new state or follows tested rollback while applying the newest tombstones. No half-migrated store may serve.
 
 Test the transition and every failure boundary under A02/A40, including day-181 pinned evidence, pending jobs, a previous forget, failed capsule conversion, and interruption around activation. Full-to-preview downgrade is not a supported flag change; return `policy_refused` rather than attempting a lossy reverse migration. Explicit restore remains governed by schema compatibility and the current privacy ledger.
+
+Decision 0026 fixes the details of the transition built so far: it runs in place, by the engine the installation already pins, which must be the release of the digest-verified wheel (the side-by-side switch between two releases, same-profile upgrades and schema migration are not built; a store at another schema is refused unchanged). An installation's profile is the one its store records: its retention, worker and health defaults follow the store, explicit retention overrides are a `[retention]` table in `project.toml`, and the tracked `release_profile` is only a record that activation updates. Staging is in memory from a consistent snapshot: exact capsules or retained pins under the target window, then one activation transaction (profile, policy/guidance fences, the content-free `profile_transition` autonomy log entry, the chain's activation baseline last); live evidence must stay available and the staged chain must verify before the staged file is written. The journal's `activating` record is the commit point: before it, failure or recovery rolls back; from it, recovery swaps the staged file in (only if the live store's rows are unchanged since the snapshot) and completes the record, checkpoint, ledger copy and marker. The worker's start recovers an interrupted transition before it opens the store. Until the full release, the guarded CLI and the service answer `capability_unavailable` for every upgrade form except a downgrade request (`policy_refused`), as `init --release-profile full` does.
 
 ## 11. Retention and intentional forgetting
 

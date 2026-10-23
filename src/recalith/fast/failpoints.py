@@ -3,7 +3,7 @@
 Production code calls :func:`hit` at named points around spool temp write,
 flush, rename, cursor advance, database begin/commit, job lease, budget
 reservation, proposal persistence, job completion, retention expiry,
-backup completion, forgetting, restore, the revision chain, evidence capsules and host integration. Nothing is armed
+backup completion, forgetting, restore, the revision chain, evidence capsules, the profile transition and host integration. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -172,6 +172,21 @@ CHAIN_AFTER_SEAL = "chain.after_seal"
 CAPSULE_AFTER_PLAN = "capsule.after_plan"
 CAPSULE_BEFORE_COMMIT = "capsule.before_commit"
 CAPSULE_AFTER_COMMIT = "capsule.after_commit"
+# The preview-to-full profile transition (Task 17 full, decision 0026): the verified backup is recorded
+# (registration, staging and activation pending); the capabilities are registered and probed; inside the staged
+# store's activation transaction after the chain's activation baseline (commit pending); inside the staged
+# compaction transaction (commit pending); the staged store file is complete and journaled; the journal says
+# ``activating`` (the swap pending); the staged store replaced the live one (the tracked profile record, the
+# verifier checkpoint, the ledger copy and the marker pending); the record and checkpoint are written (the
+# journal and the marker pending).
+UPGRADE_AFTER_BACKUP = "upgrade.after_backup"
+UPGRADE_AFTER_REGISTRATION = "upgrade.after_registration"
+UPGRADE_AFTER_BASELINE = "upgrade.after_baseline"
+UPGRADE_AFTER_CAPSULES = "upgrade.after_capsules"
+UPGRADE_AFTER_STAGE = "upgrade.after_stage"
+UPGRADE_BEFORE_SWAP = "upgrade.before_swap"
+UPGRADE_AFTER_SWAP = "upgrade.after_swap"
+UPGRADE_AFTER_RECORD = "upgrade.after_record"
 INTEGRATE_AFTER_RECORD = "integrate.after_record"
 INTEGRATE_AFTER_SETTINGS = "integrate.after_settings"
 INTEGRATE_AFTER_IGNORE = "integrate.after_ignore"
@@ -200,8 +215,12 @@ FORGET = (FORGET_AFTER_MARKER, FORGET_BEFORE_COMMIT, FORGET_AFTER_COMMIT, FORGET
 RESTORE = (RESTORE_AFTER_STAGE, RESTORE_BEFORE_COMMIT, RESTORE_BEFORE_SWAP, RESTORE_AFTER_SWAP)
 CHAIN = (CHAIN_BEFORE_SEAL, CHAIN_AFTER_SEAL)
 CAPSULE = (CAPSULE_AFTER_PLAN, CAPSULE_BEFORE_COMMIT, CAPSULE_AFTER_COMMIT)
+UPGRADE = (
+    UPGRADE_AFTER_BACKUP, UPGRADE_AFTER_REGISTRATION, UPGRADE_AFTER_BASELINE, UPGRADE_AFTER_CAPSULES, UPGRADE_AFTER_STAGE,
+    UPGRADE_BEFORE_SWAP, UPGRADE_AFTER_SWAP, UPGRADE_AFTER_RECORD,
+)
 INTEGRATION = (INTEGRATE_AFTER_RECORD, INTEGRATE_AFTER_SETTINGS, INTEGRATE_AFTER_IGNORE, INTEGRATE_AFTER_MANIFEST, REMOVE_AFTER_SETTINGS, REMOVE_AFTER_MANIFEST, REMOVE_AFTER_IGNORE)
-ALL = CAPTURE + WORKER + CHECKPOINT + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE + CHAIN + CAPSULE + INTEGRATION
+ALL = CAPTURE + WORKER + CHECKPOINT + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE + CHAIN + CAPSULE + UPGRADE + INTEGRATION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

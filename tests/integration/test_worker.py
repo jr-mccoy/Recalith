@@ -1744,3 +1744,62 @@ def test_full_profile_capsule_crash_matches_reference(tmp_path, monkeypatch, fai
         assert rsc.retention_state(root) == reference, (failpoint, rep)
         report = integrity.verify(ws.context(root), full=True)
         assert report["state"] == "verified" and report["complete_coverage"] is True, (failpoint, rep, report["findings"])
+
+
+UPGRADE_MATRIX = [*failpoints.UPGRADE, failpoints.BACKUP_AFTER_SNAPSHOT, failpoints.BACKUP_AFTER_MANIFEST, failpoints.BACKUP_AFTER_PUBLISH, failpoints.BACKUP_AFTER_RECORD, *failpoints.CHAIN]
+
+
+@pytest.mark.parametrize("failpoint", UPGRADE_MATRIX)
+def test_profile_transition_crash_matches_reference(tmp_path, failpoint):
+    """Task 17 full (decision 0026): killed around the preview-to-full transition or the first full-profile drain, then restarted.
+
+    The scenario (``upgrade_scenarios.crash_project``): a preview store with
+    every A35 live owner and the capsule owners, a real forget made before the
+    transition, the operator's transition at day 181 (its verified backup,
+    capability registration, staged activation transaction with the chain's
+    activation baseline, exact capsules or retained pins, staged file, journal,
+    swap and record), then the worker's drain at day 181 under the full
+    profile. A restart is the worker's recovery, the operator's command again
+    when the store is not yet full, and the drain. Kills land only where
+    transition or post-transition work is owed, judged from effects (store and
+    ``project.toml`` profile, the maintenance marker, staged files, payloads the
+    reference expired or compacted). After a kill only the complete previous
+    preview state or a complete, verifying full store serves, with the forget's
+    tombstones; after the restart the store equals the reference and the chain
+    verifies over every current row.
+    """
+    import upgrade_scenarios as usc
+    from recalith.storage import integrity
+
+    reference_root = usc.crash_project(tmp_path, "reference")
+    plain = _driver(reference_root, tmp_path / "reference.calls")
+    assert plain.returncode == 0, plain.stderr
+    reference = usc.semantic(reference_root, portable=True)
+    assert (reference["profile"], reference["project_toml"], reference["transitions"]) == ("full", "full", 1)
+    assert len(reference["capsules"]) >= 5 and all(ok for _p, ok in reference["evidence"]) and reference["tombstones"] >= 1
+    assert usc.leftovers(reference_root) == [] and any(s == "expired" for _k, s in reference["payloads"])
+    assert integrity.verify(ws.context(reference_root), full=True)["state"] == "verified"
+    count_root = usc.crash_project(tmp_path, "count")
+    usc.expect(count_root, reference)
+    hits_log = tmp_path / "count.hits"
+    counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    assert usc.semantic(count_root, portable=True) == reference  # the scenario is deterministic
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while transition work is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = usc.crash_project(tmp_path, f"crash-{rep}")
+        usc.expect(root, reference)
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert usc.semantic(root, portable=True) != reference or usc.leftovers(root), "the kill must land before the work under test is complete"
+        assert usc.kill_invariants(root, usc.scenario(root)) == [], (failpoint, rep)
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert usc.semantic(root, portable=True) == reference, (failpoint, rep)
+        assert usc.leftovers(root) == []
+        report = integrity.verify(ws.context(root), full=True)
+        assert report["state"] == "verified" and report["complete_coverage"] is True, (failpoint, rep, report["findings"])

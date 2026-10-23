@@ -122,9 +122,9 @@ def _minus(moment: str, days: int) -> str:
 
 
 def retention_config(ctx: InstallationContext) -> RetentionConfig:
-    from recalith.core.identity import Layout, load_project_config
+    from recalith.core.identity import installation_config
 
-    return load_project_config(Layout(Path(ctx.root))).retention
+    return installation_config(Path(ctx.root)).retention  # the store's profile decides the defaults (decision 0026)
 
 
 # --------------------------------------------------------------------------

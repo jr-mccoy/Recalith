@@ -98,7 +98,8 @@ SCRATCH_LOCK_WAIT = 0.5
 SCRATCH_LOCK_BUDGET = 2.0
 BUSY_RETRY_SECONDS = 5.0
 WORKER_STOP_SECONDS = 15.0
-CONTENT_FREE_OPERATIONS = frozenset({"payload_release", "support_lost", "retention_expiry", capsules.KIND, FORGET_KIND, RESTORE_KIND, "recheck", "job_retry"})
+CONTENT_FREE_OPERATIONS = frozenset({"payload_release", "support_lost", "retention_expiry", capsules.KIND, FORGET_KIND, RESTORE_KIND, "recheck", "job_retry", "profile_transition"})
+UPGRADE_JOURNAL = Path(".recalith") / "run" / "upgrade.json"  # operations.upgrade.JOURNAL (decision 0026)
 LIMITS = (
     "external_exports_not_recallable",
     "remote_provider_copies_not_recallable",
@@ -939,8 +940,8 @@ def _release_marker(ctx: InstallationContext, store: Store) -> None:
     """Delivery resumes only when no privacy operation is unfinished and no restore is journaled."""
     with store.read() as view:
         unfinished = view.execute("SELECT 1 FROM privacy_operations WHERE status != 'completed' LIMIT 1").fetchone()
-    if unfinished is None and not (Path(ctx.root) / RESTORE_JOURNAL).exists():
-        clear_marker(ctx)
+    if unfinished is None and not (Path(ctx.root) / RESTORE_JOURNAL).exists() and not (Path(ctx.root) / UPGRADE_JOURNAL).exists():
+        clear_marker(ctx)  # an interrupted profile transition keeps delivery paused until its recovery (decision 0026)
 
 
 def _result(op_id: str, remaining: dict[str, Any], epoch: int, *, purge_state: str) -> ForgetResult:
@@ -1216,7 +1217,7 @@ def recover_restore(ctx: InstallationContext) -> dict[str, Any]:
         lock.release()
 
 
-def _stop_worker(ctx: InstallationContext, wait: float) -> process_env.InstallationLock:
+def _stop_worker(ctx: InstallationContext, wait: float, *, purpose: str = "restore") -> process_env.InstallationLock:
     from recalith.controller import worker as worker_module
 
     root = str(ctx.root)
@@ -1229,7 +1230,7 @@ def _stop_worker(ctx: InstallationContext, wait: float) -> process_env.Installat
         if time.monotonic() >= give_up:
             if asked:
                 (Path(process_env.run_dir(root)) / worker_module.STOP_FILE).unlink(missing_ok=True)  # no stop request outlives the refusal
-            raise RecalithError("capability_unavailable", "restore needs exclusive maintenance: the worker did not stop; stop it and retry")
+            raise RecalithError("capability_unavailable", f"{purpose} needs exclusive maintenance: the worker did not stop; stop it and retry")
         time.sleep(0.1)
     return lock
 
@@ -1249,6 +1250,8 @@ def restore(ctx: InstallationContext, source: Path, *, expected_digest: str, now
             recover_restore_locked = _read_journal(ctx.root)
             if recover_restore_locked is not None:
                 raise RecalithError("capability_unavailable", "an interrupted restore is still journaled; the worker's next start finishes it")
+            if (Path(ctx.root) / UPGRADE_JOURNAL).exists():
+                raise RecalithError("capability_unavailable", "an interrupted profile transition (upgrade) is still journaled; the worker's next start finishes or rolls it back")
             live_path = Path(ctx.root) / ".recalith" / STATE_DB
             if live_path.exists():
                 with open_store(ctx) as live_store:
