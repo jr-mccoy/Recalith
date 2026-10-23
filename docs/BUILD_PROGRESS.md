@@ -1450,6 +1450,22 @@ Add each later checkpoint with:
 - **Tests:** `test_the_agent_environment_keeps_the_temp_directory` failed before the fix and passes after. `test_completeness_names_errors_and_contamination` adds the stalled-gap case. `tests/unit/test_live_eval.py tests/unit/test_eval_harness.py tests/integration/test_evaluation.py --basetemp C:/Code/t` → 33 passed.
 - **Next:** the owner re-runs the one-scenario pilot, which must print `"gaps": ["quiet", "quiet"]` and a nonzero claim count for the candidate; then the gate.
 
+### 2026-10-23 — The second live pilot (the owner's run, after abf4098): the live path works end to end
+
+- **The run.** Same command, `--out C:\Code\rl-p2`. Both arms ran with `error: null`. The candidate printed `"gaps": ["quiet", "quiet"]` and `"claims": 2`.
+- **What the records show** (read-only from the kept results; nothing copied into the repository):
+  - Both waits ended `quiet`, after 381 s and 387 s. Horizon checks: none before A; before B, one host session with 19 events. The worker was stopped cleanly.
+  - Ten real curator calls on the installation's certified route: 2 extraction, 2 review, 2 episode, 4 task narrative. From the ledger: 349,656 input and 16,809 output tokens, about 35k input tokens per call.
+  - Two facts were admitted, `inferred`/`supported`. One is the working test command, `PYTHONPATH=src python -m unittest discover -s tests -v`.
+  - Session B's prompt packet delivered that fact, and the agent ran the command directly. The gold session-start point stayed unmet: a fresh start with no task binding carries only intent questions (decision 0013; as in the recorded run).
+  - Outcomes: both arms passed the oracle with no repeated mistakes. The baseline also used the working command in B; L1 shows no outcome difference for this agent.
+  - Foreground cost, as the host reported it: $0.094 for the baseline and $0.122 for the candidate. Candidate tokens were about 21 % higher, partly from pre-action packets that carry labeled "recent observation" items for most actions (the session overlay, decision 0015).
+- **Measured basis for the gate:**
+  - A candidate trial takes about 14 minutes: two waits of about 6.5 minutes plus sessions and 25 s of provisioning. A baseline trial takes about 30 s.
+  - The recorded workload days made 26–36 curator calls each.
+  - Estimate: about 2 hours wall time at `--slots 2`, about 1.2 hours at 4. Foreground about $3, host-reported. Background roughly 8M input and 0.4M output curator tokens, assuming about 35k input tokens per call, about 13 candidate installations and about 100 workload calls.
+- **Acceptance:** statuses unchanged; one live pilot trial counts toward nothing.
+
 ## Blockers and decisions
 
 **B1 — Task 0/0b live certification (cleared on native Windows on 2026-10-23; Linux and macOS not observed).** Status after the owner's live run: the Anthropic Messages route and all four delivery paths of Claude Code 2.1.309 are live-certified for the pilot, whose health is `ready`; see the B1 live checkpoint. The history below is kept. Evidence: `docs/host-compatibility.json` (`auth_route.kind = not_configured`, live `not_run`). This cloud session has the Claude CLI but no explicitly configured build account route; the session's own host credentials/proxy are not a Recalith route and are not used. Minimal operator action, from an ordinary terminal outside any agent session:
