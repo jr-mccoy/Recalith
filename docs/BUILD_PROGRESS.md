@@ -12,8 +12,8 @@ Initial handoff: 2026-10-15 · Specification 1.3 · Packet 1.3-recalith.1
 | Live provider certification | **Established on native Windows (2026-10-23, the owner's run; B1 live checkpoint):** the Anthropic Messages curator route is live-certified (provider probe exit 0, runtime check of the recorded route exit 0) and the pilot records it `certified`; Linux and macOS not observed. Before that, not established: Since decision 0023 the operator may certify a Claude CLI, Anthropic Messages, OpenAI-compatible or loopback local-server route; request capture passes for all three API examples (`docs/host-compatibility.json`: `anthropic_api`, `openai_compatible_api`, `local_model`), no route of any backend is live-certified. Request-capture isolation observed on Claude CLI 2.1.301 (Task 0) and 2.1.302 (Task 7: probe and production adapter, clean and host-marked parents, all isolation dimensions pass); live route + operator attestation not configured (B1); the worker has no backend and model jobs wait with `provider_unavailable`. Task 18 re-ran the probe and runtime check on 2.1.306: isolation passes, route unavailable. On native Windows (decision 0027) the configured `anthropic_messages` route passes request capture (request shape, environment isolation, bounds; the runtime check's isolation passes from clean and host-marked parents); live not run (the agent session holds no key, by design) |
 | Live host delivery certification | **Established on native Windows (2026-10-23):** Claude Code 2.1.309, all four delivery paths live-certified through the real engine and the installed hooks (3/3 positives with the exact echo and 3/3 clean negatives each); the pilot's host record is `live` and its health `ready`. Before that, not established: Task 13 repeated the protocol through the real engine and installed hooks on Claude Code 2.1.305: all four paths request-visible in request-capture mode (3/3 positives, 3/3 negatives), live echo not run (B1). A request-capture `host.json` certifies no path; `integrate` enables none in a real project. Task 18 repeated it on 2.1.306 with the same outcome. On native Windows with Claude Code 2.1.309 (decision 0027) the engine-mode protocol ran through the installed `.cmd` hooks: all four paths request-visible (3/3, 3/3), deny rules `denied_all_covered`, private paths `probed_limited`; live not run (B1) |
 | Product tests / benchmarks | Deterministic unit/integration/platform suites and the kill/restart matrix (Task 18 and Task 11 follow-up checkpoints). Every healthy §7 target is met on every native platform on b3f1f1f (decision 0022): the hook gate in this container and in full measure runs 21 and 24; typed-state p95 Windows 4.82/4.92 s (n=20) and 4.75/4.62 s (n=60), Linux 4.47–4.48 s, macOS 4.39–4.55 s, this container 4.74 s (n=100); idle < 0.24 % of one core, ≤ 47 MiB. Native Windows laptop (decision 0027): the §7 gate through the installed command (Git Bash → cmd.exe → `.cmd` → runtime) is met: warm p95 143.7 / p99 155.3 ms, cold-missing p95 138.9 / p99 140.7 ms, 100 % delivered and 0 % degraded (n=500 each) |
-| Next task | Owner decision: build the live trial path of the evaluation harness (Task 18) so `evals/run.py gate --mode live` can run against the pilot's certified route and host; then the live preview gate. Also open: worker independence on Windows (decision 0027 item 8), the concurrent-hook snapshot race, enabling the full profile (decision 0026) |
-| Known execution blocker | The live gate's trial path is not built. B1's certification is complete on native Windows (Linux and macOS live not observed) |
+| Next task | The owner runs the one-scenario live pilot, then the live preview gate (`evals/run.py gate --mode live`, decision 0028; commands in the handoff). Owner review: binding trial host records (decision 0028 item 2). Also open: worker independence on Windows (decision 0027 item 8), the concurrent-hook snapshot race, enabling the full profile (decision 0026) |
+| Known execution blocker | None for preview on native Windows: the live trial path is built (decision 0028) and waits for the owner's run; it has never run live. Linux and macOS live not observed |
 
 Update this file as work happens. “Not started” is the initial state, not a failed test. A packet-integrity check is not product verification. Do not prefill successful probe results or an engine build number.
 
@@ -48,7 +48,7 @@ Use states such as `not started`, `in progress`, `blocked`, `preview slice compl
 | 15 | Evidence retention and portable transfers | Core backup/ledger, live pins, 180-day unpinned retention | Capsules, transfer/export/import, Breadcrumbs importer | preview core slice complete (derived revision-body aging closed in Task 18, decision 0020); **full capsule slice built** (decision 0025: exact capsules, link redirection, retained pins; active only in `release_profile: full` stores, which no real installation can reach yet; A35 full_only `in_progress`, A55 `pending` with tests); export/import and the Breadcrumbs importer pending, full-only |
 | 16 | Intentional forgetting and safe restore | Complete forgetting and suppression-aware restore | Core behavior retained; no separate deferred slice listed | complete (deterministic mechanics, preview; health composition of pending privacy maintenance and schema migration are Task 17, real-host pause certification Task 13, export/import tombstones full-only with Task 15; A25/A36/A37/A48/A63/A64 in progress, no live variant) |
 | 17 | Health, local upgrades, and independent operations | Health, startup/recovery, profile-aware readiness | Engine/schema upgrade, preview-to-full transition, chain diagnostics | preview slice complete (deterministic); **full transition slice built** (decision 0026: the in-place preview-to-full transition with its journal, rollback, recovery and kill/restart family; chain diagnostics built with Task 5's full slice, decision 0024; not available to real installations until the full release; A02/A40 full_only `in_progress`); the side-by-side engine switch, same-profile upgrades, schema migration and OS startup entries pending, full-only; readiness of a real installation needs Task 13's host record and B1's route |
-| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; gate **blocked**: the live trial path is not built (B1's certification is complete on native Windows): `run_trial`, `run_day` and the demonstrations refuse live mode, decision 0027 checkpoint); every healthy §7 target met on every native platform (decisions 0021, 0022; checklist item passed); scripted runs are mechanics only; full evaluation pending, full-only |
+| 18 | End-to-end evaluations and release hardening | Applicable tests, comparative smoke, three workload days | Deferred variants and full 48-scenario, three-trial evaluation | preview slice built; the live trial path is built (decision 0028) and has **not run**, so the gate has no live result; every healthy §7 target met on every native platform (decisions 0021, 0022; checklist item passed); scripted runs are mechanics only; full evaluation pending, full-only |
 
 ## Acceptance tracking
 
@@ -1384,6 +1384,50 @@ Add each later checkpoint with:
 - **Not run / still unavailable:** the live gate (its trial path is not built: native Windows checkpoint, finding 7); live Linux and macOS hosts; any curator call on real work in the pilot; worker independence while a hook-started worker runs on Windows (decision 0027 item 8).
 - **Acceptance:** statuses unchanged. Every live-host variant is scoped to Linux, macOS and Windows, and this run is native Windows only; A27, A28, A61, A67 and A73 gain notes with these live results. Nothing is marked passed.
 
+### 2026-10-23 — Task 18 live trial path (decision 0028)
+
+- **Scope.** The owner asked for the live trial path for the gate. Built: `evals/run.py smoke|workload|demonstrate|gate --mode live` now runs instead of refusing. No live trial has run: this session holds no key and runs no guarded command.
+- **Design (decision 0028).**
+  - Each live candidate installation is provisioned by the operator's own tools, as children of the unmarked harness (`evals/live.py: provision`):
+    - `recalith init --operator-token-file`;
+    - `bootstrap.py install` with the certified project's wheel (its digest must equal the source `engine.lock`) and the wheelhouse;
+    - a complete live route certification *for that installation* (`probe_provider.py --route-out`; nothing is copied);
+    - `integrate claude --operator-token-file`;
+    - the host record bound from the certified project's live engine-mode record by the certification harness (`probe_delivery.py --bind-from`, new; it runs no session and checks digest, installation and host version, from an unmarked caller only). SYSTEM_SPEC §9.3 now names this binding.
+  - Smoke trials run on real time with real installed hooks and the hook-started worker on the installation's own route:
+    - the agent is `claude -p --strict-mcp-config --output-format stream-json --verbose --include-hook-events`, plus the agent model, `acceptEdits` and the tools `Bash Read Edit Write`;
+    - delivered context comes from the host's `hook_response` records; the action log from the stream;
+    - between sessions the store is waited quiet (nothing due within 20 min; at most 45 min, or 5 min without progress), with a read-only evidence horizon check;
+    - the worker is stopped with `worker stop --operator-token-file`.
+  - Workload days replay in process with a harness worker on the virtual clock and the installation's own certified route behind the production supervisor.
+  - Live demonstrations use only this run's live trials. Forgetting/restore and isolation run on the kept live L3/C4 workspaces through the guarded CLI.
+  - `--slots N` runs trials in parallel, each in its own installation.
+  - **Owner review (decision 0028 item 2):** binding host records instead of re-running 24 live sessions per installation.
+- **Found and fixed on the way.**
+  - `report.gate` read only the §5.1 measures, so a live report could have passed with trials, workload days or demonstrations missing. `report.completeness` now fails the gate for each gap: `smoke_trials_missing`, `trial_errors`, `contaminated_arms`, `workload_days_short`, `demonstrations_unmet`.
+  - `report.operational` crashed on a workload day that did not run. It is now listed (`days_not_run`).
+- **Observed (request capture, no account; Claude Code 2.1.309, native Windows).**
+  - `--include-hook-events` prints `system/hook_response` records carrying each hook's exact stdout. All three injected contexts reached the outbound request (scratch probe). The record shape is pinned in `tests/unit/test_live_eval.py`.
+  - `baselines.observe_native_memory` with the live trials' own session flags: control `sentinel_seen: true`, disabled run `sentinel_seen: false`, so state `disabled`.
+- **Files.**
+  - New: `evals/live.py`, `tests/unit/test_live_eval.py`, `docs/decisions/0028-live-evaluation-installations.md`.
+  - Changed: `evals/{agent,trial,workload,demos,run,report,baselines}.py`, `tools/probe_delivery.py` (bind mode), SYSTEM_SPEC §9.3, IMPLEMENTATION_PLAN Task 18 files, OPERATIONS §6, `tests/coverage_manifest.json` (A61 and A73 tests and notes; statuses unchanged).
+  - No `src/` change, so the certified wheel `87a03a07…` is still the build the trials provision.
+- **Tests run** (Python 3.13.7, native Windows, this laptop):
+  - `pytest tests/unit/test_live_eval.py` → 18 passed.
+  - `pytest tests/unit/test_eval_harness.py tests/unit/test_delivery_probe.py tests/unit/test_api_probe.py tests/unit/test_probe_api.py tests/unit/test_live_eval.py tests/unit/test_probe_engine_platform.py` → 75 passed, 8 skipped (POSIX-shebang fakes), 1 failed: `test_scripted_smoke_run_writes_labeled_trials`, a 290-character path under the long temp dir. It passes with `--basetemp C:/Code/t`.
+  - `pytest tests/unit/test_eval_harness.py tests/integration/test_evaluation.py tests/unit/test_live_eval.py tests/unit/test_delivery_probe.py --basetemp C:/Code/t/ev2` → 54 passed, 8 skipped, 1 failed: `test_replay_cannot_see_future_evidence`, a 265-character path. `tests/integration/test_evaluation.py` with `--basetemp C:/Code/t` → 2 passed.
+  - Both failures are the known `MAX_PATH` environment limit with `LongPathsEnabled` 0, not code.
+  - Final, after every edit: `pytest tests/unit/test_live_eval.py tests/unit/test_eval_harness.py tests/integration/test_evaluation.py tests/unit/test_delivery_probe.py --basetemp C:/Code/t` → 55 passed, 8 skipped.
+- **Not run.** Every live trial, live workload day and live demonstration; the full suite (only the affected suites ran); CI on this change (pending the push).
+- **Owner run: estimate, not a measurement.** For the full gate at `--slots 2`:
+  - Provisioning: about 1 minute per installation (16 installations; three small curator calls each).
+  - Smoke: 48 working-agent sessions at about 1–3 minutes each, plus up to two real-time waits of about 5–12 minutes per candidate trial.
+  - Workload days: three, with real curator calls.
+  - Demonstrations: four more sessions.
+  - Total: about 1.5–3 hours wall time. Cost: roughly $5–$20, most of it the 48+ working-agent sessions, depending on session length and model prices. The background curator calls are small.
+  - Run the one-scenario pilot first; it measures the real figures and exercises the never-run path cheaply (next actions).
+
 ## Blockers and decisions
 
 **B1 — Task 0/0b live certification (cleared on native Windows on 2026-10-23; Linux and macOS not observed).** Status after the owner's live run: the Anthropic Messages route and all four delivery paths of Claude Code 2.1.309 are live-certified for the pilot, whose health is `ready`; see the B1 live checkpoint. The history below is kept. Evidence: `docs/host-compatibility.json` (`auth_route.kind = not_configured`, live `not_run`). This cloud session has the Claude CLI but no explicitly configured build account route; the session's own host credentials/proxy are not a Recalith route and are not used. Minimal operator action, from an ordinary terminal outside any agent session:
@@ -1457,16 +1501,30 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 
 Task 18's preview slice, the Task 11 follow-up (decision 0021), the Windows typed-state slice (decision 0022), the direct-API inference backends (decision 0023) and, in Cut 2, Task 5's full slice (decision 0024: the revision chain and integrity scanner) Task 15's capsule slice (decision 0025: exact evidence capsules) and Task 17's preview-to-full transition (decision 0026), all full profile only, are built; see their checkpoints. The transition is reached only through `operations.upgrade.transition` (the tests); the CLI and `init --release-profile full` answer 4 until the owner enables the full profile.
 
-- The preview gate is **blocked** by B1.
+- The preview gate has no live result: the live trial path is built (decision 0028) and waits for the owner's run.
 - Every healthy §7 target is met on every native platform on b3f1f1f: hook latency and usefulness, typed-state p95 ≤ 5 s and the idle footprint. The checklist item `hook_latency_usefulness_per_platform` is `passed`.
 
-**Native Windows (decision 0027).** The owner's laptop is a native Windows host: integrate installs the `.cmd` hook command there, Claude Code 2.1.309 is capture-certified, the harnesses run natively, the §7 gate is met through the installed command, and the pilot `C:\Code\rl-pilot` is set up for the operator (see the native Windows checkpoint). The live gate's trial path is not built.
+**Native Windows (decision 0027).** The owner's laptop is a native Windows host: integrate installs the `.cmd` hook command there, Claude Code 2.1.309 is capture-certified, the harnesses run natively, the §7 gate is met through the installed command, and the pilot `C:\Code\rl-pilot` is set up for the operator (see the native Windows checkpoint). The live gate's trial path is built (decision 0028).
 
 Next actions, in order:
 
 1. **Done (2026-10-23):** the owner certified the curator route and all four delivery paths live on native Windows (B1 live checkpoint). A later Claude Code version needs a capture review (decision 0019) and the delivery probe again. Earlier instruction, kept for reference: **The operator's live certification on native Windows.** Run the PowerShell commands of the native Windows checkpoint (steps 1–7; Anthropic Messages, already configured), then record the live results here: `docs/host-compatibility.json` (check it holds no secret, user name or machine path), the read-only `recalith status`, the coverage manifest for any live variant that actually ran.
    - A later Claude Code version needs a fixture capture and review before it is certified (decision 0019), then `integrate claude` again.
-2. **Owner decision: build the live trial path of the evaluation harness** (Task 18): live smoke trials with `LiveClaudeAgent` through the real installed hooks and the certified curator route through the worker, live workload days and live demonstrations. Until then `gate --mode live` cannot produce a result.
+2. **The live pilot, then the live gate** (decision 0028). Run these in native PowerShell, in an ordinary window you opened yourself, from the repository root, with the key exported there:
+   ```powershell
+   $env:ANTHROPIC_API_KEY = Read-Host -MaskInput 'ANTHROPIC_API_KEY'
+   $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', 'C:\Code\rl-pilot',
+             '--wheel', 'dist\recalith-0.1.0.dev0-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
+   # a. One-scenario pilot (about 15-25 minutes, a dollar or two): both arms of L1, workspaces kept.
+   & .venv\Scripts\python.exe evals\run.py smoke --mode live --scenario smoke-L1-ledgerlite-test-command @live --out C:\Code\rl-p1 --keep-workspaces
+   # b. Only if (a) exits 0 and neither trial record holds an "error": the gate (about 1.5-3 hours at 2 slots).
+   & .venv\Scripts\python.exe evals\run.py gate --mode live @live --out C:\Code\rl-gate --slots 2
+   ```
+   Report the exit codes. For (a), also report the `trials` summary line, or paste `C:\Code\rl-p1\trials\*.json` if a trial holds an `error`. For (b), report `report.md`'s gate line.
+   - Exit 4 means a required input or certification was missing, and nothing ran.
+   - For (b), exit 8 means the gate ran and failed; `report.json` names every reason.
+   - Results directories hold machine paths and private trial content. Keep them out of git until they are sanitized.
+   - **Owner review:** decision 0028 item 2 binds each trial installation's host record from the pilot's live engine-mode run instead of re-running 24 live sessions per installation.
 3. **Owner decision: worker independence on native Windows** (decision 0027 item 8): start the worker outside the venv redirector's job, or accept `recovery` degraded while it runs.
 4. **Watch two Windows tests.**
    - `test_concurrent_hooks_preserve_budget` failed once on a slow Windows runner (CI run 107) with a reason the assertion did not name. It now names it; attribute it on the next occurrence.

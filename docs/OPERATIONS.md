@@ -113,4 +113,17 @@ Logical forgetting does not reach explicit exports, operator or third-party copi
 
 ## 6. Evaluation status
 
-The preview release gate (ACCEPTANCE_TESTS §6.1, §8) is **blocked by B1**. The evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) exist and have run in recorded/scripted mode only, which is mechanics evidence and never a live pass. See the Task 18 checkpoint in [BUILD_PROGRESS](BUILD_PROGRESS.md).
+The preview release gate (ACCEPTANCE_TESTS §6.1, §8) has **not run live**. B1 has cleared on native Windows: the pilot project holds a live-certified route and host record. The live trial path is built (decision 0028), but no live gate has run yet. The evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) have run only in recorded/scripted mode, which is mechanics evidence and never a live pass. See the Task 18 checkpoints in [BUILD_PROGRESS](BUILD_PROGRESS.md).
+
+### Running the live gate (decision 0028)
+
+Run it from an ordinary terminal that you opened yourself, with the selected key exported there. The `--source-project` is the project whose route and host record are certified (its `provider.json` and `host.json`). The run provisions each candidate installation with your own tools: init with the pre-init token, the release bootstrap with the certified project's wheel, a live route certification of its own, and `integrate claude`. Each installation's host record is then bound from the certified project's live record. The results directory holds every report the run writes; keep it short on Windows.
+
+```powershell
+& .venv\Scripts\python.exe evals\run.py gate --mode live `
+    --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
+    --source-project C:\Code\rl-pilot --wheel dist\recalith-0.1.0.dev0-py3-none-any.whl --wheelhouse wheelhouse `
+    --out C:\Code\rl-gate --slots 2
+```
+
+Exit 0 means the gate passed (`passed_smoke`). Exit 8 means it ran and failed: the report lists every reason, including anything that did not run. Exit 4 means a required input or certification was missing and nothing ran.
