@@ -43,10 +43,15 @@ def _load(trials_dir: Path, sid: str, arm: str) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
-def _trial(trials_dir: Path, work: Path, sid: str, arm: str) -> dict[str, Any]:
+def _trial(trials_dir: Path, work: Path, sid: str, arm: str, *, live: bool = False) -> dict[str, Any]:
     from evals import trial
 
-    return _load(trials_dir, sid, arm) or trial.run_trial(sid, arm, work)
+    found = _load(trials_dir, sid, arm)
+    if found is not None and (found.get("mode") == "live") == live:
+        return found
+    if live:
+        raise LookupError(f"no live {arm} trial of {sid} in this run")  # a live demonstration never falls back to a scripted trial
+    return trial.run_trial(sid, arm, work)
 
 
 def _delivered(record: dict[str, Any], session: str) -> list[dict[str, Any]]:
@@ -56,9 +61,9 @@ def _delivered(record: dict[str, Any], session: str) -> list[dict[str, Any]]:
     return []
 
 
-def fresh_session_reuse(trials_dir: Path, work: Path) -> dict[str, Any]:
+def fresh_session_reuse(trials_dir: Path, work: Path, *, live: bool = False) -> dict[str, Any]:
     sid = "smoke-L1-ledgerlite-test-command"
-    cand, base = _trial(trials_dir, work, sid, "candidate"), _trial(trials_dir, work, sid, "no_memory")
+    cand, base = _trial(trials_dir, work, sid, "candidate", live=live), _trial(trials_dir, work, sid, "no_memory", live=live)
     points = cand.get("retrieval_points", [])
     b_actions = next((s["actions"] for s in cand["sessions"] if s["name"] == "B"), [])
     first_test = next((a["command"] for a in b_actions if a["command"] and "unittest" in a["command"]), None)
@@ -70,10 +75,10 @@ def fresh_session_reuse(trials_dir: Path, work: Path) -> dict[str, Any]:
     }
 
 
-def changed_condition_revision(trials_dir: Path, work: Path) -> dict[str, Any]:
+def changed_condition_revision(trials_dir: Path, work: Path, *, live: bool = False) -> dict[str, Any]:
     out = {}
     for sid in ("smoke-R1-fieldnotes-check-env-fixed", "smoke-R2-ledgerlite-import-fixed"):
-        cand = _trial(trials_dir, work, sid, "candidate")
+        cand = _trial(trials_dir, work, sid, "candidate", live=live)
         calls = [c["purpose"] + ":" + ",".join(c["operations"]) for c in cand.get("curator_calls", [])]
         out[sid] = {
             "legitimate_retry_success": cand["outcomes"]["legitimate_retry_success"], "task_success": cand["outcomes"]["task_success"],
@@ -220,14 +225,130 @@ def zero_interventions(trials_dir: Path, workload_dir: Path) -> dict[str, Any]:
             "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance"}
 
 
-def run_all(work: Path, *, trials_dir: Path) -> dict[str, Any]:
+# --------------------------------------------------------------------------
+# Live demonstrations (decision 0028): on the live smoke trials' kept workspaces, through the guarded CLI with the operator token
+
+
+def _cli(ws: Path, setup: Any, *args: str, guarded: bool = True) -> dict[str, Any]:
+    """The installation's own launcher as an operator child (``--operator-token-file`` for guarded forms); the JSON body."""
+    from evals import live
+
+    argv = [str(live.launcher(ws)), *args, "--json"] + (["--operator-token-file", str(setup.token_file)] if guarded else [])
+    proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=600, check=False, env=dict(os.environ))
+    try:
+        body = json.loads(proc.stdout or "{}")
+    except ValueError:
+        body = {}
+    if proc.returncode != 0:
+        raise RuntimeError(f"{args[0]} exited {proc.returncode}: {body.get('error') or (proc.stderr or '').strip()[-200:]}")
+    return body.get("result") or {}
+
+
+def _live_session(ws: Path, home: Path, setup: Any, name: str, prompt: str, agent_factory: Any = None) -> Any:
+    from evals import agent, baselines, live
+
+    home.mkdir(parents=True, exist_ok=True)
+    baselines.prepare_home(home)
+    worker = agent_factory() if agent_factory is not None else agent.LiveClaudeAgent(setup.executable, setup.model)
+    return worker.run_session(name, [prompt], ws, home, env=live.agent_env(setup, home, route_keys=live.route_keys(ws)))
+
+
+def forgetting_and_restore_live(trials_dir: Path, work: Path, setup: Any, *, agent_factory: Any = None) -> dict[str, Any]:
+    """L3's live candidate: backup, forget the budget preference (its claims and the learning session's tasks), a fresh live
+    session, restore the pre-forget backup suppression-aware, another live session. The worker is stopped around each
+    privacy operation (restore needs exclusive maintenance)."""
+    from evals import live, trial
+    from recalith.storage import db
+
+    sid = "smoke-L3-household-grocery-budget"
+    rec = _trial(trials_dir, work, sid, "candidate", live=True)
+    ws = work / rec["workspace"]
+    out: dict[str, Any] = {"scenario": sid, "route": "the guarded CLI with the operator token (live)"}
+    claims = [c for c in trial.claim_heads(ws) if c["status"] == "active" and "600" in (c["proposition"] or "")]
+    if not claims:
+        return {**out, "demonstrated": False, "reason": "the live curator admitted no claim naming the $600 limit", "trial_error": rec.get("error")}
+    needles = [c["proposition"] for c in claims]
+    out["stopped_before_backup"] = live.stop_worker(ws, setup)
+    backup = _cli(ws, setup, "backup", "--output", str(ws / ".recalith" / "backups" / "before-forget"))
+    external = work / "forget-external-copy"
+    shutil.copytree(backup["location"], external)  # an operator's copy outside the installation (forgetting cannot reach it)
+    out["backup_before"] = {"manifest_digest": backup["manifest_digest"], "store_hits_before": sum(_store_text(ws, n) for n in needles), "external_copy": True}
+    with db.open_store(trial.context(ws), readonly=True) as store, store.read() as view:
+        task_ids = sorted({r[0] for r in view.execute("SELECT DISTINCT h.task_id FROM task_binding_heads h JOIN events e ON e.event_id = h.event_id JOIN sessions s ON s.session_id = e.session_id WHERE s.host_session_id = ?", (rec["sessions"][0]["host_session_id"],)).fetchall()})
+    selector = work / "forget-selector.json"
+    selector.write_text(json.dumps({"record_refs": [{"kind": "claim", "id": c["claim_id"], "revision": c["revision"]} for c in claims], "task_ids": task_ids, "source_ranges": []}), encoding="utf-8")
+    out["selector"] = {"claims": len(claims), "tasks": len(task_ids)}
+    preview = _cli(ws, setup, "forget", "--selector", str(selector), "--preview", guarded=False)
+    forgot = _cli(ws, setup, "forget", "--selector", str(selector), "--apply", "--preview-digest", preview["preview_digest"])
+    out["forget"] = {k: forgot.get(k) for k in ("purge_state", "purged_count", "quarantined_count", "backup_state")}
+    out["store_hits_after_forget"] = sum(_store_text(ws, n) for n in needles)
+    after = _live_session(ws, work / "forget-home-d", setup, "D", "Plan next month's groceries within the grocery budget.", agent_factory)
+    out["delivered_after_forget"] = any("600" in (d.context or "") for d in after.deliveries)
+    out["stopped_before_restore"] = live.stop_worker(ws, setup)
+    restored = _cli(ws, setup, "restore", str(external), "--expected-digest", backup["manifest_digest"])
+    out["restore"] = restored
+    out["store_hits_after_restore"] = sum(_store_text(ws, n) for n in needles)
+    again = _live_session(ws, work / "forget-home-e", setup, "E", "What is the grocery budget? Plan groceries.", agent_factory)
+    out["delivered_after_restore"] = any("600" in (d.context or "") for d in again.deliveries)
+    out["stopped_after"] = live.stop_worker(ws, setup)
+    out["demonstrated"] = (out["backup_before"]["store_hits_before"] > 0 and out["store_hits_after_forget"] == 0 and not out["delivered_after_forget"]
+                           and bool(restored.get("source_contains_suppressed")) and out["store_hits_after_restore"] == 0 and not out["delivered_after_restore"])
+    return out
+
+
+def isolation_live(trials_dir: Path, work: Path, setup: Any, *, agent_factory: Any = None) -> dict[str, Any]:
+    """C4's live candidate: two independent installations with opposite test commands, checked in both directions after
+    fieldnotes learns its own command in a further live session."""
+    from evals import live, trial
+    from recalith import service
+    from recalith.contracts.common import Actor
+
+    sid = "smoke-C4-cross-project-near-match"
+    rec = _trial(trials_dir, work, sid, "candidate", live=True)
+    fieldnotes = work / rec["workspace"]
+    ledger = work / (rec.get("second_project") or {})["workspace"]
+    reverse = _live_session(fieldnotes, work / "isolation-home-r", setup, "R", "Run the project checks with `python tools/check.py` and get them passing.", agent_factory)
+    gap = live.wait_quiescent(fieldnotes)
+    stops = [live.stop_worker(fieldnotes, setup), live.stop_worker(ledger, setup)]
+    actor = Actor(kind="controller", id="eval-harness", channel="worker")
+    a, b = service.resolve(ledger, actor=actor), service.resolve(fieldnotes, actor=actor)
+    ledger_claims = {c["claim_id"]: c for c in trial.claim_heads(ledger) if c["status"] == "active"}
+    fieldnotes_claims = {c["claim_id"]: c for c in trial.claim_heads(fieldnotes) if c["status"] == "active"}
+    in_fieldnotes = json.dumps(service.search(b, "PYTHONPATH=src unittest discover"))
+    in_ledger = json.dumps(service.search(a, "NOTES_HOME tools/check.py KeyError"))
+    leaked = sorted([i for i in ledger_claims if i in in_fieldnotes] + [i for i in fieldnotes_claims if i in in_ledger])
+    text_leaks = sorted(x for x, hay in (("PYTHONPATH=src", in_fieldnotes), ("NOTES_HOME", in_ledger)) if x in hay)
+    delivered_b = [i["text"] for p in rec.get("retrieval_points", []) for i in p.get("items", [])]
+    return {
+        "scenario": sid, "installations": {"ledgerlite": a.installation_id, "fieldnotes": b.installation_id, "distinct": a.installation_id != b.installation_id and a.project_id != b.project_id},
+        "ledgerlite_active_claims": [c["proposition"] for c in ledger_claims.values()], "fieldnotes_active_claims": [c["proposition"] for c in fieldnotes_claims.values()],
+        "cross_record_ids": leaked, "cross_text_in_search": text_leaks, "fieldnotes_session_b_delivered": delivered_b, "reverse_session": {"actions": len(reverse.actions), "gap": gap}, "worker_stop": stops,
+        "task_success": rec["outcomes"]["task_success"], "cross_project_leak_commands": (rec.get("oracle") or {}).get("metrics", {}).get("cross_project_leak_commands"),
+        "demonstrated": bool(ledger_claims) and bool(fieldnotes_claims) and not leaked and not text_leaks and not any("PYTHONPATH" in t for t in delivered_b)
+                        and a.installation_id != b.installation_id and bool(rec["outcomes"]["task_success"]),
+    }
+
+
+def run_all(work: Path, *, trials_dir: Path, mode: str = "scripted", live_setup: Any = None, live_work: Path | None = None, agent_factory: Any = None) -> dict[str, Any]:
+    """Every §6.1 demonstration. ``live``: from this run's live trials and their kept workspaces (``live_work``), never a fallback."""
     work.mkdir(parents=True, exist_ok=True)
     demos: dict[str, Any] = {}
-    for name, fn in (("fresh_session_reuse", lambda: fresh_session_reuse(trials_dir, work)), ("changed_condition_revision", lambda: changed_condition_revision(trials_dir, work)),
-                     ("forgetting_and_restore", lambda: forgetting_and_restore(work)), ("isolation", lambda: isolation(trials_dir, work)),
-                     ("zero_interventions", lambda: zero_interventions(trials_dir, trials_dir.parent / "workload"))):
+    live = mode == "live"
+    if live:
+        kept = live_work or work
+        steps = (("fresh_session_reuse", lambda: fresh_session_reuse(trials_dir, work, live=True)), ("changed_condition_revision", lambda: changed_condition_revision(trials_dir, work, live=True)),
+                 ("forgetting_and_restore", lambda: forgetting_and_restore_live(trials_dir, kept, live_setup, agent_factory=agent_factory)),
+                 ("isolation", lambda: isolation_live(trials_dir, kept, live_setup, agent_factory=agent_factory)),
+                 ("zero_interventions", lambda: zero_interventions(trials_dir, trials_dir.parent / "workload")))
+    else:
+        steps = (("fresh_session_reuse", lambda: fresh_session_reuse(trials_dir, work)), ("changed_condition_revision", lambda: changed_condition_revision(trials_dir, work)),
+                 ("forgetting_and_restore", lambda: forgetting_and_restore(work)), ("isolation", lambda: isolation(trials_dir, work)),
+                 ("zero_interventions", lambda: zero_interventions(trials_dir, trials_dir.parent / "workload")))
+    for name, fn in steps:
         try:
             demos[name] = fn()
         except Exception as exc:  # noqa: BLE001 - a failed demonstration is reported, never dropped
             demos[name] = {"demonstrated": False, "error": f"{type(exc).__name__}: {str(exc)[:300]}"}
-    return {"mode": "scripted", "label": "scripted agent + recorded curator through the real engine; not a live demonstration (B1)", "demonstrations": demos}
+    label = ("live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token"
+             if live else "scripted agent + recorded curator through the real engine; not a live demonstration")
+    return {"mode": mode, "label": label, "demonstrations": demos}

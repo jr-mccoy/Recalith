@@ -5,6 +5,8 @@ Usage::
 
     python tools/probe_delivery.py --config LOCAL_CONFIG --output docs/host-compatibility.json
     python tools/probe_delivery.py --config LOCAL_CONFIG --engine-project PATH --output docs/host-compatibility.json
+    python tools/probe_delivery.py --config LOCAL_CONFIG --engine-project PATH --bind-from CERTIFIED_PROJECT \
+        --evidence docs/host-compatibility.json --output BINDINGS_REPORT
 
 For each of the four delivery paths (session start, prompt, pre-action,
 post-compaction) the probe installs a temporary, owned nonce-only stub hook
@@ -31,6 +33,18 @@ mode, 4 when a required path is unavailable or could not be run, 8 when a
 supported required path is degraded, 2 for invalid configuration. The provider
 section of the report is preserved. No engine, memory database, or production
 hook is used.
+
+``--bind-from`` (decision 0028) runs no session: it writes the target
+installation's host record from the live engine-mode certification another
+installation already holds, after checking that the certified project's record
+and the ``--evidence`` report's ``delivery_engine`` section name the same live
+run (report digest, installation, host version) and that the installed host and
+the target's integration are that exact version. The engine-mode protocol runs
+in disposable fixture installations, never in the target, so its evidence is
+scoped to the host version, model and configuration, not to one installation.
+The binding is recorded in ``--output`` (``sections.delivery_binding``); the
+evidence report is only read. Refused (exit 6) from a host-marked process; 4
+when the evidence does not support a live record.
 """
 
 from __future__ import annotations
@@ -808,13 +822,122 @@ def probe_engine_mode(config_path: Path, output_path: Path, project: Path, *, ke
     return code
 
 
+BINDING_SECTION = "delivery_binding"
+
+
+class BindRefused(Exception):
+    def __init__(self, code: int, reason: str) -> None:
+        super().__init__(reason)
+        self.code = code
+        self.reason = reason
+
+
+def bind_record(cfg: Mapping[str, Any], source: Path, target: Path, evidence: Mapping[str, Any], *, executable: str | None) -> dict[str, Any]:
+    """The target's host record from the live engine-mode certification ``source`` holds (decision 0028); see the module docstring.
+
+    Returns the binding entry; raises :class:`BindRefused` (exit code, reason) when the evidence does not support it.
+    """
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+    from recalith.contracts.common import Actor
+    from recalith.contracts.health import DELIVERY_PATHS
+    from recalith.core import identity
+    from recalith.errors import RecalithError
+    from recalith.integrations import claude as integration
+    from recalith.operations.autostart import read_manifest
+    from recalith.operations.health import load_host_certification
+
+    if any(marker in os.environ for marker in cfg["host_markers"]):
+        raise BindRefused(6, "writing a project's host record is an operator action; run it from an ordinary terminal outside any agent session")
+    actor = Actor(kind="operator", id="probe-harness", channel="cli")
+    try:
+        src_ctx = identity.resolve_installation(source, actor=actor)
+        dst_ctx = identity.resolve_installation(target, actor=actor)
+    except RecalithError as exc:
+        raise BindRefused(pc.EXIT_USAGE, f"cannot resolve an installation: {exc.code}") from exc
+    if src_ctx.installation_id == dst_ctx.installation_id:
+        raise BindRefused(pc.EXIT_USAGE, "the target is the certified installation itself")
+    state, record = load_host_certification(source, src_ctx.installation_id)
+    if state != "ok" or record is None:
+        raise BindRefused(pc.EXIT_UNAVAILABLE, f"source_record_{state}")
+    if record.mode != "live":
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "source_record_not_live")
+    missing = [p for p in ("session_start", "prompt") if record.delivery[p] != "certified"]
+    if missing:
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "source_required_path_not_certified:" + ",".join(missing))
+    section = ((evidence.get("sections") or {}).get(ENGINE_SECTION) or {}).get(cfg["host_id"])
+    if not isinstance(section, dict):
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "evidence_section_missing")
+    held = section.get("host_record") or {}
+    if section.get("report_digest") != record.report_digest or held.get("report_digest") != record.report_digest:
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "evidence_digest_mismatch")
+    if held.get("installation_id") != src_ctx.installation_id or held.get("mode") != "live":
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "evidence_record_mismatch")
+    if (section.get("live") or {}).get("status") != "run" or section.get("host_version") != record.host_version:
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "evidence_not_a_live_run")
+    observed = integration.host_version(executable)["version"]
+    if observed != record.host_version:
+        raise BindRefused(pc.EXIT_UNAVAILABLE, f"host_version_changed: installed {observed}, certified {record.host_version}")
+    mstate, manifest = read_manifest(target)
+    integrated = ((manifest or {}).get("adapters") or {}).get(cfg["host_id"], {}).get("host_version") if mstate == "ok" else None
+    if integrated != observed:
+        raise BindRefused(pc.EXIT_USAGE, f"{target} is not integrated for Claude Code {observed}; run `.recalith/bin/recalith integrate claude` there first (found {integrated})")
+    rc = section.get("request_capture") or {}
+    summary = {
+        "mode": "live", "host_version": record.host_version, "report_digest": record.report_digest,
+        "paths": {p: {"state": ((section.get("paths") or {}).get(p) or {}).get("state", "not_run")} for p in PATHS},
+        "command_rules": {"state": (rc.get("command_rules") or {}).get("state")}, "private_paths": {"state": (rc.get("private_paths") or {}).get("state")},
+    }
+    bound = integration.write_host_record(dst_ctx, summary)
+    integration.integrate(dst_ctx, executable=executable)  # re-run: enables exactly the paths the bound record certifies
+    if any(bound.delivery[p] != record.delivery[p] for p in DELIVERY_PATHS) or bound.mode != "live":
+        raise BindRefused(pc.EXIT_UNAVAILABLE, "bound_record_differs_from_source")  # pragma: no cover - the same evidence gives the same record
+    return {
+        "bound_at": pc.utc_now(), "target_installation_id": dst_ctx.installation_id, "source_installation_id": src_ctx.installation_id,
+        "host_version": record.host_version, "report_digest": record.report_digest, "source_certified_at": record.certified_at,
+        "evidence_tested_at": section.get("tested_at"), "delivery": bound.model_dump(mode="json")["delivery"], "command_rules": bound.command_rules,
+        "method": "bound from the live engine-mode certification (decision 0028); no session ran",
+    }
+
+
+def bind_mode(config_path: Path, output_path: Path, target: Path, source: Path, evidence_path: Path) -> int:
+    try:
+        cfg = load_config(config_path)
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    except ConfigError as exc:
+        return pc.die_usage(str(exc))
+    except (OSError, ValueError) as exc:
+        return pc.die_usage(f"cannot read the evidence report: {type(exc).__name__}")
+    exe = cfg["executable"]
+    resolved = exe if os.path.isabs(exe) else shutil.which(exe)
+    if resolved is None or not os.path.exists(resolved):
+        print(json.dumps({"verdict": "unavailable", "reason": "executable_missing"}))
+        return pc.EXIT_UNAVAILABLE
+    try:
+        entry = bind_record(cfg, source.resolve(), target.resolve(), evidence, executable=resolved)
+    except BindRefused as exc:
+        if exc.code == pc.EXIT_USAGE:
+            return pc.die_usage(exc.reason)
+        print(json.dumps({"verdict": "refused" if exc.code == 6 else "unavailable", "reason": exc.reason}))
+        return exc.code
+    sanitizer = pc.Sanitizer({str(target.resolve()): "<project>", str(source.resolve()): "<certified-project>", str(Path.home()): "<home>", str(REPO_ROOT): "<repo>"})
+    pc.merge_report_section(output_path, BINDING_SECTION, entry["target_installation_id"], sanitizer.value(entry))
+    print(json.dumps({"verdict": "bound", "host_version": entry["host_version"], "delivery": entry["delivery"]}))
+    return pc.EXIT_CERTIFIED
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--keep-workspace", action="store_true")
     parser.add_argument("--engine-project", type=Path, help="Task 13: run the protocol through the real engine and write this integrated installation's host record")
+    parser.add_argument("--bind-from", type=Path, default=None, help="decision 0028: bind the --engine-project's host record from this certified project's live engine-mode record (no session runs)")
+    parser.add_argument("--evidence", type=Path, default=None, help="with --bind-from: the report holding the certified run's delivery_engine section (read only)")
     ns = parser.parse_args(argv)
+    if ns.bind_from is not None:
+        if ns.engine_project is None or ns.evidence is None:
+            return pc.die_usage("--bind-from needs --engine-project TARGET and --evidence REPORT")
+        return bind_mode(ns.config, ns.output, ns.engine_project, ns.bind_from, ns.evidence)
     if ns.engine_project is not None:
         return probe_engine_mode(ns.config, ns.output, ns.engine_project, keep_workspace=ns.keep_workspace)
     return probe_delivery(ns.config, ns.output, keep_workspace=ns.keep_workspace)

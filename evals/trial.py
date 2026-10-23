@@ -159,7 +159,7 @@ class VirtualClock:
 class Drainer:
     """Drives the installation's real worker (deterministic lane and model lane) with a given backend."""
 
-    def __init__(self, ws: Path, clock: Any, backend: Any) -> None:
+    def __init__(self, ws: Path, clock: Any, backend: Any, *, provider: Any = None) -> None:
         from recalith.controller import requests, worker
         from recalith.fast import process_env
 
@@ -172,7 +172,8 @@ class Drainer:
             raise TrialError("worker_lock_held", "another worker holds this evaluation installation")
         vclock = VirtualClock(clock)
         runtime = worker.ModelRuntime(backend=backend, prepare=requests.runtime_preparer(self.ctx, now=clock.now))
-        self.w = worker.Worker(self.ctx, clock=vclock, model=runtime, owner="eval-harness")
+        # ``provider``: the production supervisor of a certified route (live workload days); the lane launches only while it is available.
+        self.w = worker.Worker(self.ctx, clock=vclock, model=runtime, owner="eval-harness", provider=provider)
         self.w.startup()
         self.busy_seconds = 0.0
         self.polls = 0
@@ -209,16 +210,19 @@ class Drainer:
 # Evidence horizon (test_replay_cannot_see_future_evidence)
 
 
-def evidence_horizon(ws: Path, *, allowed_host_sessions: set[str], not_after: str) -> dict[str, Any]:
+def evidence_horizon(ws: Path, *, allowed_host_sessions: set[str], not_after: str, ingest: bool = True) -> dict[str, Any]:
     """The store holds only events of sessions that already ran, none captured after ``not_after``.
 
     Segments still in the spool are ingested first (what the worker would do next), so evidence waiting
-    there is judged too. Delivery receipts are bookkeeping, not evidence, and are not judged.
+    there is judged too. Delivery receipts are bookkeeping, not evidence, and are not judged. A live trial
+    passes ``ingest=False``: its own hook-started worker ingests, and the check runs after the queue is
+    quiet (``live.wait_quiescent`` reports the spool), read-only.
     """
     from recalith.capture import pipeline
     from recalith.storage import db
 
-    pipeline.ingest_ready(context(ws))
+    if ingest:
+        pipeline.ingest_ready(context(ws))
     with db.open_store(context(ws), readonly=True) as store, store.read() as view:
         rows = view.execute("SELECT s.host_session_id, MAX(e.recorded_at), COUNT(*) FROM events e LEFT JOIN sessions s ON s.session_id = e.session_id WHERE e.kind != 'memory_delivered' GROUP BY e.session_id").fetchall()
     foreign = sorted(h for h, _at, _n in rows if h is not None and h not in allowed_host_sessions)
@@ -343,14 +347,19 @@ def outcomes(spec: dict[str, Any], sessions: dict[str, Any], judged: dict[str, A
 # The trial
 
 
-def run_trial(sid: str, arm: str, out_dir: Path, *, mode: str = "scripted", init_route: str = "test_fixture", token_file: Path | None = None, native_memory: dict[str, Any] | None = None) -> dict[str, Any]:
+def run_trial(sid: str, arm: str, out_dir: Path, *, mode: str = "scripted", init_route: str = "test_fixture", token_file: Path | None = None, native_memory: dict[str, Any] | None = None,
+              live: Any = None, agent_factory: Any = None) -> dict[str, Any]:
     from evals import agent, baselines, curator
     from evals.oracles import smoke
     from evals.report import GOLD_TERMS
 
     spec = scenarios()[sid]
+    if mode == "live":
+        if live is None:
+            raise TrialError("live_setup_missing", "a live trial needs the operator's live setup (evals/run.py --mode live)")
+        return run_live_trial(sid, arm, out_dir, spec=spec, setup=live, native_memory=native_memory or {}, agent_factory=agent_factory)
     if mode != "scripted":
-        raise TrialError("live_unavailable", "a live trial needs a certified inference route and a live host record (B1); see `evals/run.py preflight`")
+        raise TrialError("unknown_mode", mode)
     base = out_dir / sid / arm
     if base.exists():
         shutil.rmtree(base)
@@ -455,4 +464,147 @@ def _second_project_session(spec: dict[str, Any], session: dict[str, Any], arm: 
         info["curator_calls"] = backend.calls
     else:
         result = agent.run_scripted("c4", "A", session["prompts"], ws2, agent.NoHost(home2, clock), seed=f"{spec['id']}:{arm}:second")
+    return result, info
+
+
+# --------------------------------------------------------------------------
+# The live trial (decisions 0020, 0028)
+
+
+def curator_calls(ws: Path) -> list[dict[str, Any]]:
+    """The worker's model calls as the store recorded them: each persisted proposal's purpose and operation kinds."""
+    from recalith.storage import db
+
+    out = []
+    with db.open_store(context(ws), readonly=True) as store, store.read() as view:
+        for kind, body in view.execute("SELECT j.kind, p.body FROM proposals p JOIN jobs j ON j.job_id = p.job_id ORDER BY p.rowid").fetchall():
+            try:
+                ops = [o.get("kind") for o in (json.loads(body) or {}).get("operations", [])] if body else []
+            except (ValueError, AttributeError):
+                ops = []
+            out.append({"purpose": kind, "operations": ops, "body_retained": body is not None})
+    return out
+
+
+def _relative_paths(result: Any, ws: Path) -> None:
+    """The live action log names files as the host did (absolute); the oracle's log is workspace-relative."""
+    roots = sorted({str(ws), str(ws).replace("\\", "/"), str(ws.resolve()), str(ws.resolve()).replace("\\", "/")}, key=len, reverse=True)
+    for action in result.actions:
+        if action.path:
+            for root in roots:
+                if action.path.lower().startswith(root.lower()) if os.name == "nt" else action.path.startswith(root):
+                    action.path = action.path[len(root):].lstrip("/\\").replace("\\", "/")
+                    break
+
+
+def _live_session_log(name: str, project: str, result: Any, overlays: list[str]) -> dict[str, Any]:
+    from evals import agent
+
+    return {"name": name, "project": project, "host_session_id": result.session_id, "overlays": overlays, "actions": [a.log() for a in result.actions],
+            "deliveries": [{"purpose": d.purpose, "state": d.state, "at": d.at, "items": len(agent.parse_items(d.context or "", d.purpose)), "degradations": d.degradations,
+                            "context": (d.context or "")[:4000] or None} for d in result.deliveries],
+            "elapsed_seconds": round(result.elapsed_seconds, 3), "reply": result.reply, "agent": result.extra, "foreground_tokens": result.foreground_tokens_estimate}
+
+
+def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], setup: Any, native_memory: dict[str, Any], agent_factory: Any = None) -> dict[str, Any]:
+    """One live trial: the real Claude Code CLI as the working agent, real installed hooks, the hook-started worker on the
+    installation's own certified route, on real time. Between sessions the queue is waited quiet (``live.wait_quiescent``)."""
+    from recalith.contracts.common import utc_now
+
+    from evals import agent, baselines, live
+    from evals.oracles import smoke
+    from evals.report import GOLD_TERMS
+
+    base, ws_name, home_name = live.trial_dirs(out_dir, sid, arm)
+    if base.exists():
+        shutil.rmtree(base)
+    ws, home = base / ws_name, base / home_name
+    home.mkdir(parents=True)
+    copy_seed(spec["project"], ws)
+    baselines.prepare_home(home)
+    worker = agent_factory() if agent_factory is not None else agent.LiveClaudeAgent(setup.executable, setup.model)
+    record: dict[str, Any] = {"trial_schema": 1, "scenario": sid, "arm": arm, "category": spec["category"], "project": spec["project"], "mode": "live", "gold": spec["gold"],
+                              "authorship": spec["authorship"], "sessions": [], "horizon_checks": [], "gaps": [], "live": setup.label(), "workspace": ws.relative_to(out_dir).as_posix()}
+    owned: list[Path] = []
+    installation: dict[str, Any] | None = None
+    side: dict[str, Any] = {}
+    agent_record = {"kind": "claude_code", "live": True, "model": "<agent-model>", "invocation": [*live.SESSION_FLAGS, "--permission-mode", "acceptEdits", "--allowedTools", *live.AGENT_TOOLS]}
+    try:
+        if arm == "candidate":
+            installation = {"init": live.provision(ws, spec["project"], setup, label=f"{sid}.{arm}"), "manifest": {"kind": "integrate claude", "delivery": "bound live record (decision 0028)"}}
+            owned.append(ws)
+            ctx = context(ws)
+            installation.update(installation_id=ctx.installation_id, project_id=ctx.project_id)
+        results: dict[str, Any] = {}
+        ran: set[str] = set()
+        for index, session in enumerate(spec["sessions"]):
+            name = session["name"]
+            overlays = apply_overlays(ws, session)
+            if sid == "smoke-C4-cross-project-near-match" and name == "A":
+                result, side = _live_second_project(spec, session, arm, base, setup, worker, owned)
+                results[name] = result
+                record["sessions"].append({**_live_session_log(name, "ledgerlite", result, overlays), "second_project": True})
+                continue
+            if installation is not None:
+                if index:
+                    record["gaps"].append({"before": name, **live.wait_quiescent(ws)})
+                record["horizon_checks"].append({"before": name, **evidence_horizon(ws, allowed_host_sessions=ran, not_after=utc_now(), ingest=False)})
+            env = live.agent_env(setup, home, route_keys=live.route_keys(ws) if installation is not None else [])
+            result = worker.run_session(name, session["prompts"], ws, home, env=env)
+            _relative_paths(result, ws)
+            results[name] = result
+            ran.add(result.session_id)
+            record["sessions"].append(_live_session_log(name, spec["project"], result, overlays))
+            if name == spec["oracle"]["session"]:
+                break
+        if installation is not None:
+            record["gaps"].append({"before": "measurement", **live.wait_quiescent(ws)})
+        actions = [a.log() for r in results.values() for a in r.actions]
+        judged = smoke.judge(spec["oracle"]["check"], ws, actions, spec["oracle"]["session"])
+        background = background_usage(ws) if installation is not None else {"model_calls": 0, "tokens": 0}
+        if installation is not None:
+            background["usage_source"] = "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+        record["oracle"] = judged
+        record["outcomes"] = outcomes(spec, results, judged, background)
+        record["outcomes"]["foreground_cost_usd"] = round(sum(float(r.extra.get("cost_usd") or 0.0) for r in results.values()), 6)
+        record["background"] = background
+        record["curator_calls"] = curator_calls(ws) if installation is not None else []
+        record["claims"] = claim_heads(ws) if installation is not None else []
+        record["retrieval_points"] = retrieval_points(spec, results, terms=GOLD_TERMS.get(sid, [])) if installation is not None else []
+        record["same_session_learning"] = [x for r in results.values() for x in same_session_learning(r)] if installation is not None else []
+        record["second_project"] = side or None
+        record["hook_replies"] = sum(len(r.deliveries) for r in results.values())
+        record["manifest"] = {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record)}
+    except (TrialError, live.LiveError) as exc:
+        record["error"] = exc.code
+        record["error_detail"] = exc.detail
+        if isinstance(exc, live.LiveError) and exc.steps:
+            record["provisioning_steps"] = exc.steps
+        record.setdefault("outcomes", {"task_success": False, "repeated_mistakes": None, "detours": None, "legitimate_retry_success": None, "foreground_tokens": None, "background_tokens": None, "elapsed_seconds": None, "operator_interventions": 0})
+        record.setdefault("manifest", {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record)})
+    finally:
+        record["worker_stop"] = [live.stop_worker(root, setup) for root in owned]
+    return record
+
+
+def _live_second_project(spec: dict[str, Any], session: dict[str, Any], arm: str, base: Path, setup: Any, worker: Any, owned: list[Path]) -> tuple[Any, dict[str, Any]]:
+    """C4 session A, live, in an independent ledgerlite workspace (an installation of its own for the candidate)."""
+    from evals import baselines, live
+
+    second = base / ("p2" if os.name == "nt" else "second-project")
+    ws2, home2 = second / ("w" if os.name == "nt" else "ws"), second / ("h" if os.name == "nt" else "home")
+    home2.mkdir(parents=True)
+    copy_seed("ledgerlite", ws2)
+    baselines.prepare_home(home2)
+    info: dict[str, Any] = {"project": "ledgerlite", "workspace": ws2.relative_to(base.parent.parent).as_posix()}
+    if arm == "candidate":
+        info["init"] = live.provision(ws2, "ledgerlite", setup, label=f"{spec['id']}.{arm}.second")
+        owned.append(ws2)
+        info["installation_id"] = context(ws2).installation_id
+    result = worker.run_session("A", session["prompts"], ws2, home2, env=live.agent_env(setup, home2, route_keys=live.route_keys(ws2) if arm == "candidate" else []))
+    _relative_paths(result, ws2)
+    if arm == "candidate":
+        info["gap"] = live.wait_quiescent(ws2)
+        info["claims"] = claim_heads(ws2)
+        info["curator_calls"] = curator_calls(ws2)
     return result, info

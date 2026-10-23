@@ -14,8 +14,9 @@ Two agents drive a trial's sessions:
   result and never counts toward a live gate.
 * :class:`LiveClaudeAgent` — the real Claude Code CLI in a disposable
   workspace and private ``HOME`` with host-native automatic memory disabled
-  (``evals/baselines.py``). It needs a certified inference route and a live
-  host certification (B1); the action log comes from the host transcript.
+  (``evals/baselines.py``), through the installation's real installed hooks
+  (decision 0028). The action log and what each hook delivered come from the
+  session's own stream-json output (``hook_response`` records).
 
 Host payloads. For the candidate arm the scripted agent emits Claude Code
 2.1.305-shaped hook payloads (the reviewed fixture format: SessionStart,
@@ -595,41 +596,88 @@ class LiveUnavailable(RuntimeError):
     pass
 
 
+HOOK_PURPOSES = {"SessionStart": "session_start", "UserPromptSubmit": "prompt", "PreToolUse": "pre_action"}
+
+
 @dataclass
 class LiveClaudeAgent:
-    """The real Claude Code CLI as the working agent, one fresh ``-p`` session per scenario session.
+    """The real Claude Code CLI as the working agent: one fresh ``-p`` session per scenario session.
 
-    ``executable``/``model`` come from the operator's local configuration;
-    the disposable ``HOME`` carries the native-memory-disabled settings
-    written by ``baselines.prepare_home``. Credentials are never named here:
-    the operator's terminal environment supplies the selected route's keys.
+    The invocation is the certified engine-mode session's (``evals/live.py``
+    ``SESSION_FLAGS``: stream-json with hook events, no MCP servers) plus the
+    trial's tool permissions; each prompt goes in on standard input. The
+    disposable ``HOME`` carries the native-memory-disabled settings written by
+    ``baselines.prepare_home`` and ``env`` comes from ``live.agent_env``: no
+    credential is named here, the operator's terminal supplies the values.
+    The action log and the delivered context come from the session's own
+    stream (``hook_response`` records carry each hook's exact output).
     """
 
     executable: str
     model: str
-    route_env_keys: tuple[str, ...]
     timeout_seconds: int = 900
 
-    def argv(self, prompt: str) -> list[str]:
-        return [self.executable, "-p", prompt, "--model", self.model, "--output-format", "stream-json", "--verbose", "--permission-mode", "acceptEdits", "--allowedTools", "Bash,Read,Edit,Write"]
+    def argv(self) -> list[str]:
+        from evals import live
 
-    def run_session(self, name: str, prompts: list[str], ws: Path, home: Path) -> SessionResult:
-        env = tool_env(home)
-        for key in self.route_env_keys:
-            if key not in os.environ:
-                raise LiveUnavailable(f"route_key_missing:{key}")
-            env[key] = os.environ[key]
-        env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1"
+        return [self.executable, *live.SESSION_FLAGS, "--model", self.model, "--permission-mode", "acceptEdits", "--allowedTools", *live.AGENT_TOOLS]
+
+    def run_session(self, name: str, prompts: list[str], ws: Path, home: Path, *, env: dict[str, str]) -> SessionResult:
+        from evals import live
+
+        pc = live._tool("probe_common")  # noqa: SLF001
         began = time.monotonic()
         stream: list[dict[str, Any]] = []
+        runs: list[dict[str, Any]] = []
+        session_id = ""
         for text in prompts:
-            proc = subprocess.run(self.argv(text), cwd=ws, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=self.timeout_seconds, check=False)
-            stream += [json.loads(line) for line in proc.stdout.splitlines() if line.startswith("{")]
-        actions = actions_from_stream(stream, session=name)
-        usage = [m.get("usage") or {} for m in stream if m.get("type") == "result"]
-        tokens = sum(int(u.get("input_tokens") or 0) + int(u.get("output_tokens") or 0) for u in usage)
-        reply = next((m.get("result") or "" for m in reversed(stream) if m.get("type") == "result"), "")
-        return SessionResult(name, next((m.get("session_id") for m in stream if m.get("session_id")), ""), actions, [], time.monotonic() - began, reply, tokens, extra={"usage_reported": True})
+            argv = self.argv() + (["--resume", session_id] if session_id else [])
+            run = pc.run_bounded(argv, env=env, cwd=ws, stdin_data=text.encode("utf-8"), timeout_s=self.timeout_seconds, stdout_cap=live.AGENT_STDOUT_CAP)
+            lines = [json.loads(line) for line in run.stdout.decode("utf-8", "replace").splitlines() if line.startswith("{")]
+            stream += lines
+            session_id = session_id or next((m.get("session_id") for m in lines if m.get("session_id")), "")
+            runs.append({"exit": run.returncode, "timed_out": run.timed_out, "stdout_overflow": run.stdout_overflow, "seconds": round(run.duration_ms / 1000, 1)})
+        results = [m for m in stream if m.get("type") == "result"]
+        usage = [m.get("usage") or {} for m in results]
+        tokens = sum(int(u.get(k) or 0) for u in usage for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"))
+        cost = sum(float(m.get("total_cost_usd") or 0.0) for m in results)
+        reply = next((m.get("result") or "" for m in reversed(results)), "")
+        extra = {"usage_reported": bool(results), "cost_usd": round(cost, 6), "runs": runs, "result_subtypes": [m.get("subtype") for m in results],
+                 "hook_failures": [h for h in hook_records(stream) if h.get("exit_code") not in (0, None)][:8]}
+        return SessionResult(name, session_id, actions_from_stream(stream, session=name), deliveries_from_stream(stream), time.monotonic() - began, reply, tokens, extra=extra)
+
+
+def hook_records(stream: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The host's ``hook_response`` records (``--include-hook-events``), without their output."""
+    return [{"hook_event": m.get("hook_event"), "hook_name": m.get("hook_name"), "exit_code": m.get("exit_code"), "outcome": m.get("outcome")}
+            for m in stream if m.get("type") == "system" and m.get("subtype") == "hook_response"]
+
+
+def deliveries_from_stream(stream: list[dict[str, Any]]) -> list[Delivery]:
+    """What each delivery hook emitted, from the host's ``hook_response`` records: the hook's exact stdout envelope.
+
+    ``SessionStart:compact`` is the compaction restoration. A hook that emitted nothing (or not an envelope) is a
+    delivery of state ``none``; emission is not model consumption (that is the separate canary certification).
+    """
+    out: list[Delivery] = []
+    for m in stream:
+        if m.get("type") != "system" or m.get("subtype") != "hook_response":
+            continue
+        event = m.get("hook_event") or ""
+        purpose = "compact_restore" if event == "SessionStart" and str(m.get("hook_name") or "").endswith(":compact") else HOOK_PURPOSES.get(event)
+        if purpose is None:
+            continue
+        context = notice = None
+        for line in str(m.get("stdout") or m.get("output") or "").splitlines():
+            try:
+                data = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                notice = data.get("systemMessage") or notice
+                context = (data.get("hookSpecificOutput") or {}).get("additionalContext") or context
+        out.append(Delivery(purpose, event, context, notice, "emitted" if context else "none", [] if m.get("exit_code") in (0, None) else [f"hook_exit_{m.get('exit_code')}"], ""))
+    return out
 
 
 def actions_from_stream(stream: list[dict[str, Any]], *, session: str) -> list[Action]:

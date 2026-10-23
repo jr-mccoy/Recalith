@@ -91,11 +91,14 @@ def retrieval_services(ws: Path, home: Path) -> list[str]:
     return out
 
 
-def observe_native_memory(executable: str | None, *, timeout: float = 90.0) -> dict[str, Any]:
+def observe_native_memory(executable: str | None, *, timeout: float = 90.0, session_args: list[str] | None = None) -> dict[str, Any]:
     """Observe whether the installed host loads a planted native-memory sentinel, with and without the disabling settings.
 
     Request capture only: a loopback endpoint and a placeholder key; no
-    account, model or credential of this session is used.
+    account, model or credential of this session is used. ``session_args``
+    are the live trials' own session flags (``evals/live.py``), so the
+    observation is of the configuration the trials run; the prompt then goes
+    in on standard input, as in those trials.
     """
     if not executable:
         return {"state": "not_observed", "reason": "host_executable_missing"}
@@ -119,15 +122,16 @@ def observe_native_memory(executable: str | None, *, timeout: float = 90.0) -> d
                 mem = home / ".claude" / "projects" / _slug(where) / "memory" / "MEMORY.md"
                 mem.parent.mkdir(parents=True, exist_ok=True)
                 mem.write_text(f"- Remember {sentinel}\n", encoding="utf-8")
-            env = {k: os.environ[k] for k in ("PATH", "LANG", "SYSTEMROOT", "TMPDIR") if k in os.environ}
+            env = {k: os.environ[k] for k in (*pc.DEFAULT_PLATFORM_ENV_KEYS, "TMPDIR", "TEMP", "TMP") if k in os.environ}
             env.update(HOME=str(home), USERPROFILE=str(home), ANTHROPIC_API_KEY=PLACEHOLDER_KEY, NO_PROXY="127.0.0.1,localhost", DISABLE_AUTOUPDATER="1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1")
             if disable:
                 prepare_home(home)
                 env.update(DISABLE_ENV)
             with pc.RecordingEndpoint(lambda body: ("text", "OK")) as ep:
                 env["ANTHROPIC_BASE_URL"] = ep.url
+                argv = [executable, "-p", "Reply OK.", "--output-format", "json"] if session_args is None else [executable, *session_args]
                 try:
-                    proc = subprocess.run([executable, "-p", "Reply OK.", "--output-format", "json"], cwd=ws, env=env, capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False)
+                    proc = subprocess.run(argv, cwd=ws, env=env, input=None if session_args is None else "Reply OK.", capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False)
                     code = proc.returncode
                 except subprocess.TimeoutExpired:
                     code = None
@@ -143,7 +147,7 @@ def observe_native_memory(executable: str | None, *, timeout: float = 90.0) -> d
         out["state"] = "not_disableable"  # a contaminated configuration: never a clean no-memory run
     else:
         out["state"] = "disabled"
-    out["configuration"] = {"settings": DISABLE_SETTINGS, "env": sorted(DISABLE_ENV)}
+    out["configuration"] = {"settings": DISABLE_SETTINGS, "env": sorted(DISABLE_ENV), "session_args": "default (-p PROMPT --output-format json)" if session_args is None else "the live trials' session flags"}
     return out
 
 

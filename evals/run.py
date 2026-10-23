@@ -4,11 +4,14 @@
     python evals/run.py preflight [--route PROVIDER_JSON] [--host-record HOST_JSON]
     python evals/run.py prepare SCENARIO_ID --out DIR
     python evals/run.py smoke --out DIR [--mode scripted|live] [--init-route test_fixture|operator_token]
-                              [--operator-token-file FILE] [--scenario ID ...]
+                              [--operator-token-file FILE] [--scenario ID ...] [--slots N]
     python evals/run.py workload --out DIR [--mode scripted|live] [--project NAME ...]
     python evals/run.py demonstrate --out DIR [--mode scripted|live]
     python evals/run.py report DIR
     python evals/run.py gate --out DIR [--mode scripted|live] [...]
+
+    live inputs: --config LOCAL_CONFIG --operator-token-file FILE --source-project CERTIFIED_PROJECT
+                 --wheel WHEEL --wheelhouse DIR [--evidence docs/host-compatibility.json]
 
 ``preflight`` states, per smoke scenario, whether a *live* candidate run can
 happen now and why not: it needs a certified inference route (the production
@@ -36,6 +39,17 @@ until preflight passes, and never falls back. ``scripted`` uses the scripted
 working agent (``evals/agent.py``) and the recorded curator
 (``evals/curator.py``) through the real engine; its results are mechanics
 evidence, always labeled, and never a live pass.
+
+A live run (decision 0028) is started by the operator from an ordinary
+terminal with the selected keys exported. ``--source-project`` is the project
+whose route and host record ``preflight`` checks (its ``provider.json`` and
+``host.json`` by default). Every candidate installation is provisioned by the
+operator's own tools as children of this process (``evals/live.py``): init
+with the pre-init token, the release bootstrap with ``--wheel`` (its digest
+must equal the source project's ``engine.lock``) and ``--wheelhouse``, a live
+route certification of its own, ``integrate claude``, and its host record
+bound from the source project's live engine-mode record. ``--slots`` runs that
+many trials at once, each in its own installation (ACCEPTANCE_TESTS §6.2).
 """
 
 from __future__ import annotations
@@ -68,7 +82,7 @@ OPERATOR_STEPS = [
     "5. In the project: .recalith/bin/recalith integrate claude",
     "6. python tools/probe_delivery.py --config probe-private/local-config.json --engine-project /path/to/project --output docs/host-compatibility.json   (expect exit 0: live start/prompt)",
     "7. .recalith/bin/recalith operator-token create --output /secure/eval-token.json   (at that terminal; the harness never mints one)",
-    "8. python evals/run.py gate --mode live --init-route operator_token --operator-token-file /secure/eval-token.json --route /path/to/project/.recalith/provider.json --host-record /path/to/project/.recalith/host.json --out /path/to/results",
+    "8. python evals/run.py gate --mode live --config probe-private/local-config.json --operator-token-file /secure/eval-token.json --source-project /path/to/project --wheel dist/recalith-VERSION-py3-none-any.whl --wheelhouse wheelhouse --out /short/results   (decision 0028)",
 ]
 
 
@@ -218,18 +232,56 @@ LIMITATIONS_SCRIPTED = [
 ]
 
 
-def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str) -> dict:
-    code, pre = preflight(None)
+LIMITATIONS_LIVE = [
+    "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC §7; no held-out or independent corpus exists.",
+    "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+    "Each candidate installation's route is certified live for that installation; its host record is bound from the source project's live engine-mode certification for the same host version, model and configuration (decision 0028), not re-observed per installation.",
+    "Sessions run on real time. Between sessions the harness waits until the hook-started worker owes nothing due within 20 minutes (or 45 minutes pass, or progress stalls for 5); the scenarios' two-hour gaps are not reproduced.",
+    "Delivered context is read from the host's hook_response records (the hook's exact stdout as the host received it); that the model saw it is the separate canary certification, not re-checked per trial.",
+    "Workload days replay synthetic recorded timelines in process through the real stdlib hook path (no host session); scheduling runs on the day's virtual clock while every curator call is real.",
+    "Background tokens come from the budget ledger (provider-reported where the call reported usage); foreground cost is the host's own reported session cost.",
+    "On native Windows a hook-started worker runs inside the venv redirector's job (decision 0027 item 8): recovery is degraded while it runs.",
+]
+
+
+def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str, route: Path | None = None, host_record: Path | None = None, setup=None) -> dict:
+    code, pre = preflight(route, host_record) if mode == "live" else preflight(None)
     run = {
         "run_schema": 1, "mode": mode, "profile": "claude_preview", "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "versions": versions(), "authorship": authorship(),
-        "native_memory": {"installed_host_observation": native_memory, "scripted_arms": "not applicable: the scripted agent has no host-native memory"},
+        "native_memory": {"installed_host_observation": native_memory, "scripted_arms": "not applicable: the scripted agent has no host-native memory"} if mode == "scripted" else
+                         {"installed_host_observation": native_memory, "configuration": "the live trials' own session flags, disposable HOME and environment"},
         "init_route": init_route, "preflight": {"exit": code, "inference": pre["inference"], "delivery": pre["delivery"]},
         "blockers": [] if code == 0 else ["B1: " + "; ".join(pre["inference"]["reasons"] + pre["delivery"]["reasons"])],
-        "limitations": LIMITATIONS_SCRIPTED if mode == "scripted" else [], "operator_action": pre.get("operator_action"),
+        "limitations": LIMITATIONS_SCRIPTED if mode == "scripted" else LIMITATIONS_LIVE, "operator_action": pre.get("operator_action"),
     }
+    if setup is not None:
+        run["live"] = setup.label()
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "run.json").write_text(json.dumps(run, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return run
+
+
+def live_inputs(ns: argparse.Namespace) -> tuple[Path | None, Path | None]:
+    """The route and host record preflight checks: given explicitly, else the source project's own."""
+    source = getattr(ns, "source_project", None)
+    route = ns.route or (source / ".recalith" / "provider.json" if source else None)
+    host = ns.host_record or (source / ".recalith" / "host.json" if source else None)
+    return route, host
+
+
+def live_setup(ns: argparse.Namespace):
+    """``(setup, None)`` or ``(None, refusal)`` after preflight passed (decision 0028)."""
+    from evals import live
+
+    route, host = live_inputs(ns)
+    code, pre = preflight(route, host)
+    if code != EXIT_OK:
+        return None, {"verdict": "unavailable", "inference": pre["inference"], "delivery": pre["delivery"], "operator_action": OPERATOR_STEPS}
+    try:
+        setup = live.load_setup(config=ns.config, token_file=ns.operator_token_file, source_project=ns.source_project, evidence=ns.evidence, wheel=ns.wheel, wheelhouse=ns.wheelhouse, run_dir=ns.out)
+    except live.LiveError as exc:
+        return None, {"verdict": "unavailable", "reason": exc.code, "detail": exc.detail, "operator_action": OPERATOR_STEPS}
+    return setup, None
 
 
 # --------------------------------------------------------------------------
@@ -237,26 +289,40 @@ def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str)
 
 
 def cmd_smoke(ns: argparse.Namespace) -> int:
-    from evals import baselines, trial
+    from concurrent.futures import ThreadPoolExecutor
 
+    from evals import baselines, live, trial
+
+    setup = None
     if ns.mode == "live":
-        code, pre = preflight(ns.route, ns.host_record)
-        if code != EXIT_OK:
-            print(json.dumps({"verdict": "unavailable", "inference": pre["inference"], "delivery": pre["delivery"], "operator_action": OPERATOR_STEPS}, sort_keys=True))
+        setup, refusal = live_setup(ns)
+        if setup is None:
+            print(json.dumps(refusal, sort_keys=True))
             return EXIT_UNAVAILABLE
-    native = baselines.observe_native_memory(shutil.which("claude")) if ns.observe_native_memory else {"state": "not_observed", "reason": "skipped (--no-native-memory-observation)"}
-    write_run(ns.out, ns.mode, native_memory=native, init_route=ns.init_route)
+    if not ns.observe_native_memory:
+        native = {"state": "not_observed", "reason": "skipped (--no-native-memory-observation)"}
+    elif setup is not None:
+        native = baselines.observe_native_memory(setup.executable, session_args=[*live.SESSION_FLAGS, "--model", setup.model])
+    else:
+        native = baselines.observe_native_memory(shutil.which("claude"))
+    route, host = live_inputs(ns)
+    write_run(ns.out, ns.mode, native_memory=native, init_route=ns.init_route if setup is None else "operator_token", route=route, host_record=host, setup=setup)
     trials_dir = ns.out / "trials"
     trials_dir.mkdir(parents=True, exist_ok=True)
     work = ns.out / "work"
     chosen = ns.scenario or sorted(scenarios())
-    summary = []
-    for sid in chosen:
-        for arm in ("no_memory", "candidate"):
-            record = trial.run_trial(sid, arm, work, mode=ns.mode, init_route=ns.init_route, token_file=ns.operator_token_file, native_memory=native)
-            (trials_dir / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
-            summary.append({"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")})
-    if not ns.keep_workspaces:
+
+    def one(job: tuple[str, str]) -> dict:
+        sid, arm = job
+        record = trial.run_trial(sid, arm, work, mode=ns.mode, init_route=ns.init_route, token_file=ns.operator_token_file, native_memory=native, live=setup)
+        (trials_dir / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
+        return {"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")}
+
+    jobs = [(sid, arm) for sid in chosen for arm in ("no_memory", "candidate")]
+    slots = max(1, int(ns.slots or 1)) if ns.mode == "live" else 1
+    with ThreadPoolExecutor(max_workers=slots) as pool:  # each trial has its own workspace, home and installation
+        summary = list(pool.map(one, jobs))
+    if not ns.keep_workspaces and not getattr(ns, "gate_keeps_work", False):
         shutil.rmtree(work, ignore_errors=True)
     print(json.dumps({"mode": ns.mode, "trials": summary}, sort_keys=True))
     return EXIT_OK
@@ -265,16 +331,17 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
 def cmd_workload(ns: argparse.Namespace) -> int:
     from evals import workload
 
+    setup = None
     if ns.mode == "live":
-        code, pre = preflight(ns.route, ns.host_record)
-        if code != EXIT_OK:
-            print(json.dumps({"verdict": "unavailable", "inference": pre["inference"], "operator_action": OPERATOR_STEPS}, sort_keys=True))
+        setup, refusal = live_setup(ns)
+        if setup is None:
+            print(json.dumps(refusal, sort_keys=True))
             return EXIT_UNAVAILABLE
     out = ns.out / "workload"
     out.mkdir(parents=True, exist_ok=True)
     results = []
     for project in ns.project or workload.PROJECTS:
-        record = workload.run_day(project, ns.out / "work-days", mode=ns.mode)
+        record = workload.run_day(project, ns.out / "work-days", mode=ns.mode, live_setup=setup)
         (out / f"{project}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
         results.append({"project": project, "events": record.get("events"), "calls": record.get("curation", {}).get("calls"), "exhausted_at_hours": record.get("budget", {}).get("exhausted_at_hours"), "error": record.get("error")})
     if not ns.keep_workspaces:
@@ -286,13 +353,21 @@ def cmd_workload(ns: argparse.Namespace) -> int:
 def cmd_demonstrate(ns: argparse.Namespace) -> int:
     from evals import demos
 
+    setup = None
     if ns.mode == "live":
-        print(json.dumps({"verdict": "unavailable", "reason": "live demonstrations need B1 cleared", "operator_action": OPERATOR_STEPS}, sort_keys=True))
-        return EXIT_UNAVAILABLE
-    result = demos.run_all(ns.out / "work-demos", trials_dir=ns.out / "trials")
+        setup, refusal = live_setup(ns)
+        if setup is None:
+            print(json.dumps(refusal, sort_keys=True))
+            return EXIT_UNAVAILABLE
+        if not (ns.out / "work").is_dir():
+            print(json.dumps({"verdict": "unavailable", "reason": "live demonstrations run on this run's kept live smoke workspaces: run `gate`, or `smoke --keep-workspaces` first"}, sort_keys=True))
+            return EXIT_UNAVAILABLE
+    result = demos.run_all(ns.out / "work-demos", trials_dir=ns.out / "trials", mode=ns.mode, live_setup=setup, live_work=ns.out / "work")
     (ns.out / "demonstrations.json").write_text(json.dumps(result, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
     if not ns.keep_workspaces:
         shutil.rmtree(ns.out / "work-demos", ignore_errors=True)
+        if getattr(ns, "gate_keeps_work", False):
+            shutil.rmtree(ns.out / "work", ignore_errors=True)
     print(json.dumps({k: v.get("demonstrated") for k, v in result["demonstrations"].items()}, sort_keys=True))
     return EXIT_OK
 
@@ -328,6 +403,12 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--project", action="append")
         p.add_argument("--keep-workspaces", action="store_true")
         p.add_argument("--no-native-memory-observation", dest="observe_native_memory", action="store_false")
+        p.add_argument("--config", type=Path, default=None, help="live: the local probe configuration (names only)")
+        p.add_argument("--source-project", type=Path, default=None, help="live: the certified project (its provider.json and host.json)")
+        p.add_argument("--evidence", type=Path, default=None, help="live: the report holding the source project's delivery_engine section (default docs/host-compatibility.json)")
+        p.add_argument("--wheel", type=Path, default=None, help="live: the verified release wheel the trial installations are provisioned with")
+        p.add_argument("--wheelhouse", type=Path, default=None, help="live: the hash-locked wheelhouse for the release bootstrap")
+        p.add_argument("--slots", type=int, default=1, help="live: trials run at once, each in its own installation")
     rep = sub.add_parser("report")
     rep.add_argument("results", type=Path)
     ns = parser.parse_args(argv)
@@ -351,6 +432,7 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_demonstrate(ns)
         if ns.command == "report":
             return cmd_report(ns.results)
+        ns.gate_keeps_work = True  # the live demonstrations run on the smoke trials' kept workspaces
         for step in (cmd_smoke, cmd_workload, cmd_demonstrate):
             code = step(ns)
             if code != EXIT_OK:

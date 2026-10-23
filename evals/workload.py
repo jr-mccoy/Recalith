@@ -17,8 +17,10 @@ while every job still goes through the real queue, leases and **default
 budgets**. The UTC budget day is never reset inside a day, nothing is
 extrapolated from fresh-budget trials, and an increased-budget run would be a
 separately labeled variant (none is run here). In ``live`` mode the model lane
-would use the installation's certified route and its real call costs; under B1
-only the recorded curator runs, labeled.
+is the installation's own certified route (decision 0028: certified for that
+installation by ``tools/probe_provider.py --route-out``, gated by the
+production isolation recheck), so calls, latency and usage are real; the
+scripted mode answers with the recorded curator, labeled.
 """
 
 from __future__ import annotations
@@ -345,12 +347,17 @@ def _job(view: Any, job_id: str) -> dict[str, Any] | None:
     return None if row is None else json.loads(row[0])
 
 
-def run_day(project: str, work: Path, *, mode: str = "scripted") -> dict[str, Any]:
-    from evals import agent, baselines, curator, trial
+def run_day(project: str, work: Path, *, mode: str = "scripted", live_setup: Any = None) -> dict[str, Any]:
+    """Replay one day. ``live``: the installation is initialized with the operator token, its own route is certified live
+    (``live.provision`` without a host), and the harness worker's model lane is that route behind the production supervisor
+    (its isolation recheck passed), so every call and its usage are real while scheduling stays on the day's virtual clock."""
+    from evals import agent, baselines, curator, live, trial
     from recalith.storage import db
 
-    if mode != "scripted":
-        return {"kind": "workload_day", "project": project, "mode": mode, "error": "live_unavailable", "detail": "B1"}
+    if mode not in ("scripted", "live"):
+        return {"kind": "workload_day", "project": project, "mode": mode, "error": "unknown_mode"}
+    if mode == "live" and live_setup is None:
+        return {"kind": "workload_day", "project": project, "mode": mode, "error": "live_setup_missing"}
     day = load_day(project)
     base = work / project
     if base.exists():
@@ -359,7 +366,14 @@ def run_day(project: str, work: Path, *, mode: str = "scripted") -> dict[str, An
     home.mkdir(parents=True)
     trial.copy_seed(project, ws)
     baselines.prepare_home(home)
-    trial.init_installation(ws, project, route="test_fixture", token_file=None, mode="scripted")
+    provisioning = None
+    if mode == "live":
+        try:
+            provisioning = live.provision(ws, project, live_setup, label=f"workload.{project}", host=False)
+        except live.LiveError as exc:
+            return {"kind": "workload_day", "project": project, "mode": mode, "error": exc.code, "detail": exc.detail, "provisioning_steps": exc.steps}
+    else:
+        trial.init_installation(ws, project, route="test_fixture", token_file=None, mode="scripted")
     trial.controlled_manifest(ws)
     ctx = trial.context(ws)
     clock = agent.Clock(day["start"])
@@ -383,14 +397,24 @@ def run_day(project: str, work: Path, *, mode: str = "scripted") -> dict[str, An
         record["priority_inversion"] = inversion
         calls.append(record)
 
-    backend = curator.RecordedCurator(plan, on_call=on_call)
-    drainer = trial.Drainer(ws, clock, backend)
+    supervisor = None
+    if mode == "live":
+        try:
+            backend, supervisor = live.certified_backend(ctx, on_call=on_call)
+        except live.LiveError as exc:
+            return {"kind": "workload_day", "project": project, "mode": mode, "error": exc.code, "detail": exc.detail, "provisioning": provisioning}
+    else:
+        backend = curator.RecordedCurator(plan, on_call=on_call)
+    drainer = trial.Drainer(ws, clock, backend, provider=supervisor)
     host = agent.HookBridge(ws, home, clock)
     sessions: dict[str, ReplaySession] = {}
     exhausted_at: str | None = None
     pools: set[str] = set()
     horizon: dict[str, Any] = {"checks": 0, "violations": 0, "examples": []}
     record: dict[str, Any] = {"horizon": horizon, "kind": "workload_day", "project": project, "mode": mode, "start": day["start"], "authorship": day["authorship"], "events": len(day["events"]), "budgets": "default (ProjectConfig defaults; UTC day never reset)"}
+    if mode == "live":
+        record["live"] = {**live_setup.label(), "provisioning": provisioning, "curator": "the installation's certified route (production supervisor, isolation recheck passed); scheduling on the day's virtual clock (ACCEPTANCE_TESTS §5.2)",
+                          "host": "recorded timeline replayed in process through the real stdlib hook path (no host session)"}
     try:
         for ev in day["events"]:
             target = _plus(day["start"], ev["at"])
@@ -411,6 +435,9 @@ def run_day(project: str, work: Path, *, mode: str = "scripted") -> dict[str, An
             sessions[ev["session"]].event(ev)
         exhausted_at, pools = _run_until(drainer, clock, _plus(day["start"], DAY_SECONDS), ctx, exhausted_at, pools)
         record.update(_measures(ctx, day, calls, sessions, exhausted_at, pools, clock))
+        if mode == "live":
+            record["curation"]["processing"] = {"real_seconds": _dist([c.get("real_seconds", 0.0) for c in calls]), "note": "real provider call durations; queue wait is on the virtual clock"}
+            record["curation"]["proposals"] = trial.curator_calls(ws)
         record["harness_real_seconds"] = round(time.monotonic() - started_real, 2)
     except Exception as exc:  # noqa: BLE001 - an unsuccessful day is reported, never dropped
         record["error"] = f"{type(exc).__name__}: {str(exc)[:300]}"

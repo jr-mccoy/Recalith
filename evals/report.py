@@ -245,12 +245,15 @@ def quality(trials: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def operational(workload: list[dict[str, Any]], trials: list[dict[str, Any]]) -> dict[str, Any]:
-    days = [w for w in workload if w.get("kind") == "workload_day"]
+    recorded = [w for w in workload if w.get("kind") == "workload_day"]
+    # A day that did not run (provisioning or replay failed) has no measures: it is reported, never silently dropped.
+    failed = [d for d in recorded if "budget" not in d]
+    days = [d for d in recorded if "budget" in d]
     exhausted = [d for d in days if d["budget"].get("exhausted_at_hours") is not None]
     hours = [d["budget"]["exhausted_at_hours"] for d in exhausted]
     waits = {k: [x for d in days for x in d["budget"].get("wait_seconds", {}).get(k, [])] for k in ("correction_declaration_review", "ordinary_review", "ordinary")}
     budget = {
-        "scenario_days": len(days),
+        "scenario_days": len(days), "days_not_run": [{"project": d.get("project"), "error": d.get("error"), "detail": d.get("detail")} for d in failed],
         "days_hitting_any_pool": proportion(len(exhausted), len(days)),
         "median_hours_to_exhaustion": statistics.median(hours) if hours else None,
         "nonexhausted_censored_days": len(days) - len(exhausted),
@@ -364,10 +367,14 @@ def cost_and_time(run: dict[str, Any], trials: list[dict[str, Any]], workload: l
     live = run.get("mode") == "live"
     illustrative = {"sessions_per_scenario": 2.5, "foreground_cost_per_session_usd": 0.30, "background_share": 0.25, "minutes_per_session": 4, "overhead": 0.25}
     comparative = 12 * 1 * 2 * illustrative["sessions_per_scenario"]
+    foreground_usd = round(sum(float(t["outcomes"].get("foreground_cost_usd") or 0.0) for t in trials), 4) if live else 0.0
+    background_tokens = sum(int(t.get("background", {}).get("tokens", 0)) for t in trials) + sum(sum((d.get("curation", {}).get("estimated_tokens_by_purpose") or {}).values()) for d in workload)
     return {
         "actual": {
             "mode": run.get("mode"), "foreground_sessions": sessions, "background_model_calls": background_calls, "elapsed_seconds": round(elapsed, 1),
-            "provider_cost_usd": None if live else 0.0, "provider_cost_note": "recorded mode: no provider call was made; the background calls were answered by the recorded curator" if not live else "from provider usage",
+            "provider_cost_usd": None if live else 0.0, "provider_cost_note": "recorded mode: no provider call was made; the background calls were answered by the recorded curator" if not live else
+            "foreground: the host's reported session cost; background: tokens from the budget ledger (provider-reported where available), not priced here",
+            "foreground_cost_usd": foreground_usd, "background_tokens": background_tokens,
         },
         "pilot": {"state": "not_run" if not live else "see actual", "reason": "a live pilot needs a certified route (B1)" if not live else None},
         "illustrative_estimate": {
@@ -407,12 +414,34 @@ def build(directory: Path) -> dict[str, Any]:
         "operational_5_2": operational(workload, trials),
         "retrieval_points": retrieval_summary(trials),
         "demonstrations_6_1": data["demonstrations"],
+        "completeness": completeness(trials, workload, data["demonstrations"]),
         "unsuccessful_runs": unsuccessful,
         "cost_and_time": cost_and_time(run, trials, workload),
         "limitations": run.get("limitations", []),
     }
     report["gate"] = gate(report, run)
     return report
+
+
+SMOKE_IDS = tuple(sorted(p.stem for p in (Path(__file__).resolve().parent / "scenarios" / "smoke").glob("smoke-*.json")))
+DEMONSTRATIONS = ("fresh_session_reuse", "changed_condition_revision", "forgetting_and_restore", "isolation", "zero_interventions")
+WORKLOAD_DAYS = 3
+
+
+def completeness(trials: list[dict[str, Any]], workload: list[dict[str, Any]], demos: dict[str, Any] | None) -> dict[str, Any]:
+    """What ACCEPTANCE_TESTS §6.1 requires to have run: every smoke scenario in both arms without a run error and with a
+    clean label, three workload days with measures, and every demonstration shown. Task failure is an outcome, not a gap."""
+    have = {(t.get("scenario"), t.get("arm")): t for t in trials}
+    missing = [f"{sid}.{arm}" for sid in SMOKE_IDS for arm in ("candidate", "no_memory") if (sid, arm) not in have]
+    errors = [f"{t['scenario']}.{t['arm']}:{t['error']}" for t in trials if t.get("error")]
+    contaminated = [f"{t['scenario']}.{t['arm']}" for t in trials if ((t.get("manifest") or {}).get(t.get("arm")) or {}).get("label") != t.get("arm")]
+    days = [d for d in workload if d.get("kind") == "workload_day"]
+    ran = [d for d in days if "budget" in d and not d.get("error")]
+    shown = ((demos or {}).get("demonstrations") or {})
+    unmet = [n for n in DEMONSTRATIONS if not (shown.get(n) or {}).get("demonstrated")]
+    return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "workload_days_run": len(ran),
+            "workload_days_not_run": [d.get("project") for d in days if d not in ran], "demonstrations_unmet": unmet,
+            "complete": not missing and not errors and not contaminated and len(ran) >= WORKLOAD_DAYS and not unmet}
 
 
 def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
@@ -422,7 +451,19 @@ def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
     failed = [n for n, m in report["quality_5_1"]["measures"].items() if m.get("met") is False]
     if failed:
         reasons.append("quality_targets_unmet:" + ",".join(failed))
-    return {"state": "blocked" if report["mode"] != "live" else ("failed" if failed else "passed_smoke"), "reasons": reasons, "superiority_claim": False}
+    done = report.get("completeness") or {}
+    if done.get("smoke_trials_missing"):
+        reasons.append(f"smoke_trials_missing:{done['smoke_trials_missing']}")
+    if done.get("trial_errors"):
+        reasons.append("trial_errors:" + ",".join(done["trial_errors"])[:400])
+    if done.get("contaminated_arms"):
+        reasons.append("contaminated_arms:" + ",".join(done["contaminated_arms"])[:400])
+    if done and done.get("workload_days_run", 0) < WORKLOAD_DAYS:
+        reasons.append(f"workload_days_short:{done.get('workload_days_run', 0)}/{WORKLOAD_DAYS}")
+    if done.get("demonstrations_unmet"):
+        reasons.append("demonstrations_unmet:" + ",".join(done["demonstrations_unmet"]))
+    incomplete = bool(done) and not done.get("complete")
+    return {"state": "blocked" if report["mode"] != "live" else ("failed" if failed or incomplete else "passed_smoke"), "reasons": reasons, "superiority_claim": False}
 
 
 def markdown(report: dict[str, Any]) -> str:
