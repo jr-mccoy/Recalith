@@ -67,7 +67,7 @@ Administrative commands are refused inside an agent's process tree, even with a 
 
 1. Provision the runtime: `python bootstrap.py install` (hash-locked wheelhouse; no hook-triggered download).
 2. `recalith init --project . --profile coding --release-profile claude_preview` at the terminal. For automation, first create a standalone token at the terminal with `recalith operator-token create --output FILE`, then `recalith init --operator-token-file FILE` from the automation; a token is never minted noninteractively.
-3. Certify the inference route and the host (B1's operator commands in [BUILD_PROGRESS](BUILD_PROGRESS.md#blockers-and-decisions)): `tools/probe_provider.py --backend BACKEND --route-out`, `tools/check_provider_runtime.py --backend BACKEND`, `recalith integrate claude`, `tools/probe_delivery.py --engine-project`.
+3. Certify the inference route and the host (B1's operator commands in [BUILD_PROGRESS](BUILD_PROGRESS.md#blockers-and-decisions)): `tools/probe_provider.py --backend BACKEND --route-out`, `tools/check_provider_runtime.py --backend BACKEND --project PATH`, `recalith integrate claude`, `tools/probe_delivery.py --engine-project`.
 4. `recalith status` → exit 0.
 
 ### Choosing the curator backend (decision 0023)
