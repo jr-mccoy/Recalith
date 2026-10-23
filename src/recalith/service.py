@@ -646,12 +646,27 @@ def show(ctx: InstallationContext, record_id: str, *, revision: int | None = Non
                 raise RecalithError("invalid_schema", "no such revision, or its content was forgotten or aged out")
             return {"kind": kind, "id": record_id, "revision": rev, "head_revision": head[0], "head_status": head[1], "body": body}
         if prefix == "evt":
-            row = view.execute("SELECT envelope, payload FROM events WHERE event_id = ?", (record_id,)).fetchone()
+            row = view.execute("SELECT envelope, payload, payload_state FROM events WHERE event_id = ?", (record_id,)).fetchone()
             if row is None:
                 raise RecalithError("invalid_schema", "no such event in this installation")
             envelope = json.loads(row[0])
             envelope["payload"] = json.loads(row[1]) if row[1] is not None else None
-            return {"kind": "event", "id": record_id, "revision": 1, "body": envelope}
+            out = {"kind": "event", "id": record_id, "revision": 1, "body": envelope}
+            if row[2] == "capsule_only":
+                from recalith.privacy import capsules
+
+                capsule = capsules.for_event(view, record_id)
+                out["capsule"] = capsule.model_dump(mode="json") if capsule is not None else None  # what retention kept (decision 0025)
+            return out
+        if prefix == "cap":
+            from recalith.privacy import capsules
+
+            if view.execute("SELECT release_profile FROM installation_meta WHERE singleton = 1").fetchone()[0] != "full":
+                raise RecalithError("capability_unavailable", "evidence capsules are a full-release capability")
+            capsule = capsules.load(view, record_id)
+            if capsule is None:
+                raise RecalithError("invalid_schema", "no such capsule in this installation")
+            return {"kind": "capsule", "id": record_id, "revision": 1, "body": capsule.model_dump(mode="json")}
         if prefix == "op":
             row = view.execute("SELECT operation_id, job_id, kind, actor, inputs, changed, reason, causal_root, store_revision, created_at FROM operations WHERE operation_id = ?", (record_id,)).fetchone()
             if row is None:
@@ -666,7 +681,7 @@ def show(ctx: InstallationContext, record_id: str, *, revision: int | None = Non
             if job is None:
                 raise RecalithError("invalid_schema", "no such job in this installation")
             return {"kind": "job", "id": record_id, "revision": 1, "body": job.model_dump(mode="json")}
-    raise RecalithError("invalid_schema", "show takes a claim, task, episode, event, operation or job ID")
+    raise RecalithError("invalid_schema", "show takes a claim, task, episode, event, capsule, operation or job ID")
 
 
 def list_jobs(ctx: InstallationContext, *, limit: int | None = None) -> dict[str, Any]:

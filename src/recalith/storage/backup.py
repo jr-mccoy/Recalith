@@ -446,7 +446,8 @@ def prune(store: Store, ctx: InstallationContext, *, now: str, days: int) -> lis
 
 
 def holds(path: Path | str, event_ids: set[str], record_ids: set[str]) -> bool | None:
-    """Whether a backup snapshot still holds a payload or body of these IDs; None when it cannot be read."""
+    """Whether a backup snapshot still holds a payload, capsule or body of these IDs; None when it cannot be read."""
+    from recalith.privacy import capsules
     tables = {"claim": ("claim_revisions", "claim_id"), "task": ("task_revisions", "task_id"), "ep": ("episode_revisions", "episode_id")}
     try:
         conn = _snapshot(Path(path))
@@ -457,6 +458,9 @@ def holds(path: Path | str, event_ids: set[str], record_ids: set[str]) -> bool |
         for i in range(0, len(events), 400):
             chunk = events[i : i + 400]
             if conn.execute(f"SELECT 1 FROM events WHERE payload IS NOT NULL AND event_id IN ({','.join('?' for _ in chunk)}) LIMIT 1", tuple(chunk)).fetchone():  # noqa: S608
+                return True
+            kept = [capsules.capsule_id(e) for e in chunk]  # a capsule of the event holds its content too (decision 0025)
+            if conn.execute(f"SELECT 1 FROM evidence_capsules WHERE body IS NOT NULL AND capsule_id IN ({','.join('?' for _ in kept)}) LIMIT 1", tuple(kept)).fetchone():  # noqa: S608
                 return True
         for prefix, (table, key) in tables.items():
             ids = sorted(r for r in record_ids if r.split("_", 1)[0] == prefix)

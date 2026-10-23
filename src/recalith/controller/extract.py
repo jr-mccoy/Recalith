@@ -43,6 +43,7 @@ from recalith.contracts.jobs import Job
 from recalith.contracts.memory import ClaimRevision
 from recalith import prompts
 from recalith.controller import jobs, requests
+from recalith.privacy import capsules
 from recalith.storage import records
 from recalith.working import bindings, tasks
 
@@ -73,6 +74,10 @@ def _relevant_claims(view: Any, event_ids: list[str], families: set[str]) -> lis
         chunk = event_ids[i : i + 400]
         marks = ",".join("?" for _ in chunk)
         rows = view.execute(f"SELECT DISTINCT owner_id FROM evidence_links WHERE owner_kind = 'claim' AND target_kind = 'event' AND target_id IN ({marks})", tuple(chunk)).fetchall()  # noqa: S608
+        ids += [r[0] for r in rows]
+        rows = view.execute(  # links redirected to these events' capsules (decision 0025)
+            f"SELECT DISTINCT owner_id FROM evidence_links WHERE owner_kind = 'claim' AND target_kind = 'capsule' AND target_id IN ({marks})", tuple(capsules.capsule_targets(chunk)),  # noqa: S608
+        ).fetchall()
         ids += [r[0] for r in rows]
     for family in sorted(families):
         ids += [r[0] for r in view.execute("SELECT claim_id FROM claim_heads WHERE kind = 'failure_lesson' AND action_family_digest = ?", (family,)).fetchall()]

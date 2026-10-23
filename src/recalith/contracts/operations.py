@@ -13,7 +13,7 @@ import json
 import re
 from typing import Annotated, Literal
 
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, ValidationError, model_serializer, model_validator
 
 from .common import (
     Condition,
@@ -43,6 +43,7 @@ from .config import (
 from .events import EventEnvelope
 from .memory import (
     Basis,
+    EvidenceCapsule,
     ClaimKind,
     ClaimRevision,
     Episode,
@@ -492,6 +493,16 @@ class ModelRequest(StrictModel):
     output_schema: JsonObject
     review_batch: ReviewBatch | None = None
     limits: RequestLimits
+    # Full profile (decision 0025): the exact capsules of selected capsule-only events; omitted when empty, so a
+    # request without one serializes exactly as before.
+    capsules: list[EvidenceCapsule] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_capsules(self, handler):  # type: ignore[no-untyped-def]
+        data = handler(self)
+        if isinstance(data, dict) and not data.get("capsules"):
+            data.pop("capsules", None)
+        return data
 
     @model_validator(mode="after")
     def _bounded(self) -> "ModelRequest":

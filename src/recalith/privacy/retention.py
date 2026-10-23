@@ -59,10 +59,19 @@ evidence links and projection rows, keeps the head and its status, writes a
 content-free ``retention_record_aging`` audit and advances the guidance epoch,
 in its own transaction with the pins recomputed there.
 
+**Exact capsules** (full profile only, decision 0025). After the expiry pass,
+a full store's sweep compacts the pinned payloads past the window that a
+capsule can keep exactly (:mod:`recalith.privacy.capsules`): capsule, link
+redirection and payload removal in one transaction with the pins recomputed
+there, and a content-free ``retention_capsule`` audit. A payload that cannot
+be kept exactly stays pinned and is reported with its reason. A capsule-only
+event expires like a payload once no live owner needs it: its capsule goes and
+its redirected links revert. Preview never compacts.
+
 **Storage growth** is reported, never bounded by pins: :func:`summary` gives
 the ``RetentionSummary`` (pinned and unpinned payload bytes, live owners, free
-disk, and the pinned payloads already past their window, which a full-release
-capsule could compact).
+disk, and the pinned payloads past their window still held in full: those a
+full-profile capsule could not or did not yet compact).
 """
 
 from __future__ import annotations
@@ -81,6 +90,7 @@ from recalith.contracts.config import ProjectConfig, RetentionConfig
 from recalith.contracts.health import RetentionSummary
 from recalith.core import lineage
 from recalith.fast import failpoints
+from recalith.privacy import capsules
 from recalith.storage import records
 from recalith.storage.db import STATE_DB, Store, Txn
 
@@ -129,6 +139,9 @@ class Pins:
     owed: set[str] = field(default_factory=set)  # events unfinished work still needs
     owners: int = 0
     records: set[tuple[str, str, int]] = field(default_factory=set)  # record revisions either closure visits (kept from body aging)
+    working: set[str] = field(default_factory=set)  # events live tasks (with their open ranges) and open episodes reach
+    claim_records: set[tuple[str, str, int]] = field(default_factory=set)  # record revisions the live claims' closures visit
+    owed_payloads: set[str] = field(default_factory=set)  # owed events whose full payload unfinished work reads (not through a claim input)
 
     @property
     def events(self) -> set[str]:
@@ -178,6 +191,10 @@ class _Closure:
         kind = ref.get("kind")
         if kind == "event":
             self.add_event(ref["id"])
+        elif kind == "capsule":
+            origin = capsules.origin_event(self.q, ref["id"])
+            if origin is not None:
+                self.add_event(origin)  # a redirected link still pins its capsule-only event
         elif kind in records.REVISION_TABLES:
             self.add_record(kind, ref["id"], int(ref.get("revision") or 1))
 
@@ -227,20 +244,26 @@ def pins(q: Any) -> Pins:
     out = Pins()
     owners = _owners(q)
     out.owners = len(owners)
-    owned = _Closure(q)
+    claimed = _Closure(q)
+    working = _Closure(q)  # open working context (decision 0025: never compacted)
     for kind, record_id, revision in owners:
-        owned.add_record(kind, record_id, revision)
+        (claimed if kind == "claim" else working).add_record(kind, record_id, revision)
         if kind == "task":
             for event_id in _open_range(q, record_id):
-                owned.add_event(event_id)
-    out.owned = owned.run()
+                working.add_event(event_id)
+    out.working = working.run()
+    out.owned = claimed.run() | out.working
+    out.claim_records = set(claimed.records)
     owed = _Closure(q)
+    # A job whose input is a claim reads what that claim cites, which an exact capsule keeps and its request carries
+    # (decision 0025): owed for expiry, but not a payload compaction must keep whole.
+    claim_inputs = _Closure(q)
     cursor = owed_cursor(q)
     for (event_id,) in q.execute("SELECT event_id FROM events WHERE commit_sequence > ?", (cursor,)).fetchall():
         owed.add_event(event_id)
     for (body,) in q.execute(f"SELECT body FROM jobs WHERE state NOT IN ({','.join('?' for _ in TERMINAL_JOBS)})", TERMINAL_JOBS).fetchall():  # noqa: S608
         for ref in json.loads(body).get("input_refs") or []:
-            owed.add_ref(ref)
+            (claim_inputs if ref.get("kind") == "claim" else owed).add_ref(ref)
     for (event_id,) in q.execute(
         f"SELECT r.event_id FROM claim_rechecks r JOIN claim_heads h ON h.claim_id = r.claim_id WHERE r.state IN ('pending', 'deferred') AND r.event_id IS NOT NULL AND h.status IN ({','.join('?' for _ in LIVE_CLAIMS)})",  # noqa: S608
         LIVE_CLAIMS,
@@ -248,8 +271,10 @@ def pins(q: Any) -> Pins:
         owed.add_event(event_id)
     for (event_id,) in q.execute("SELECT failure_event_id FROM failure_triggers WHERE state IN ('pending', 'due')").fetchall():
         owed.add_event(event_id)  # an undebounced failure is read when its extraction comes due
-    out.owed = owed.run()
-    out.records = owned.records | owed.records
+    out.owed_payloads = owed.run()
+    out.owed = out.owed_payloads | claim_inputs.run()
+    out.claim_records |= claim_inputs.records
+    out.records = claimed.records | working.records | owed.records | claim_inputs.records
     return out
 
 
@@ -287,6 +312,10 @@ class Report:
     conflicts_trimmed: int = 0
     truncated: bool = False
     records_aged: dict[str, int] = field(default_factory=lambda: {"task": 0, "episode": 0})
+    compacted: list[str] = field(default_factory=list)  # events now capsule-only (full profile)
+    compaction_deferred: dict[str, int] = field(default_factory=dict)  # reason -> pinned payloads kept in full
+    compaction_reasons: dict[str, str] = field(default_factory=dict)  # event -> why its pin was kept (not in the recorded report)
+    links_redirected: int = 0
     summary: RetentionSummary | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -294,7 +323,9 @@ class Report:
             "now": self.now, "cutoff": self.cutoff, "delivery_cutoff": self.delivery_cutoff, "expired_count": len(self.expired), "repinned_count": len(self.repinned),
             "pinned_count": self.pinned_count, "owed_count": self.owed_count, "downgraded_count": len(self.downgraded), "deliveries_removed": self.deliveries_removed,
             "outcome_links_removed": self.outcome_links_removed, "proposals_trimmed": self.proposals_trimmed, "conflicts_trimmed": self.conflicts_trimmed,
-            "truncated": self.truncated, "records_aged": dict(self.records_aged), "summary": self.summary.model_dump(mode="json") if self.summary is not None else None,
+            "truncated": self.truncated, "records_aged": dict(self.records_aged), "compacted_count": len(self.compacted),
+            "compaction_deferred": dict(sorted(self.compaction_deferred.items())), "links_redirected": self.links_redirected,
+            "summary": self.summary.model_dump(mode="json") if self.summary is not None else None,
         }
 
 
@@ -324,7 +355,7 @@ def summary(q: Any, ctx: InstallationContext, *, now: str, config: RetentionConf
 def _eligible(q: Any, *, cutoff: str, delivery_cutoff: str, cursor: int, limit: int) -> list[str]:
     marks = ",".join("?" for _ in DELIVERY_EVENT_KINDS)
     rows = q.execute(
-        f"SELECT event_id FROM events WHERE payload_state = 'available' AND payload IS NOT NULL AND commit_sequence <= ? "  # noqa: S608
+        f"SELECT event_id FROM events WHERE ((payload_state = 'available' AND payload IS NOT NULL) OR payload_state = 'capsule_only') AND commit_sequence <= ? "  # noqa: S608
         f"AND ((kind IN ({marks}) AND recorded_at < ?) OR (kind NOT IN ({marks}) AND recorded_at < ?)) ORDER BY commit_sequence LIMIT ?",
         (cursor, *DELIVERY_EVENT_KINDS, delivery_cutoff, *DELIVERY_EVENT_KINDS, cutoff, limit),
     ).fetchall()
@@ -346,6 +377,10 @@ def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, con
         prefilter = pinned.events
         # Aging takes the write lock only when something can age; the transaction recomputes pins and candidates.
         ageing = bool(aging_candidates(view, now, config, pinned.records))
+        full = view.execute("SELECT release_profile FROM installation_meta WHERE singleton = 1").fetchone()[0] == "full"
+        compactable = _compactable(view, cutoff=report.cutoff, cursor=cursor, pinned=prefilter, limit=limit + 1) if full else []
+        report.truncated = report.truncated or len(compactable) > limit
+        compactable = compactable[:limit]
     candidates = [e for e in found if e not in prefilter]
     failpoints.hit(failpoints.RETENTION_AFTER_SELECT)
     if candidates:
@@ -353,6 +388,12 @@ def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, con
             _expire(txn, ctx, candidates, report)
             failpoints.hit(failpoints.RETENTION_BEFORE_COMMIT)
         failpoints.hit(failpoints.RETENTION_AFTER_COMMIT)
+    if compactable:
+        failpoints.hit(failpoints.CAPSULE_AFTER_PLAN)
+        with store.transaction() as txn:
+            _compact(txn, ctx, compactable, report)
+            failpoints.hit(failpoints.CAPSULE_BEFORE_COMMIT)
+        failpoints.hit(failpoints.CAPSULE_AFTER_COMMIT)
     if ageing:
         with store.transaction() as txn:
             age_records(txn, ctx, report, config)
@@ -378,7 +419,7 @@ def _expire(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], repor
         rows = txn.execute(f"SELECT event_id, kind, recorded_at, commit_sequence, payload_state FROM events WHERE event_id IN ({marks})", tuple(chunk)).fetchall()  # noqa: S608
         for event_id, kind, recorded_at, seq, state in rows:
             limit = report.delivery_cutoff if kind in DELIVERY_EVENT_KINDS else report.cutoff
-            if state != "available" or recorded_at >= limit or seq > cursor:
+            if state not in ("available", "capsule_only") or recorded_at >= limit or seq > cursor:
                 continue
             if event_id in keep:
                 report.repinned.append(event_id)  # a reference committed since selection: it pins the payload first
@@ -388,9 +429,10 @@ def _expire(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], repor
         return
     for chunk in _chunks(expired):
         marks = ",".join("?" for _ in chunk)
-        txn.execute(f"UPDATE events SET payload = NULL, payload_state = 'expired' WHERE payload_state = 'available' AND event_id IN ({marks})", tuple(chunk))  # noqa: S608
+        txn.execute(f"UPDATE events SET payload = NULL, payload_state = 'expired' WHERE payload_state IN ('available', 'capsule_only') AND event_id IN ({marks})", tuple(chunk))  # noqa: S608
         cur = txn.execute(f"UPDATE source_conflicts SET scrubbed_payload = NULL WHERE scrubbed_payload IS NOT NULL AND original_event_id IN ({marks})", tuple(chunk))  # noqa: S608
         report.conflicts_trimmed += cur.rowcount
+    capsules.drop(txn, expired)  # a released capsule-only event: its capsule goes, its redirected links revert
     report.expired = sorted(expired)
     _audit(txn, ctx, kind=EXPIRY_KIND, key=[report.now, report.expired], inputs={
         "expired_count": len(expired), "cutoff": report.cutoff, "delivery_cutoff": report.delivery_cutoff, "repinned_count": len(report.repinned),
@@ -398,6 +440,41 @@ def _expire(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], repor
     }, reason="age retention of unpinned payloads", now=report.now)
     txn.mutated(serving_relevant=True)  # evidence expiry is serving-relevant (DATA_CONTRACTS §11)
     txn.purged()  # an authorized retention purge (full profile: a purge chain entry, decision 0024)
+
+
+# --------------------------------------------------------------------------
+# Exact capsules (full profile, decision 0025)
+
+
+def _compactable(q: Any, *, cutoff: str, cursor: int, pinned: set[str], limit: int) -> list[str]:
+    """Pinned available payloads past the window (a prefilter in a read snapshot; the transaction rechecks all)."""
+    rows = q.execute(
+        "SELECT event_id FROM events WHERE payload_state = 'available' AND payload IS NOT NULL AND commit_sequence <= ? AND recorded_at < ? ORDER BY commit_sequence",
+        (cursor, cutoff),
+    ).fetchall()
+    return [r[0] for r in rows if r[0] in pinned][:limit]
+
+
+def _compact(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], report: Report) -> None:
+    """Inside the compaction transaction: pins recomputed here, then each candidate becomes an exact capsule or keeps its pin."""
+    current = pins(txn)
+    out = capsules.compact(
+        txn, candidates, owed=current.owed_payloads, working=current.working, claim_records=current.claim_records, keep=current.events,
+        cutoff=report.cutoff, cursor=owed_cursor(txn),
+    )
+    report.compacted = sorted(out.compacted)
+    report.links_redirected = len(out.redirected)
+    for reason, n in out.deferred.items():
+        report.compaction_deferred[reason] = report.compaction_deferred.get(reason, 0) + n
+    report.compaction_reasons.update(out.deferred_events)
+    if not out.compacted:
+        return
+    _audit(txn, ctx, kind=capsules.KIND, key=[report.now, report.compacted], inputs={
+        "capsule_count": len(out.compacted), "links_redirected": len(out.redirected), "deferred": dict(sorted(out.deferred.items())), "cutoff": report.cutoff,
+        **_ids(report.compacted), "capsule_ids": sorted(out.capsule_ids)[:AUDIT_IDS], "redirected_link_ids": sorted(out.redirected)[:AUDIT_IDS],
+    }, reason="exact capsules replace pinned payloads past the window", now=report.now)
+    txn.mutated(serving_relevant=True)  # rendering changes (capsule-only evidence, quoted spans)
+    txn.purged()  # payload removal is an authorized retention purge (decision 0024)
 
 
 # --------------------------------------------------------------------------
@@ -633,6 +710,7 @@ def release_payloads(txn: Txn, ctx: InstallationContext, event_ids: Iterable[str
         marks = ",".join("?" for _ in chunk)
         released += txn.execute(f"UPDATE events SET payload = NULL, payload_state = ? WHERE payload_state != ? AND event_id IN ({marks})", (state, state, *chunk)).rowcount  # noqa: S608
         txn.execute(f"UPDATE source_conflicts SET scrubbed_payload = NULL WHERE original_event_id IN ({marks})", tuple(chunk))  # noqa: S608
+    capsules.drop(txn, ids)  # forgetting reaches capsules: deleted, their links back to the (released) event
     _audit(txn, ctx, kind=RELEASE_KIND, key=[now, ids, state], inputs={"released_count": released, "state": state, **_ids(ids)}, reason="forgetting overrides pins", now=now)
     txn.mutated(serving_relevant=True)
     txn.purged()
@@ -737,7 +815,7 @@ def run(store: Store, ctx: InstallationContext, config: ProjectConfig, *, now: s
     data = {**report.as_dict(), "backups_deleted": len(deleted), "scratch": scratch}
     with store.transaction() as txn:
         txn.execute("UPDATE retention_state SET swept_at = ?, report = ? WHERE singleton = 1", (None if report.truncated else now, canonical_json(data).decode()))
-    if report.expired or report.downgraded or deleted or report.deliveries_removed or report.proposals_trimmed or scratch["pruned"] or report.truncated:
+    if report.expired or report.compacted or report.downgraded or deleted or report.deliveries_removed or report.proposals_trimmed or scratch["pruned"] or report.truncated:
         did["sweep"] = data
     return did
 

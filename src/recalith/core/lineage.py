@@ -67,6 +67,7 @@ from pydantic import ValidationError
 from recalith.contracts.common import EvidenceLink, InstallationContext, OriginEventKey, RecordRef, canonical_json, derived_id, digest_of
 from recalith.contracts.events import MEMORY_KINDS, ActionDescriptor, EventEnvelope, ObservationDescriptor
 from recalith.contracts.memory import PropositionKey
+from recalith.privacy import capsules
 from recalith.storage import failpoints, records
 
 # Without verified distinct source authority, every user statement in an
@@ -391,6 +392,9 @@ def claims_citing(q: Any, event_ids: Sequence[str]) -> list[RecordRef]:
     for chunk in _chunks(list(event_ids)):
         marks = ",".join("?" for _ in chunk)
         owners.update(q.execute(f"SELECT owner_kind, owner_id, owner_revision FROM evidence_links WHERE target_kind = 'event' AND relation = 'supports' AND target_id IN ({marks})", tuple(chunk)).fetchall())  # noqa: S608
+    for chunk in _chunks(sorted(capsules.capsule_targets(event_ids))):  # links redirected to these events' capsules (decision 0025)
+        marks = ",".join("?" for _ in chunk)
+        owners.update(q.execute(f"SELECT owner_kind, owner_id, owner_revision FROM evidence_links WHERE target_kind = 'capsule' AND relation = 'supports' AND target_id IN ({marks})", tuple(chunk)).fetchall())  # noqa: S608
     claims = {(i, r) for k, i, r in owners if k == "claim"}
     for kind, record_id, revision in sorted(owners):
         if kind in ("task", "episode", "claim"):
@@ -521,8 +525,11 @@ class _Walk:
         if ref.kind == "event":
             return self.event(ref.id, path)
         if ref.kind == "capsule":
-            self.ineligible[ref.id] = "capsule_unavailable"  # full-release capsules; none exist in preview
-            return set()
+            origin = capsules.origin_event(self.q, ref.id)
+            if origin is None:
+                self.ineligible[ref.id] = "capsule_unavailable"  # unknown or released: its evidence is gone
+                return set()
+            return self.event(origin, path)  # a capsule is never a root: its origin event is (decision 0025)
         return self.record(ref, located, path)
 
     def event(self, event_id: str, path: tuple) -> set[str]:
@@ -607,7 +614,7 @@ def provenance_events(q: Any, link: EvidenceLink) -> set[str]:
 
 
 # Why a walk could not follow a link: the evidence it needs is gone, not merely ineligible as a root.
-LOST_REASONS = frozenset({"missing", "payload_unavailable", "record_unavailable"})
+LOST_REASONS = frozenset({"missing", "payload_unavailable", "record_unavailable", "capsule_unavailable"})
 SUFFICIENT_PAYLOAD = "available"
 
 
@@ -622,22 +629,46 @@ def support_events(q: Any, link: EvidenceLink) -> tuple[set[str], bool]:
     walk = _Walk(q)
     walk.link(link)
     events = set(walk.reached) | set(walk.unregistered) | set(link.root_event_ids)
-    if link.ref.kind == "event":
-        events.add(link.ref.id)
+    cited = cited_event(q, link)
+    if cited is not None:
+        events.add(cited)
     return events, any(reason in LOST_REASONS for reason in walk.ineligible.values())
 
 
+def cited_event(q: Any, link: EvidenceLink) -> str | None:
+    """The event a link cites directly: its event ref, or the origin of its capsule ref."""
+    if link.ref.kind == "event":
+        return link.ref.id
+    if link.ref.kind == "capsule":
+        return capsules.origin_event(q, link.ref.id)
+    return None
+
+
 def chain_available(q: Any, link: EvidenceLink) -> bool:
-    """Whether every payload one link's lineage needs is still available (an incomplete walk proves no loss)."""
+    """Whether every payload one link's lineage needs is still available (an incomplete walk proves no loss).
+
+    Full profile (decision 0025): a capsule-only event counts when its capsule
+    exists, and for the event the link cites, when the capsule keeps exactly
+    what the link cites (its locator, mapping or whole statement).
+    """
     events, lost = support_events(q, link)
     if lost:
         return False
+    cited = cited_event(q, link)
     ids = sorted(events)
     for chunk in _chunks(ids):
         marks = ",".join("?" for _ in chunk)
-        rows = q.execute(f"SELECT payload_state, payload IS NOT NULL FROM events WHERE event_id IN ({marks})", tuple(chunk)).fetchall()  # noqa: S608
-        if len(rows) != len(chunk) or any(state != SUFFICIENT_PAYLOAD or not present for state, present in rows):
+        rows = q.execute(f"SELECT event_id, payload_state, payload IS NOT NULL FROM events WHERE event_id IN ({marks})", tuple(chunk)).fetchall()  # noqa: S608
+        if len(rows) != len(chunk):
             return False
+        for event_id, state, present in rows:
+            if state == SUFFICIENT_PAYLOAD and present:
+                continue
+            if state != "capsule_only":
+                return False
+            capsule = capsules.for_event(q, event_id)
+            if capsule is None or (event_id == cited and not capsules.covers(capsule, link.locator, link.mapping)):
+                return False
     return True
 
 

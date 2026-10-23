@@ -39,13 +39,14 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
 from recalith.capture import provenance
-from recalith.contracts.common import InstallationContext, RecordRef
+from recalith.contracts.common import InstallationContext, RecordRef, SpanLocator
 from recalith.contracts.context import ContextItem, ContextQuery
 from recalith.contracts.memory import ClaimRevision
 from recalith.controller import revalidate
 from recalith.core import conditions as cond
 from recalith.errors import RecalithError
 from recalith.fast import context as fc
+from recalith.privacy import capsules
 from recalith.retrieval import index
 from recalith.storage import records
 from recalith.storage.db import Store, open_store
@@ -146,8 +147,16 @@ def claim_text(claim: dict[str, Any], *, pending: Sequence[str] = ()) -> str:
 
 def _link_summary(q: Any, link: dict[str, Any]) -> str:
     ref = link["ref"]
-    if ref["kind"] != "event":
+    if ref["kind"] not in ("event", "capsule"):
         return f"{ref['kind']} {ref['id']}"
+    row = q.execute("SELECT kind, payload_state FROM events WHERE event_id = ?", (ref["id"],)).fetchone() if ref["kind"] == "event" else None
+    if ref["kind"] == "capsule" or (row is not None and row[1] == "capsule_only"):
+        # Capsule-only evidence (decision 0025): the exact cited span, never text at the old offsets.
+        locator = SpanLocator.model_validate(link["locator"]) if link.get("locator") else None
+        found = capsules.resolve(q, RecordRef(kind=ref["kind"], id=ref["id"], revision=1), locator)
+        if found.state != "capsule_only":
+            return "unavailable evidence"
+        return '"' + fc.bounded(found.text, 160) + '"' if found.text else (found.capsule.preserved_observation.get("event_kind") or "capsule")
     row = q.execute("SELECT event_id, commit_sequence, envelope, payload, kind, payload_state FROM events WHERE event_id = ?", (ref["id"],)).fetchone()
     if row is None or row[3] is None or row[5] not in fc.SUFFICIENT_EVIDENCE:
         return "unavailable evidence"
@@ -171,12 +180,15 @@ def evidence_state(q: Any, claim: dict[str, Any]) -> str:
     if declared not in fc.SUFFICIENT_EVIDENCE:
         return declared
     events = [link["ref"]["id"] for link in claim.get("supports") or [] if link["ref"]["kind"] == "event"]
+    events += [e for link in claim.get("supports") or [] if link["ref"]["kind"] == "capsule" and (e := capsules.origin_event(q, link["ref"]["id"])) is not None]
     if not events:
         return declared
     marks = ",".join("?" for _ in events)
     states = {r[0] for r in q.execute(f"SELECT payload_state FROM events WHERE event_id IN ({marks})", tuple(events)).fetchall()}  # noqa: S608
-    if states & fc.SUFFICIENT_EVIDENCE:
+    if "available" in states:
         return declared
+    if "capsule_only" in states:
+        return "capsule_only"  # sufficient support kept only by exact capsules (decision 0025)
     return "expired"
 
 
@@ -471,7 +483,19 @@ def task_claim_ids(q: Any, task_id: str) -> list[str]:
         (task_id, TASK_CLAIMS),
     ).fetchall()
     scoped = q.execute("SELECT record_id FROM retrieval_docs WHERE record_kind = 'claim' AND task_ids LIKE ? ORDER BY record_id LIMIT ?", (f'%"{task_id}"%', TASK_CLAIMS)).fetchall()
-    return sorted({r[0] for r in rows} | {r[0] for r in scoped})
+    compacted = [r[0] for r in q.execute(
+        "SELECT b.event_id FROM task_binding_heads b JOIN events e ON e.event_id = b.event_id WHERE b.task_id = ? AND e.payload_state = 'capsule_only'", (task_id,),
+    ).fetchall()]
+    redirected: list[tuple] = []
+    targets = sorted(capsules.capsule_targets(compacted))
+    for i in range(0, len(targets), 400):  # support links redirected to those events' capsules (decision 0025)
+        chunk = targets[i : i + 400]
+        redirected += q.execute(
+            f"SELECT DISTINCT el.owner_id FROM evidence_links el JOIN claim_heads h ON h.claim_id = el.owner_id AND h.revision = el.owner_revision "  # noqa: S608
+            f"WHERE el.owner_kind = 'claim' AND el.relation = 'supports' AND el.target_kind = 'capsule' AND el.target_id IN ({','.join('?' for _ in chunk)}) "
+            "AND h.status IN ('candidate', 'active', 'disputed')", tuple(chunk),
+        ).fetchall()
+    return sorted({r[0] for r in rows} | {r[0] for r in scoped} | {r[0] for r in redirected})
 
 
 def neighbors(q: Any, claim_ids: Sequence[str]) -> dict[str, str]:

@@ -1683,3 +1683,64 @@ def test_full_profile_chain_crash_matches_reference(tmp_path, monkeypatch, failp
             revision = store.meta().store_revision
         assert sequences == list(range(1, len(sequences) + 1)) and last["store_revision"] == revision
     assert crashed >= max(1, REPS // 2), f"{failpoint} was not reached often enough to test it"
+
+
+CAPSULE_MATRIX = [*failpoints.CAPSULE, *failpoints.RETENTION, *failpoints.CHAIN]
+
+
+@pytest.mark.parametrize("failpoint", CAPSULE_MATRIX)
+def test_full_profile_capsule_crash_matches_reference(tmp_path, monkeypatch, failpoint):
+    """Full profile (decision 0025): killed around a capsule compaction, the retention sweep or a chain seal, then re-run.
+
+    The Task 15 kill/restart scenario in a ``release_profile: full`` store with
+    the capsule owners (``retention_scenarios.capsule_owners``: the A55 quote,
+    a located Edit quote, a typed exit-code mapping, the whole declaration and
+    the typed statement). The day-181 retention step expires the unpinned
+    payloads and compacts the pinned ones a capsule keeps exactly. Counting and
+    kill selection follow the retention family (owed judged from effects,
+    including a payload the reference compacted still available). After a kill
+    no pinned payload is gone, no claim changed, every live claim's evidence
+    still resolves and the chain verifies; after the re-run the store equals
+    the full-profile reference and the chain verifies over every current row.
+    """
+    import claude_fixtures as cf
+    import retention_scenarios as rsc
+    from recalith.storage import integrity
+
+    monkeypatch.setattr(cf, "RELEASE_PROFILE", "full")
+    reference_root = rsc.crash_project(tmp_path, "reference", capsules=True)
+    plain = _driver(reference_root, tmp_path / "reference.calls")
+    assert plain.returncode == 0, plain.stderr
+    reference = rsc.retention_state(reference_root)
+    expired_keys = [k for k, state, _null in reference["payloads"] if state == "expired"]
+    capsule_keys = [k for k, state, _null in reference["payloads"] if state == "capsule_only"]
+    assert expired_keys and len(capsule_keys) == len(reference["capsules"]) >= 5 and all(sealed for _k, sealed, _s in reference["capsules"])
+    assert reference["redirected_links"] >= 4 and reference["capsule_audits"] == 1 and all(ok for _p, ok in reference["evidence"])
+    assert reference["backups"] == [("new", "verified", 1), ("old", "deleted", 1)] and reference["files"] == {"old": False, "new": True, "partials": 0}
+    assert sorted(reference["new_backup"][2]) == sorted((k, s) for k, s, _null in reference["payloads"])  # the new snapshot holds the capsules' states
+    assert integrity.verify(ws.context(reference_root), full=True)["state"] == "verified"
+    count_root = rsc.crash_project(tmp_path, "count", capsules=True)
+    rsc.expect(count_root, expired_keys, reference["derived"], capsule_keys)
+    hits_log = tmp_path / "count.hits"
+    counted = _count_hits(count_root, tmp_path / "count.calls", hits_log)
+    assert counted.returncode == 0, counted.stderr
+    assert rsc.retention_state(count_root) == reference  # the scenario is deterministic
+    hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
+    mine = [i for i, (name, owed) in enumerate(h for h in hits if h[0] == failpoint) if owed == "1"]
+    assert mine, f"{failpoint} is never reached while retention, capsule or backup work is owed"
+    ordinals = sorted({mine[0], mine[len(mine) // 2], mine[-1]})
+    for rep in range(REPS):
+        root = rsc.crash_project(tmp_path, f"crash-{rep}", capsules=True)
+        rsc.expect(root, expired_keys, reference["derived"], capsule_keys)
+        log = tmp_path / f"crash-{rep}.calls"
+        result = _driver(root, log, failpoint, skip=ordinals[rep % len(ordinals)])
+        assert result.returncode == failpoints.KILL_STATUS, (failpoint, rep, result.stderr)
+        assert rsc.retention_state(root) != reference, "the kill must land before the work under test is complete"
+        assert rsc.kill_invariants(root, reference) == [], (failpoint, rep)
+        killed = integrity.verify(ws.context(root), full=True)
+        assert killed["state"] == "verified", (failpoint, rep, killed["findings"])  # rows and their entry commit together or not at all
+        restart = _driver(root, log)
+        assert restart.returncode == 0, restart.stderr
+        assert rsc.retention_state(root) == reference, (failpoint, rep)
+        report = integrity.verify(ws.context(root), full=True)
+        assert report["state"] == "verified" and report["complete_coverage"] is True, (failpoint, rep, report["findings"])

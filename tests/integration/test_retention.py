@@ -909,3 +909,34 @@ def test_late_event_of_an_aged_task_is_reduced_without_reviving_it(tmp_path):
     assert failed == [], failed
     assert p.task_of(p.event("user_message", text="One more thing after")["id"]) != task_id  # a new task, as after forgetting
     assert not any(_bodies(p, "task", task_id))
+
+
+# ---------------------------------------------------------------------------
+# Full profile: exact capsules (Task 15 full capsule slice, decision 0025; the rest is tests/integration/test_capsules.py)
+
+
+def test_expiry_preserves_required_capsule(tmp_path, monkeypatch):
+    """Full profile, day 31: a pinned payload past the 30-day window becomes an exact capsule; its owner keeps its evidence (A35 full).
+
+    The decision's whole user statement is kept as one exact span and its link
+    is redirected to the capsule; unpinned payloads expire; no claim changes.
+    Full-profile store through the provisioning function (test-only
+    ``RELEASE_PROFILE``, decision 0024).
+    """
+    import claude_fixtures as cf
+    from recalith.privacy import capsules
+
+    monkeypatch.setattr(cf, "RELEASE_PROFILE", "full")
+    b = rsn.build(tmp_path, capsules=True)
+    p, ev = b.p, b.events
+    before = rsn.guidance(p)
+    said = p.event("user_message", text="We decided: keep")["payload"]["text"]
+    report = sweep(p, rsn.day(p, 31))
+    assert ev["decision"] in report.compacted and rsn.payload_state(p, ev["decision"]) == ("capsule_only", False)
+    assert expired(p, ev["session_start"], ev["reply_ok"], ev["complete"])
+    with p.view() as v:
+        capsule = capsules.for_event(v, ev["decision"])
+        link = [r for r in v.execute("SELECT target_kind, target_id, locator FROM evidence_links WHERE owner_kind = 'claim' AND owner_id = ?", (b.claims["decision"],)).fetchall()]
+    assert [s.text for s in capsule.spans] == [said]
+    assert {(k, t) for k, t, _l in link} == {("capsule", capsule.capsule_id)}
+    assert rsn.guidance(p) == before
