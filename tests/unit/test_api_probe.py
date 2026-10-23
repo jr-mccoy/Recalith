@@ -180,6 +180,64 @@ def test_runtime_check_records_the_production_request_capture(tmp_path):
     assert "route_uncertified" in rep["route_status"]["reasons"] and rep["route_status"]["backend"] == "anthropic_messages"
 
 
+def certified_messages_route(tmp_path, monkeypatch, fake):
+    """A loopback Anthropic Messages route certified live, its key under ``ANTHROPIC_API_KEY`` (a decoy name in the host-marked parent)."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", VALUE)
+    ctx = project(tmp_path)
+    endpoint = {"url": fake.url("/v1/messages"), "dialect": "messages", "auth_header": "x-api-key", "output_cap_field": "max_tokens", "json_mode": "none", "api_version": "2023-06-01"}
+    cfg = write_config(tmp_path, "", backend="anthropic_messages", modes=["request_capture", "live"], endpoint=endpoint,
+                       auth_route={"kind": "env_api_key", "billing": "api", "env_keys": ["ANTHROPIC_API_KEY"]}, operator_attestation=NOT_APPLICABLE)
+    code = pp.probe_provider(cfg, tmp_path / "report.json", route_out=Path(ctx.root), backend="anthropic_messages")
+    return ctx, cfg, code
+
+
+def test_live_certification_keeps_the_operators_key_under_a_decoy_name(tmp_path, monkeypatch):
+    """The first live run on native Windows: the host-marked parent's ANTHROPIC_API_KEY decoy replaced the operator's
+    key, so that call was rejected and the route stayed uncertified. Every live request must carry the operator's key."""
+    with fas.FakeProvider("ok") as fake:
+        _ctx, _cfg, code = certified_messages_route(tmp_path, monkeypatch, fake)
+        calls = fake.snapshot()
+    rep = section(tmp_path / "report.json")
+    assert code == pc.EXIT_CERTIFIED, (rep["blocking_dimensions"], rep["dimensions"])
+    live_keys = [dict((k.lower(), v) for k, v in c["headers"]).get("x-api-key") for c in calls if dict((k.lower(), v) for k, v in c["headers"]).get("x-api-key") != "recalith-probe-placeholder-not-a-credential"]
+    assert live_keys and set(live_keys) == {VALUE}, live_keys
+
+
+def test_runtime_check_reports_the_recorded_route_of_a_project(tmp_path, monkeypatch):
+    """B1 step 4: with --project the runtime check runs the production request capture on the route the worker would use
+    (the project's recorded provider.json) and exits 0 only for a certified one."""
+    with fas.FakeProvider("ok") as fake:
+        ctx, cfg, code = certified_messages_route(tmp_path, monkeypatch, fake)
+        assert code == pc.EXIT_CERTIFIED
+        out = tmp_path / "runtime.json"
+        assert cpr.main(["--config", str(cfg), "--output", str(out), "--backend", "anthropic_messages", "--project", str(ctx.root)]) == pc.EXIT_CERTIFIED
+    rep = section(out, "provider_runtime")
+    assert rep["route_source"] == "project_record" and rep["verdict"] == "certified" and rep["route_status"]["reasons"] == []
+    assert {k: v["verdict"] for k, v in rep["isolation_checks"].items()} == {"clean": "pass", "host_marked": "pass"}
+    monkeypatch.delenv("ANTHROPIC_API_KEY")  # the worker could not run it now: unavailable, with the reason
+    assert cpr.main(["--config", str(cfg), "--output", str(out), "--backend", "anthropic_messages", "--project", str(ctx.root)]) == pc.EXIT_UNAVAILABLE
+    assert "selected_auth_missing" in section(out, "provider_runtime")["route_status"]["reasons"]
+
+
+def test_runtime_check_without_a_recorded_route(tmp_path):
+    ctx = project(tmp_path)
+    cfg = write_config(tmp_path, "https://api.example.test/v1/messages", backend="anthropic_messages")
+    out = tmp_path / "runtime.json"
+    assert cpr.main(["--config", str(cfg), "--output", str(out), "--backend", "anthropic_messages", "--project", str(ctx.root)]) == pc.EXIT_UNAVAILABLE
+    rep = section(out, "provider_runtime")
+    assert rep["route_source"] == "project_record" and "provider_not_configured" in rep["route_status"]["reasons"]
+    assert cpr.main(["--config", str(cfg), "--output", str(out), "--backend", "anthropic_messages"]) == pc.EXIT_UNAVAILABLE
+    assert section(out, "provider_runtime")["route_source"] == "probe_config"  # without --project: the probe config, never certified
+
+
+def test_runtime_check_refuses_a_recorded_route_of_another_backend(tmp_path, monkeypatch):
+    with fas.FakeProvider("ok") as fake:
+        ctx, _cfg, _code = certified_messages_route(tmp_path, monkeypatch, fake)
+    (tmp_path / "other").mkdir()
+    other = write_config(tmp_path / "other", "https://api.example.test/v1/chat/completions")
+    assert cpr.main(["--config", str(other), "--output", str(tmp_path / "x.json"), "--backend", "openai_compatible", "--project", str(ctx.root)]) == pc.EXIT_USAGE
+
+
 @pytest.mark.parametrize("name,backend", [("probe_config.anthropic_messages.example.json", "anthropic_messages"), ("probe_config.openai_compatible.example.json", "openai_compatible"), ("probe_config.local_server.example.json", "openai_compatible")])
 def test_api_example_configs_are_valid_and_secret_free(name, backend):
     path = REPO / "tools" / name

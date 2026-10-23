@@ -3,7 +3,11 @@
 
 Usage::
 
-    python tools/check_provider_runtime.py --config LOCAL_CONFIG --output docs/host-compatibility.json
+    python tools/check_provider_runtime.py --config LOCAL_CONFIG --output docs/host-compatibility.json [--backend B] [--project PATH]
+
+``--project`` checks the route that installation recorded (``probe_provider.py
+--route-out``), the one its worker would use; without it the probe
+configuration itself is checked, which is never a certified route.
 
 Where ``tools/probe_provider.py`` (Task 0) certifies a route, this tool runs the
 *production* adapter (``recalith.providers``): the ProviderConfig built from the
@@ -47,35 +51,60 @@ DECOYS = {"ANTHROPIC_AUTH_TOKEN": "recalith-probe-decoy", "AWS_PROFILE": "recali
 PLACEHOLDER_INSTALLATION = "inst_00000000-0000-4000-8000-000000000000"
 
 
+def parents(selected) -> dict[str, dict[str, str]]:
+    """The clean and the host-marked parent; decoys stand in for every credential except the route's own keys."""
+    keep = set(selected)
+    return {
+        "clean": {k: v for k, v in os.environ.items() if k not in pc.DEFAULT_HOST_MARKERS and not k.startswith("RECALITH_")},
+        "host_marked": {**os.environ, **{k: v for k, v in DECOYS.items() if k not in keep}, "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "inst_99999999-9999-4999-8999-999999999999"},
+    }
+
+
+def recorded_route(project: Path, backend: str):
+    """``(installation_id, config)`` of the route a project's worker would use: its recorded ``provider.json`` (None when
+    no route is recorded), resolved as health resolves it."""
+    from recalith.contracts.common import Actor
+    from recalith.core import identity
+    from recalith.providers import base
+
+    ctx = identity.resolve_installation(project, actor=Actor(kind="operator", id="runtime-check", channel="cli"))
+    config = base.load_provider_config(ctx.root)
+    if config is not None and config.backend != backend:
+        raise pp.ConfigError(f"the project's recorded route uses backend {config.backend}, not {backend}")
+    return ctx.installation_id, config
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--backend", choices=pp.BACKENDS, default=None, help="the backend you intend to check; must equal the configuration's backend")
+    parser.add_argument("--project", type=Path, default=None, help="check the route this installation recorded (probe_provider.py --route-out); without it the probe configuration is checked, which never certifies")
     ns = parser.parse_args(argv)
     try:
         cfg = pp.load_config(ns.config, backend=ns.backend)
+        route = None if ns.project is None else recorded_route(ns.project, cfg["backend"])
     except pp.ConfigError as exc:
         return pc.die_usage(str(exc))
+    except Exception as exc:  # RecalithError from resolving the installation or reading its route
+        return pc.die_usage(f"cannot read the project's recorded route: {exc}")
     if cfg["backend"] in pp.API_BACKENDS:
-        return api_runtime(cfg, ns.output)
+        return api_runtime(cfg, ns.output, route)
     from recalith import __version__
     from recalith.contracts.config import ProviderConfig
     from recalith.providers import base, claude_cli, isolation
 
     auth = cfg["auth_route"]
-    config = ProviderConfig(
+    probe_config = ProviderConfig(
         provider_id=cfg["provider_id"], installation_id=PLACEHOLDER_INSTALLATION, backend="claude_cli", executable=cfg["executable"],
         configured_model=cfg["model"] or pp.UNSELECTED_MODEL, auth_route=auth["kind"] if auth["kind"] != "not_configured" else "env_api_key",
         auth_env_keys=auth["env_keys"] or ["ANTHROPIC_API_KEY"], expected_api_key_source=auth["expected_api_key_source"],
         network_env_keys=cfg["network_env_keys"], nonsecret_env=cfg["nonsecret_env"], invocation_args=cfg["invocation_args"], certification={"certified": False},
     )
-    parents = {
-        "clean": {k: v for k, v in os.environ.items() if k not in pc.DEFAULT_HOST_MARKERS and not k.startswith("RECALITH_")},
-        "host_marked": {**os.environ, **DECOYS, "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "inst_99999999-9999-4999-8999-999999999999"},
-    }
-    checks = {name: isolation.isolation_check(config, inherited=env) for name, env in parents.items()}
-    status = base.route_status(config, installation_id=PLACEHOLDER_INSTALLATION, inherited=os.environ)
+    installation_id, recorded = route if route is not None else (PLACEHOLDER_INSTALLATION, probe_config)
+    config = recorded or probe_config  # no recorded route: the isolation checks run on the probe configuration
+    checks = {name: isolation.isolation_check(config, inherited=env) for name, env in parents(config.auth_env_keys).items()}
+    status = base.route_status(recorded, installation_id=installation_id, inherited=os.environ)
     executable = isolation.resolve_executable(config.executable, os.environ)
     passed = all(c["verdict"] == "pass" for c in checks.values())
     sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>"})
@@ -84,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         "tested_at": pc.utc_now(),
         "platform": pc.platform_facts(),
         "engine_build": __version__,
+        "route_source": "probe_config" if route is None else "project_record",
         "adapter": "recalith.providers.claude_cli",
         "adapter_version": base.ADAPTER_VERSION,
         "executable": executable,
@@ -115,20 +145,22 @@ def main(argv: list[str] | None = None) -> int:
     return pc.EXIT_CERTIFIED if report["verdict"] == "certified" else pc.EXIT_UNAVAILABLE
 
 
-def api_runtime(cfg: dict, output: Path) -> int:
-    """The production request capture of a direct-API route from a clean and a host-marked parent (decision 0023)."""
+def api_runtime(cfg: dict, output: Path, route=None) -> int:
+    """The production request capture of a direct-API route from a clean and a host-marked parent (decision 0023).
+
+    ``route`` is ``(installation_id, recorded config or None)`` from ``--project``: the route the worker would use.
+    Without it the probe configuration is checked, which is never a certified route.
+    """
     import probe_api
 
     from recalith import __version__
     from recalith.providers import api, base, isolation
 
-    config = probe_api.provider_config(cfg, installation_id=PLACEHOLDER_INSTALLATION)
-    parents = {
-        "clean": {k: v for k, v in os.environ.items() if k not in pc.DEFAULT_HOST_MARKERS and not k.startswith("RECALITH_")},
-        "host_marked": {**os.environ, **DECOYS, "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "inst_99999999-9999-4999-8999-999999999999"},
-    }
-    checks = {name: isolation.isolation_check(config, inherited=env) for name, env in parents.items()}
-    status = base.route_status(config, installation_id=PLACEHOLDER_INSTALLATION, inherited=os.environ)
+    probe_config = probe_api.provider_config(cfg, installation_id=PLACEHOLDER_INSTALLATION)
+    installation_id, recorded = route if route is not None else (PLACEHOLDER_INSTALLATION, probe_config)
+    config = recorded or probe_config  # no recorded route: the isolation checks run on the probe configuration
+    checks = {name: isolation.isolation_check(config, inherited=env) for name, env in parents(config.auth_env_keys).items()}
+    status = base.route_status(recorded, installation_id=installation_id, inherited=os.environ)
     passed = all(c["verdict"] == "pass" for c in checks.values())
     sanitizer = pc.Sanitizer({str(Path.home()): "<home>", str(ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in config.auth_env_keys])
     report = {
@@ -137,6 +169,7 @@ def api_runtime(cfg: dict, output: Path) -> int:
         "platform": pc.platform_facts(),
         "engine_build": __version__,
         "backend": config.backend,
+        "route_source": "probe_config" if route is None else "project_record",
         "adapter": "recalith.providers.api",
         "adapter_version": base.ADAPTER_VERSION,
         "adapter_sha256": api.adapter_digest(),

@@ -32,7 +32,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import probe_common as pc
 
@@ -65,9 +65,13 @@ def provider_config(cfg: Mapping[str, Any], *, installation_id: str, certificati
     return ProviderConfig.model_validate(data)
 
 
-def parents() -> dict[str, dict[str, str]]:
+def parents(*, selected: Iterable[str]) -> dict[str, dict[str, str]]:
+    """The clean and the host-marked parent. Decoys stand in for every credential except the route's own (``selected``):
+    a decoy under a selected name would replace the operator's key, and a live run would test the decoy, not the route."""
     clean = {k: v for k, v in os.environ.items() if k not in pc.DEFAULT_HOST_MARKERS and not k.startswith("RECALITH_")}
-    marked = {**os.environ, **DECOYS, "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "inst_99999999-9999-4999-8999-999999999999"}
+    keep = set(selected)
+    decoys = {k: v for k, v in DECOYS.items() if k not in keep}
+    marked = {**os.environ, **decoys, "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", pc.WORKER_MARKER: "inst_99999999-9999-4999-8999-999999999999"}
     return {"clean": clean, "host_marked": marked}
 
 
@@ -87,11 +91,11 @@ def request_capture(config: Any, cfg: Mapping[str, Any]) -> dict[str, Any]:
     from recalith.contracts.config import body_cap_for
     from recalith.providers import base, isolation
 
-    runs = {name: isolation.api_isolation_check(config, inherited=env, timeout_s=cfg["limits"]["timeout_seconds"]) for name, env in parents().items()}
+    runs = {name: isolation.api_isolation_check(config, inherited=env, timeout_s=cfg["limits"]["timeout_seconds"]) for name, env in parents(selected=config.auth_env_keys).items()}
     bounds: dict[str, Any] = {}
     timeout = cfg["limits"]["bounds_timeout_seconds"]
     for case, purpose, expected in (("hang", "update_task", "provider_timeout"), ("flood", "update_task", "wire_stdout_oversized"), ("oversize", "update_task", "response_body_oversized"), ("large", "build_episode", None), ("malformed", "update_task", "envelope_invalid")):
-        backend, outcome, _records, _parsed = isolation.capture_launch(config, inherited=parents()["clean"], behavior=case, timeout_s=timeout if case == "hang" else cfg["limits"]["timeout_seconds"])
+        backend, outcome, _records, _parsed = isolation.capture_launch(config, inherited=parents(selected=config.auth_env_keys)["clean"], behavior=case, timeout_s=timeout if case == "hang" else cfg["limits"]["timeout_seconds"])
         result = base.evaluate_outcome(outcome, backend, purpose=purpose, body_cap=body_cap_for(purpose), estimate=1)
         ok = result.code == expected and outcome.tree_cleaned is not False
         bounds[case] = {"pass": ok, "code": result.code, "expected": expected, "duration_ms": outcome.duration_ms, "tree_cleaned": outcome.tree_cleaned}
@@ -143,8 +147,8 @@ LAUNCH_CODES = {"provider_timeout", "provider_failed", "wire_stdout_oversized", 
 
 def live(config: Any, cfg: Mapping[str, Any]) -> dict[str, Any]:
     timeout = cfg["limits"]["timeout_seconds"]
-    runs = {name: live_call(config, env, instruction=SCHEMA_INSTRUCTION, output_cap=None, timeout=timeout) for name, env in parents().items()}
-    cap = live_call(config, parents()["clean"], instruction=CAP_INSTRUCTION, output_cap=CAP_PROBE_TOKENS, timeout=timeout)
+    runs = {name: live_call(config, env, instruction=SCHEMA_INSTRUCTION, output_cap=None, timeout=timeout) for name, env in parents(selected=config.auth_env_keys).items()}
+    cap = live_call(config, parents(selected=config.auth_env_keys)["clean"], instruction=CAP_INSTRUCTION, output_cap=CAP_PROBE_TOKENS, timeout=timeout)
     return {"status": "run", "schema_runs": runs, "cap_run": cap, "output_cap_tokens": CAP_PROBE_TOKENS}
 
 
