@@ -218,6 +218,17 @@ def environment() -> dict:
     return facts
 
 
+def recorded_args(argv: list[str]) -> list[str]:
+    """The command line as the report records it: the output path by its file name only (no user or machine path)."""
+    out = list(argv)
+    for i, arg in enumerate(out):
+        if arg == "--output" and i + 1 < len(out):
+            out[i + 1] = Path(out[i + 1]).name
+        elif arg.startswith("--output="):
+            out[i] = "--output=" + Path(arg.split("=", 1)[1]).name
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--warm", type=int, default=500)
@@ -235,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     import retrieval_scenarios as rs
 
     report: dict = {"tool": "tools/measure_release_latency.py", "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "environment": environment(),
-                    "command": "python tools/measure_release_latency.py " + " ".join(sys.argv[1:] if argv is None else argv), "populations": {}, "gate": {}}
+                    "command": "python tools/measure_release_latency.py " + " ".join(recorded_args(sys.argv[1:] if argv is None else argv)), "populations": {}, "gate": {}}
     tmp = Path(tempfile.mkdtemp(prefix="recalith-release-latency-"))
     try:
         p, _ids = ds.project(tmp / "main")
