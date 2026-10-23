@@ -73,3 +73,14 @@ def test_runtime_link_is_a_junction_that_unlinks_without_touching_its_target(tmp
     assert (link / "0.1.0.dev0" / "marker").read_text(encoding="utf-8") == "kept\n"
     pe.unlink_dir(link)
     assert not link.exists() and (target / "0.1.0.dev0" / "marker").exists()
+
+
+def test_canary_question_names_one_unambiguous_value():
+    """Session start and compaction restoration carry the nonce in an open intent question (decision 0013). The first
+    live run seeded "the canary value is X" against "no canary value is recorded": the model, told to report a supplied
+    value and not to guess, answered NONE in 5 of 6 positives. The conflict is now the option; both sides name the value."""
+    (a_stmt, a_claim), (b_stmt, b_claim) = pe.canary_declarations("c0ffee00c0ffee00")
+    assert "c0ffee00c0ffee00" in a_claim and "c0ffee00c0ffee00" in b_claim and a_claim != b_claim and a_stmt != b_stmt
+    (_, na), (_, nb) = pe.canary_declarations(None)
+    assert na != nb and "withheld" in na and "withheld" in nb
+    assert [s for s, _ in pe.canary_declarations(None)] == [a_stmt, b_stmt]  # negatives keep the positives' shape

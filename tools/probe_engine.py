@@ -393,6 +393,15 @@ def setup_records(records: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any
 # Nonce memories (recorded proposals; see the module docstring)
 
 
+def canary_declarations(nonce: str | None) -> tuple[tuple[str, str], tuple[str, str]]:
+    """The two conflicting declarations of the open intent question that carries the nonce at session start and in
+    compaction restoration ((statement, claim) each). The conflict is the option, never the value: both name the nonce,
+    so a model asked for a supplied canary value sees one unambiguous value; a negative names none (decision 0027)."""
+    value = f"the canary value {nonce}" if nonce else "the withheld canary"
+    a, b = ((f"Record the probe canary decision as option {o}.", f"Probe canary decision: file {value} under option {o}.") for o in ("A", "B"))
+    return a, b
+
+
 def seed(fx: Fixture, path: str, nonce: str | None) -> dict[str, Any]:
     """Capture a nonce-free setup session through the real hooks' code, then admit the trial's memory with recorded proposals."""
     import claude_scenarios as ccs
@@ -411,8 +420,8 @@ def seed(fx: Fixture, path: str, nonce: str | None) -> dict[str, Any]:
     seeded: dict[str, Any] = {"kind": None}
     if nonce is None and path in ("session_start", "compact"):
         # The negative control: the same open question shape, the nonce withheld.
-        cs_.declaration(p, "Record the probe canary decision as option A.", "Probe canary decision: the canary value is withheld.", subject="probe canary")
-        cs_.declaration(p, "Record the probe canary decision as option B.", "Probe canary decision: no canary value is recorded.", subject="probe canary")
+        for statement, claim in canary_declarations(None):
+            cs_.declaration(p, statement, claim, subject="probe canary")
         p.drain()
         seeded = {"kind": "intent_question_without_nonce"}
     if nonce is not None:
@@ -423,8 +432,9 @@ def seed(fx: Fixture, path: str, nonce: str | None) -> dict[str, Any]:
         elif path in ("session_start", "compact"):
             # A fresh session's start (and a restoration with nothing delivered before it) carries only open intent
             # questions until a task binding exists (decision 0013): two conflicting declarations, one holding the nonce.
-            a_id = cs_.declaration(p, "Record the probe canary decision as option A.", f"Probe canary decision: the canary value is {nonce}.", subject="probe canary")
-            b_id = cs_.declaration(p, "Record the probe canary decision as option B.", "Probe canary decision: no canary value is recorded.", subject="probe canary")
+            (a_stmt, a_claim), (b_stmt, b_claim) = canary_declarations(nonce)
+            a_id = cs_.declaration(p, a_stmt, a_claim, subject="probe canary")
+            b_id = cs_.declaration(p, b_stmt, b_claim, subject="probe canary")
             p.drain()  # the planner opens the question
             seeded = {"kind": "intent_question", "claim_ids": [a_id, b_id]}
         else:
@@ -474,7 +484,9 @@ def run_trial(fx: Fixture, spec: Mapping[str, Any], *, mode: str, endpoint: pc.R
         "transcript_contains_nonce": obs["transcript_contains_nonce"], "workspace_files_with_nonce": obs["workspace_files_with_nonce"],
     }
     if mode == "live":
-        record["verdict"] = pd.evaluate_trial(spec, obs)
+        # Engine trials name their own fixture tool, and their session-start and compaction negatives inject the
+        # nonce-free packet by design (decision 0019 item 8); the stub protocol's rules are otherwise unchanged.
+        record["verdict"] = pd.evaluate_trial({**spec, "fixed_tool": FIXED_TOOL, "negative_injects": path in ("session_start", "compact")}, obs)
         text = pd.eligible_text(path, result["timeline"])
         record["eligible_response_excerpt"] = text[:200] if text is not None else None
     else:

@@ -367,14 +367,18 @@ def evaluate_trial(spec: Mapping[str, Any], obs: Mapping[str, Any]) -> dict[str,
         contaminated.append("other_trial_nonce_in_response")
     expected_tools = 1 if path == "pre_action" else 0
     tool_uses = [e for e in timeline if e["kind"] == "tool_use"]
-    bad_tools = [e for e in tool_uses if not (path == "pre_action" and e.get("name") == "Bash" and FIXED_TOOL_COMMAND in json.dumps(e.get("input")))]
+    # The pre-action trial's own fixture command: the stub's, unless the spec names another (engine mode, decision 0027).
+    fixed_tool = spec.get("fixed_tool", FIXED_TOOL_COMMAND)
+    bad_tools = [e for e in tool_uses if not (path == "pre_action" and e.get("name") == "Bash" and fixed_tool in json.dumps(e.get("input")))]
     if bad_tools or len(tool_uses) > expected_tools:
         contaminated.append("unexpected_tool_use")
     if path == "compact" and not any(e["kind"] == "compact_boundary" for e in timeline):
         return {"valid": False, "passed": False, "reasons": ["compaction_not_triggered"] + contaminated}
     if path == "pre_action" and not tool_uses:
         return {"valid": False, "passed": False, "reasons": ["fixture_tool_not_called"] + contaminated}
-    if spec["kind"] == "negative" and emissions:
+    if spec["kind"] == "negative" and emissions and not spec.get("negative_injects"):
+        # A stub negative injects nothing. An engine negative for session start or compaction is the same packet shape with
+        # the nonce withheld (decision 0019 item 8): it injects by design and is judged by the nonce's absence below.
         contaminated.append("negative_control_injected")
     if spec["kind"] == "negative" and obs.get("transcript_contains_nonce"):
         contaminated.append("nonce_in_negative_transcript")

@@ -342,3 +342,59 @@ def test_config_rejects_unknown_and_secret_fields(tmp_path):
 def test_example_config_delivery_section_is_valid():
     cfg = pd.load_config(REPO / "tools" / "probe_config.example.json")
     assert cfg["host_id"] == "claude_code" and cfg["auth_route"]["env_keys"] == ["ANTHROPIC_API_KEY"]
+
+
+# ---------------------------------------------------------------- engine mode (tools/probe_engine.py; decision 0027)
+# The first live engine-mode run judged its trials with the stub protocol's rules: the pre-action trial's own fixture
+# tool counted as unexpected, and the same-shape negatives (the nonce withheld from an injected packet, decision 0019
+# item 8) counted as injected. An engine spec names its fixture tool and whether its negatives inject by design.
+
+ENGINE_TOOL = "ls /nonexistent-recalith-fixture-dir"
+
+
+def engine_spec(path: str, kind: str = "positive") -> dict:
+    return {**spec(path, kind), "fixed_tool": ENGINE_TOOL, "negative_injects": path in ("session_start", "compact")}
+
+
+def engine_obs(sp: dict, **kw) -> dict:
+    o = obs_for(sp, **kw)
+    if sp["path"] == "pre_action":
+        o["timeline"][1] = {"kind": "tool_use", "name": "Bash", "input": {"command": ENGINE_TOOL, "description": "Recalith probe fixture"}}
+        o["timeline"][2] = {"kind": "tool_result", "text": "ls: cannot access '/nonexistent-recalith-fixture-dir': No such file or directory"}
+    return o
+
+
+def test_engine_pre_action_accepts_only_its_own_fixture_tool():
+    sp = engine_spec("pre_action")
+    assert pd.evaluate_trial(sp, engine_obs(sp)) == {"valid": True, "passed": True, "reasons": []}
+    other = engine_obs(sp)
+    other["timeline"][1]["input"]["command"] = "cat notes.txt"
+    assert "unexpected_tool_use" in pd.evaluate_trial(sp, other)["reasons"]
+    stub = spec("pre_action")
+    assert "unexpected_tool_use" in pd.evaluate_trial(stub, engine_obs(stub))["reasons"]  # the stub keeps its own fixture tool
+
+
+def test_engine_same_shape_negative_passes_only_without_the_nonce():
+    for path in ("session_start", "compact"):
+        sp = engine_spec(path, "negative")
+        assert pd.evaluate_trial(sp, engine_obs(sp, emitted=True)) == {"valid": True, "passed": True, "reasons": []}, path
+        assert "nonce_in_negative_transcript" in pd.evaluate_trial(sp, engine_obs(sp, emitted=True, transcript_contains_nonce=True))["reasons"]
+        assert pd.evaluate_trial(sp, engine_obs(sp, emitted=True, reply=f"CANARY {sp['nonce']}"))["reasons"] == ["fabricated_withheld_nonce"]
+    sp = engine_spec("prompt", "negative")
+    assert "negative_control_injected" in pd.evaluate_trial(sp, engine_obs(sp, emitted=True))["reasons"]  # prompt negatives inject nothing
+
+
+def test_engine_positive_still_needs_the_exact_echo():
+    for path in pd.PATHS:
+        sp = engine_spec(path)
+        assert pd.evaluate_trial(sp, engine_obs(sp, reply="CANARY NONE"))["reasons"] == ["stdout_only_no_model_echo"], path
+
+
+def test_engine_paths_all_healthy():
+    for path in pd.PATHS:
+        trials = []
+        for kind in ("positive", "negative"):
+            for _ in range(pd.CONTROLS_PER_KIND):
+                sp = engine_spec(path, kind)
+                trials.append({"kind": kind, "verdict": pd.evaluate_trial(sp, engine_obs(sp, emitted=kind == "positive" or sp["negative_injects"]))})
+        assert pd.evaluate_path(path, trials)["state"] == "healthy", path
