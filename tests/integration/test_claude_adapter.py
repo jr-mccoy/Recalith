@@ -37,7 +37,6 @@ from recalith.fast import claude as fast_claude, claude_capture, entry, process_
 from recalith.integrations import claude as integration, install  # noqa: E402
 
 POSIX = os.name != "nt"
-posix = pytest.mark.skipif(not POSIX, reason="the installed hook command is a POSIX shell command; native Windows host execution is uncertified (decision 0019); the installer's effects run natively on every platform")
 OPERATOR = Actor(kind="operator", id="terminal", channel="cli")
 
 
@@ -83,7 +82,8 @@ def test_local_install_is_default_and_ignored(provisioned):
         assert group.get("matcher") == matcher
         (hook,) = group["hooks"]
         assert hook == {"type": "command", "command": fast_claude.hook_command(event), "timeout": fast_claude.HOOK_TIMEOUT_SECONDS}
-        assert hook["command"].startswith('"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code --event ')  # the pinned project launcher
+        launcher = ".recalith/bin/recalith-hook.cmd" if os.name == "nt" else ".recalith/bin/recalith-hook"  # Git Bash runs the .cmd launcher (decision 0027)
+        assert hook["command"].startswith(f'"$CLAUDE_PROJECT_DIR"/{launcher} claude_code --event ')  # the pinned project launcher
     # Unrelated entries are untouched and every owned entry is recorded exactly.
     record = ccs.ownership(root)
     assert ccs.without_owned(data, record["owned"]["deny"]) == json.loads(before)
@@ -237,7 +237,6 @@ def test_only_live_certified_paths_are_enabled(provisioned):
     assert result["delivery_paths"] == [] and "host_certification_invalid" in result["delivery_reasons"]
 
 
-@posix
 def test_unknown_host_version_is_conservative(provisioned, tmp_path):
     root, op = provisioned
     op.set_version("2.1.399")
@@ -270,7 +269,6 @@ def test_missing_executable_records_unknown_version(provisioned, tmp_path):
 # The installed hooks (A08, A53, A58)
 
 
-@posix
 def test_installed_hooks_capture_real_lifecycle_and_transcripts(provisioned, tmp_path):
     root, op = provisioned
     ok(op.integrate())
@@ -289,7 +287,7 @@ def test_installed_hooks_capture_real_lifecycle_and_transcripts(provisioned, tmp
         subagents = view.execute("SELECT COUNT(*) FROM events WHERE kind = 'session_started' AND payload LIKE '%\"scope\":\"subagent\"%'").fetchone()[0]
     assert {"session_started", "user_message", "tool_started", "tool_finished", "compaction", "session_stopped", "session_ended"} <= kinds
     assert sources and all(kind == "transcript_jsonl" for kind, _ in sources)
-    assert any("/subagents/agent-" in loc for _p, loc in sources), "the subagent transcript is registered by its exact path"
+    assert any("/subagents/agent-" in loc.replace("\\", "/") for _p, loc in sources), "the subagent transcript is registered by its exact path"  # native separators on Windows
     assert subagents >= 1
 
 
@@ -300,7 +298,6 @@ def with_worker_off(root: Path) -> None:
     write_hook_context(cs.context(root), adapter_id="claude_code", host_version=ccs.manifest(root)["adapters"]["claude_code"]["host_version"], worker_autostart=False)
 
 
-@posix
 def test_curator_session_is_ignored(provisioned, tmp_path):
     root, op = provisioned
     ok(op.integrate())
@@ -317,7 +314,6 @@ def test_curator_session_is_ignored(provisioned, tmp_path):
 FAILURES = ["manifest_corrupt", "store_unreadable", "spool_blocked", "runtime_missing", "payload_malformed", "payload_oversized", "entry_crash"]
 
 
-@posix
 @pytest.mark.parametrize("failure", FAILURES)
 def test_hook_failure_never_denies_tool(provisioned, tmp_path, failure):
     root, op = provisioned
@@ -356,7 +352,6 @@ def test_hook_failure_never_denies_tool(provisioned, tmp_path, failure):
     assert proc.stderr == b""
 
 
-@posix
 def test_missing_runtime_and_absent_runtime_clone(provisioned, tmp_path):
     root, op = provisioned
     ok(op.integrate())
@@ -377,12 +372,11 @@ def test_missing_runtime_and_absent_runtime_clone(provisioned, tmp_path):
     command = fast_claude.hook_command("SessionStart")
     import subprocess
 
-    ran = subprocess.run(["sh", "-c", command], input=payload, capture_output=True, env=ccs.host_env(clone), cwd=clone, timeout=60, check=False)
+    ran = subprocess.run(ccs.host_shell(command), input=payload, capture_output=True, env=ccs.host_env(clone), cwd=clone, timeout=60, check=False)
     assert ran.returncode == 0 and ran.stdout == b"" and ran.stderr == b""
     assert not (clone / ".recalith" / "state").exists() and not (clone / ".recalith" / "spool").exists()
 
 
-@posix
 def test_rerun_after_rebind_reintegrates_cleanly(tmp_path):
     root = ccs.project(tmp_path, "before-move")
     cs.provision_runtime(root)
@@ -417,7 +411,6 @@ def test_rerun_after_rebind_reintegrates_cleanly(tmp_path):
 # The session-start notice (SYSTEM_SPEC §14)
 
 
-@posix
 def test_session_start_notice_is_brief_and_not_repeated(provisioned, tmp_path):
     root, op = provisioned
     ok(op.integrate())
@@ -448,7 +441,6 @@ def test_session_start_notice_is_brief_and_not_repeated(provisioned, tmp_path):
     Path(session.maintenance_path(str(root))).unlink()
 
 
-@posix
 def test_notice_is_suppressed_when_its_marker_cannot_be_written(provisioned, tmp_path):
     root, op = provisioned
     ok(op.integrate())
@@ -461,7 +453,6 @@ def test_notice_is_suppressed_when_its_marker_cannot_be_written(provisioned, tmp
     assert proc.stdout == b""
 
 
-@posix
 def test_no_notice_when_nothing_limits_memory(provisioned, tmp_path):
     root, op = provisioned
     inst = cs.context(root).installation_id
@@ -618,6 +609,110 @@ def test_installer_effects_on_every_platform(tmp_path):
     removed = integration.remove(ctx)
     assert removed["modified"] == [] and (root / ccs.SETTINGS).read_bytes() == before
     assert install.OWNERSHIP_SCHEMA == 1
+
+
+# --------------------------------------------------------------------------
+# Native Windows: what integrate installs (decision 0027). Claude Code 2.1.309 runs hook commands through Git Bash,
+# where the POSIX launcher finds no ``venv/bin/python`` and silently does nothing; the .cmd launcher reaches the runtime.
+
+POSIX_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code --event SessionStart'
+WINDOWS_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook.cmd claude_code --event SessionStart'
+# The launcher texts as generated before decision 0027; an existing installation's tracked launchers are these bytes.
+LAUNCHER_SHA256 = {
+    "posix_launcher": "9cd034cc0e53c87336dd789b42b93140a4ab5c67621d2b886e7e238eda6e8fba",
+    "posix_hook_launcher": "ac926cf5afd7f1b7694dc9ed2b74a911f41f4686e68ac87954dcbb4130ce4710",
+    "windows_launcher": "b530bdec47caa737f4f46a17df59610f454d19b49281b88c49230bf5a5829eaa",
+    "windows_hook_launcher": "58610e6813611092bd5e0f49709a3e515f73d6cdb2a7eaf4a6971e6c29b24619",
+}
+POSIX_SPELLINGS = [
+    ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
+    "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
+    "python -m recalith.cli.main", "python3 -m recalith.cli.main",
+    ".recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith",
+]
+
+
+def test_hook_command_is_posix_byte_identical_and_cmd_on_windows():
+    assert fast_claude.hook_command("SessionStart", windows=False) == POSIX_COMMAND
+    assert fast_claude.hook_command("SessionStart", windows=True) == WINDOWS_COMMAND
+    assert fast_claude.hook_command("SessionStart") == (WINDOWS_COMMAND if os.name == "nt" else POSIX_COMMAND)
+    assert fast_claude.LAUNCHER in WINDOWS_COMMAND  # the ownership marker matches both forms
+    assert POSIX_COMMAND not in WINDOWS_COMMAND and WINDOWS_COMMAND not in POSIX_COMMAND  # neither reads as an edit of the other
+
+
+def test_launchers_are_unchanged():
+    import hashlib
+
+    for name, want in LAUNCHER_SHA256.items():
+        assert hashlib.sha256(getattr(identity, name)("0.1.0.dev0").encode("utf-8")).hexdigest() == want, name
+
+
+def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
+    if identity.__version__ != "0.1.0.dev0":
+        pytest.skip("pinned for the development engine version")
+    root = Path("/proj/root")
+    assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
+    win = Path("C:/proj/root") if os.name == "nt" else root
+    spellings = integration.spellings(win, windows=True)
+    assert spellings[: len(POSIX_SPELLINGS)] == integration.spellings(win, windows=False)  # Windows only adds
+    native = str(win)
+    for want in (
+        "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
+        f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
+        ".recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith",
+    ):
+        assert want in spellings, want
+    assert len(spellings) == len(set(spellings))
+    rules, coverage = integration.deny_rules(win, windows=True)
+    assert coverage["rule_count"] == len(rules) == len(spellings) * len(integration.ADMIN_FORMS)
+    assert "Bash(.recalith/bin/recalith.cmd forget:*)" in rules and "Bash(recalith.cmd declare:*)" in rules
+
+
+def test_windows_reinstall_over_a_posix_install_converges_and_remove_restores_bytes(tmp_path, monkeypatch):
+    """An installation integrated by an engine before decision 0027 on Windows holds POSIX hook groups; a re-run
+    replaces each with exactly one .cmd group (no duplicate, no edited-copy refusal), keeps unrelated entries, and
+    removal restores the original settings file byte for byte. Runs on every OS through the platform flag."""
+    root = ccs.project(tmp_path, "posix-then-windows", git_repo=False)
+    ctx = identity.resolve_installation(root, actor=OPERATOR)
+    exe = str(ccs.fake_claude(tmp_path / "bin"))
+    original = (root / ccs.SETTINGS).read_bytes()
+    monkeypatch.setattr(fast_claude, "WINDOWS", False)
+    integration.integrate(ctx, executable=exe)
+    first = ccs.settings(root)
+    assert all(g["hooks"][0]["command"].startswith('"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code') for gs in ccs.owned_groups(first).values() for g in gs)
+    monkeypatch.setattr(fast_claude, "WINDOWS", True)
+    again = integration.integrate(ctx, executable=exe)
+    assert again["settings"] == "updated"
+    data = ccs.settings(root)
+    groups = ccs.owned_groups(data)
+    assert set(groups) == {e for e, _m in fast_claude.HOOK_EVENTS}
+    for event, _matcher in fast_claude.HOOK_EVENTS:
+        (group,) = groups[event]  # exactly one owned group per event: the POSIX one was replaced, not kept beside
+        assert group["hooks"][0]["command"] == fast_claude.hook_command(event, windows=True)
+    record = ccs.ownership(root)
+    assert record["state"] == "installed" and "previous_owned" not in record
+    assert [o["group"]["hooks"][0]["command"] for o in record["owned"]["hooks"]] == [fast_claude.hook_command(e, windows=True) for e, _m in fast_claude.HOOK_EVENTS]
+    rules, _coverage = integration.deny_rules(root, windows=True)
+    assert set(record["owned"]["deny"]) | set(record.get("deny_preexisting") or []) == set(rules)
+    assert set(rules) <= set(data["permissions"]["deny"])
+    stale = set(integration.deny_rules(root, windows=False)[0]) - set(rules)
+    assert not stale & set(data["permissions"]["deny"])  # no rule of the earlier install is left behind
+    assert ccs.without_owned(data, record["owned"]["deny"]) == json.loads(original)
+    assert integration.integrate(ctx, executable=exe)["settings"] == "unchanged"  # converged: a third run changes nothing
+    removed = integration.remove(ctx)
+    assert removed["modified"] == [] and removed["missing"] == [] and removed["unrelated_preserved"] == "byte_identical"
+    assert (root / ccs.SETTINGS).read_bytes() == original
+    assert ccs.ownership(root) is None and ccs.manifest(root) is None
+
+
+def test_windows_install_without_prior_settings_removes_the_file(tmp_path, monkeypatch):
+    root = ccs.project(tmp_path, "windows-fresh", git_repo=False, unrelated=None)
+    ctx = identity.resolve_installation(root, actor=OPERATOR)
+    monkeypatch.setattr(fast_claude, "WINDOWS", True)
+    integration.integrate(ctx, executable=str(ccs.fake_claude(tmp_path / "bin")))
+    assert all(".recalith/bin/recalith-hook.cmd claude_code" in g["hooks"][0]["command"] for gs in ccs.owned_groups(ccs.settings(root)).values() for g in gs)
+    assert integration.remove(ctx)["unrelated_preserved"] == "byte_identical"
+    assert not (root / ccs.SETTINGS).exists() and not (root / ".claude").exists()
 
 
 # --------------------------------------------------------------------------
@@ -823,7 +918,6 @@ def test_reviewed_2_1_309_fixtures_are_sanitized():
 # Capture, delivery and compaction restoration through the installed hooks (deterministic; the real host is the smoke test)
 
 
-@posix
 def test_claude_capture_delivery_and_compact(tmp_path):
     """Real 2.1.301 lifecycle payloads through the installed commands, every path enabled by a (synthetic) live record (A27/A58).
 

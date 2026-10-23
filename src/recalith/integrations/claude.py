@@ -100,8 +100,13 @@ def host_version(executable: str | None) -> dict[str, Any]:
     return {"executable": exe, "version": version, "capture": capture}
 
 
-def spellings(root: Path) -> list[str]:
-    """The launcher and module spellings of the ``recalith`` CLI that the deny rules name."""
+def spellings(root: Path, *, windows: bool | None = None) -> list[str]:
+    """The launcher and module spellings of the ``recalith`` CLI that the deny rules name.
+
+    Native Windows adds the ``.cmd`` launcher and the runtime's ``Scripts\\python.exe`` in the forms a command typed
+    in Git Bash can take: relative, ``./``-prefixed, backslashed, absolute (forward-slash, native and MSYS ``/c/…``)
+    and the bare ``recalith.cmd`` (decision 0027). Every POSIX spelling stays.
+    """
     runtime = f".recalith/runtime/{__version__}/venv/bin/python"
     out = [
         ".recalith/bin/recalith", "./.recalith/bin/recalith", f"{root.as_posix()}/.recalith/bin/recalith", "recalith",
@@ -109,14 +114,24 @@ def spellings(root: Path) -> list[str]:
         "python -m recalith.cli.main", "python3 -m recalith.cli.main",
         f"{runtime} -I -m recalith", f"{root.as_posix()}/{runtime} -I -m recalith",
     ]
-    if os.name == "nt":  # pragma: no cover - native Windows
-        out += [".recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd"]
-    return out
+    if fast_claude.WINDOWS if windows is None else windows:
+        native, win_runtime = str(root), f".recalith/runtime/{__version__}/venv/Scripts/python.exe"
+        back_runtime = win_runtime.replace("/", "\\")
+        out += [
+            "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", f"{root.as_posix()}/.recalith/bin/recalith.cmd",
+            ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
+            f"{win_runtime} -I -m recalith", f"{root.as_posix()}/{win_runtime} -I -m recalith",
+            f"{back_runtime} -I -m recalith", f"{native}\\{back_runtime} -I -m recalith",
+        ]
+        if re.match(r"^[A-Za-z]:[\\/]", native):
+            msys = "/" + native[0].lower() + root.as_posix()[2:]
+            out += [f"{msys}/.recalith/bin/recalith.cmd", f"{msys}/{win_runtime} -I -m recalith"]
+    return list(dict.fromkeys(out))
 
 
-def deny_rules(root: Path) -> tuple[list[str], dict[str, Any]]:
+def deny_rules(root: Path, *, windows: bool | None = None) -> tuple[list[str], dict[str, Any]]:
     """The administrative command deny rules and their exact coverage report."""
-    names = spellings(root)
+    names = spellings(root, windows=windows)
     rules = [f"Bash({s} {form}:*)" for s in names for form in ADMIN_FORMS]
     coverage = {
         "syntax": "Bash(PREFIX:*) prefix rules in permissions.deny",

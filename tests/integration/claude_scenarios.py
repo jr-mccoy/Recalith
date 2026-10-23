@@ -4,7 +4,7 @@ Real inputs: ``recalith integrate claude`` and ``integrate claude --remove``
 run as real child processes of the guarded CLI with an **explicitly
 provisioned fixture token** (``cli_scenarios.token``, the evaluation/CI
 bootstrap input; never committed); the installed hook commands are run
-exactly as Claude Code runs them (``sh -c COMMAND`` with
+exactly as Claude Code runs them (``sh -c COMMAND``; Git Bash ``-c`` on Windows; with
 ``CLAUDE_PROJECT_DIR`` and the host marker, which 2.1.305 sets for hooks);
 hook payloads are the real sanitized 2.1.301/2.1.305 fixtures; the hook is
 the real ``python -I -m recalith.fast.entry`` behind the project launcher on
@@ -186,16 +186,45 @@ def installed_command(root: Path, event: str) -> str:
 
 
 def host_env(root: Path, **extra: str) -> dict[str, str]:
-    """What Claude Code 2.1.305 gives a hook process (observed): its own marker and the project directory."""
-    return cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=str(root), **extra)
+    """What Claude Code gives a hook process (observed): its own marker and the project directory.
+
+    On native Windows 2.1.309 the directory arrives with forward slashes (``C:/…``), as Git Bash shows it.
+    """
+    return cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=root.as_posix() if os.name == "nt" else str(root), **extra)
+
+
+def git_bash() -> str | None:
+    """Git Bash, found as Claude Code finds it on Windows: ``CLAUDE_CODE_GIT_BASH_PATH``, else ``bin\\bash.exe`` of the git on PATH."""
+    explicit = os.environ.get("CLAUDE_CODE_GIT_BASH_PATH")
+    if explicit and Path(explicit).is_file():
+        return explicit
+    git_exe = shutil.which("git")
+    if git_exe:
+        for up in (1, 2):  # ...\Git\cmd\git.exe and ...\Git\mingw64\bin\git.exe
+            candidate = Path(git_exe).resolve().parents[up] / "bin" / "bash.exe"
+            if candidate.is_file():
+                return str(candidate)
+    return None
+
+
+def host_shell(command: str) -> list[str]:
+    """The argv Claude Code runs a hook command with: ``sh -c`` on POSIX; Git Bash ``-c`` on native Windows (observed on 2.1.309)."""
+    if os.name != "nt":
+        return ["sh", "-c", command]
+    bash = git_bash()
+    if bash is None:
+        import pytest
+
+        pytest.skip("Git Bash is not installed; Claude Code on native Windows runs hook commands through it")
+    return [bash, "-c", command]
 
 
 def run_installed(root: Path, event: str, payload: bytes, *, env: dict[str, str] | None = None, cwd: Path | None = None, reply: Path | None = None) -> subprocess.CompletedProcess:
-    """Run the installed command through ``sh -c`` like the host (POSIX; Windows host execution is uncertified)."""
+    """Run the installed command exactly as the host does (:func:`host_shell`)."""
     command = installed_command(root, event)
     if reply is not None:
-        command += " --reply-file " + json.dumps(str(reply))
-    return subprocess.run(["sh", "-c", command], input=payload, capture_output=True, env=env or host_env(root), cwd=cwd or root, timeout=60, check=False)
+        command += " --reply-file " + json.dumps(Path(reply).as_posix() if os.name == "nt" else str(reply))
+    return subprocess.run(host_shell(command), input=payload, capture_output=True, env=env or host_env(root), cwd=cwd or root, timeout=60, check=False)
 
 
 def fixture_records(version: str, scenario: str) -> list[dict[str, Any]]:

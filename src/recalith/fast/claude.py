@@ -6,7 +6,8 @@ Standard library only, imported by the hook entry and by the installer:
   ``recalith integrate claude`` installs. Each command runs this project's
   pinned launcher through ``"$CLAUDE_PROJECT_DIR"``, which Claude Code
   2.1.301/2.1.305 sets for every hook process to the directory the session
-  was started in; the launcher supplies ``--project`` itself.
+  was started in; the launcher supplies ``--project`` itself. On native
+  Windows the command names the ``.cmd`` launcher (decision 0027).
 - :func:`host_output`: the nonblocking host envelope. It carries additional
   model context (certified delivery paths only) and/or a ``systemMessage``
   user notice; never a permission decision, a block or a rewritten tool call.
@@ -34,6 +35,11 @@ from recalith.fast.wire import digest_of
 
 HOST_ID = "claude_code"
 LAUNCHER = ".recalith/bin/recalith-hook"
+# Native Windows (decision 0027): Claude Code 2.1.309 runs hook commands through Git Bash, where the POSIX launcher
+# finds no ``venv/bin/python`` (a Windows venv has ``Scripts\python.exe``) and silently does nothing; Git Bash runs
+# the ``.cmd`` launcher through cmd.exe, which reaches the runtime. ``LAUNCHER`` stays the ownership marker of both.
+WINDOWS = os.name == "nt"
+WINDOWS_LAUNCHER = LAUNCHER + ".cmd"
 HOOK_TIMEOUT_SECONDS = 10
 # (event, matcher): every event the exact-version capture mapping handles.
 # ``PermissionRequest`` is not registered: it has no tool identity or outcome on
@@ -71,9 +77,13 @@ LIMITATIONS = {
 }
 
 
-def hook_command(event: str) -> str:
-    """The exact installed command for ``event`` (a POSIX shell command, as Claude Code runs hooks)."""
-    return f'"$CLAUDE_PROJECT_DIR"/{LAUNCHER} {HOST_ID} --event {event}'
+def hook_command(event: str, *, windows: bool | None = None) -> str:
+    """The exact installed command for ``event``: a POSIX shell command, as Claude Code runs hooks (Git Bash on Windows).
+
+    On POSIX it runs the POSIX launcher; on native Windows the ``.cmd`` launcher.
+    """
+    launcher = WINDOWS_LAUNCHER if (WINDOWS if windows is None else windows) else LAUNCHER
+    return f'"$CLAUDE_PROJECT_DIR"/{launcher} {HOST_ID} --event {event}'
 
 
 def host_output(hook_event: str, context: str | None = None, notice: str | None = None) -> dict:
