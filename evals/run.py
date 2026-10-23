@@ -84,17 +84,19 @@ def host_certification(path: Path | None) -> dict:
     """Live start/prompt certification from a host record (``.recalith/host.json``), for the installed host version."""
     if path is None:
         return {"state": "unavailable", "reasons": ["start_prompt_delivery_not_certified: no host record given (B1: live nonce certification not run)"]}
+    from recalith.contracts.health import HostCertification
+
     try:
-        record = json.loads(path.read_text(encoding="utf-8"))
+        # The contract's own shape, as tools/probe_delivery.py writes it and health reads it (a ValidationError is a ValueError).
+        record = HostCertification.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return {"state": "unavailable", "reasons": [f"host_record_invalid:{type(exc).__name__}"]}
-    if record.get("mode") != "live":
-        return {"state": "unavailable", "reasons": [f"delivery_{record.get('mode', 'unknown')}_only"]}
-    paths = record.get("delivery_paths") or record.get("paths") or {}
-    missing = [p for p in ("session_start", "prompt") if (paths.get(p) or {}).get("state") not in ("certified", "healthy")]
+    if record.mode != "live":
+        return {"state": "unavailable", "reasons": [f"delivery_{record.mode}_only"]}
+    missing = [p for p in ("session_start", "prompt") if record.delivery[p] != "certified"]
     if missing:
         return {"state": "unavailable", "reasons": [f"required_path_not_certified:{p}" for p in missing]}
-    return {"state": "certified", "reasons": [], "host_version": record.get("host_version")}
+    return {"state": "certified", "reasons": [], "host_version": record.host_version}
 
 
 def preflight(route: Path | None, host_record: Path | None = None) -> tuple[int, dict]:

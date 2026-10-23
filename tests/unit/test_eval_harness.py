@@ -52,14 +52,48 @@ def test_prepare_builds_independent_arms_and_the_seed_fails(tmp_path):
 sys.path[:0] = [str(ROOT), str(ROOT / "src"), str(ROOT / "tools")]
 
 
+def host_record(tmp_path: Path, *, mode: str = "live", **delivery: str) -> Path:
+    """A ``.recalith/host.json`` in the HostCertification contract's own shape, as tools/probe_delivery.py writes it."""
+    from recalith.contracts.common import digest_of
+
+    states = {"session_start": "certified", "prompt": "certified", "pre_action": "certified", "compact_restore": "certified"} if mode == "live" else dict.fromkeys(("session_start", "prompt", "pre_action", "compact_restore"), "unavailable")
+    states.update(delivery)
+    record = {
+        "certification_schema": 1, "installation_id": "inst_11111111-1111-4111-8111-111111111111", "host_id": "claude_code", "host_version": "2.1.309",
+        "mode": mode, "certified_at": "2026-10-23T00:00:00.000000Z", "report_digest": digest_of(["synthetic host record", mode]),
+        "delivery": states, "command_rules": "installed", "private_paths": "probed_limited",
+    }
+    path = tmp_path / "host.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return path
+
+
 def test_preflight_names_a_request_capture_host_record(tmp_path):
-    record = tmp_path / "host.json"
-    record.write_text(json.dumps({"mode": "request_capture", "delivery_paths": {"session_start": {"state": "unavailable"}, "prompt": {"state": "unavailable"}}}), encoding="utf-8")
+    record = host_record(tmp_path, mode="request_capture")
     result = run("preflight", "--host-record", str(record))
     assert result.returncode == 4
     out = json.loads(result.stdout)
     assert out["delivery"] == {"state": "unavailable", "reasons": ["delivery_request_capture_only"]}
     assert any("probe_delivery.py" in step for step in out["operator_action"])  # the exact operator route, no secret values
+
+
+def test_preflight_accepts_a_live_host_record(tmp_path):
+    """The first real live record (Claude Code 2.1.309, native Windows) was refused: the preflight read an invented
+    shape (``delivery_paths`` of objects) instead of the HostCertification contract (``delivery`` of states)."""
+    out = json.loads(run("preflight", "--host-record", str(host_record(tmp_path))).stdout)
+    assert out["delivery"] == {"state": "certified", "reasons": [], "host_version": "2.1.309"}
+    assert out["inference"]["state"] == "unavailable"  # no route given: still not ready
+    failed = json.loads(run("preflight", "--host-record", str(host_record(tmp_path, prompt="failed"))).stdout)
+    assert failed["delivery"]["reasons"] == ["required_path_not_certified:prompt"]
+    optional = json.loads(run("preflight", "--host-record", str(host_record(tmp_path, pre_action="failed"))).stdout)
+    assert optional["delivery"]["state"] == "certified"  # optional paths never gate
+
+
+def test_preflight_rejects_a_record_outside_the_contract(tmp_path):
+    record = tmp_path / "host.json"
+    record.write_text(json.dumps({"mode": "live", "delivery_paths": {"session_start": {"state": "certified"}, "prompt": {"state": "certified"}}}), encoding="utf-8")
+    out = json.loads(run("preflight", "--host-record", str(record)).stdout)
+    assert out["delivery"]["state"] == "unavailable" and out["delivery"]["reasons"] == ["host_record_invalid:ValidationError"]
 
 
 def test_live_runs_refuse_until_preflight_passes(tmp_path):

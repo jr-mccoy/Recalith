@@ -481,6 +481,17 @@ def run_bounded(
 # Loopback recording endpoint (request-capture diagnostic mode)
 
 
+class _QuietServer(http.server.ThreadingHTTPServer):
+    """The loopback server, silent when a client drops its connection: on Windows the host closes idle keep-alive
+    sockets with a reset (WinError 10054), which ``socketserver`` would print as a traceback per connection. Every other
+    handler error is still printed."""
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        if isinstance(sys.exc_info()[1], (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+            return
+        super().handle_error(request, client_address)
+
+
 class RecordingEndpoint:
     """Loopback Anthropic-Messages-compatible server that records requests.
 
@@ -598,7 +609,7 @@ class RecordingEndpoint:
                 self.end_headers()
                 self.wfile.write(payload)
 
-        self._server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self._server = _QuietServer(("127.0.0.1", 0), Handler)
         self._server.daemon_threads = True
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
