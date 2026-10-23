@@ -2,7 +2,7 @@
 """The preview hook latency and usefulness gate on this platform (ACCEPTANCE_TESTS §7; Task 18; decision 0020).
 
     python tools/measure_release_latency.py [--warm 500] [--cold 500] [--first-launch 50] [--faults 100] \
-        [--corpus 10000] [--output FILE]
+        [--corpus 10000] [--installed-launcher] [--output FILE]
 
 Every trial is a **fresh interpreter process** running the hook exactly as the
 launcher does (``python -I -m recalith.fast.entry``; fault regimes use
@@ -36,6 +36,15 @@ repeatedly), ``concurrent_hooks`` (four hooks at once), ``slow_fsync``
 (30 ms added to every spool fsync) and ``windows_transient_rename`` (one
 sharing violation on the spool rename; Windows only). Fault populations test
 safe behavior and are never mixed into the healthy gate.
+
+``--installed-launcher`` (decision 0027) runs the ``warm``, ``cold_missing`` and
+``stale`` trials through the exact hook command ``recalith integrate claude``
+installs on this platform, as Claude Code runs it: ``sh -c COMMAND`` on POSIX;
+on native Windows Git Bash ``-c COMMAND``, which runs the ``.cmd`` launcher
+through cmd.exe on a provisioned runtime (interpreter start-up, both shells and
+the launcher are inside the wall time). The fault and first-launch populations
+arm failpoints or start new installations inside the entry process and stay
+direct; each population records its invocation.
 """
 
 from __future__ import annotations
@@ -62,17 +71,34 @@ FAULT = ROOT / "tools" / "fixtures" / "hook_fault.py"
 TARGETS = {"warm": {"p95_ms": 300, "p99_ms": 750, "delivery_min": 0.99, "degradation_max": 0.01}, "cold_missing": {"p95_ms": 300, "p99_ms": 750, "delivery_min": 0.95, "degradation_max": 0.05}}
 LESSON_MARK = "test_mid"
 FACT_MARK = "sqlite connection"
+INSTALLED: dict[str, str] = {}  # event -> the exact command ``recalith integrate claude`` installed (``--installed-launcher``)
 
 
-def run_trial(root: Path, data: bytes, event: str, reply: Path, *, fault: str | None = None) -> dict:
+def host_shell(command: str) -> list[str]:
+    """How Claude Code runs a hook command: ``sh -c`` on POSIX; Git Bash ``-c`` on native Windows (observed on 2.1.309)."""
+    if os.name != "nt":
+        return ["sh", "-c", command]
+    import claude_scenarios as ccs
+
+    bash = ccs.git_bash()
+    if bash is None:
+        raise SystemExit("measure_release_latency: Git Bash not found; Claude Code on native Windows runs hook commands through it")
+    return [bash, "-c", command]
+
+
+def run_trial(root: Path, data: bytes, event: str, reply: Path, *, fault: str | None = None, installed: bool = False) -> dict:
     import claude_fixtures as cf
 
-    if fault is None:
+    env = cf.child_env()
+    if installed:
+        argv = host_shell(INSTALLED[event] + " --reply-file " + json.dumps(reply.as_posix() if os.name == "nt" else str(reply)))
+        env = cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=root.as_posix() if os.name == "nt" else str(root))
+    elif fault is None:
         argv = [sys.executable, "-I", "-m", "recalith.fast.entry", "--project", str(root), "claude_code", "--event", event, "--reply-file", str(reply)]
     else:
         argv = [sys.executable, "-I", str(FAULT), fault, "--project", str(root), "claude_code", "--event", event, "--reply-file", str(reply)]
     started = time.perf_counter()
-    proc = subprocess.run(argv, input=data, capture_output=True, env=cf.child_env(), timeout=60, check=False)
+    proc = subprocess.run(argv, input=data, capture_output=True, env=env, timeout=60, check=False)
     wall = time.perf_counter() - started
     try:
         body = json.loads(reply.read_text(encoding="utf-8"))
@@ -200,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--first-launch", type=int, default=50)
     parser.add_argument("--faults", type=int, default=100)
     parser.add_argument("--corpus", type=int, default=10_000)
+    parser.add_argument("--installed-launcher", action="store_true", help="run the healthy populations through the installed hook command as the host runs it (decision 0027)")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args(argv)
 
@@ -216,6 +243,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.corpus:
             rs.corpus(p, fact, args.corpus, proposition="Corpus {i}: deployment notes for the staging bucket and cache warmup.")
         rs.publish(p)
+        if args.installed_launcher:
+            import claude_scenarios as ccs
+            import cli_scenarios as clis
+            from recalith.integrations import claude as integration
+
+            clis.provision_runtime(p.root)
+            integration.integrate(clis.context(p.root), executable=str(ccs.fake_claude(tmp / "hostbin", "2.1.301")))  # synthetic: a fixed --version answer
+            INSTALLED.update({event: ccs.installed_command(p.root, event) for event in ("PreToolUse", "UserPromptSubmit")})
+            report["installed_launcher"] = {"shell": "git_bash" if os.name == "nt" else "sh", "commands": dict(INSTALLED), "runtime": "provisioned venv (the source tree on its site path)"}
         ds.enable(p)
         reply = tmp / "reply.json"
         counter = iter(range(10**9))
@@ -230,28 +266,29 @@ def main(argv: list[str] | None = None) -> int:
             rec = ds.wks.variant(ds.record("UserPromptSubmit"), session=f"00000000-0000-4000-8102-{i:012d}", prompt=f"How should the fixture teardown close the sqlite connection before test_mid? #{i}")
             return p.replay.prepare(rec), rec["event"], FACT_MARK
 
-        def regime(n: int, make, *, fault: str | None = None) -> dict:
+        def regime(n: int, make, *, fault: str | None = None, healthy: bool = False) -> dict:
+            installed = healthy and args.installed_launcher
             results, expects, events = [], [], []
             for k in range(n):
                 data, event, expect = make(k)
-                results.append(run_trial(p.root, data, event, reply, fault=fault))
+                results.append(run_trial(p.root, data, event, reply, fault=fault, installed=installed))
                 expects.append(expect)
                 events.append(event)
-            return population(results, expects, events)
+            return {**population(results, expects, events), "invocation": "installed_command" if installed else "direct_entry"}
 
         def prompt_or_pre(k: int) -> tuple[bytes, str, str]:
             return pre() if k % 2 == 0 else prompt()
 
         # Healthy gate populations.
-        report["populations"]["warm"] = regime(args.warm, prompt_or_pre)
+        report["populations"]["warm"] = regime(args.warm, prompt_or_pre, healthy=True)
         report["gate"]["warm"] = verdict("warm", report["populations"]["warm"])
         drop_views(p.root)
-        report["populations"]["cold_missing"] = regime(args.cold, prompt_or_pre)
+        report["populations"]["cold_missing"] = regime(args.cold, prompt_or_pre, healthy=True)
         report["gate"]["cold_missing"] = verdict("cold_missing", report["populations"]["cold_missing"])
         rs.publish(p)
         # Stale views: a later fact moves the guidance epoch.
         cs.fact(p, "A later fact moves the guidance epoch.", subject="later")
-        report["populations"]["stale"] = regime(args.stale, prompt_or_pre)
+        report["populations"]["stale"] = regime(args.stale, prompt_or_pre, healthy=True)
         rs.publish(p)
         # Fault injection (separate populations).
         busy = BusyWriter(p.root)

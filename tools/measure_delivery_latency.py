@@ -53,9 +53,13 @@ def trial(root: Path, data: bytes, event: str, reply: Path) -> tuple[float, dict
     import claude_fixtures as cf
 
     if INSTALLED:
-        # As Claude Code runs a hook: ``sh -c COMMAND`` with the project directory and the host marker (observed on 2.1.305).
-        argv = ["sh", "-c", INSTALLED[event] + " --reply-file " + json.dumps(str(reply))]
-        env = cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=str(root))
+        # As Claude Code runs a hook: ``sh -c COMMAND`` with the project directory and the host marker (observed on
+        # 2.1.305); on native Windows Git Bash ``-c COMMAND`` with the directory in forward-slash form (2.1.309, decision 0027).
+        import measure_release_latency as mrl
+
+        windows = sys.platform == "win32"
+        argv = mrl.host_shell(INSTALLED[event] + " --reply-file " + json.dumps(reply.as_posix() if windows else str(reply)))
+        env = cf.child_env(CLAUDECODE="1", CLAUDE_PROJECT_DIR=root.as_posix() if windows else str(root))
     else:
         argv = [sys.executable, "-I", "-m", "recalith.fast.entry", "--project", str(root), "claude_code", "--event", event, "--reply-file", str(reply)]
         env = cf.child_env()
