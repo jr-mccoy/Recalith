@@ -397,6 +397,7 @@ def _expire(txn: Txn, ctx: InstallationContext, candidates: Sequence[str], repor
         "pinned_count": len(current.owned), "owed_count": len(current.owed - current.owned), **_ids(report.expired),
     }, reason="age retention of unpinned payloads", now=report.now)
     txn.mutated(serving_relevant=True)  # evidence expiry is serving-relevant (DATA_CONTRACTS §11)
+    txn.purged()  # an authorized retention purge (full profile: a purge chain entry, decision 0024)
 
 
 # --------------------------------------------------------------------------
@@ -493,6 +494,7 @@ def age_records(txn: Txn, ctx: InstallationContext, report: Report, config: Rete
         "revisions": dict(report.records_aged), "pinned_records": len(keep),
     }, reason="age retention of derived revision bodies", now=report.now)
     txn.mutated(serving_relevant=True)
+    txn.purged()
 
 
 def _ids(event_ids: Sequence[str]) -> dict[str, Any]:
@@ -528,6 +530,7 @@ def _bookkeeping(txn: Txn, report: Report) -> None:
     ).rowcount
     if report.deliveries_removed or report.proposals_trimmed or report.conflicts_trimmed:
         txn.mutated(serving_relevant=False)  # bookkeeping: receipts and proposals are not guidance
+        txn.purged()
 
 
 # --------------------------------------------------------------------------
@@ -632,6 +635,7 @@ def release_payloads(txn: Txn, ctx: InstallationContext, event_ids: Iterable[str
         txn.execute(f"UPDATE source_conflicts SET scrubbed_payload = NULL WHERE original_event_id IN ({marks})", tuple(chunk))  # noqa: S608
     _audit(txn, ctx, kind=RELEASE_KIND, key=[now, ids, state], inputs={"released_count": released, "state": state, **_ids(ids)}, reason="forgetting overrides pins", now=now)
     txn.mutated(serving_relevant=True)
+    txn.purged()
     return support_lost(txn, ctx, affected, now=now, cause=state)
 
 

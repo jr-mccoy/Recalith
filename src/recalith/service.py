@@ -786,13 +786,38 @@ def status(ctx: InstallationContext, *, inherited: Mapping[str, str], deep: bool
     return out
 
 
-def doctor(ctx: InstallationContext, *, inherited: Mapping[str, str]) -> dict[str, Any]:
-    """``recalith doctor`` without probes: :func:`status` with the store's quick check; probes are guarded forms."""
+def doctor(ctx: InstallationContext, *, inherited: Mapping[str, str], full_integrity: bool = False, progress: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
+    """``recalith doctor`` without probes: :func:`status` with the store's quick check; probes are guarded forms.
+
+    In a full-profile store it first verifies the revision chain (decision 0024):
+    incrementally from the verifier's checkpoint, or with ``full_integrity`` the
+    whole chain and every current row. The store is read-only throughout; only
+    the private checkpoint file advances after a clean check. In preview the
+    chain is ``unavailable_in_preview`` and ``--full-integrity`` is refused (4).
+    """
+    from recalith.storage import integrity
+
+    chain: Any = "unavailable_in_preview"
+    try:
+        state = integrity.chain_state(ctx)
+    except RecalithError as exc:
+        if exc.code not in ("invalid_schema", "storage_failure", "capability_unavailable"):
+            raise
+        state = {"state": "store_not_servable"}
+    if state["state"] == "unavailable_in_preview":
+        if full_integrity:
+            raise unavailable("doctor --full-integrity (the revision chain)", "the full release")
+    elif state["state"] == "store_not_servable":
+        if full_integrity:
+            raise RecalithError("capability_unavailable", "the store cannot be served by this engine; its revision chain cannot be verified")
+        chain = "store_not_servable"
+    else:
+        chain = integrity.verify(ctx, full=full_integrity, progress=progress)
     report = status(ctx, inherited=inherited, deep=True)
     recovery = report["health"]["capabilities"]["recovery"]["coverage"]
     guard = report["health"]["capabilities"]["operator_guard"]["coverage"]
     report["checks"] = {
-        "store_quick_check": recovery.get("store_integrity", "not_checked"), "revision_chain": "unavailable_in_preview",
+        "store_quick_check": recovery.get("store_integrity", "not_checked"), "revision_chain": chain,
         "private_path_rules": guard["private_paths"]["state"], "command_deny_rules": guard["command_deny_rules"],
     }
     return report

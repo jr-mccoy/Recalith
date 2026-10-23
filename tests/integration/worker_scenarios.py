@@ -362,7 +362,7 @@ def main(argv: list[str]) -> int:
             with open(hits, "a", encoding="utf-8") as fh:
                 fh.write(f"{name} {state}\n")
 
-        names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER + failpoints.ADMISSION + failpoints.REVISION
+        names = failpoints.WORKER + failpoints.REDUCTION + failpoints.PROVIDER + failpoints.ADMISSION + failpoints.REVISION + failpoints.CHAIN  # CHAIN: full-profile stores only
         if retrieval_spec:
             names += failpoints.RETRIEVAL
         if lineage_spec or revision_spec:

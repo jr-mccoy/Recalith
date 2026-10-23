@@ -847,7 +847,8 @@
             "tests/integration/test_worker.py::test_service_write_crash_matches_reference",
             "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
-            "tests/integration/test_worker.py::test_api_provider_path_crash_matches_reference"
+            "tests/integration/test_worker.py::test_api_provider_path_crash_matches_reference",
+            "tests/integration/test_worker.py::test_full_profile_chain_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -855,7 +856,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies. Decision 0024: the full-profile chain matrix (failpoints.CHAIN + failpoints.WORKER) kills while a transaction's chain entry is pending or appended and at the worker boundaries; the restarted full store equals its reference and the chain is contiguous and verifies over every current row."
         }
       ]
     },
@@ -2779,7 +2780,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13. Task 13: private-path probe in the configured permission mode on 2.1.305: probed_limited (file tools and cat/head/cp blocked by probe-only rules, sh -c and interpreters not; hooks unaffected); nothing installed; revision chain unavailable."
+          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13. Task 13: private-path probe in the configured permission mode on 2.1.305: probed_limited (file tools and cat/head/cp blocked by probe-only rules, sh -c and interpreters not; hooks unaffected); nothing installed; revision chain unavailable. Decision 0024: the chain is built for the full profile only; a preview store still never writes revision_chain, and storage/integrity.py reports every integrity form unavailable_in_preview (verify raises capability_unavailable, doctor --full-integrity exits 4, health unavailable)."
         },
         {
           "variant": "full_only",
@@ -2787,13 +2788,22 @@
             "full"
           ],
           "description": "Installed private paths and incremental/full chain/row verification",
-          "status": "pending",
+          "status": "in_progress",
           "tests": [
+            "tests/integration/test_integrity.py::test_full_store_starts_with_an_init_baseline",
+            "tests/integration/test_integrity.py::test_chain_records_every_committed_mutation",
+            "tests/integration/test_integrity.py::test_entry_content_is_digests_only",
             "tests/integration/test_integrity.py::test_unlogged_row_mutation_is_detected",
-            "tests/integration/test_integrity.py::test_authorized_purge_extends_chain",
+            "tests/integration/test_integrity.py::test_altered_deleted_reordered_or_inserted_entry_is_detected",
+            "tests/integration/test_integrity.py::test_checkpoint_that_no_longer_matches_the_chain_is_untrusted",
             "tests/integration/test_integrity.py::test_incremental_verification_reports_range_and_coverage",
             "tests/integration/test_integrity.py::test_full_integrity_checks_every_current_row",
-            "tests/integration/test_integrity.py::test_preview_store_gets_an_honest_baseline_when_chain_activates"
+            "tests/integration/test_integrity.py::test_authorized_purge_extends_chain",
+            "tests/integration/test_integrity.py::test_restore_keeps_the_snapshot_chain_and_suppresses_without_resurrecting",
+            "tests/integration/test_integrity.py::test_preview_store_gets_an_honest_baseline_when_chain_activates",
+            "tests/integration/test_integrity.py::test_raw_connection_writers_are_chained",
+            "tests/integration/test_integrity.py::test_doctor_and_health_report_the_chain",
+            "tests/integration/test_worker.py::test_full_profile_chain_crash_matches_reference"
           ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
@@ -2803,7 +2813,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Full-only: these tests exist and are skipped as unavailable in claude_preview; never passed."
+          "notes": "Task 5 full slice (decision 0024): the revision hash chain and the integrity scanner are built and run in release_profile: full stores (fixtures created through the provisioning function with a full ProjectConfig; init --release-profile full stays refused). Tested on real captured events, applications, undo, the worker, forget, backup and suppression-aware restore: one digest-only entry per write transaction in that transaction (TEMP-trigger capture), init and activation baselines (pre-baseline history reported not_chained), detection of out-of-band row edits/inserts/deletes and of altered, deleted, reordered, inserted or forged entries, incremental range/coverage from the private checkpoint versus the O(store) full row check (an untouched-row edit is found only by the full check), purge entries that never rewrite history or hold forgotten text, doctor/health reporting, and the CHAIN + WORKER kill/restart matrix. Not passed: the installed private-path rules (Task 13 full) remain; a same-user rewrite of rows, chain and checkpoint together is outside protection by design."
         }
       ]
     },

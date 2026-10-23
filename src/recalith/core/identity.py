@@ -33,7 +33,7 @@ from recalith.contracts.config import ProjectConfig
 from recalith.core.paths import canonical, private_mkdir, root_identity, same_location
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
-from recalith.storage import db
+from recalith.storage import db, integrity
 
 DIR = ".recalith"
 PRIVATE_DIRS = ("runtime", "state", "spool", "cache", "run", "backups", "exports")
@@ -450,6 +450,8 @@ def rebind_installation(root: Path, *, actor: Actor) -> InstallationContext:
         meta = db.read_meta(conn)
         if meta.installation_id != local["installation_id"]:
             raise RecalithError("foreign_installation", "the store does not belong to this checkout's installation")
+        if meta.release_profile == "full":
+            integrity.arm(conn)  # this raw write is chained like any transaction (decision 0024)
         now = utc_now()
         conn.execute(
             "UPDATE workspaces SET canonical_root = ?, root_identity = ?, rebound_at = ? WHERE workspace_id = ?",
@@ -460,6 +462,8 @@ def rebind_installation(root: Path, *, actor: Actor) -> InstallationContext:
             (new_id("op"), json.dumps(actor.model_dump(mode="json")), json.dumps({"from": local["workspace_root"], "to": str(root)}), meta.store_revision + 1, now),
         )
         conn.execute("UPDATE installation_meta SET store_revision = store_revision + 1 WHERE singleton = 1")
+        if meta.release_profile == "full":
+            integrity.seal(conn)
         conn.execute("COMMIT")
     except BaseException:
         if conn.in_transaction:

@@ -52,21 +52,31 @@ def read_selector(path: str):
         raise RecalithError("invalid_schema", "the --selector file is not a valid ForgetSelector") from None
 
 
+def _integrity_progress(step: dict[str, Any]) -> None:
+    """``doctor --full-integrity`` progress on stderr (table names and counts only; stdout stays one JSON object)."""
+    print(f"integrity: {step['tables_done']}/{step['tables']} tables, {step['rows_scanned']} rows ({step['table']})", file=sys.stderr, flush=True)
+
+
 def run(args: argparse.Namespace, form: Form, out: Output, environ: Mapping[str, str]) -> int:
     root = project_root(args)
     c = args.command
-    if c == "doctor" and args.full_integrity:
-        raise service.unavailable("doctor --full-integrity (the revision chain)", "the full release")
     actor = service.OBSERVER if c == "observe" else service.READER
     ctx = service.resolve(root, actor=actor)
     if c in ("status", "doctor"):
         from recalith.contracts.health import HealthReport
         from recalith.operations.health import degraded_codes
 
-        report = service.status(ctx, inherited=environ) if c == "status" else service.doctor(ctx, inherited=environ)
+        if c == "status":
+            report = service.status(ctx, inherited=environ)
+        else:
+            report = service.doctor(ctx, inherited=environ, full_integrity=args.full_integrity, progress=_integrity_progress if args.full_integrity else None)
         verdict = HealthReport.model_validate(report["health"])
         # Exit 0 only when every required capability is healthy; otherwise 8 naming what is not (DATA_CONTRACTS §12).
-        return out.success(report, degraded=() if verdict.autonomous_ready else degraded_codes(verdict))
+        degraded = [] if verdict.autonomous_ready else degraded_codes(verdict)
+        chain = (report.get("checks") or {}).get("revision_chain")
+        if isinstance(chain, dict) and chain.get("state") == "findings":
+            degraded.append("revision_chain_findings")  # a detected out-of-band mutation is never exit 0 (decision 0024)
+        return out.success(report, degraded=degraded)
     if c == "observe":
         payload = read_stdin_json()
         items = payload.get("observations") if isinstance(payload, dict) and "observations" in payload else [payload]

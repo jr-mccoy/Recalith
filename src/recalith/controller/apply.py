@@ -42,8 +42,10 @@ database snapshot or erases intervening history. The guarded ``recalith
 undo`` transport is Task 12a; these service functions require an operator
 actor.
 
-The revision chain is full-release work: ``revision_chain`` stays reserved
-and unpopulated here and is never reported verified.
+The revision chain is not written here: in a full-profile store the
+application transaction's chain entry is appended by ``Store.transaction``
+itself (``storage/integrity.py``, decision 0024); a preview store leaves
+``revision_chain`` reserved and unpopulated and never reports it verified.
 """
 
 from __future__ import annotations
