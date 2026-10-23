@@ -316,7 +316,11 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
         sid, arm = job
         record = trial.run_trial(sid, arm, work, mode=ns.mode, init_route=ns.init_route, token_file=ns.operator_token_file, native_memory=native, live=setup)
         (trials_dir / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
-        return {"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")}
+        out = {"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")}
+        if record.get("gaps"):  # live candidates: whether the worker finished its due work before each next session
+            out["gaps"] = [g.get("state") for g in record["gaps"]]
+            out["claims"] = len(record.get("claims") or [])
+        return out
 
     jobs = [(sid, arm) for sid in chosen for arm in ("no_memory", "candidate")]
     slots = max(1, int(ns.slots or 1)) if ns.mode == "live" else 1

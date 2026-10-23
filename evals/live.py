@@ -52,6 +52,9 @@ CHILD_TIMEOUT = 900
 SESSION_TIMEOUT = 900
 AGENT_STDOUT_CAP = 32 * 1024 * 1024
 AGENT_TOOLS = ("Bash", "Read", "Edit", "Write")
+# A real host session always has its temp directory; the hooks and the worker they start inherit it. Without it,
+# Windows falls back to its own directory and SQLite cannot open a temporary file (the first live pilot, 2026-10-23).
+TEMP_ENV_KEYS = ("TEMP", "TMP", "TMPDIR")
 # The certified engine-mode session flags (tools/probe_engine.py Fixture.argv), with the trial's tool permissions.
 SESSION_FLAGS = ("-p", "--strict-mcp-config", "--output-format", "stream-json", "--verbose", "--include-hook-events")
 
@@ -278,7 +281,7 @@ def agent_env(setup: LiveSetup, home: Path, *, route_keys: list[str]) -> dict[st
 
     pc = _tool("probe_common")
     cfg = setup.delivery
-    keys = [*cfg["platform_env_keys"], *cfg["network_env_keys"], *cfg["auth_route"]["env_keys"], *route_keys]
+    keys = [*cfg["platform_env_keys"], *TEMP_ENV_KEYS, *cfg["network_env_keys"], *cfg["auth_route"]["env_keys"], *route_keys]
     env = {k: os.environ[k] for k in dict.fromkeys(keys) if k in os.environ}
     env.update({k: v.replace("{home}", str(home)) for k, v in cfg["home_env"].items()})
     env.update(cfg["nonsecret_env"])

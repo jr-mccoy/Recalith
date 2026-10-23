@@ -439,9 +439,13 @@ def completeness(trials: list[dict[str, Any]], workload: list[dict[str, Any]], d
     ran = [d for d in days if "budget" in d and not d.get("error")]
     shown = ((demos or {}).get("demonstrations") or {})
     unmet = [n for n in DEMONSTRATIONS if not (shown.get(n) or {}).get("demonstrated")]
-    return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "workload_days_run": len(ran),
+    # A live candidate's wait between sessions must end with the worker's due work done; a stalled or timed-out wait
+    # means the next session ran against an engine that had not processed the last one (the protocol did not run).
+    unsettled = [f"{t['scenario']}.{t['arm']}:{g.get('before')}:{g.get('state')}" + (":" + ",".join((g.get("last") or {}).get("waiting_reasons") or []) if (g.get("last") or {}).get("waiting_reasons") else "")
+                 for t in trials for g in t.get("gaps") or [] if g.get("state") != "quiet"]
+    return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "unsettled_gaps": unsettled, "workload_days_run": len(ran),
             "workload_days_not_run": [d.get("project") for d in days if d not in ran], "demonstrations_unmet": unmet,
-            "complete": not missing and not errors and not contaminated and len(ran) >= WORKLOAD_DAYS and not unmet}
+            "complete": not missing and not errors and not contaminated and not unsettled and len(ran) >= WORKLOAD_DAYS and not unmet}
 
 
 def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
@@ -458,6 +462,8 @@ def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
         reasons.append("trial_errors:" + ",".join(done["trial_errors"])[:400])
     if done.get("contaminated_arms"):
         reasons.append("contaminated_arms:" + ",".join(done["contaminated_arms"])[:400])
+    if done.get("unsettled_gaps"):
+        reasons.append("unsettled_gaps:" + ",".join(done["unsettled_gaps"])[:400])
     if done and done.get("workload_days_run", 0) < WORKLOAD_DAYS:
         reasons.append(f"workload_days_short:{done.get('workload_days_run', 0)}/{WORKLOAD_DAYS}")
     if done.get("demonstrations_unmet"):

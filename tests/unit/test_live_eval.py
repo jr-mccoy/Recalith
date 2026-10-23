@@ -117,6 +117,19 @@ def test_the_agent_environment_is_built_not_inherited(tmp_path, monkeypatch):
     assert env["PATH"].split(os.pathsep)[0] == live.python_dir() and "Scripts" not in Path(live.python_dir()).name
 
 
+def test_the_agent_environment_keeps_the_temp_directory(tmp_path, monkeypatch):
+    """The first live pilot (2026-10-23): without TEMP/TMP the session's hooks, and the worker they start, had no temp
+    directory; on Windows SQLite then fell back to the Windows directory and every typed reduction failed
+    ("unable to open database file", recorded only as handler_error). A real host session always has them."""
+    from evals import live
+
+    for key in live.TEMP_ENV_KEYS:
+        monkeypatch.setenv(key, str(tmp_path / "t"))
+    env = live.agent_env(Setup(tmp_path), tmp_path / "h", route_keys=[])
+    assert all(env[key] == str(tmp_path / "t") for key in live.TEMP_ENV_KEYS)
+    assert set(live.TEMP_ENV_KEYS) >= ({"TEMP", "TMP"} if os.name == "nt" else {"TMPDIR"})
+
+
 # --------------------------------------------------------------------------
 # Quiescence between live sessions
 
@@ -398,6 +411,14 @@ def test_completeness_names_errors_and_contamination():
     assert done["contaminated_arms"] == [f"{trials[1]['scenario']}.no_memory"] and done["workload_days_run"] == 3 and done["demonstrations_unmet"] == []
     clean = report.completeness([dict(t, error=None, manifest={t["arm"]: {"label": t["arm"]}}) for t in trials], days, demos)
     assert clean["complete"] is True
+    # The first live pilot: the candidate's worker failed every reduction and both waits ended stalled, yet the trial
+    # carried no error. A candidate whose queue never settled did not run the protocol; the gate names it.
+    stalled = [dict(t, error=None, manifest={t["arm"]: {"label": t["arm"]}}) for t in trials]
+    stalled[0]["gaps"] = [{"before": "B", "state": "stalled", "last": {"waiting_reasons": ["handler_error"]}}, {"before": "measurement", "state": "quiet", "last": {}}]
+    done = report.completeness(stalled, days, demos)
+    assert done["unsettled_gaps"] == [f"{stalled[0]['scenario']}.candidate:B:stalled:handler_error"] and done["complete"] is False
+    built = {"mode": "live", "quality_5_1": {"measures": {}}, "completeness": done}
+    assert any(r.startswith("unsettled_gaps:") for r in report.gate(built, {})["reasons"]) and report.gate(built, {})["state"] == "failed"
 
 
 def test_a_failed_provisioning_is_recorded_never_dropped(tmp_path, monkeypatch):
