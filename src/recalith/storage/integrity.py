@@ -489,6 +489,47 @@ def verify(ctx: InstallationContext, *, full: bool = False, persist: bool = True
     return report
 
 
+def content_digest(q: Any) -> str:
+    """One digest over every row of every chained table (either profile): equal exactly when no such row changed.
+
+    The transition compares the live store with its staged snapshot before
+    activating (decision 0026); read inside one snapshot by the caller.
+    """
+    h = hashlib.sha256()
+    for table in chained_tables(q):
+        for _rid, key, digest in sorted(_scan(q, table), key=lambda item: item[1]):
+            h.update(f"{table}\0{key}\0{digest}\n".encode("utf-8"))
+    return h.hexdigest()
+
+
+def verify_view(q: Any) -> dict[str, Any]:
+    """A full check of a store that is not yet the live one (the transition's staged store): nothing is persisted."""
+    if _profile(q) != "full":
+        raise _unavailable()
+    report = _verify(q, None, full=True, progress=None)
+    report["checked_at"] = utc_now()
+    return report
+
+
+def record_checked_head(root: Path | str, installation_id: str, report: dict[str, Any], *, live_head: tuple[int, str] | None) -> bool:
+    """Persist a clean full check of the staged store as the live store's checkpoint, only if the live chain has that exact head.
+
+    The transition verifies its staged store over every row before activating
+    it; after the swap the live store is that file, so the check covers it. A
+    head that differs (a later write, a restore) records nothing: the next
+    ``doctor`` starts from no checkpoint.
+    """
+    head = report.get("head")
+    if report.get("state") != "verified" or not report.get("complete_coverage") or head is None or live_head != (head["sequence"], head["entry_hash"]):
+        return False
+    last = {"state": "verified", "mode": "full", "finding_count": 0, "codes": [], "checked_at": report["checked_at"]}
+    _write_checkpoint(root, {
+        "checkpoint_schema": CHECKPOINT_SCHEMA, "installation_id": installation_id, "sequence": head["sequence"], "entry_hash": head["entry_hash"],
+        "store_revision": head["store_revision"], "complete": True, "mode": "full", "verified_at": report["checked_at"], "last_result": last,
+    })
+    return True
+
+
 def chain_state(ctx: InstallationContext, q: Any | None = None) -> dict[str, Any]:
     """What health reports without verifying (read-only, O(1) chain reads): head, baseline, checkpoint, last result."""
     from recalith.storage import db
@@ -518,6 +559,6 @@ def chain_state(ctx: InstallationContext, q: Any | None = None) -> dict[str, Any
 
 
 __all__ = [
-    "arm", "seal", "establish_baseline", "verify", "chain_state", "read_checkpoint", "chained_tables", "row_digest", "key_digest", "entry_hash",
+    "arm", "seal", "establish_baseline", "verify", "verify_view", "record_checked_head", "content_digest", "chain_state", "read_checkpoint", "chained_tables", "row_digest", "key_digest", "entry_hash",
     "GENESIS", "CHECKPOINT", "ENTRY_SCHEMA",
 ]

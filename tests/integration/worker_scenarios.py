@@ -278,6 +278,23 @@ def main(argv: list[str]) -> int:
             failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
         forgetting.run_script(root, forget_spec)
         return 0
+    import upgrade_scenarios as upgrading
+
+    upgrade_spec = upgrading.scenario(root)  # Task 17 full: the preview-to-full transition, its recovery, then a full-profile worker drain
+    if upgrade_spec is not None:
+        if len(argv) > 3 and argv[3] == "count":
+            hits_path = Path(argv[4])
+
+            def record_upgrade_hit(name: str) -> None:
+                with open(hits_path, "a", encoding="utf-8") as fh:
+                    fh.write(f"{name} {upgrading.outstanding(root)}\n")
+
+            for name in (*failpoints.UPGRADE, *failpoints.BACKUP, *failpoints.CHAIN, *failpoints.CAPSULE, *failpoints.RETENTION):
+                failpoints.arm(name, record_upgrade_hit, times=10**6)
+        elif len(argv) > 3:
+            failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))
+        upgrading.run_script(root, upgrade_spec)
+        return 0
     import retention_scenarios as retention
 
     retention_spec = retention.scenario(root)  # Task 15 core: backups, the day-181 retention step, bounded backup retention (+ capsules in full)

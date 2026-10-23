@@ -21,6 +21,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import tomllib
@@ -29,7 +30,7 @@ from typing import Any, Mapping
 
 from recalith import __version__
 from recalith.contracts.common import Actor, InstallationContext, new_id, utc_now
-from recalith.contracts.config import ProjectConfig
+from recalith.contracts.config import ProjectConfig, RetentionConfig
 from recalith.core.paths import canonical, private_mkdir, root_identity, same_location
 from recalith.errors import RecalithError
 from recalith.fast import failpoints
@@ -41,6 +42,7 @@ REQUIRES_PYTHON = ">=3.12,<3.15"
 CONTRACT_VERSIONS = {"event_schema": 1, "segment_schema": 1, "provider_operation_schema": 1, "packet_schema": 1, "store_schema": db.SCHEMA_VERSION, "export_schema": 1}
 NETWORK_FILESYSTEMS = frozenset({"nfs", "nfs4", "cifs", "smb3", "smbfs", "fuse.sshfs", "sshfs", "afs", "ceph", "glusterfs", "fuse.rclone", "davfs", "9p", "lustre", "gpfs"})
 INITIALIZER = Actor(kind="controller", id="initializer", channel="cli")
+RETENTION_TABLE = "retention"  # project.toml: explicit operator retention overrides in days (decision 0026)
 
 GITIGNORE = """# Recalith: track only the portable identity, exact engine lock and launchers.
 *
@@ -226,17 +228,78 @@ def write_launchers(layout: Layout, version: str) -> None:
 # Initialization and resolution
 
 
-def load_project_config(layout: Layout) -> ProjectConfig:
+def load_project_config(layout: Layout, *, release_profile: str | None = None) -> ProjectConfig:
+    """The project's configuration from ``project.toml``: identity, profile defaults and explicit retention overrides.
+
+    ``release_profile`` is the installation's profile as its store records it
+    (:func:`installation_config`); the tracked ``release_profile`` is only the
+    fallback when no store can be read (decision 0026): editing the tracked
+    file never activates a profile's defaults. A ``[retention]`` table holds
+    the operator's explicit overrides in days (``unpinned_event_payload = 120``);
+    every other retention value is the profile's default.
+    """
     raw = _read_toml(layout.project_toml)
-    allowed = {"config_schema", "project_id", "domain_profile", "release_profile"}
+    allowed = {"config_schema", "project_id", "domain_profile", "release_profile", RETENTION_TABLE}
     if set(raw) - allowed:
         raise RecalithError("invalid_schema", f"unknown project.toml fields: {sorted(set(raw) - allowed)}")
     if raw.get("config_schema") != 1:
         raise RecalithError("invalid_schema", "unsupported project.toml config_schema")
     try:
-        return ProjectConfig.defaults_for(raw["project_id"], release_profile=raw.get("release_profile", "claude_preview"), domain_profile=raw.get("domain_profile", "coding"))
+        config = ProjectConfig.defaults_for(raw["project_id"], release_profile=release_profile or raw.get("release_profile", "claude_preview"), domain_profile=raw.get("domain_profile", "coding"))
     except (KeyError, ValueError) as exc:
         raise RecalithError("invalid_schema", "project.toml identity is invalid") from exc
+    overrides = raw.get(RETENTION_TABLE, {})
+    if not isinstance(overrides, dict) or set(overrides) - set(RetentionConfig.model_fields):
+        raise RecalithError("invalid_schema", f"project.toml [{RETENTION_TABLE}] names only retention values: {sorted(RetentionConfig.model_fields)}")
+    if overrides:
+        retention = config.retention.model_dump(mode="json")
+        retention.update({k: {"days": v, "source": "operator_override"} for k, v in overrides.items()})
+        try:
+            config = ProjectConfig.model_validate({**config.model_dump(mode="json"), "retention": retention})
+        except ValueError as exc:
+            raise RecalithError("invalid_schema", f"project.toml [{RETENTION_TABLE}] values are positive whole days") from exc
+    return config
+
+
+def store_profile(layout: Layout) -> str | None:
+    """The release profile the installation's store records, or None when no store can be read (read-only)."""
+    if not layout.db.exists():
+        return None
+    try:
+        conn = db.connect(layout.db, readonly=True)
+    except RecalithError:
+        return None
+    try:
+        return db.read_meta(conn).release_profile
+    except RecalithError:
+        return None
+    finally:
+        conn.close()
+
+
+def installation_config(root: Path) -> ProjectConfig:
+    """This installation's effective configuration: the store's profile with ``project.toml``'s overrides (decision 0026)."""
+    layout = Layout(canonical(Path(root)))
+    return load_project_config(layout, release_profile=store_profile(layout))
+
+
+def record_profile(layout: Layout, release_profile: str) -> bool:
+    """Record the activated profile in the tracked ``project.toml`` (idempotent; every other byte kept). True when it changed."""
+    text = layout.project_toml.read_text(encoding="utf-8")
+    if _read_toml(layout.project_toml).get("release_profile") == release_profile:
+        return False
+    line = f"release_profile = {_toml_value(release_profile)}"
+    pattern = re.compile(r'^release_profile\s*=\s*"[a-z_]+"[ \t]*$', re.M)
+    if len(pattern.findall(text)) == 1:
+        updated = pattern.sub(line, text)
+    else:
+        lines = text.splitlines(keepends=True)
+        at = next((i + 1 for i, ln in enumerate(lines) if ln.startswith("project_id")), 0)
+        updated = "".join(lines[:at] + [line + "\n"] + lines[at:])
+    _atomic_write(layout.project_toml, updated, private=False)
+    if _read_toml(layout.project_toml).get("release_profile") != release_profile:
+        raise RecalithError("storage_failure", "project.toml could not record the release profile")
+    return True
 
 
 def _project_toml(config: ProjectConfig) -> str:

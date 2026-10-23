@@ -294,6 +294,7 @@ class Worker:
         provider: ProviderSupervisor | None = None,
     ) -> None:
         self.ctx = ctx
+        self._config_given = config is not None
         self.config = config or _project_config(ctx)
         if self.config.project_id != ctx.project_id:
             raise RecalithError("foreign_installation", "worker configuration names another project")
@@ -663,6 +664,24 @@ class Worker:
         finally:
             self._last_sleep = {"requested": round(seconds, 4), "slept": round(self.clock.monotonic() - began, 4), "slices": slices, "max_slice_overshoot": round(overshoot, 4)}
 
+    def recover_maintenance(self) -> dict[str, Any]:
+        """An interrupted profile transition is finished or rolled back before the store is opened (decision 0026).
+
+        Called holding the installation lock. When it activated the full store,
+        the context and the configuration are read again (profile defaults).
+        """
+        from recalith.core.identity import resolve_installation
+        from recalith.operations import upgrade
+
+        done = upgrade.recover(self.ctx, held=True)
+        if done.get("upgrade") == "activated":
+            self.close()
+            self.ctx = resolve_installation(Path(self.ctx.root), actor=self.ctx.actor)
+            if not self._config_given:
+                self.config = _project_config(self.ctx)
+                self._interval = float(self.config.worker.active_poll_seconds)
+        return done
+
     def startup(self) -> None:
         """Recovery while holding the lock: dead workers' leases end, their calls stay charged."""
         jobs.recover_abandoned_leases(self.store, owner=self.owner, now=self.clock.now())
@@ -679,6 +698,7 @@ class Worker:
             time.sleep(0.02)
         try:
             forget.recover_restore(self.ctx)  # before the store is opened: an interrupted restore finishes or is discarded
+            self.recover_maintenance()  # and an interrupted profile transition
             self.startup()
             if self.provider is not None:
                 self.provider.start()
@@ -885,9 +905,9 @@ class ModelLane:
 
 
 def _project_config(ctx: InstallationContext) -> ProjectConfig:
-    from recalith.core.identity import Layout, load_project_config
+    from recalith.core.identity import installation_config
 
-    return load_project_config(Layout(Path(ctx.root)))
+    return installation_config(Path(ctx.root))  # the store's profile decides the defaults (decision 0026)
 
 
 # --------------------------------------------------------------------------

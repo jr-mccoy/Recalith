@@ -90,10 +90,16 @@
             "full"
           ],
           "description": "Live side-by-side upgrade and in-place preview-to-full transition",
-          "status": "pending",
+          "status": "in_progress",
           "tests": [
             "tests/integration/test_upgrade.py::test_upgrade_A_leaves_B_running",
-            "tests/integration/test_upgrade.py::test_preview_to_full_preserves_live_evidence_and_ids"
+            "tests/integration/test_upgrade.py::test_preview_to_full_preserves_live_evidence_and_ids",
+            "tests/integration/test_upgrade.py::test_profile_transition_honors_retention_override",
+            "tests/integration/test_upgrade.py::test_transition_applies_previous_forget_and_resurrects_nothing",
+            "tests/integration/test_upgrade.py::test_pending_jobs_are_fenced_then_resume",
+            "tests/integration/test_upgrade.py::test_capabilities_are_reregistered_honestly",
+            "tests/integration/test_upgrade.py::test_transition_requires_the_operator_and_a_verified_artifact",
+            "tests/integration/test_upgrade.py::test_interrupted_upgrade_restores_previous_engine"
           ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
@@ -103,7 +109,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed."
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed. Task 17 full transition slice (decision 0026): the in-place preview-to-full transition by the pinned engine is built and tested on real preview stores (IDs, claims, strength and live evidence beyond day 181 preserved; exact capsules or retained pins under the target window; the chain's activation baseline verifying with earlier history not_chained; explicit [retention] overrides kept while defaults move 180→30; a previous forget's tombstones carried and nothing resurrected; pending and leased jobs carried, a pre-transition read set fenced, the restarted worker resumes them; capabilities re-registered with Codex/MCP not activated and untested delivery never healthy; A's transition stops A's worker while B's real worker keeps running and B is unchanged). Not passed: the side-by-side engine switch between two releases is not built, and the transition is not available to real installations until the full release (FULL_RELEASE_AVAILABLE false; the CLI answers 4)."
         }
       ]
     },
@@ -849,7 +855,8 @@
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
             "tests/integration/test_worker.py::test_api_provider_path_crash_matches_reference",
             "tests/integration/test_worker.py::test_full_profile_chain_crash_matches_reference",
-            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference"
+            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference",
+            "tests/integration/test_worker.py::test_profile_transition_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -857,7 +864,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies. Decision 0024: the full-profile chain matrix (failpoints.CHAIN + failpoints.WORKER) kills while a transaction's chain entry is pending or appended and at the worker boundaries; the restarted full store equals its reference and the chain is contiguous and verifies over every current row. Task 15 full capsule slice (decision 0025): the full-profile capsule kill/restart matrix (capsule.after_plan/before_commit/after_commit, the retention failpoints and the chain seals, kills where work is owed judged from effects) never leaves a pinned payload gone, a claim changed or live evidence unresolvable, the chain verifies after the kill, and the re-run equals the reference."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies. Decision 0024: the full-profile chain matrix (failpoints.CHAIN + failpoints.WORKER) kills while a transaction's chain entry is pending or appended and at the worker boundaries; the restarted full store equals its reference and the chain is contiguous and verifies over every current row. Task 15 full capsule slice (decision 0025): the full-profile capsule kill/restart matrix (capsule.after_plan/before_commit/after_commit, the retention failpoints and the chain seals, kills where work is owed judged from effects) never leaves a pinned payload gone, a claim changed or live evidence unresolvable, the chain verifies after the kill, and the re-run equals the reference. Task 17 full (decision 0026): the profile transition's matrix (UPGRADE, backup, chain) kills only where transition or post-transition work is owed (judged from the store and project.toml profile, the marker, staged files and payload states), only a complete preview or a verifying full store serves after a kill, and the restart equals the reference."
         }
       ]
     },
@@ -1470,7 +1477,8 @@
             "tests/integration/test_capsules.py::test_released_capsule_expires_and_its_links_revert",
             "tests/integration/test_capsules.py::test_preview_keeps_180_day_pins_and_reports_capsules_unavailable",
             "tests/integration/test_capsules.py::test_full_health_reports_capsules",
-            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference"
+            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference",
+            "tests/integration/test_upgrade.py::test_failed_capsule_transition_keeps_pin"
           ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
@@ -1480,7 +1488,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 full capsule slice (decision 0025): at day 31 (30-day full window) unpinned payloads expire and pinned ones a capsule keeps exactly (located quotes, whole statements, typed exit-code mappings, identity-only roots) become capsule-only with their claim links redirected; payloads needed by unfinished work or open working context, non-root (walked) events, unlocated tool-result citations and an unresolvable locator keep their pins, each with a reported reason (sweep report, RetentionSummary.deferred_compaction_count, full health `capsules`); retention alone lowers nothing: every admission gate, strength, classes and last_supported_at are unchanged and a capsule never adds a root; a released capsule-only event expires with its capsule and its links revert; the full-profile kill/restart matrix (CAPSULE, RETENTION, CHAIN) reproduces the reference with evidence resolvable and the chain verifying. Preview keeps its 180-day pins and reports capsules unavailable. Not passed: the full profile is not reachable in a real installation yet (Task 17 transition)."
+          "notes": "Task 15 full capsule slice (decision 0025): at day 31 (30-day full window) unpinned payloads expire and pinned ones a capsule keeps exactly (located quotes, whole statements, typed exit-code mappings, identity-only roots) become capsule-only with their claim links redirected; payloads needed by unfinished work or open working context, non-root (walked) events, unlocated tool-result citations and an unresolvable locator keep their pins, each with a reported reason (sweep report, RetentionSummary.deferred_compaction_count, full health `capsules`); retention alone lowers nothing: every admission gate, strength, classes and last_supported_at are unchanged and a capsule never adds a root; a released capsule-only event expires with its capsule and its links revert; the full-profile kill/restart matrix (CAPSULE, RETENTION, CHAIN) reproduces the reference with evidence resolvable and the chain verifying. Preview keeps its 180-day pins and reports capsules unavailable. The Task 17 transition (decision 0026) compacts through the same rules under the target window and reports retained pins. Not passed: the full profile is not reachable in a real installation yet (the transition is built but gated until the full release)."
         }
       ]
     },
@@ -1671,10 +1679,17 @@
             "full"
           ],
           "description": "Interrupted upgrade/profile-transition rollback with current tombstones",
-          "status": "pending",
+          "status": "in_progress",
           "tests": [
             "tests/integration/test_upgrade.py::test_interrupted_upgrade_restores_previous_engine",
-            "tests/integration/test_upgrade.py::test_interrupted_profile_transition_restores_complete_state"
+            "tests/integration/test_upgrade.py::test_interrupted_profile_transition_restores_complete_state",
+            "tests/integration/test_upgrade.py::test_failure_before_activation_rolls_back",
+            "tests/integration/test_upgrade.py::test_backup_failure_is_not_activated",
+            "tests/integration/test_upgrade.py::test_failure_after_activation_is_completed_by_recovery",
+            "tests/integration/test_upgrade.py::test_failed_capsule_transition_keeps_pin",
+            "tests/integration/test_upgrade.py::test_downgrade_by_flag_is_refused",
+            "tests/integration/test_upgrade.py::test_upgrade_is_refused_while_a_restore_is_journaled_and_restore_while_an_upgrade_is",
+            "tests/integration/test_worker.py::test_profile_transition_crash_matches_reference"
           ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
@@ -1684,7 +1699,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed. Task 15 full capsule slice (decision 0025): failed capsule sufficiency retaining the pin is built and tested under A35 full; the transition's capsule/link preparation and its failure boundaries remain Task 17 full."
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed. Task 15 full capsule slice (decision 0025): failed capsule sufficiency retaining the pin is built and tested under A35 full; the transition's capsule/link preparation and its failure boundaries remain Task 17 full. Task 17 full transition slice (decision 0026): failure at the backup (not_activated, no backup ID), registration, chain baseline, capsule/link preparation, staging and before the swap rolls back to the complete previous preview state; from the journal's activating record recovery activates under a content-digest fence; a failure after the swap is completed by recovery (recovery_required meanwhile); real operator children killed around activation are recovered by the installation's real worker with the newest tombstones applied; failed capsule sufficiency keeps the pin; downgrade by flag is policy_refused (exit 6); the kill/restart family over UPGRADE, the backup points and the chain seals reproduces the reference. Not passed: the side-by-side engine switch and live variants are not built; the transition is not available to real installations yet."
         }
       ]
     },

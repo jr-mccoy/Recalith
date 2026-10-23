@@ -369,7 +369,9 @@ def correct(ctx: InstallationContext, claim_id: str, *, expected_revision: int, 
 
 def initialize(root: Path, *, domain_profile: str, release_profile: str, operator_verifiers: Mapping[str, str] | None = None) -> InstallationContext:
     """First init of a checkout; never resets an existing store (``policy_refused``)."""
-    if release_profile == "full":
+    from recalith.operations import upgrade as operations_upgrade
+
+    if release_profile == "full" and not operations_upgrade.FULL_RELEASE_AVAILABLE:
         raise unavailable("the full release profile", "the full release (Cut 2)")
     if release_profile != "claude_preview" or domain_profile not in ("coding", "general"):
         raise RecalithError("invalid_schema", "init takes --profile coding|general and --release-profile claude_preview|full")
@@ -380,6 +382,26 @@ def initialize(root: Path, *, domain_profile: str, release_profile: str, operato
         project_id = new_id("proj")
     config = ProjectConfig.defaults_for(project_id, release_profile=release_profile, domain_profile=domain_profile)
     return identity.initialize_installation(Path(root), config, operator_verifiers=operator_verifiers)
+
+
+def upgrade(ctx: InstallationContext, wheel: Path, *, expected_digest: str, release_profile: str | None = None, inherited: Mapping[str, str] | None = None):
+    """DATA_CONTRACTS §11 ``upgrade``: the guarded preview-to-full transition (decision 0026); returns the ``UpgradeResult``.
+
+    A full-to-preview request is ``policy_refused`` (never a flag change). The
+    transition itself is built (``operations.upgrade``) but this engine is not
+    a full release, so every other form answers ``capability_unavailable`` here
+    and at the CLI, as ``init --release-profile full`` does (decision 0024).
+    """
+    from recalith.operations import upgrade as operations_upgrade
+
+    require_operator(ctx, "upgrade")
+    if release_profile is not None and release_profile not in operations_upgrade.PROFILES:
+        raise RecalithError("invalid_schema", "--release-profile is claude_preview or full")
+    if release_profile == "claude_preview" and identity.store_profile(identity.Layout(Path(ctx.root))) == "full":
+        raise RecalithError("policy_refused", "full-to-preview is not a supported flag change (no lossy reverse migration); explicit restore remains governed by schema compatibility and the privacy ledger")
+    if not operations_upgrade.FULL_RELEASE_AVAILABLE:
+        raise unavailable("upgrade and the preview-to-full transition", "the full release: the transition is built (Task 17 full, decision 0026) but this engine is not a full release")
+    return operations_upgrade.transition(ctx, Path(wheel), expected_digest=expected_digest, release_profile=release_profile, inherited=inherited)
 
 
 def undo_preview(ctx: InstallationContext, operation_id: str) -> UndoPreview:
