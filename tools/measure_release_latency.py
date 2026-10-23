@@ -250,6 +250,10 @@ def main(argv: list[str] | None = None) -> int:
 
             clis.provision_runtime(p.root)
             integration.integrate(clis.context(p.root), executable=str(ccs.fake_claude(tmp / "hostbin", "2.1.301")))  # synthetic: a fixed --version answer
+            from recalith.capture.hooks import write_hook_context
+
+            # No worker: integrate registers the hook's worker start, and a worker would republish the views the cold and stale populations remove.
+            write_hook_context(p.ctx, adapter_id="claude_code", host_version="2.1.301", worker_autostart=False, session_notice=False)
             INSTALLED.update({event: ccs.installed_command(p.root, event) for event in ("PreToolUse", "UserPromptSubmit")})
             report["installed_launcher"] = {"shell": "git_bash" if os.name == "nt" else "sh", "commands": dict(INSTALLED), "runtime": "provisioned venv (the source tree on its site path)"}
         ds.enable(p)
