@@ -1428,6 +1428,28 @@ Add each later checkpoint with:
   - Total: about 1.5–3 hours wall time. Cost: roughly $5–$20, most of it the 48+ working-agent sessions, depending on session length and model prices. The background curator calls are small.
   - Run the one-scenario pilot first; it measures the real figures and exercises the never-run path cheaply (next actions).
 
+### 2026-10-23 — The first live pilot (the owner's run): a vacuous pass, its cause and the harness fix
+
+- **The run.** The owner ran `evals\run.py smoke --mode live --scenario smoke-L1-ledgerlite-test-command … --out C:\Code\rl-p1 --keep-workspaces` from an ordinary PowerShell window. It printed both arms `success: true, error: null`.
+- **What the records show** (read from the kept results, read-only; nothing copied into the repository):
+  - Provisioning: every step exited 0 (init 0.8 s, bootstrap 4.1 s, route certification 16.8 s, integrate 0.8 s, bind 1.4 s). Native memory was observed `disabled`, and both arms' labels were clean.
+  - Sessions: four live sessions of 13–19 s each. Foreground cost was $0.095 for the baseline and $0.119 for the candidate, as the host reported it.
+  - **The candidate learned nothing.** All 37 `ingest` jobs failed with `handler_error`, and both waits ended `stalled` after 350 s. No task, claim or curator call was recorded, and every packet was empty, so the gold `PYTHONPATH=src` point was missed. The session-A agent ran both test commands in one pipeline, so no failure was captured anyway. Both arms found the working command unaided.
+- **Cause, reproduced on this laptop and then fixed.**
+  - Repro: a real Claude Code 2.1.309 session in request capture (loopback endpoint, placeholder key) through a fixture installation's hooks and the hook-started worker. All 36 ingest jobs failed. A temporary traceback dump (removed; never committed) named `sqlite3.OperationalError: unable to open database file` inside a reduction write.
+  - The live agent environment was built from the delivery configuration's platform keys, which carry no `TEMP`/`TMP`. Claude Code passed that environment to its hooks, and the worker the hooks started inherited it. Windows then falls back to its own directory for temp files, which a normal user cannot write, so SQLite could not create its temporary file.
+  - With `TEMP`/`TMP` added, the same repro completed all 36 jobs on the first attempt and created the task.
+  - Fix: the live agent environment keeps `TEMP`, `TMP` and `TMPDIR` (decision 0028 item 4). A real host session has them, which is why the pilot project's own use was unaffected.
+- **The gate would have missed it.** The report's completeness check now fails a live run whose candidate waits did not end `quiet`: `unsettled_gaps`, with the jobs' waiting codes (decision 0028 item 11). The `smoke` summary line now prints each candidate's wait states and claim count. The pilot's records, rebuilt in memory, now fail with `unsettled_gaps:…:stalled:handler_error` plus unmet recall.
+- **Engine findings, not changed (owner decision).**
+  1. A hook-started worker without a temp directory fails every typed reduction, and `worker.run_job` records only `handler_error`, without the exception type. The model lane already records `lane_error:<type>`.
+  2. The worker role's environment on Windows keeps `TEMP`/`TMP` only when the host passes them.
+
+  Fixing either changes the certified wheel: it needs a rebuild, and the pilot needs re-provisioning, which is not possible under the same engine version (the bootstrap answers `already_provisioned`). The live gate does not need it with the harness fix. Recommendation: a small engine slice later. Record `handler_error:<ExceptionType>`, and either open store connections with `PRAGMA temp_store = MEMORY` or give the worker role a private temp directory when none is inherited.
+- **Disclosure.** One diagnostic repro gave a scratch copy's worker a placeholder key to make its route status resolve. The worker's model lane then sent one extraction request to the Anthropic API, which was rejected (`provider_auth_rejected`). No credential was involved, and the repro has been changed so that it cannot recur.
+- **Tests:** `test_the_agent_environment_keeps_the_temp_directory` failed before the fix and passes after. `test_completeness_names_errors_and_contamination` adds the stalled-gap case. `tests/unit/test_live_eval.py tests/unit/test_eval_harness.py tests/integration/test_evaluation.py --basetemp C:/Code/t` → 33 passed.
+- **Next:** the owner re-runs the one-scenario pilot, which must print `"gaps": ["quiet", "quiet"]` and a nonzero claim count for the candidate; then the gate.
+
 ## Blockers and decisions
 
 **B1 — Task 0/0b live certification (cleared on native Windows on 2026-10-23; Linux and macOS not observed).** Status after the owner's live run: the Anthropic Messages route and all four delivery paths of Claude Code 2.1.309 are live-certified for the pilot, whose health is `ready`; see the B1 live checkpoint. The history below is kept. Evidence: `docs/host-compatibility.json` (`auth_route.kind = not_configured`, live `not_run`). This cloud session has the Claude CLI but no explicitly configured build account route; the session's own host credentials/proxy are not a Recalith route and are not used. Minimal operator action, from an ordinary terminal outside any agent session:
@@ -1515,9 +1537,9 @@ Next actions, in order:
    $env:ANTHROPIC_API_KEY = Read-Host -MaskInput 'ANTHROPIC_API_KEY'
    $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', 'C:\Code\rl-pilot',
              '--wheel', 'dist\recalith-0.1.0.dev0-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
-   # a. One-scenario pilot (about 15-25 minutes, a dollar or two): both arms of L1, workspaces kept.
-   & .venv\Scripts\python.exe evals\run.py smoke --mode live --scenario smoke-L1-ledgerlite-test-command @live --out C:\Code\rl-p1 --keep-workspaces
-   # b. Only if (a) exits 0 and neither trial record holds an "error": the gate (about 1.5-3 hours at 2 slots).
+   # a. One-scenario pilot (about 15-25 minutes, a dollar or two): both arms of L1, workspaces kept. Use a new --out each time.
+   & .venv\Scripts\python.exe evals\run.py smoke --mode live --scenario smoke-L1-ledgerlite-test-command @live --out C:\Code\rl-p2 --keep-workspaces
+   # b. Only if (a) exits 0, neither trial holds an "error", and the candidate shows "gaps": ["quiet", "quiet"] with "claims" above 0: the gate (about 1.5-3 hours at 2 slots).
    & .venv\Scripts\python.exe evals\run.py gate --mode live @live --out C:\Code\rl-gate --slots 2
    ```
    Report the exit codes. For (a), also report the `trials` summary line, or paste `C:\Code\rl-p1\trials\*.json` if a trial holds an `error`. For (b), report `report.md`'s gate line.

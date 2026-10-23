@@ -43,6 +43,7 @@ Where a rule was ambiguous the stricter reading was kept, and no gate, target or
    - The environment is built from the delivery configuration's key names plus the installation route's key names, which the hook-started worker carries to its curator. It holds no host or role marker.
    - The default setting sources load, not `--setting-sources local`, so the disposable `HOME`'s disabling settings apply. `baselines.observe_native_memory` now runs with these same flags. On 2.1.309 in request capture the control loaded the planted sentinel and the disabled run did not: `disabled`.
    - The base interpreter's directory leads `PATH`, so `python` is a plain interpreter without engine entry points. Both arms get the same.
+   - The environment keeps the platform's temp-directory variables (`TEMP`, `TMP`, `TMPDIR`), as every real host session has them. The first live pilot (2026-10-23) ran without them. The hooks and the worker they started then had no temp directory, so Windows fell back to its own directory, SQLite could not open a temporary file, and every typed reduction failed. The worker recorded these only as `handler_error`.
 5. **The product's worker on real time.** The hooks' registered start launches the installation's worker, which curates on the installation's own certified route, isolation recheck included. Between sessions and after the last one, the harness reads the store read-only (`live.wait_quiescent`). It waits until nothing is due within 20 minutes (beyond the 600 s failure debounce and the 300 s quiet window), no job is leased and the spool is empty. The wait also ends, with that state recorded, after 45 minutes or after 5 minutes without store progress.
    - The evidence horizon is checked read-only before every session (`evidence_horizon(..., ingest=False)`).
    - The worker is stopped at the end with `recalith worker stop --operator-token-file`.
@@ -60,6 +61,7 @@ Where a rule was ambiguous the stricter reading was kept, and no gate, target or
 10. **Labels.** Records carry the `<agent-model>`/`<curator-model>` placeholders, paths relative to the run, the backend and the wheel digest; no model identifier appears (decision 0027). The report adds the host's reported foreground session cost and the ledger's background tokens.
 11. **A live gate passes only on a complete run.** `report.completeness` requires everything ACCEPTANCE_TESTS §6.1 says must run:
     - all 12 smoke scenarios in both arms, without a run error and each with its intended clean label;
+    - every live candidate wait that ended `quiet`. A `stalled` or `deadline` wait means the next session ran before the worker had processed the last one, so the protocol did not run (reason `unsettled_gaps`, with the jobs' waiting codes);
     - three workload days with measures;
     - all five demonstrations shown.
 
