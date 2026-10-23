@@ -585,17 +585,17 @@
       "anthropic_api": {
         "probe": "tools/probe_provider.py",
         "probe_schema": 1,
-        "tested_at": "2026-10-22T14:00:00.613379Z",
+        "tested_at": "2026-10-23T18:26:39.582685Z",
         "platform": {
-          "os": "linux",
+          "os": "windows",
           "arch": "x86_64",
-          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
-          "python": "3.13.16"
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.15"
         },
         "provider_id": "anthropic_api",
         "backend": "anthropic_messages",
         "engine_build": "0.1.0.dev0",
-        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "configured_model": "<curator-model>",
         "expected_resolved_model": null,
         "endpoint": {
           "origin": "https://api.anthropic.com",
@@ -616,15 +616,15 @@
           "note": "Names only. No other credential is forwarded to the transport."
         },
         "operator_attestation": {
-          "background_use": "unchecked",
-          "basis": "State the provider terms / policy page you checked; no secrets.",
-          "checked_on": null,
-          "managed_policy": "Describe any organization policy that applies."
+          "background_use": "checked_eligible",
+          "basis": "Anthropic Commercial Terms, section A.1: API-key access may power the operator's own products and services; no requirement that a person initiate each request. Accessed with a dedicated, spend-limited API key, never subscription credentials.",
+          "checked_on": "2026-10-23",
+          "managed_policy": "None: personal Anthropic Console account, no organization-managed settings."
         },
         "adapter": {
           "transport": "src/recalith/providers/http_transport.py (python -I, by path)",
           "dialects": "src/recalith/providers/api.py",
-          "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659"
+          "adapter_sha256": "11f522847b2b665308d6eb2ff570368633f6a8d82e1a0b6e4323bbca08331916"
         },
         "limits": {
           "timeout_seconds": 120,
@@ -648,38 +648,46 @@
                 "auth_header": "x-api-key"
               },
               "environment": {
-                "method": "linux_proc_environ",
+                "method": "constructed_map_only",
                 "child_keys": [
                   "ANTHROPIC_API_KEY",
                   "HOME",
-                  "LC_CTYPE",
                   "NO_PROXY",
+                  "NUMBER_OF_PROCESSORS",
                   "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
                   "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
                   "TEMP",
                   "TMP",
                   "TMPDIR",
                   "USERPROFILE",
-                  "no_proxy"
+                  "WINDIR"
                 ],
                 "constructed_keys": [
                   "ANTHROPIC_API_KEY",
                   "HOME",
-                  "LC_CTYPE",
                   "NO_PROXY",
+                  "NUMBER_OF_PROCESSORS",
                   "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
                   "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
                   "TEMP",
                   "TMP",
                   "TMPDIR",
                   "USERPROFILE",
-                  "no_proxy"
+                  "WINDIR"
                 ],
                 "host_markers_present": [],
                 "curator_marker_names_installation": true,
                 "worker_marker_present": false,
                 "removed_allowlisted_markers": [],
-                "inherited_not_permitted_count": 163
+                "inherited_not_permitted_count": 33
               },
               "request_capture": {
                 "message_request_count": 1,
@@ -714,7 +722,7 @@
                 "stdout_overflow": false,
                 "tree_bound": "contained",
                 "tree_cleaned": true,
-                "duration_ms": 109
+                "duration_ms": 152
               },
               "verdict": "pass"
             },
@@ -730,38 +738,46 @@
                 "auth_header": "x-api-key"
               },
               "environment": {
-                "method": "linux_proc_environ",
+                "method": "constructed_map_only",
                 "child_keys": [
                   "ANTHROPIC_API_KEY",
                   "HOME",
-                  "LC_CTYPE",
                   "NO_PROXY",
+                  "NUMBER_OF_PROCESSORS",
                   "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
                   "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
                   "TEMP",
                   "TMP",
                   "TMPDIR",
                   "USERPROFILE",
-                  "no_proxy"
+                  "WINDIR"
                 ],
                 "constructed_keys": [
                   "ANTHROPIC_API_KEY",
                   "HOME",
-                  "LC_CTYPE",
                   "NO_PROXY",
+                  "NUMBER_OF_PROCESSORS",
                   "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
                   "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
                   "TEMP",
                   "TMP",
                   "TMPDIR",
                   "USERPROFILE",
-                  "no_proxy"
+                  "WINDIR"
                 ],
                 "host_markers_present": [],
                 "curator_marker_names_installation": true,
                 "worker_marker_present": false,
                 "removed_allowlisted_markers": [],
-                "inherited_not_permitted_count": 169
+                "inherited_not_permitted_count": 40
               },
               "request_capture": {
                 "message_request_count": 1,
@@ -796,7 +812,7 @@
                 "stdout_overflow": false,
                 "tree_bound": "contained",
                 "tree_cleaned": true,
-                "duration_ms": 115
+                "duration_ms": 159
               },
               "verdict": "pass"
             }
@@ -806,40 +822,225 @@
               "pass": true,
               "code": "provider_timeout",
               "expected": "provider_timeout",
-              "duration_ms": 10012,
+              "duration_ms": 10008,
               "tree_cleaned": true
             },
             "flood": {
               "pass": true,
               "code": "wire_stdout_oversized",
               "expected": "wire_stdout_oversized",
-              "duration_ms": 143,
+              "duration_ms": 254,
               "tree_cleaned": true
             },
             "oversize": {
               "pass": true,
               "code": "response_body_oversized",
               "expected": "response_body_oversized",
-              "duration_ms": 115,
+              "duration_ms": 257,
               "tree_cleaned": true
             },
             "large": {
               "pass": true,
               "code": null,
               "expected": null,
-              "duration_ms": 147,
+              "duration_ms": 276,
               "tree_cleaned": true
             },
             "malformed": {
               "pass": true,
               "code": "envelope_invalid",
               "expected": "envelope_invalid",
-              "duration_ms": 108,
+              "duration_ms": 248,
               "tree_cleaned": true
             }
           }
         },
-        "live": null,
+        "live": {
+          "status": "run",
+          "schema_runs": {
+            "clean": {
+              "code": null,
+              "operations": 0,
+              "resolved_model": "<curator-model>",
+              "usage": {
+                "input_tokens": 232,
+                "output_tokens": 22,
+                "provider_request_id_present": true
+              },
+              "duration_ms": 1340,
+              "timed_out": false,
+              "tree_cleaned": true,
+              "environment_failures": [],
+              "environment": {
+                "method": "constructed_map_only",
+                "child_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "NUMBER_OF_PROCESSORS",
+                  "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "WINDIR"
+                ],
+                "constructed_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "NUMBER_OF_PROCESSORS",
+                  "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "WINDIR"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 33
+              },
+              "status": 200,
+              "transport_reason": null,
+              "tls": {
+                "verified": true,
+                "version": "TLSv1.3"
+              }
+            },
+            "host_marked": {
+              "code": null,
+              "operations": 0,
+              "resolved_model": "<curator-model>",
+              "usage": {
+                "input_tokens": 232,
+                "output_tokens": 22,
+                "provider_request_id_present": true
+              },
+              "duration_ms": 979,
+              "timed_out": false,
+              "tree_cleaned": true,
+              "environment_failures": [],
+              "environment": {
+                "method": "constructed_map_only",
+                "child_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "NUMBER_OF_PROCESSORS",
+                  "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "WINDIR"
+                ],
+                "constructed_keys": [
+                  "ANTHROPIC_API_KEY",
+                  "HOME",
+                  "NUMBER_OF_PROCESSORS",
+                  "PATH",
+                  "PATHEXT",
+                  "PROCESSOR_ARCHITECTURE",
+                  "RECALITH_CURATOR_INSTALLATION",
+                  "SYSTEMDRIVE",
+                  "SYSTEMROOT",
+                  "TEMP",
+                  "TMP",
+                  "TMPDIR",
+                  "USERPROFILE",
+                  "WINDIR"
+                ],
+                "host_markers_present": [],
+                "curator_marker_names_installation": true,
+                "worker_marker_present": false,
+                "removed_allowlisted_markers": [],
+                "inherited_not_permitted_count": 40
+              },
+              "status": 200,
+              "transport_reason": null,
+              "tls": {
+                "verified": true,
+                "version": "TLSv1.3"
+              }
+            }
+          },
+          "cap_run": {
+            "code": "output_cap_reached",
+            "operations": null,
+            "resolved_model": null,
+            "usage": {
+              "input_tokens": 226,
+              "output_tokens": 32,
+              "provider_request_id_present": true
+            },
+            "duration_ms": 2147,
+            "timed_out": false,
+            "tree_cleaned": true,
+            "environment_failures": [],
+            "environment": {
+              "method": "constructed_map_only",
+              "child_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "NUMBER_OF_PROCESSORS",
+                "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
+                "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "WINDIR"
+              ],
+              "constructed_keys": [
+                "ANTHROPIC_API_KEY",
+                "HOME",
+                "NUMBER_OF_PROCESSORS",
+                "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
+                "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
+                "TEMP",
+                "TMP",
+                "TMPDIR",
+                "USERPROFILE",
+                "WINDIR"
+              ],
+              "host_markers_present": [],
+              "curator_marker_names_installation": true,
+              "worker_marker_present": false,
+              "removed_allowlisted_markers": [],
+              "inherited_not_permitted_count": 33
+            },
+            "status": 200,
+            "transport_reason": null,
+            "tls": {
+              "verified": true,
+              "version": "TLSv1.3"
+            }
+          },
+          "output_cap_tokens": 32
+        },
         "dimensions": {
           "request_shape": {
             "verdict": "pass",
@@ -855,62 +1056,70 @@
             "failures": []
           },
           "auth_route": {
-            "verdict": "not_run",
-            "failures": [],
-            "reason": "live mode not selected in config"
+            "verdict": "pass",
+            "failures": []
           },
           "model_identity": {
-            "verdict": "not_run",
+            "verdict": "pass",
             "failures": [],
-            "reason": "live mode not selected in config"
+            "expected": "<curator-model>",
+            "reported": [
+              "<curator-model>"
+            ]
           },
           "schema_output": {
-            "verdict": "not_run",
+            "verdict": "pass",
             "failures": [],
-            "reason": "live mode not selected in config"
+            "location": "the reply's single text block / choice message content, decoded and validated locally"
           },
           "endpoint_identity": {
-            "verdict": "not_run",
+            "verdict": "pass",
             "failures": [],
-            "reason": "live mode not selected in config"
+            "origin": "https://api.anthropic.com",
+            "tls": [
+              {
+                "verified": true,
+                "version": "TLSv1.3"
+              },
+              {
+                "verified": true,
+                "version": "TLSv1.3"
+              }
+            ]
           },
           "live_launch": {
-            "verdict": "not_run",
-            "failures": [],
-            "reason": "live mode not selected in config"
+            "verdict": "pass",
+            "failures": []
           },
           "output_cap": {
-            "verdict": "not_run",
+            "verdict": "pass",
             "failures": [],
-            "reason": "live mode not selected in config"
+            "requested_tokens": 32,
+            "observed": {
+              "code": "output_cap_reached",
+              "usage": {
+                "input_tokens": 226,
+                "output_tokens": 32,
+                "provider_request_id_present": true
+              }
+            }
           },
           "usage": {
             "verdict": "informational",
-            "reported": null
+            "reported": true,
+            "note": "unknown usage is charged at the engine's estimates"
           },
           "operator_attestation": {
-            "verdict": "not_run",
-            "failures": [
-              "background_use_unchecked"
-            ]
+            "verdict": "pass",
+            "failures": []
           }
         },
-        "certified": false,
-        "verdict": "unavailable",
-        "blocking_dimensions": [
-          "auth_route",
-          "endpoint_identity",
-          "live_launch",
-          "model_identity",
-          "operator_attestation",
-          "output_cap",
-          "schema_output"
-        ],
-        "failed_checks": [
-          "background_use_unchecked"
-        ],
-        "resolved_model": null,
-        "usable_route": null,
+        "certified": true,
+        "verdict": "certified",
+        "blocking_dimensions": [],
+        "failed_checks": [],
+        "resolved_model": "<curator-model>",
+        "usable_route": "anthropic_api",
         "limitations": [
           "Request capture observes the exact client-side request on loopback; provider-side behavior is observed only in live mode.",
           "An aggregator may route the same model across hosts server-side; only the reported model is checkable.",
@@ -3208,20 +3417,21 @@
       },
       "anthropic_api": {
         "tool": "tools/check_provider_runtime.py",
-        "tested_at": "2026-10-22T14:00:15.993908Z",
+        "tested_at": "2026-10-23T18:27:46.867586Z",
         "platform": {
-          "os": "linux",
+          "os": "windows",
           "arch": "x86_64",
-          "platform": "Linux-6.18.44-fc-v140-x86_64-with-glibc2.39",
-          "python": "3.13.16"
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.15"
         },
         "engine_build": "0.1.0.dev0",
         "backend": "anthropic_messages",
+        "route_source": "project_record",
         "adapter": "recalith.providers.api",
         "adapter_version": "1",
-        "adapter_sha256": "3a69d1fb481b466f2969322d40bf3e8acb5188d95231f1d1fc5270ac8e712659",
+        "adapter_sha256": "11f522847b2b665308d6eb2ff570368633f6a8d82e1a0b6e4323bbca08331916",
         "transport": "python -I src/recalith/providers/http_transport.py (stdlib only), launched by controller.launch.run_bounded",
-        "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+        "configured_model": "<curator-model>",
         "expected_resolved_model": null,
         "endpoint": {
           "dialect": "messages",
@@ -3260,38 +3470,46 @@
               "auth_header": "x-api-key"
             },
             "environment": {
-              "method": "linux_proc_environ",
+              "method": "constructed_map_only",
               "child_keys": [
                 "ANTHROPIC_API_KEY",
                 "HOME",
-                "LC_CTYPE",
                 "NO_PROXY",
+                "NUMBER_OF_PROCESSORS",
                 "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
                 "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
                 "TEMP",
                 "TMP",
                 "TMPDIR",
                 "USERPROFILE",
-                "no_proxy"
+                "WINDIR"
               ],
               "constructed_keys": [
                 "ANTHROPIC_API_KEY",
                 "HOME",
-                "LC_CTYPE",
                 "NO_PROXY",
+                "NUMBER_OF_PROCESSORS",
                 "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
                 "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
                 "TEMP",
                 "TMP",
                 "TMPDIR",
                 "USERPROFILE",
-                "no_proxy"
+                "WINDIR"
               ],
               "host_markers_present": [],
               "curator_marker_names_installation": true,
               "worker_marker_present": false,
               "removed_allowlisted_markers": [],
-              "inherited_not_permitted_count": 163
+              "inherited_not_permitted_count": 33
             },
             "request_capture": {
               "message_request_count": 1,
@@ -3326,7 +3544,7 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 102
+              "duration_ms": 153
             }
           },
           "host_marked": {
@@ -3338,38 +3556,46 @@
               "auth_header": "x-api-key"
             },
             "environment": {
-              "method": "linux_proc_environ",
+              "method": "constructed_map_only",
               "child_keys": [
                 "ANTHROPIC_API_KEY",
                 "HOME",
-                "LC_CTYPE",
                 "NO_PROXY",
+                "NUMBER_OF_PROCESSORS",
                 "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
                 "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
                 "TEMP",
                 "TMP",
                 "TMPDIR",
                 "USERPROFILE",
-                "no_proxy"
+                "WINDIR"
               ],
               "constructed_keys": [
                 "ANTHROPIC_API_KEY",
                 "HOME",
-                "LC_CTYPE",
                 "NO_PROXY",
+                "NUMBER_OF_PROCESSORS",
                 "PATH",
+                "PATHEXT",
+                "PROCESSOR_ARCHITECTURE",
                 "RECALITH_CURATOR_INSTALLATION",
+                "SYSTEMDRIVE",
+                "SYSTEMROOT",
                 "TEMP",
                 "TMP",
                 "TMPDIR",
                 "USERPROFILE",
-                "no_proxy"
+                "WINDIR"
               ],
               "host_markers_present": [],
               "curator_marker_names_installation": true,
               "worker_marker_present": false,
               "removed_allowlisted_markers": [],
-              "inherited_not_permitted_count": 170
+              "inherited_not_permitted_count": 40
             },
             "request_capture": {
               "message_request_count": 1,
@@ -3404,30 +3630,27 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 101
+              "duration_ms": 131
             }
           }
         },
         "route_status": {
-          "state": "unavailable",
-          "reasons": [
-            "route_uncertified",
-            "selected_auth_missing"
-          ],
+          "state": "certified",
+          "reasons": [],
           "provider_id": "anthropic_api",
           "backend": "anthropic_messages",
-          "configured_model": "EXPLICIT-MODEL-ID-SELECTED-BY-THE-OPERATOR",
+          "configured_model": "<curator-model>",
           "observed_version": null,
           "certified_version": null,
           "auth_route": "env_api_key",
           "auth_key_names": [
             "ANTHROPIC_API_KEY"
           ],
-          "checked_at": "2026-10-22T14:00:15.993148Z",
+          "checked_at": "2026-10-23T18:27:46.865918Z",
           "recertification_required": false
         },
         "certifies": false,
-        "verdict": "unavailable",
+        "verdict": "certified",
         "limitations": [
           "Request capture uses a loopback endpoint and a placeholder key: it observes the exact client-side request, never an account route, and cannot certify.",
           "Environment key names are observed through /proc on Linux; other platforms report the constructed map only."
@@ -3874,7 +4097,7 @@
     },
     "delivery_engine": {
       "claude_code": {
-        "host_version": "2.1.306",
+        "host_version": "2.1.309",
         "engine_mode": true,
         "synthetic_states": [
           "nonce memories admitted with recorded proposals over real captured fixture events",
@@ -3883,7 +4106,7 @@
         ],
         "request_capture": {
           "lifecycle": {
-            "host_version": "2.1.306",
+            "host_version": "2.1.309",
             "returncode": 0,
             "event_kinds": [
               "assistant_message",
@@ -3900,17 +4123,17 @@
             "subagent_sessions": 1,
             "subagent_transcripts_registered": 2,
             "transcript_sources": 6,
-            "assistant_messages_recovered": 3,
+            "assistant_messages_recovered": 4,
             "worker": {
               "started": true,
               "spawned_by": "hook",
-              "method": "posix_session",
+              "method": "windows_breakaway",
               "ingested_all": true
             },
             "deliveries": {
               "session_start": 2,
-              "prompt": 3,
-              "pre_action": 4,
+              "prompt": 2,
+              "pre_action": 1,
               "compact_restore": 1
             },
             "unrelated_settings_preserved": "byte_identical"
@@ -3966,21 +4189,21 @@
               "trial_id": "request_capture-session_start-positive-1",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "fa34a61ed6808d8064b6c5274feddcefa78252704ac87f98eaec1fc74f855cd5",
+              "nonce_sha256": "1280c3b38cf5eb5c44e9fac60a2d2c77ee026ce5e0f97a238cb7999983cbb94c",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8124,
+                "stdout_bytes": 8700,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1412,
-                "process_tree_cleaned": true,
+                "duration_ms": 3568,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -3988,7 +4211,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  221
                 ],
                 "within_packet_cap": true
               },
@@ -4007,21 +4230,21 @@
               "trial_id": "request_capture-session_start-positive-2",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "7728a67fd2544286d5194d0219a9ec696825eaf6222db393d37ed0ab8a9f05d5",
+              "nonce_sha256": "0aa9701adaa572e1b5d282c01b90754d9d14eabbcf8f2e45b9180f0d1b50fde3",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8124,
+                "stdout_bytes": 8700,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1359,
-                "process_tree_cleaned": true,
+                "duration_ms": 3467,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4029,7 +4252,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  221
                 ],
                 "within_packet_cap": true
               },
@@ -4048,21 +4271,21 @@
               "trial_id": "request_capture-session_start-positive-3",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "79b894917f7c32015e4c34ab5a77512eb5102ef04985287267ada00388806cc0",
+              "nonce_sha256": "7b7fcbcdafc6219505ea2f5fccd450fb19837646966e43c097fbba158b98262a",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8124,
+                "stdout_bytes": 8700,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1454,
-                "process_tree_cleaned": true,
+                "duration_ms": 3517,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4070,7 +4293,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  221
                 ],
                 "within_packet_cap": true
               },
@@ -4089,21 +4312,21 @@
               "trial_id": "request_capture-session_start-negative-1",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "a5e32375dffdbf15937e75c64cb9ca58033f3cd7273a05fb79a0581444d039db",
+              "nonce_sha256": "b5bbee649a3455e335d6e781db889761e88e0a58ce5bb79e724131168aa4a3be",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8076,
+                "stdout_bytes": 8580,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1295,
-                "process_tree_cleaned": true,
+                "duration_ms": 3628,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4111,7 +4334,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  201
                 ],
                 "within_packet_cap": true
               },
@@ -4128,21 +4351,21 @@
               "trial_id": "request_capture-session_start-negative-2",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "76f1e4b2b76275b57f5fe66a5028bd32be4ccf1572d2120242a8be367ea8efb3",
+              "nonce_sha256": "f6cdeb5a114537af10899df5dd121e5d6c84d2b4a399fcda2c7552146a1b9060",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8076,
+                "stdout_bytes": 8580,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1528,
-                "process_tree_cleaned": true,
+                "duration_ms": 3520,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4150,7 +4373,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  201
                 ],
                 "within_packet_cap": true
               },
@@ -4167,21 +4390,21 @@
               "trial_id": "request_capture-session_start-negative-3",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "1adcea64665f71ce46e10ad69e6c1e1e7a2b3c721306c90bf9a099f9e7e708b0",
+              "nonce_sha256": "81ba10b29926fc7f49831f9830c75bda99c165202820da781f28ab4371807337",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 8076,
+                "stdout_bytes": 8580,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1388,
-                "process_tree_cleaned": true,
+                "duration_ms": 3637,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4189,7 +4412,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  201
                 ],
                 "within_packet_cap": true
               },
@@ -4206,21 +4429,21 @@
               "trial_id": "request_capture-prompt-positive-1",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "639dc6c36f382ef80212b7217d9ffe8a559e2cee6d5ae72221907a440ddd7f50",
+              "nonce_sha256": "e2816d483e9b56199720f698761a92e70d665a6903047f4543ffa4b597d8841a",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 7686,
+                "stdout_bytes": 8172,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1391,
-                "process_tree_cleaned": true,
+                "duration_ms": 3541,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4247,21 +4470,21 @@
               "trial_id": "request_capture-prompt-positive-2",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "d36c7c4125fb4a2ba2cbe672797cbda2a75f8619a383f8c22f9b0fa0c69c84c2",
+              "nonce_sha256": "aab4ee3c92802d984d8c15852d0c05d4422f56ccb06e0f1a96b14f486127c6d8",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 7686,
+                "stdout_bytes": 8172,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1363,
-                "process_tree_cleaned": true,
+                "duration_ms": 3648,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4288,21 +4511,21 @@
               "trial_id": "request_capture-prompt-positive-3",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "f31db413c4670cecb07f9ac615f5e136177c7f5274d5b847e24947e644ed80f2",
+              "nonce_sha256": "546dffcf0952089b8017b3b08e4aa53556e42abeb55f7e5878e04bc7909c8d4d",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 7686,
+                "stdout_bytes": 8172,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1395,
-                "process_tree_cleaned": true,
+                "duration_ms": 3506,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4329,21 +4552,21 @@
               "trial_id": "request_capture-prompt-negative-1",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "4445f3ce79084f2dd6406a86ff660192be78a9611feaf200f76c9a77159c7d82",
+              "nonce_sha256": "e950f15d7445a28f97d52ec7cc9593398b931107acb976790c4606880c5eb740",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 6696,
+                "stdout_bytes": 7182,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1354,
-                "process_tree_cleaned": true,
+                "duration_ms": 3557,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4366,21 +4589,21 @@
               "trial_id": "request_capture-prompt-negative-2",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "1a33619148273d852eb38e3c08f9abe2c3923a95134c34ed201d74d1ea52b59d",
+              "nonce_sha256": "993d68ee8f26d4ab57e535b95a15c3ce9f2b6270dad716a9d2dc9afda1d5f0a6",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 6696,
+                "stdout_bytes": 7182,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1476,
-                "process_tree_cleaned": true,
+                "duration_ms": 3511,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4403,21 +4626,21 @@
               "trial_id": "request_capture-prompt-negative-3",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "cf45ac5219db951de414cfaaca57688377159777480a0d9f32f4e5a89fc115bd",
+              "nonce_sha256": "8886b41a44ef315d8588809e70ba0e5132bedc8b9013c15072b2776d866da18f",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 6696,
+                "stdout_bytes": 7182,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1520,
-                "process_tree_cleaned": true,
+                "duration_ms": 3527,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4440,21 +4663,21 @@
               "trial_id": "request_capture-pre_action-positive-1",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "6a0368d3c5b7a8537d41d211b5ce35cd9347d310b5187df02f388d25dcf9e717",
+              "nonce_sha256": "5b6749983d1ec1770261337ce94709df69dd8e43e4074451fb75a589819f9a4e",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 11009,
+                "stdout_bytes": 11404,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1598,
-                "process_tree_cleaned": true,
+                "duration_ms": 3758,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4483,21 +4706,21 @@
               "trial_id": "request_capture-pre_action-positive-2",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "a45dcc438af9ce1011a61c5592a79a819fd11a24b02bb4dce378adef34694a40",
+              "nonce_sha256": "2fdc3f07bbb18a05d5150010b45b98306f63c1a01e584dbeb3c72b2e1beff79e",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 11009,
+                "stdout_bytes": 11404,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1781,
-                "process_tree_cleaned": true,
+                "duration_ms": 3740,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4526,21 +4749,21 @@
               "trial_id": "request_capture-pre_action-positive-3",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "a340485f14c8a9750d218d4c5c8fb5da206351a205568da2c5c4a79556facf30",
+              "nonce_sha256": "192b670c47895238c9f1b1095ac468156607c9a77e2e9c32b418ed8cf8be1a58",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 11009,
+                "stdout_bytes": 11404,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1634,
-                "process_tree_cleaned": true,
+                "duration_ms": 3656,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4569,21 +4792,21 @@
               "trial_id": "request_capture-pre_action-negative-1",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "88a924a56d8e55ba39b74eb1d26e0908f3b8947f2480c80489b787e3de5b93f8",
+              "nonce_sha256": "0365c953324b8ec2290947e62de803bd5c15ad025d2d4032d27fdee6e266d52a",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 9565,
+                "stdout_bytes": 9960,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1620,
-                "process_tree_cleaned": true,
+                "duration_ms": 3637,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4608,21 +4831,21 @@
               "trial_id": "request_capture-pre_action-negative-2",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "15a68411de2e0e07981336eba7da130775ccd02360befe35ad1c235dcb6a1c0d",
+              "nonce_sha256": "3cfb29789acbb66e66f8a593862600fc6298c152fc3e2d1f0fbc73bab8cc6801",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 9565,
+                "stdout_bytes": 9960,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1729,
-                "process_tree_cleaned": true,
+                "duration_ms": 3694,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4647,21 +4870,21 @@
               "trial_id": "request_capture-pre_action-negative-3",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "e6e05dacaff5b92ab3f13d31b799ca678b01a4d0ac732490d3261e51c8444d6f",
+              "nonce_sha256": "3db73309777c1a9d687e7cb3e25b6518627337a50d441e53f498215d160452a8",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 9565,
+                "stdout_bytes": 9960,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 1639,
-                "process_tree_cleaned": true,
+                "duration_ms": 3800,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [
@@ -4686,21 +4909,21 @@
               "trial_id": "request_capture-compact-positive-1",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "ab5d56a34eba468576cee1fdf5d4b9280eddecaa4da3123738666558c9a15c4c",
+              "nonce_sha256": "b28138e875accd59a19d338bcd7c4111f7d9a8ee51776822175815ceff0ede89",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22168,
+                "stdout_bytes": 23703,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2067,
-                "process_tree_cleaned": true,
+                "duration_ms": 4557,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4708,7 +4931,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  222
                 ],
                 "within_packet_cap": true
               },
@@ -4727,21 +4950,21 @@
               "trial_id": "request_capture-compact-positive-2",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "339a7bef76670d70d619c95d89ef9b042ee0458a3b2bfef745bfc26ed774ff81",
+              "nonce_sha256": "5ccc68bd091c6b211ebf7b0d8b6f802b2468d3564cf4c59aabef3bb68c2a2085",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22168,
+                "stdout_bytes": 23696,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2267,
-                "process_tree_cleaned": true,
+                "duration_ms": 4406,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4749,7 +4972,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  222
                 ],
                 "within_packet_cap": true
               },
@@ -4768,21 +4991,21 @@
               "trial_id": "request_capture-compact-positive-3",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "f988f558db1d08fbcc61bb6e802ebdef7c2187f7fef30ca4214333fd981a5fd2",
+              "nonce_sha256": "0f24d559713d089abe99e50b06c2ed4b401ee091a4ab1bc3456683e33c95830f",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22168,
+                "stdout_bytes": 23703,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2087,
-                "process_tree_cleaned": true,
+                "duration_ms": 4401,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4790,7 +5013,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  202
+                  222
                 ],
                 "within_packet_cap": true
               },
@@ -4809,21 +5032,21 @@
               "trial_id": "request_capture-compact-negative-1",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "61604fc962e4fc741f499d68ce4cf830d49aaefb47960563e8f0947a12d0f0f0",
+              "nonce_sha256": "7c75e4d51b464c134ff6fbe3200004536636cd56e0b5c77afdfa8e889ddceb1c",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22121,
+                "stdout_bytes": 23583,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2137,
-                "process_tree_cleaned": true,
+                "duration_ms": 4406,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4831,7 +5054,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  202
                 ],
                 "within_packet_cap": true
               },
@@ -4848,21 +5071,21 @@
               "trial_id": "request_capture-compact-negative-2",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "b70cdb0b17b72928782d09f790162ff849a05a835340569eee03f72f978296a6",
+              "nonce_sha256": "87d62731db62117306bd40c6cfaa4e134e16cd3d0fc019b095184efae908cfff",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22120,
+                "stdout_bytes": 23583,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2167,
-                "process_tree_cleaned": true,
+                "duration_ms": 4363,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4870,7 +5093,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  202
                 ],
                 "within_packet_cap": true
               },
@@ -4887,21 +5110,21 @@
               "trial_id": "request_capture-compact-negative-3",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "380f2c5d2a517a08273239807547b77f323039bc6d39eb55ffe68be4c791c050",
+              "nonce_sha256": "37aec658355da2200a9aa02491d7c08dfc06f61cff1a2a3387fbcd8cd7034144",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 22120,
+                "stdout_bytes": 23583,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 2099,
-                "process_tree_cleaned": true,
+                "duration_ms": 4540,
+                "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
               "tool_uses": [],
@@ -4909,7 +5132,7 @@
               "engine": {
                 "emitted_deliveries": 1,
                 "estimated_tokens": [
-                  194
+                  202
                 ],
                 "within_packet_cap": true
               },
@@ -4943,7 +5166,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>/rc/deny-probe/workspace/.recalith/bin/recalith",
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/bin/recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5015,7 +5238,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>/rc/deny-probe/workspace/.recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith",
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5023,7 +5246,111 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": "recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".recalith/bin/recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "./.recalith/bin/recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/bin/recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".recalith\\bin\\recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".\\.recalith\\bin\\recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>\\rc\\f26\\ws\\.recalith\\bin\\recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".recalith\\runtime\\0.1.0.dev0\\venv\\Scripts\\python.exe -I -m recalith",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>\\rc\\f26\\ws\\.recalith\\runtime\\0.1.0.dev0\\venv\\Scripts\\python.exe -I -m recalith",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/bin/recalith.cmd",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith",
+                "form": "declare",
+                "covered": true,
+                "gap": null,
+                "outcome": "host_denied",
+                "audit": null
+              },
+              {
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "init",
                 "covered": true,
                 "gap": null,
@@ -5031,7 +5358,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "correct",
                 "covered": true,
                 "gap": null,
@@ -5039,7 +5366,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "undo",
                 "covered": true,
                 "gap": null,
@@ -5047,7 +5374,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "forget",
                 "covered": true,
                 "gap": null,
@@ -5055,7 +5382,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "integrate",
                 "covered": true,
                 "gap": null,
@@ -5063,7 +5390,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "backup",
                 "covered": true,
                 "gap": null,
@@ -5071,7 +5398,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "restore",
                 "covered": true,
                 "gap": null,
@@ -5079,7 +5406,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "export",
                 "covered": true,
                 "gap": null,
@@ -5087,7 +5414,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "import",
                 "covered": true,
                 "gap": null,
@@ -5095,7 +5422,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "upgrade",
                 "covered": true,
                 "gap": null,
@@ -5103,7 +5430,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "workspace",
                 "covered": true,
                 "gap": null,
@@ -5111,7 +5438,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "project",
                 "covered": true,
                 "gap": null,
@@ -5119,7 +5446,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "worker",
                 "covered": true,
                 "gap": null,
@@ -5127,7 +5454,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "jobs retry",
                 "covered": true,
                 "gap": null,
@@ -5135,7 +5462,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "operator-token",
                 "covered": true,
                 "gap": null,
@@ -5143,7 +5470,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "doctor --probe-host",
                 "covered": true,
                 "gap": null,
@@ -5151,7 +5478,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/bin/recalith",
+                "spelling": ".recalith/bin/recalith.cmd",
                 "form": "doctor --probe-provider",
                 "covered": true,
                 "gap": null,
@@ -5175,12 +5502,12 @@
                 "audit": "captured"
               },
               {
-                "spelling": "shell_wrapper",
+                "spelling": "other_interpreter_or_copy",
                 "form": "declare",
                 "covered": false,
-                "gap": "shell_wrapper",
-                "outcome": "guard_refused",
-                "audit": "captured"
+                "gap": "other_interpreter_or_copy",
+                "outcome": "host_denied",
+                "audit": null
               }
             ],
             "tool_subprocess_markers": [
@@ -5316,107 +5643,1171 @@
           "worker_survival": {
             "session_end": {
               "spawned_by": "hook",
-              "method": "posix_session",
-              "independence": "detached",
+              "method": "windows_breakaway",
+              "independence": "degraded",
+              "degraded_reasons": [
+                "job_membership_unverified"
+              ],
+              "in_job": true,
               "alive_after": true,
               "ingested_after": true
             },
             "host_killed": {
               "spawned_by": "hook",
-              "method": "posix_session",
-              "independence": "detached",
+              "method": "windows_breakaway",
+              "independence": "degraded",
+              "degraded_reasons": [
+                "job_membership_unverified"
+              ],
+              "in_job": true,
               "alive_after": true,
-              "ingested_after": true
+              "ingested_after": true,
+              "host_end": "process_tree_taskkill"
             },
             "worker_killed_then_next_session": {
               "worker_killed": true,
+              "worker_pid_read": true,
               "restarted_by": "hook",
               "backlog_ingested": true
             },
             "terminal_hangup": {
-              "spawned_by": "hook",
-              "method": "posix_session",
-              "independence": "detached",
-              "alive_after": true,
-              "ingested_after": true
+              "state": "not_run",
+              "reason": "posix_pty_only: a Windows console close is not reproducible headless"
             }
           }
         },
         "live": {
-          "status": "not_run",
-          "reason": "no_auth_route_configured"
+          "paths": {
+            "session_start": {
+              "state": "healthy",
+              "required": true,
+              "positives_passed": 3,
+              "negatives_passed": 3,
+              "positives_run": 3,
+              "negatives_run": 3,
+              "reasons": []
+            },
+            "prompt": {
+              "state": "healthy",
+              "required": true,
+              "positives_passed": 3,
+              "negatives_passed": 3,
+              "positives_run": 3,
+              "negatives_run": 3,
+              "reasons": []
+            },
+            "pre_action": {
+              "state": "healthy",
+              "required": false,
+              "positives_passed": 3,
+              "negatives_passed": 3,
+              "positives_run": 3,
+              "negatives_run": 3,
+              "reasons": []
+            },
+            "compact": {
+              "state": "healthy",
+              "required": false,
+              "positives_passed": 3,
+              "negatives_passed": 3,
+              "positives_run": 3,
+              "negatives_run": 3,
+              "reasons": []
+            }
+          },
+          "trials": [
+            {
+              "trial_id": "live-session_start-positive-1",
+              "path": "session_start",
+              "kind": "positive",
+              "nonce_sha256": "57f47403aefa89480ba91bd09fc13dba9f241fbde17f3fc12441f1a94d11667a",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 11862,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 6974,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  221
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 275811076e8d5348193cef433100d3c7"
+            },
+            {
+              "trial_id": "live-session_start-positive-2",
+              "path": "session_start",
+              "kind": "positive",
+              "nonce_sha256": "dcdf6680a792de05cd27c2936bc671d11a02707b9bf2ff6021e013c2fb0f6953",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 11820,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7188,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  221
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY d7d897de659fff856a987ec7f8358225"
+            },
+            {
+              "trial_id": "live-session_start-positive-3",
+              "path": "session_start",
+              "kind": "positive",
+              "nonce_sha256": "0467692a9229839f4f415a35cbb6ab1e2f511c872bf7a64337e96fce5e242d28",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 12433,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7615,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  221
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 15b4008e5d448eecf1218499a59be126"
+            },
+            {
+              "trial_id": "live-session_start-negative-1",
+              "path": "session_start",
+              "kind": "negative",
+              "nonce_sha256": "75f9671524635a9c7e1420d1b99a252011dc6afd6f154aab6b50b126dcdba325",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 9062,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5857,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  201
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-session_start-negative-2",
+              "path": "session_start",
+              "kind": "negative",
+              "nonce_sha256": "a51194b00ac3358e1fb2930110cf034be97b8342ad5286e6eeca98664f77dd8d",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 9062,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5516,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  201
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-session_start-negative-3",
+              "path": "session_start",
+              "kind": "negative",
+              "nonce_sha256": "76f5ba647e05900029a0830078f1e2d18b0818f95c6bc9b9511dc8f067921cf3",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 9062,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5540,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  201
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-prompt-positive-1",
+              "path": "prompt",
+              "kind": "positive",
+              "nonce_sha256": "25d443a8af4475e30949052f660005bf29720c648e7adaae3190896a3e53212d",
+              "seeded": {
+                "kind": "fact",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 8747,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5934,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  132
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 727acb835825a807d8b1ce2426eafc8b"
+            },
+            {
+              "trial_id": "live-prompt-positive-2",
+              "path": "prompt",
+              "kind": "positive",
+              "nonce_sha256": "c643b100688c7c51b60be166d801867c22cb41d81157b94c4129f6332d4a40b8",
+              "seeded": {
+                "kind": "fact",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 11082,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7576,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  132
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY f7605b677b75f1c62b82c4df9f35fa37"
+            },
+            {
+              "trial_id": "live-prompt-positive-3",
+              "path": "prompt",
+              "kind": "positive",
+              "nonce_sha256": "b2856c9090bbc0675d76f227883aabcfd41bd5a4bea4080f741356c9b0b0e747",
+              "seeded": {
+                "kind": "fact",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 11177,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7919,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  132
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 3e23a0f642823523fbfd13d5347cdaa9"
+            },
+            {
+              "trial_id": "live-prompt-negative-1",
+              "path": "prompt",
+              "kind": "negative",
+              "nonce_sha256": "27210820f544c636a67678ebf1d8ca84a31d2582c381a352f2a06688466c6ae7",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 7664,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 6402,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-prompt-negative-2",
+              "path": "prompt",
+              "kind": "negative",
+              "nonce_sha256": "dd2ac3ee2adb941dfc871688103e44892f479f6a377449bb9903c8ff1fd87c5c",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 7664,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5717,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-prompt-negative-3",
+              "path": "prompt",
+              "kind": "negative",
+              "nonce_sha256": "8d869f66f7f12599557ceb8f96f0786160ae2b5e0d10915b6e2a2e395533446c",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 7664,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 6508,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-pre_action-positive-1",
+              "path": "pre_action",
+              "kind": "positive",
+              "nonce_sha256": "9aefe0137c61f0338fdd4e74985965e86f00474cb2b6cf9ec1043e031c259ad8",
+              "seeded": {
+                "kind": "failure_lesson",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 14984,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 8762,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  208
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY a9dd3e1237b67b8bcd2a0f0fed763868"
+            },
+            {
+              "trial_id": "live-pre_action-positive-2",
+              "path": "pre_action",
+              "kind": "positive",
+              "nonce_sha256": "03ccab48b101754d559d80fa658816bbd2be02f23e77399bf709829a4d53753d",
+              "seeded": {
+                "kind": "failure_lesson",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 14910,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7627,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  208
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 0d7872518633c5ddcda4e9febcafc8ea"
+            },
+            {
+              "trial_id": "live-pre_action-positive-3",
+              "path": "pre_action",
+              "kind": "positive",
+              "nonce_sha256": "9ddd18d99a4ad97f0b0a6af8536559e9b8d66323f5efef26a31903a341bb4089",
+              "seeded": {
+                "kind": "failure_lesson",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 14856,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 8987,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  208
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 9088789d5cc6a668b12976c45da85b46"
+            },
+            {
+              "trial_id": "live-pre_action-negative-1",
+              "path": "pre_action",
+              "kind": "negative",
+              "nonce_sha256": "395e2bf7d2a2dfe2f16a97d8eb2ac1aa55b67c6614009e991e62194edbdc2718",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 10958,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7934,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-pre_action-negative-2",
+              "path": "pre_action",
+              "kind": "negative",
+              "nonce_sha256": "9119a74038cc9ead7fd85add948e99ff6b5a06532d03a0ed8e18755a229d22aa",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 10958,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7891,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-pre_action-negative-3",
+              "path": "pre_action",
+              "kind": "negative",
+              "nonce_sha256": "63f719b79284abad3fa1e93ab47178bc208117c63135a4a1e8569d622fbffe39",
+              "seeded": {
+                "kind": null,
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 10949,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 7641,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [
+                "Bash"
+              ],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 0,
+                "estimated_tokens": [],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-compact-positive-1",
+              "path": "compact",
+              "kind": "positive",
+              "nonce_sha256": "906f1a5871e6380ad1c3051ea1e9a41d4df38baa662735ce9f7f0bebb34159f5",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 29134,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 21733,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  222
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY b7d9f0322957d641fe7aa2e640a0280b"
+            },
+            {
+              "trial_id": "live-compact-positive-2",
+              "path": "compact",
+              "kind": "positive",
+              "nonce_sha256": "a6d0ef8b78eb153aaeecd60f86525d8ebd4dfa4c4917a0c9f1e07780cd716d4e",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 29663,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 24845,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  222
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 454854c76f80a2296e6ae0442e398cee"
+            },
+            {
+              "trial_id": "live-compact-positive-3",
+              "path": "compact",
+              "kind": "positive",
+              "nonce_sha256": "ec3c866a239eaa5fd91d821db7cec3f85efaf6a7194fc16009f0ebebdbbb443c",
+              "seeded": {
+                "kind": "intent_question",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 29063,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 15877,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  222
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 1ff4a59bf21606c78528b7a49e626e1e"
+            },
+            {
+              "trial_id": "live-compact-negative-1",
+              "path": "compact",
+              "kind": "negative",
+              "nonce_sha256": "1bc75063b2bce4ceffe8e985942e0c7d5a46a5d300668e914a31355695c795a5",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 26133,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 12995,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  202
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-compact-negative-2",
+              "path": "compact",
+              "kind": "negative",
+              "nonce_sha256": "1a608eb1195e754ea5a0177675496bc0b30a0b2f491fd3682bcc0a8e563f966b",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 25714,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 15726,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  202
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            },
+            {
+              "trial_id": "live-compact-negative-3",
+              "path": "compact",
+              "kind": "negative",
+              "nonce_sha256": "6a57e7bdaec46fadc9f5c966e026e3853b8d3d9a6952f2ab92c902ad69ad35b6",
+              "seeded": {
+                "kind": "intent_question_without_nonce",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 26092,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 17069,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": true,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  202
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": false,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY NONE"
+            }
+          ],
+          "status": "run"
         },
-        "report_digest": "45a6e15c81dcdf4c18b323907b451ab42ad430e547e1348930949e01d97b180c",
+        "report_digest": "ae356fe4781a78900a1220aa9b85f2878b57b781c0494b4a9d9014cc6e46ba9c",
         "host_record": {
           "certification_schema": 1,
-          "installation_id": "inst_8400ca5a-c13a-467b-a4f6-3912ea9f8ace",
+          "installation_id": "inst_777d4c06-6798-465f-843b-fcdf891555d6",
           "host_id": "claude_code",
-          "host_version": "2.1.306",
-          "mode": "request_capture",
-          "certified_at": "2026-10-21T13:06:46.269414Z",
-          "report_digest": "45a6e15c81dcdf4c18b323907b451ab42ad430e547e1348930949e01d97b180c",
+          "host_version": "2.1.309",
+          "mode": "live",
+          "certified_at": "2026-10-23T19:05:30.831773Z",
+          "report_digest": "ae356fe4781a78900a1220aa9b85f2878b57b781c0494b4a9d9014cc6e46ba9c",
           "delivery": {
-            "session_start": "unavailable",
-            "prompt": "unavailable",
-            "pre_action": "unavailable",
-            "compact_restore": "unavailable"
+            "session_start": "certified",
+            "prompt": "certified",
+            "pre_action": "certified",
+            "compact_restore": "certified"
           },
           "command_rules": "installed",
           "private_paths": "probed_limited"
         },
         "probe": "tools/probe_delivery.py --engine-project",
         "probe_schema": 1,
-        "tested_at": "2026-10-21T13:06:46.944066Z",
+        "tested_at": "2026-10-23T19:05:32.096230Z",
         "platform": {
-          "os": "linux",
+          "os": "windows",
           "arch": "x86_64",
-          "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
-          "python": "3.13.16"
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python": "3.13.15"
         },
-        "configured_model": null,
+        "configured_model": "<agent-model>",
         "auth_route": {
-          "kind": "not_configured",
-          "billing": "none",
-          "selected_env_key_names": []
+          "kind": "env_api_key",
+          "billing": "api",
+          "selected_env_key_names": [
+            "ANTHROPIC_API_KEY"
+          ]
         },
         "invocation": {
-          "executable": "/opt/node22/bin/claude",
-          "executable_sha256": "520bc6c1f40af466bd03a278b5ae1af1a2938bc7de5b9e5cb15526da20d71cfe"
+          "executable": "<home>\\.local\\bin\\claude.exe",
+          "executable_sha256": "5441781f2b6bbd07354b4a74560ee88c68c9bf05d6db3c7e24c452c91673dc53"
         },
         "paths": {
           "session_start": {
-            "state": "not_run",
+            "state": "healthy",
             "required": true,
-            "reasons": [
-              "no_auth_route_configured"
-            ]
+            "positives_passed": 3,
+            "negatives_passed": 3,
+            "positives_run": 3,
+            "negatives_run": 3,
+            "reasons": []
           },
           "prompt": {
-            "state": "not_run",
+            "state": "healthy",
             "required": true,
-            "reasons": [
-              "no_auth_route_configured"
-            ]
+            "positives_passed": 3,
+            "negatives_passed": 3,
+            "positives_run": 3,
+            "negatives_run": 3,
+            "reasons": []
           },
           "pre_action": {
-            "state": "not_run",
+            "state": "healthy",
             "required": false,
-            "reasons": [
-              "no_auth_route_configured"
-            ]
+            "positives_passed": 3,
+            "negatives_passed": 3,
+            "positives_run": 3,
+            "negatives_run": 3,
+            "reasons": []
           },
           "compact": {
-            "state": "not_run",
+            "state": "healthy",
             "required": false,
-            "reasons": [
-              "no_auth_route_configured"
-            ]
+            "positives_passed": 3,
+            "negatives_passed": 3,
+            "positives_run": 3,
+            "negatives_run": 3,
+            "reasons": []
           }
         },
-        "verdict": "required_path_unavailable",
+        "verdict": "required_paths_healthy",
         "certification_scope": "Real engine through installed hooks for this host version; request-capture results are never an echo pass; live results certify only this host/model/config."
       }
     }
   },
-  "updated_at": "2026-10-23T14:12:50.908160Z"
+  "updated_at": "2026-10-23T19:05:32.395851Z"
 }
