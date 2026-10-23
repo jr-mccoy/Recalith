@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -778,6 +779,44 @@ def test_reviewed_2_1_306_transcripts_parse_without_gaps():
         for line in path.read_text(encoding="utf-8").splitlines():
             texts += len(parse(json.loads(line), line))
     assert texts >= 3
+
+
+@pytest.mark.parametrize("scenario", ["lifecycle", "subagent", "denied", "secret_and_resume"])
+def test_reviewed_2_1_309_fixtures_map_like_2_1_306(tmp_path, scenario):
+    """The 2.1.309 review (decision 0027): the first capture on native Windows maps like the Linux 2.1.306 capture.
+
+    The payloads differ only in identifiers, durations, Windows path separators
+    and CRLF in output written by Windows Python subprocesses; the subagent
+    scenario compares as a multiset, as for 2.1.306.
+    """
+    assert "2.1.309" in claude_capture.CERTIFIED_VERSIONS
+    new, old = _mapped(tmp_path, "2.1.309", scenario), _mapped(tmp_path, "2.1.306", scenario)
+    assert (sorted(new) == sorted(old)) if scenario == "subagent" else (new == old)
+
+
+def test_reviewed_2_1_309_transcripts_parse_like_2_1_306():
+    counts = {}
+    for version in ("2.1.306", "2.1.309"):
+        parse = claude_capture.transcript_line_parser("inst_11111111-1111-4111-8111-111111111111", host_version=version)
+        base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / version
+        per = {}
+        for path in sorted(base.glob("*.transcript.jsonl")):
+            key = path.name.split(".")[0] + (".subagent" if ".agent-" in path.name else "")
+            per[key] = sum(len(parse(json.loads(line), line)) for line in path.read_text(encoding="utf-8").splitlines())
+        counts[version] = per
+    assert counts["2.1.309"] == counts["2.1.306"] and sum(counts["2.1.309"].values()) >= 3
+
+
+def test_reviewed_2_1_309_fixtures_are_sanitized():
+    """No drive path in any spelling, no login name, no placeholder key in the committed native-Windows capture."""
+    base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / "2.1.309"
+    for path in base.iterdir():
+        text = path.read_text(encoding="utf-8")
+        assert not re.search(r"(?<![A-Za-z])[A-Za-z]:(\\\\|\\|/)", text), path.name
+        assert "recalith-probe-placeholder" not in text and "/c/Users" not in text, path.name
+    manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["mode"] == "request_capture" and manifest["platform"]["os"] == "windows"
+    assert manifest["owned_hook_cleanup"]["unrelated_preserved"] is True
 
 
 # --------------------------------------------------------------------------
