@@ -53,6 +53,8 @@ ROUTE_REASONS = frozenset({"insecure_endpoint_refused", "selected_auth_missing"}
 STATUS_CODES = {400: "provider_request_rejected", 408: "provider_timeout", 413: "provider_request_too_large", 429: "provider_rate_limited", 504: "provider_timeout", 529: "provider_overloaded"}
 WITHDRAWING_STATUS = {401: "provider_auth_rejected", 403: "provider_auth_rejected", 404: "provider_not_found"}
 TOOL_BLOCKS = frozenset({"tool_use", "server_tool_use", "mcp_tool_use"})
+# Reasoning blocks of thinking-by-default models (decision 0027): no tool, no state; never parsed as the body.
+THINKING_BLOCKS = frozenset({"thinking", "redacted_thinking"})
 
 
 def adapter_digest() -> str:
@@ -199,9 +201,10 @@ def _messages(data: dict[str, Any], expect: Expect, cap: Any) -> tuple[bytes, di
         raise ProviderCallFailed("provider_refused", usage=usage)
     if stop != "end_turn":
         raise ValueError("unexpected stop reason")
-    if len(blocks) != 1 or not isinstance(blocks[0], dict) or blocks[0].get("type") != "text" or not isinstance(blocks[0].get("text"), str):
-        raise ValueError("a messages reply carries exactly one text block")
-    return blocks[0]["text"].encode("utf-8"), usage
+    texts = [b for b in blocks if not (isinstance(b, dict) and b.get("type") in THINKING_BLOCKS)]
+    if len(texts) != 1 or not isinstance(texts[0], dict) or texts[0].get("type") != "text" or not isinstance(texts[0].get("text"), str):
+        raise ValueError("a messages reply carries exactly one text block besides any thinking blocks")
+    return texts[0]["text"].encode("utf-8"), usage
 
 
 def _chat(data: dict[str, Any], expect: Expect, cap: Any) -> tuple[bytes, dict[str, Any]]:

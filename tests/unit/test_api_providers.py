@@ -331,6 +331,33 @@ def test_15kb_episode_is_accepted(backend):
     assert result.code is None and len(result.response.operations) == 1 and len(outcome.stdout) > 15_000
 
 
+@pytest.mark.parametrize("behavior", ["thinking", "thinking_summary", "redacted_thinking"])
+def test_messages_reply_with_thinking_blocks_yields_only_its_text(behavior):
+    """Decision 0027: thinking-by-default models (adaptive thinking cannot be disabled by omission) put a ``thinking``
+    or ``redacted_thinking`` block before the text. It is reasoning, not a tool or state: ignored, never parsed as
+    the body; the text block alone is the body; its tokens count as output and the cap still covers them."""
+    with fas.FakeProvider(behavior) as fake:
+        backend_obj, _raw, _o, result = call(api_config("anthropic_messages", fake.url("/v1/messages")), env())
+    assert result.code is None and result.response is not None, result.code
+    assert result.response.operations == [] and backend_obj.unavailable_reason is None
+    assert result.reported is not None and result.reported.output_tokens == 61  # thinking billed as output, charged
+    assert fas.THINKING_SUMMARY not in json.dumps(result.response.model_dump(mode="json"))
+
+
+@pytest.mark.parametrize("behavior,code", [("thinking_only", "envelope_invalid"), ("thinking_two_text", "envelope_invalid"), ("thinking_tool", "isolation_tools_exposed")])
+def test_messages_reply_still_needs_exactly_one_text_block_and_no_tool(behavior, code):
+    with fas.FakeProvider(behavior) as fake:
+        backend_obj, _raw, _o, result = call(api_config("anthropic_messages", fake.url("/v1/messages")), env())
+    assert result.code == code and result.response is None, (behavior, result.code)
+    assert (backend_obj.unavailable_reason == code) == (code in DISABLING)
+
+
+def test_messages_thinking_under_the_cap_is_still_the_cap_reason():
+    with fas.FakeProvider("ok") as fake:
+        _b, _raw, _o, result = call(api_config("anthropic_messages", fake.url("/v1/messages")), env(), output_cap=32)
+    assert result.code == "output_cap_reached"
+
+
 # ---------------------------------------------------------------------------
 # Bounds: timeout, kill, caps, and the key never leaving the child
 

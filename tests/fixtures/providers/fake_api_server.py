@@ -21,6 +21,13 @@ Behaviors (``FakeProvider.behavior``):
   other_model   reports a different model than the one requested
   no_usage      omits usage
   tool_use      returns a tool call
+  thinking      Messages: an empty ``thinking`` block (with a signature) before the text, as current
+                thinking-by-default models reply with the default ``omitted`` display (decision 0027)
+  thinking_summary   Messages: a ``thinking`` block holding summarized reasoning text, then the text
+  redacted_thinking  Messages: a ``redacted_thinking`` block, then the text
+  thinking_only      Messages: a ``thinking`` block and no text block
+  thinking_two_text  Messages: a ``thinking`` block and two text blocks
+  thinking_tool      Messages: a ``thinking`` block, the text and a tool call
   redirect      307 to another loopback path
   status:N      HTTP status N with a small JSON error body
   hang          never answers (until the server closes)
@@ -64,11 +71,18 @@ def requested_cap(body: dict) -> int | None:
     return None
 
 
-def compose(dialect: str, *, model: Any, text: str | None, stop: str, output_tokens: int | None, usage: bool = True, tool: bool = False, refusal: bool = False) -> dict:
+THINKING_SUMMARY = "SUMMARIZED-REASONING-NOT-A-BODY: weigh the fixture first."
+
+
+def compose(dialect: str, *, model: Any, text: str | None, stop: str, output_tokens: int | None, usage: bool = True, tool: bool = False, refusal: bool = False, thinking: str | None = None, texts: int = 1) -> dict:
     if dialect == "messages":
         content: list[dict] = []
+        if thinking == "redacted":
+            content.append({"type": "redacted_thinking", "data": "redacted-fake-opaque"})
+        elif thinking is not None:
+            content.append({"type": "thinking", "thinking": thinking, "signature": "sig-fake"})
         if text is not None:
-            content.append({"type": "text", "text": text})
+            content.extend({"type": "text", "text": text} for _ in range(texts))
         if tool:
             content.append({"type": "tool_use", "id": "toolu_fake", "name": "read_file", "input": {}})
         reason = {"stop": "end_turn", "cap": "max_tokens", "refusal": "refusal", "tool": "tool_use"}[stop]
@@ -223,6 +237,18 @@ class FakeProvider:
             kwargs = {"usage": False}
         elif behavior == "tool_use":
             stop, kwargs = "tool", {"tool": True}
+        elif behavior == "thinking":
+            kwargs, out_tokens = {"thinking": ""}, 61  # thinking tokens are billed as output
+        elif behavior == "thinking_summary":
+            kwargs, out_tokens = {"thinking": THINKING_SUMMARY}, 61
+        elif behavior == "redacted_thinking":
+            kwargs, out_tokens = {"thinking": "redacted"}, 61
+        elif behavior == "thinking_only":
+            kwargs, text = {"thinking": ""}, None
+        elif behavior == "thinking_two_text":
+            kwargs = {"thinking": "", "texts": 2}
+        elif behavior == "thinking_tool":
+            stop, kwargs = "tool", {"thinking": "", "tool": True}
         elif behavior == "ok" and cap is not None and cap < 100:
             stop, out_tokens, text = "cap", cap, "word " * cap
         handler._send(200, json.dumps(compose(dialect, model=model, text=text, stop=stop, output_tokens=out_tokens, **kwargs)).encode())
