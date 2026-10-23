@@ -774,7 +774,7 @@ def probe_engine_mode(config_path: Path, output_path: Path, project: Path, *, ke
         live_reason = "selected_auth_env_missing"
     elif cfg["expected_version"] and cfg["expected_version"] not in (observed or ""):
         live_reason = "host_version_mismatch"
-    base = Path(tempfile.mkdtemp(prefix="recalith-engine-probe-"))
+    base = Path(tempfile.mkdtemp(prefix="rl-ep-" if os.name == "nt" else "recalith-engine-probe-"))  # short on Windows: MAX_PATH (probe_engine.short_name)
     sanitizer = pc.Sanitizer({str(base): "<harness-root>", str(project): "<project>", str(Path.home()): "<home>", str(REPO_ROOT): "<repo>"}, secrets=[os.environ.get(k, "") for k in cfg["auth_route"]["env_keys"]])
     try:
         report = pe.certify(resolved, base=base, modes=[m for m in cfg["modes"] if m == "request_capture" or live_reason is None], target_root=project, cfg=cfg, live_reason=live_reason)

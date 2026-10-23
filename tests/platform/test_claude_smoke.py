@@ -43,7 +43,7 @@ PATHS = ("session_start", "prompt", "pre_action", "compact")
 
 def _installed() -> tuple[str | None, str | None]:
     exe = shutil.which("claude")
-    if not exe or os.name == "nt":
+    if not exe:
         return None, None
     out = subprocess.run([exe, "--version"], capture_output=True, text=True, encoding="utf-8", timeout=30, check=False).stdout
     version = out.split()[0] if out.split() else None
@@ -119,12 +119,25 @@ def test_private_path_probe_in_the_configured_permission_mode(certification):
 def test_hook_spawned_worker_survives_session_end_and_host_termination(certification):
     report, _target = certification
     survival = report["request_capture"]["worker_survival"]
+    windows = os.name == "nt"
+    method = "windows_breakaway" if windows else "posix_session"
     for case in ("session_end", "host_killed", "terminal_hangup"):
         result = survival[case]
-        assert result["spawned_by"] == "hook" and result["method"] == "posix_session" and result["independence"] == "detached", (case, result)
+        if windows and case == "terminal_hangup":
+            assert result["state"] == "not_run", result  # a pty hangup is POSIX: reported, never passed (decision 0027)
+            continue
+        assert result["spawned_by"] == "hook" and result["method"] == method, (case, result)
+        if windows:
+            # Honest independence (decision 0006): "detached" exactly when the worker proved it left every job. Under the
+            # real 2.1.309 host the venv redirector keeps it in a nested job: degraded, job_membership_unverified (0027).
+            assert (result["independence"] == "detached") == (result["in_job"] is False), (case, result)
+            assert result["independence"] == "detached" or result["degraded_reasons"] == ["job_membership_unverified"], (case, result)
+        else:
+            assert result["independence"] == "detached", (case, result)
         assert result["alive_after"] is True and result["ingested_after"] is True, (case, result)
+    assert survival["host_killed"]["host_end"] == ("process_tree_taskkill" if windows else "process_group_sigkill")
     recovery = survival["worker_killed_then_next_session"]
-    assert recovery == {"worker_killed": True, "restarted_by": "hook", "backlog_ingested": True}, recovery
+    assert recovery == {"worker_killed": True, "worker_pid_read": True, "restarted_by": "hook", "backlog_ingested": True}, recovery
 
 
 def test_hook_failure_never_denies_tool_on_the_real_host(certification):

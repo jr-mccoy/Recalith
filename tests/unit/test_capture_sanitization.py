@@ -1,4 +1,4 @@
-"""Fixture-capture sanitization (tools/capture_claude_fixtures.py; decision 0027).
+"""Fixture-capture and probe-report sanitization (tools/capture_claude_fixtures.py, tools/probe_common.py; decision 0027).
 
 The first native-Windows capture (Claude Code 2.1.309) leaked the login name and
 the repository path: the host's ``/compact`` output echoes each hook command as a
@@ -76,3 +76,26 @@ def test_unsanitized_detects_residue_key_and_login_name():
     assert cap.unsanitized('{"k": "' + cap.PLACEHOLDER_KEY + '"}', ph, user="someone")
     assert cap.unsanitized(r'{"p": "D:\\Other\\someone\\file"}', ph, user="someone")  # an unlisted path naming the login
     assert not cap.unsanitized('{"text": "someone said hello"}', ph, user="someone")  # a word, not a path component
+
+
+def test_report_sanitizer_covers_windows_spellings():
+    """Probe reports (docs/host-compatibility.json) list the deny probe's absolute spellings in forward-slash, native
+    and MSYS forms; on Windows each must lose the login name, while POSIX replacement stays literal."""
+    import probe_common as pc
+
+    base = r"C:\Users\someone\AppData\Local\Temp\rl-ep-ab12"
+    san = pc.Sanitizer({base: "<harness-root>", r"C:\Users\someone": "<home>"}, secrets=["sk-not-a-real-key-value"])
+    report = {
+        "spellings": [
+            "C:/Users/someone/AppData/Local/Temp/rl-ep-ab12/rc/f05/ws/.recalith/bin/recalith",
+            r"C:\Users\someone\AppData\Local\Temp\rl-ep-ab12\rc\f05\ws\.recalith\bin\recalith.cmd",
+            "/c/Users/someone/AppData/Local/Temp/rl-ep-ab12/rc/f05/ws/.recalith/bin/recalith.cmd",
+        ],
+        "executable": r"c:\users\someone\.local\bin\claude.exe",
+        "stderr": "auth sk-not-a-real-key-value failed",
+    }
+    out = json.dumps(san.value(report))
+    assert "someone" not in out and "sk-not-a-real" not in out
+    assert san.value(report)["spellings"][0] == "<harness-root>/rc/f05/ws/.recalith/bin/recalith"
+    posix = pc.Sanitizer({"/home/someone": "<home>"})
+    assert posix.text("/home/someone/x /HOME/SOMEONE/x") == "<home>/x /HOME/SOMEONE/x"

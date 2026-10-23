@@ -142,22 +142,7 @@ def responder_for(ws: Path) -> Callable[[dict], tuple[str, Any]]:
 # Sanitization
 
 
-WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
-
-
-def path_forms(path: str) -> list[str]:
-    """Every spelling of ``path`` a host payload can carry.
-
-    A POSIX path appears as is. A Windows drive path also appears with forward
-    slashes (``$CLAUDE_PROJECT_DIR`` in Git Bash), JSON-escaped once or twice
-    (a hook command the host echoes inside a JSON string, as ``/compact``
-    does) and in the MSYS form Git Bash prints (``/c/...``).
-    """
-    if not WINDOWS_PATH.match(path):
-        return [path]
-    native = path.replace("/", "\\").rstrip("\\")
-    msys = "/" + native[0].lower() + native[2:].replace("\\", "/")
-    return list(dict.fromkeys([native, native.replace("\\", "/"), native.replace("\\", "\\\\"), native.replace("\\", "\\\\\\\\"), msys]))
+WINDOWS_PATH, path_forms = pc.WINDOWS_PATH, pc.path_forms  # the spellings a payload can carry (shared with the report sanitizer)
 
 
 def host_tmp_dir(env: Mapping[str, str], *, windows: bool = os.name == "nt") -> str:
@@ -178,7 +163,7 @@ class Placeholders:
 
     def text(self, value: str) -> str:
         for old, new, fold in self.pairs:
-            value = re.sub(re.escape(old), lambda _m, new=new: new, value, flags=re.IGNORECASE) if fold else value.replace(old, new)
+            value = pc.replace_path(value, old, new, fold=fold)
         return value
 
     def residue(self, value: str) -> bool:

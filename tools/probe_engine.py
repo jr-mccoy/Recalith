@@ -84,6 +84,34 @@ GAP_COMMANDS = (
     ("shell_wrapper", "sh -c '.recalith/bin/recalith declare decision --statement probe --scope probe-scope.json'"),
     ("shell_wrapper", "bash .recalith/bin/recalith declare decision --statement probe --scope probe-scope.json"),
 )
+# Native Windows (decision 0027): the agent's Bash tool is Git Bash, where only the .cmd launcher reaches the CLI (the
+# POSIX launcher finds no venv/bin/python and exits 4 before the guard); bash cannot run a .cmd file as a script, so the
+# third gap is a quoted launcher path instead.
+WINDOWS_GAP_COMMANDS = (
+    ("global_options_before_subcommand", ".recalith/bin/recalith.cmd --json declare decision --statement probe --scope probe-scope.json"),
+    ("shell_wrapper", "sh -c '.recalith/bin/recalith.cmd declare decision --statement probe --scope probe-scope.json'"),
+    ("other_interpreter_or_copy", '".recalith/bin/recalith.cmd" declare decision --statement probe --scope probe-scope.json'),
+)
+
+
+def admin_launcher(windows: bool | None = None) -> str:
+    """The launcher spelling that reaches the CLI from the agent's Bash tool on this platform."""
+    return ".recalith/bin/recalith.cmd" if (WINDOWS if windows is None else windows) else ".recalith/bin/recalith"
+
+
+def deny_commands(spellings: Sequence[str], *, windows: bool | None = None) -> list[dict[str, Any]]:
+    """The deny probe's commands: every covered spelling with ``declare``, every form through the launcher, the gaps."""
+    from recalith.integrations import claude as integration
+
+    windows = WINDOWS if windows is None else windows
+    launcher = admin_launcher(windows)
+    commands: list[dict[str, Any]] = [{"spelling": s, "form": "declare", "command": f"{s} {ADMIN_SAMPLE_ARGS['declare']}", "covered": True} for s in spellings]
+    for form in integration.ADMIN_FORMS:
+        if form != "declare":
+            commands.append({"spelling": launcher, "form": form, "command": f"{launcher} {ADMIN_SAMPLE_ARGS[form]}", "covered": True})
+    for gap, command in WINDOWS_GAP_COMMANDS if windows else GAP_COMMANDS:
+        commands.append({"spelling": gap, "form": "declare", "command": command, "covered": False, "gap": gap})
+    return commands
 PRIVATE_PROBE_RULES = ("Read(./.recalith/**)", "Edit(./.recalith/**)", "Write(./.recalith/**)")
 
 
@@ -119,9 +147,9 @@ class Fixture:
         from recalith.integrations import claude as integration
 
         self.exe = exe
-        self.base = base / name
-        self.root = self.base / "workspace"
-        self.homes = self.base / "homes"
+        self.base = base / short_name(name)
+        self.root = self.base / ("ws" if WINDOWS else "workspace")
+        self.homes = self.base / ("h" if WINDOWS else "homes")
         self.root.mkdir(parents=True)
         self.homes.mkdir()
         if shutil.which("git"):
@@ -140,7 +168,7 @@ class Fixture:
         identity.initialize_installation(self.root, ProjectConfig.defaults_for(new_id("proj")))
         runtime = identity.Layout(self.root).base / "runtime"
         shutil.rmtree(runtime, ignore_errors=True)
-        runtime.symlink_to(_shared_runtime(base), target_is_directory=True)  # fixture convenience: one provisioned runtime
+        link_dir(runtime, _shared_runtime(base))  # fixture convenience: one provisioned runtime
         self.actor = Actor(kind="operator", id="probe-harness", channel="cli")
         self.ctx = identity.resolve_installation(self.root, actor=self.actor)
         self.integration = integration.integrate(self.ctx, executable=exe)
@@ -238,6 +266,40 @@ class Fixture:
         stop_worker(self.root)
 
 
+WINDOWS = os.name == "nt"
+_SHORT_NAMES: dict[str, str] = {}
+
+
+def short_name(name: str) -> str:
+    """A fixture directory name. On Windows a short stable one: without long-path support every path stops at 260
+    characters, and the host's transcript (``HOME\\.claude\\projects\\SLUG\\SESSION.jsonl``) repeats the whole
+    workspace path in SLUG, so a descriptive name (``trial-live-session_start-positive-1``) pushes it past the limit."""
+    return _SHORT_NAMES.setdefault(name, f"f{len(_SHORT_NAMES) + 1:02d}") if WINDOWS else name
+
+
+def link_dir(link: Path, target: Path) -> None:
+    """A directory link: a symlink on POSIX; on Windows a junction, which needs no symlink privilege."""
+    if WINDOWS:
+        import _winapi
+
+        _winapi.CreateJunction(str(target), str(link))
+    else:
+        link.symlink_to(target, target_is_directory=True)
+
+
+def unlink_dir(link: Path) -> None:
+    """Remove a directory link (never its target): ``unlink`` on POSIX; ``rmdir`` for a Windows junction."""
+    if WINDOWS:
+        os.rmdir(link)
+    else:
+        link.unlink()
+
+
+def kill_pid(pid: int) -> None:
+    """Kill one process by PID: SIGKILL on POSIX; TerminateProcess on Windows (``os.kill`` with SIGTERM)."""
+    os.kill(pid, signal.SIGTERM if WINDOWS else signal.SIGKILL)
+
+
 def _digest(path: Path) -> str | None:
     import hashlib
 
@@ -262,9 +324,10 @@ def stop_worker(root: Path, timeout: float = 30) -> None:
     while time.monotonic() < deadline and process_env.worker_running(str(root)):
         time.sleep(0.1)
     if process_env.worker_running(str(root)):
-        with contextlib.suppress(OSError, ValueError, KeyError):
-            pid = json.loads((root / ".recalith" / "run" / "worker.json").read_text(encoding="utf-8"))["pid"]
-            os.kill(int(pid), signal.SIGKILL)
+        pid = worker_pid(root)
+        if pid is not None:
+            with contextlib.suppress(OSError):
+                kill_pid(pid)
 
 
 def stop_workers(base: Path) -> None:
@@ -494,15 +557,7 @@ def deny_probe(base: Path, exe: str) -> dict[str, Any]:
 
     fx = Fixture(base, "deny-probe", exe)
     fx.trial_manifest([], autostart=False)
-    spellings = integration.spellings(fx.root)
-    commands: list[dict[str, Any]] = []
-    for s in spellings:
-        commands.append({"spelling": s, "form": "declare", "command": f"{s} {ADMIN_SAMPLE_ARGS['declare']}", "covered": True})
-    for form in integration.ADMIN_FORMS:
-        if form != "declare":
-            commands.append({"spelling": ".recalith/bin/recalith", "form": form, "command": f".recalith/bin/recalith {ADMIN_SAMPLE_ARGS[form]}", "covered": True})
-    for gap, command in GAP_COMMANDS:
-        commands.append({"spelling": gap, "form": "declare", "command": command, "covered": False, "gap": gap})
+    commands = deny_commands(integration.spellings(fx.root))
     markers = ("CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "RECALITH_WORKER_INSTALLATION", "RECALITH_CURATOR_INSTALLATION")
     steps = [("Bash", {"command": c["command"], "description": "Recalith deny probe"}) for c in commands]
     steps += [("Bash", {"command": f"printenv {m}", "description": "Recalith marker probe"}) for m in markers]
@@ -559,6 +614,8 @@ PRIVATE_ATTEMPTS = (
     ("Bash sh -c", ("Bash", {"command": "sh -c 'cat .recalith/local.toml'", "description": "probe"})),
     ("Bash python", ("Bash", {"command": "python3 -c \"print(len(open('.recalith/local.toml').read()))\"", "description": "probe"})),
 )
+# On Windows ``python3`` in Git Bash is the Microsoft Store alias (it runs nothing); the fixture PATH puts a real ``python`` first.
+WINDOWS_PRIVATE_ATTEMPTS = tuple((label, (name, dict(inp, command=inp["command"].replace("python3 ", "python ", 1)) if "command" in inp else inp)) for label, (name, inp) in PRIVATE_ATTEMPTS)
 
 
 def private_path_probe(base: Path, exe: str, *, permission_mode: str) -> dict[str, Any]:
@@ -574,13 +631,14 @@ def private_path_probe(base: Path, exe: str, *, permission_mode: str) -> dict[st
             data, _raw = install.read_settings(settings)
             data.setdefault("permissions", {}).setdefault("deny", []).extend(PRIVATE_PROBE_RULES)
             install.atomic_write(settings, (json.dumps(data, indent=2) + "\n").encode("utf-8"))
-        steps = [(name, {k: (v.replace("{root}", str(fx.root)) if isinstance(v, str) else v) for k, v in inp.items()}) for _l, (name, inp) in PRIVATE_ATTEMPTS]
+        attempts_spec = WINDOWS_PRIVATE_ATTEMPTS if WINDOWS else PRIVATE_ATTEMPTS
+        steps = [(name, {k: (v.replace("{root}", str(fx.root)) if isinstance(v, str) else v) for k, v in inp.items()}) for _l, (name, inp) in attempts_spec]
         segments_before = len(_ready(fx.root))
         with pc.RecordingEndpoint(scripted(steps, final="DONE")) as ep:
             result = fx.session(b"Run the scripted probe commands.", endpoint=ep, allowed=out["allowed_tools"], mode=permission_mode, timeout=300)
         outcomes = tool_results(result["requests"])
         attempts = []
-        for i, (label2, _step) in enumerate(PRIVATE_ATTEMPTS):
+        for i, (label2, _step) in enumerate(attempts_spec):
             r = outcomes[i] if i < len(outcomes) else None
             blocked = None if r is None else (r["is_error"] and ("denied" in r["text"].lower()))
             attempts.append({"spelling": label2, "blocked": blocked})
@@ -623,7 +681,7 @@ def lifecycle(base: Path, exe: str) -> dict[str, Any]:
     kinds = sorted({r for (r,) in _rows(fx, "SELECT DISTINCT kind FROM events")})
     out["event_kinds"] = kinds
     out["subagent_sessions"] = _count(fx, "SELECT COUNT(*) FROM events WHERE kind = 'session_started' AND payload LIKE '%\"scope\":\"subagent\"%'")
-    out["subagent_transcripts_registered"] = _count(fx, "SELECT COUNT(*) FROM capture_sources WHERE locator LIKE '%/subagents/agent-%'")
+    out["subagent_transcripts_registered"] = _count(fx, "SELECT COUNT(*) FROM capture_sources WHERE locator LIKE '%_subagents_agent-%'")  # '_' matches '/' or a Windows '\'
     out["transcript_sources"] = _count(fx, "SELECT COUNT(*) FROM capture_sources")
     out["assistant_messages_recovered"] = _count(fx, "SELECT COUNT(*) FROM events WHERE kind = 'assistant_message'")
     spawn = (status.get("spawn") or {}) if isinstance(status, dict) else {}
@@ -668,6 +726,13 @@ def _worker_status(root: Path) -> dict[str, Any] | None:
     return None
 
 
+def worker_pid(root: Path, timeout: float = 5) -> int | None:
+    """The running worker's own PID from its status record, read until it parses: on Windows a reader that meets the
+    worker's atomic replace of the record gets a sharing violation, which must not read as "no worker"."""
+    pid = wait_for(lambda: (_worker_status(root) or {}).get("pid"), timeout)
+    return int(pid) if isinstance(pid, int) else None
+
+
 def notice_probe(base: Path, exe: str) -> dict[str, Any]:
     fx = Fixture(base, "notice", exe)
     from recalith.capture.hooks import write_hook_context
@@ -700,7 +765,7 @@ def hook_failures(base: Path, exe: str) -> dict[str, Any]:
         elif failure == "spool_blocked":
             cs.block_spool(fx.root)
         elif failure == "runtime_missing":
-            (fx.root / ".recalith" / "runtime").unlink()
+            unlink_dir(fx.root / ".recalith" / "runtime")
         marker = f"tool-ran-{failure}.txt"
         with pc.RecordingEndpoint(scripted([("Bash", {"command": f"touch {marker}", "description": "probe"})], final="DONE")) as ep:
             result = fx.session(b"Run the scripted tool.", endpoint=ep, allowed=["Bash"])
@@ -712,8 +777,12 @@ def worker_survival(base: Path, exe: str) -> dict[str, Any]:
     """A worker started by the registered hook start must survive the host's end, its kill and a terminal hangup."""
     from recalith import service
 
-    out = {}
+    out: dict[str, Any] = {}
     for case in ("session_end", "host_killed", "terminal_hangup"):
+        if case == "terminal_hangup" and WINDOWS:
+            # A pty hangup is POSIX; closing a Windows console window cannot be produced headless. Reported, never passed.
+            out[case] = {"state": "not_run", "reason": "posix_pty_only: a Windows console close is not reproducible headless"}
+            continue
         fx = Fixture(base, f"survival-{case}", exe)
         fx.trial_manifest([], autostart=True)
         hang = case != "session_end"
@@ -724,7 +793,8 @@ def worker_survival(base: Path, exe: str) -> dict[str, Any]:
             if case == "terminal_hangup":
                 proc_pid, master = _pty_spawn(argv, env, fx.root, b"Reply OK.\n")
             else:
-                proc = subprocess.Popen(argv, env=env, cwd=fx.root, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                isolate = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if WINDOWS else {"start_new_session": True}
+                proc = subprocess.Popen(argv, env=env, cwd=fx.root, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **isolate)
                 proc.stdin.write(b"Reply OK.")
                 proc.stdin.close()
                 proc_pid = proc.pid
@@ -732,8 +802,12 @@ def worker_survival(base: Path, exe: str) -> dict[str, Any]:
             if case == "session_end":
                 proc.wait(timeout=120)
             elif case == "host_killed":
-                with contextlib.suppress(ProcessLookupError):
-                    os.killpg(proc_pid, signal.SIGKILL)  # the host's whole process group, as a terminal or IDE kill would
+                if WINDOWS:
+                    # The host's whole process tree, as Task Manager's "End process tree" or an IDE's tree kill would.
+                    subprocess.run(["taskkill", "/PID", str(proc_pid), "/T", "/F"], capture_output=True, timeout=60, check=False)
+                else:
+                    with contextlib.suppress(ProcessLookupError):
+                        os.killpg(proc_pid, signal.SIGKILL)  # the host's whole process group, as a terminal or IDE kill would
                 proc.wait(timeout=30)
             else:
                 os.close(master)  # the terminal goes away: SIGHUP to the session's foreground group
@@ -749,7 +823,9 @@ def worker_survival(base: Path, exe: str) -> dict[str, Any]:
         ctx = fx.ctx
         service.observe(ctx, [{"source_event_key": f"survival-{case}", "text": "after the host ended"}])
         ingested = wait_for(lambda fx=fx, case=case: _count(fx, f"SELECT COUNT(*) FROM events WHERE source_event_key LIKE '%survival-{case}%'") > 0, 30)
-        out[case] = {"spawned_by": spawn.get("spawned_by"), "method": spawn.get("method"), "independence": spawn.get("state"), "alive_after": bool(alive), "ingested_after": bool(ingested)}
+        out[case] = {"spawned_by": spawn.get("spawned_by"), "method": spawn.get("method"), "independence": spawn.get("state"), "degraded_reasons": spawn.get("degraded_reasons"), "in_job": spawn.get("in_job"), "alive_after": bool(alive), "ingested_after": bool(ingested)}
+        if case == "host_killed":
+            out[case]["host_end"] = "process_tree_taskkill" if WINDOWS else "process_group_sigkill"
         if case == "host_killed":
             out["worker_killed_then_next_session"] = _recovery(fx)
         fx.stop_worker()
@@ -761,9 +837,10 @@ def _recovery(fx: Fixture) -> dict[str, Any]:
     from recalith import service
     from recalith.fast import process_env
 
-    status = _worker_status(fx.root) or {}
-    with contextlib.suppress(OSError, KeyError, ValueError):
-        os.kill(int(status["pid"]), signal.SIGKILL)
+    pid = worker_pid(fx.root)
+    if pid is not None:
+        with contextlib.suppress(OSError):
+            kill_pid(pid)
     gone = wait_for(lambda: not process_env.worker_running(str(fx.root)), 20)
     with contextlib.suppress(OSError):
         (fx.root / ".recalith" / "run" / process_env.START_STAMP).unlink()  # the 10 s start throttle is not what is under test
@@ -773,7 +850,7 @@ def _recovery(fx: Fixture) -> dict[str, Any]:
     restarted = wait_for(lambda: process_env.worker_running(str(fx.root)), 30)
     spawn = ((_worker_status(fx.root) or {}).get("spawn") or {})
     drained = wait_for(lambda: _count(fx, "SELECT COUNT(*) FROM events WHERE source_event_key LIKE '%recovery-backlog%'") > 0, 30)
-    return {"worker_killed": bool(gone), "restarted_by": spawn.get("spawned_by") if restarted else None, "backlog_ingested": bool(drained)}
+    return {"worker_killed": bool(gone), "worker_pid_read": pid is not None, "restarted_by": spawn.get("spawned_by") if restarted else None, "backlog_ingested": bool(drained)}
 
 
 def _pty_spawn(argv: list[str], env: dict[str, str], cwd: Path, data: bytes) -> tuple[int, int]:

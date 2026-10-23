@@ -122,11 +122,33 @@ def platform_facts() -> dict[str, str]:
 # Sanitization
 
 
+WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
+
+
+def path_forms(path: str) -> list[str]:
+    """Every spelling of ``path`` a host payload or probe report can carry.
+
+    A POSIX path appears as is. A Windows drive path also appears with forward
+    slashes (``Path.as_posix()``, ``$CLAUDE_PROJECT_DIR`` in Git Bash),
+    JSON-escaped once or twice (a command echoed inside a JSON string) and in
+    the MSYS form Git Bash prints (``/c/...``); match those case-insensitively.
+    """
+    if not WINDOWS_PATH.match(path):
+        return [path]
+    native = path.replace("/", "\\").rstrip("\\")
+    msys = "/" + native[0].lower() + native[2:].replace("\\", "/")
+    return list(dict.fromkeys([native, native.replace("\\", "/"), native.replace("\\", "\\\\"), native.replace("\\", "\\\\\\\\"), msys]))
+
+
+def replace_path(value: str, old: str, new: str, *, fold: bool) -> str:
+    return re.sub(re.escape(old), lambda _m: new, value, flags=re.IGNORECASE) if fold else value.replace(old, new)
+
+
 class Sanitizer:
-    """Replace local paths with placeholders and scrub secret-shaped text."""
+    """Replace local paths (on Windows in every spelling, :func:`path_forms`) with placeholders and scrub secret-shaped text."""
 
     def __init__(self, replacements: Mapping[str, str] | None = None, secrets: Iterable[str] = ()) -> None:
-        pairs = [(k, v) for k, v in (replacements or {}).items() if k]
+        pairs = [(form, v, bool(WINDOWS_PATH.match(k))) for k, v in (replacements or {}).items() if k for form in path_forms(k)]
         # Longest first so nested paths map to the most specific placeholder.
         self._pairs = sorted(pairs, key=lambda kv: len(kv[0]), reverse=True)
         self._secrets = [s for s in secrets if s and len(s) >= 4]
@@ -134,8 +156,8 @@ class Sanitizer:
     def text(self, value: str, *, limit: int | None = 2048) -> str:
         for secret in self._secrets:
             value = value.replace(secret, "<redacted>")
-        for old, new in self._pairs:
-            value = value.replace(old, new)
+        for old, new, fold in self._pairs:
+            value = replace_path(value, old, new, fold=fold)
         value = _SECRETISH.sub("<redacted>", value)
         if limit is not None and len(value) > limit:
             value = value[:limit] + f"...<{len(value) - limit} chars omitted>"
