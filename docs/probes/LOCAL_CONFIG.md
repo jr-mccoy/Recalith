@@ -9,6 +9,8 @@ python tools/probe_delivery.py --config probe-private/local-config.json --output
 
 `probe-private/` is git-ignored. Start from [`tools/probe_config.example.json`](../../tools/probe_config.example.json). The file holds **names, paths, and nonsecret switches only**. Credential values are read from the invoking terminal's environment by the key names you select, kept in process memory, forwarded only to the probed child, and never written to the report. Unknown fields are rejected.
 
+On native Windows (decision 0027), run them from an ordinary PowerShell window with the repository's own interpreter (`.\.venv\Scripts\python.exe tools\probe_provider.py …`): a bare `python` may be another version and `python3` is the Microsoft Store alias. `executable` is the absolute path of `claude.exe`; keep `--engine-project` paths short when Windows long-path support is off.
+
 Run probes from an ordinary terminal for the account you intend Recalith to use. Running from inside an agent session is allowed (the parent is then a real host-marked parent), but never point a probe at another session's credentials or proxy to obtain a pass.
 
 ## Top level

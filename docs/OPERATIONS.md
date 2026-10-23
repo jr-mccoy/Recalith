@@ -91,6 +91,13 @@ Copy the example to `probe-private/local-config.json`, set the explicit model id
 
 Re-run step 3 after any Claude Code upgrade: a new host version needs a fixture capture and review before it is certified (decision 0019), and delivery stays off for an uncertified version.
 
+### Native Windows (decision 0027)
+
+- **Where to run.** Claude Code on native Windows runs hook commands and its Bash tool through Git Bash. Run the operator commands from an ordinary PowerShell or Windows Terminal window that you opened yourself (not one an IDE or Claude Code started), in the same Windows account; check `Get-ChildItem Env: | Where-Object Name -like '*CLAUDE*'` prints nothing. Call the launcher as `.recalith\bin\recalith.cmd`.
+- **What integrate installs.** On Windows the hook command is `"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook.cmd claude_code --event E`; the POSIX launcher cannot reach a Windows venv. An installation integrated on Windows before decision 0027 has POSIX hook commands that do nothing: run `integrate claude` again.
+- **Path length.** Without Windows long-path support (`LongPathsEnabled` 0) every path stops at 260 characters. Claude Code's transcript path repeats the workspace path, so keep project and output directories short (for example `C:\Code\project`, and `--out C:\Code\rl-gate` for the live gate).
+- **Worker independence.** The hook-started worker survives the session and a kill of the host's process tree, but CPython's venv launcher keeps it inside a Job Object, so `recalith status` reports `recovery` degraded (`worker_independence_degraded`) while a worker runs. This is an open limit, not a failed check.
+
 ## 5. Operator actions you may take (never routine)
 
 | Need | Command |

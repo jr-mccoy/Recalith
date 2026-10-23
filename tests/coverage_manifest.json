@@ -1248,7 +1248,10 @@
             "tests/unit/test_api_providers.py::test_response_outcomes_map_to_failure_classes",
             "tests/unit/test_api_providers.py::test_https_is_verified_against_system_or_managed_trust",
             "tests/unit/test_api_providers.py::test_transport_refuses_plain_http_to_a_non_loopback_host",
-            "tests/unit/test_api_providers.py::test_no_tls_verification_bypass_exists"
+            "tests/unit/test_api_providers.py::test_no_tls_verification_bypass_exists",
+            "tests/unit/test_api_providers.py::test_messages_reply_with_thinking_blocks_yields_only_its_text",
+            "tests/unit/test_api_providers.py::test_messages_reply_still_needs_exactly_one_text_block_and_no_tool",
+            "tests/unit/test_api_providers.py::test_messages_thinking_under_the_cap_is_still_the_cap_reason"
           ],
           "platforms": [
             "linux",
@@ -1256,7 +1259,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1. Decision 0023: the API transport runs through the same bounded launcher (timeout and tree kill, 256 KiB wire and 64 KiB stderr caps); a hung loopback server is killed at the timeout, a flood is wire_stdout_oversized, a valid 15 KB episode body is accepted, truncated and malformed replies are rejected and charged."
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1. Decision 0023: the API transport runs through the same bounded launcher (timeout and tree kill, 256 KiB wire and 64 KiB stderr caps); a hung loopback server is killed at the timeout, a flood is wire_stdout_oversized, a valid 15 KB episode body is accepted, truncated and malformed replies are rejected and charged. Decision 0027: a Messages reply may carry thinking/redacted_thinking blocks (thinking-by-default models); they are ignored, never parsed as the body; exactly one text block is still required, tool blocks still disable the route, the cap still covers thinking. Fake loopback server only; the live behavior is B1."
         }
       ]
     },
@@ -1898,7 +1901,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17. Task 17: health composes the hook-started worker's own record (state, spawn independence, heartbeat), the registered hook start (preview's startup route; OS entries full-only) and pending recovery (interrupted backups, journaled restore, delayed ingestion). Live real-host termination is Task 13. Task 13: a worker started by the registered hook start in a real Claude Code 2.1.305 session survives SessionEnd, a SIGKILL of the host's process group and a terminal hangup, and ingests afterwards (Linux; request capture). Decision 0022 (typed-state latency on Windows): the measurement planned arrivals from a stale idle status and read poll durations one poll late; it now plans from an idle poll after the previous trial, and the status reports the poll it follows with poll.timing step offsets. The worker defers its WAL checkpoint off the typed-state path at SQLite's frequency. Typed-state p95 with 5 s idle polling: Linux here 4.74 s (n=100); Windows CI 4.62 and 4.75 s (n=60, final code) with single stalled ingesting polls as the remaining outliers. Not passed: live variants remain."
+          "notes": "Task 4 preview slice: hook-started worker (registered start path), fresh allowlisted environment, closed inherited handles, POSIX new session / Windows Job Object breakaway with honest degraded report, survival of a simulated host's process-group/job termination with continued ingestion, restart by the next hook, 1 s/5 s polling, clock-jump coalescing without a launch burst, typed ingestion during a model call. Linux also ran a request-capture Claude Code 2.1.301 session whose own hook started the worker. Live certification of real-host termination is Task 13; health composition is Task 17. Task 17: health composes the hook-started worker's own record (state, spawn independence, heartbeat), the registered hook start (preview's startup route; OS entries full-only) and pending recovery (interrupted backups, journaled restore, delayed ingestion). Live real-host termination is Task 13. Task 13: a worker started by the registered hook start in a real Claude Code 2.1.305 session survives SessionEnd, a SIGKILL of the host's process group and a terminal hangup, and ingests afterwards (Linux; request capture). Decision 0022 (typed-state latency on Windows): the measurement planned arrivals from a stale idle status and read poll durations one poll late; it now plans from an idle poll after the previous trial, and the status reports the poll it follows with poll.timing step offsets. The worker defers its WAL checkpoint off the typed-state path at SQLite's frequency. Typed-state p95 with 5 s idle polling: Linux here 4.74 s (n=100); Windows CI 4.62 and 4.75 s (n=60, final code) with single stalled ingesting polls as the remaining outliers. Not passed: live variants remain. Decision 0027: on native Windows under the real 2.1.309 host the hook-started worker survived the session end and a process-tree kill and ingested afterwards, but runs inside the venv redirector's job (in_job true): independence degraded (job_membership_unverified), health recovery worker_independence_degraded; the console-close case is not reproducible headless (not_run)."
         },
         {
           "variant": "full_only",
@@ -1991,7 +1994,15 @@
             "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_fixtures_map_like_2_1_305",
             "tests/integration/test_claude_adapter.py::test_reviewed_2_1_306_transcripts_parse_without_gaps",
             "tests/unit/test_api_providers.py::test_response_outcomes_map_to_failure_classes",
-            "tests/unit/test_api_providers.py::test_expected_resolved_model_is_explicit"
+            "tests/unit/test_api_providers.py::test_expected_resolved_model_is_explicit",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_309_fixtures_map_like_2_1_306",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_309_transcripts_parse_like_2_1_306",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_309_fixtures_are_sanitized",
+            "tests/unit/test_capture_sanitization.py::test_windows_path_forms",
+            "tests/unit/test_capture_sanitization.py::test_every_windows_spelling_is_replaced",
+            "tests/unit/test_capture_sanitization.py::test_posix_sanitization_stays_literal",
+            "tests/unit/test_capture_sanitization.py::test_host_tmp_dir_follows_the_child_environment",
+            "tests/unit/test_capture_sanitization.py::test_unsanitized_detects_residue_key_and_login_name"
           ],
           "platforms": [
             "linux",
@@ -1999,7 +2010,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020). Decision 0023: an unknown API reply shape is envelope_invalid, never parsed leniently; a different reported model is model_mismatch (never a silent substitution)."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020). Decision 0023: an unknown API reply shape is envelope_invalid, never parsed leniently; a different reported model is model_mismatch (never a silent substitution). Decision 0027: Claude Code 2.1.309 captured on native Windows (request capture) and reviewed field by field against the Linux 2.1.306 capture; certified for capture. The capture sanitizer now covers every Windows path spelling (a JSON-escaped echo had leaked the login name before the fix)."
         },
         {
           "variant": "full_only",
@@ -2248,7 +2259,11 @@
             "tests/integration/test_claude_adapter.py::test_missing_runtime_and_absent_runtime_clone",
             "tests/integration/test_claude_adapter.py::test_installer_effects_on_every_platform",
             "tests/integration/test_claude_adapter.py::test_integration_crash_matrix",
-            "tests/integration/test_claude_adapter.py::test_full_only_flags_pass_the_guard_then_answer_unavailable"
+            "tests/integration/test_claude_adapter.py::test_full_only_flags_pass_the_guard_then_answer_unavailable",
+            "tests/integration/test_claude_adapter.py::test_hook_command_is_posix_byte_identical_and_cmd_on_windows",
+            "tests/integration/test_claude_adapter.py::test_launchers_are_unchanged",
+            "tests/integration/test_claude_adapter.py::test_windows_reinstall_over_a_posix_install_converges_and_remove_restores_bytes",
+            "tests/integration/test_claude_adapter.py::test_windows_install_without_prior_settings_removes_the_file"
           ],
           "platforms": [
             "linux",
@@ -2256,7 +2271,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13. Task 12a: the provisioned project launcher (sh `.recalith/bin/recalith`, `recalith.cmd` on Windows) runs the real guarded CLI in the refusal matrix. Task 13: local install by default into the ignored settings location, owned-entry removal with unrelated settings restored byte for byte, modified entries reported, no-runtime installed hook and absent-runtime clone silent, crash matrix; shared (tracked) configuration is full-only."
+          "notes": "Launcher/no-download and hook-launcher empty nonblocking success; local integration install/remove is Task 13. Task 12a: the provisioned project launcher (sh `.recalith/bin/recalith`, `recalith.cmd` on Windows) runs the real guarded CLI in the refusal matrix. Task 13: local install by default into the ignored settings location, owned-entry removal with unrelated settings restored byte for byte, modified entries reported, no-runtime installed hook and absent-runtime clone silent, crash matrix; shared (tracked) configuration is full-only. Decision 0027: on native Windows integrate installs the .cmd launcher command (Git Bash runs hooks; the POSIX launcher was a silent no-op there); POSIX command and every launcher byte-identical; a re-run over a POSIX-style install converges and removal restores the settings bytes. The installed-hook tests now run on Windows through Git Bash instead of skipping."
         },
         {
           "variant": "full_only",
@@ -2641,7 +2656,11 @@
             "tests/platform/test_claude_smoke.py::test_engine_delivery_reaches_the_request_on_every_path",
             "tests/integration/test_claude_adapter.py::test_host_record_is_live_only_from_a_complete_live_observation",
             "tests/unit/test_eval_harness.py::test_preflight_names_a_request_capture_host_record",
-            "tests/unit/test_eval_harness.py::test_scripted_smoke_run_writes_labeled_trials"
+            "tests/unit/test_eval_harness.py::test_scripted_smoke_run_writes_labeled_trials",
+            "tests/unit/test_probe_engine_platform.py::test_windows_fixture_names_are_short_and_stable",
+            "tests/unit/test_probe_engine_platform.py::test_runtime_link_is_a_junction_that_unlinks_without_touching_its_target",
+            "tests/unit/test_probe_engine_platform.py::test_windows_private_attempts_use_a_real_python",
+            "tests/unit/test_capture_sanitization.py::test_report_sanitizer_covers_windows_spellings"
           ],
           "platforms": [
             "linux",
@@ -2649,7 +2668,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass. Task 18 report mechanics: preflight reads the host record (request capture is never certification) and the report's delivery-visibility measure reads sections.delivery_engine per path; no live certification (B1)."
+          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass. Task 18 report mechanics: preflight reads the host record (request capture is never certification) and the report's delivery-visibility measure reads sections.delivery_engine per path; no live certification (B1). Decision 0027: the engine-mode harness runs on native Windows (junctions, short fixture names under MAX_PATH, TerminateProcess, the deny probe through recalith.cmd, Windows path spellings sanitized in reports). Request capture on 2.1.309: all four paths request_visible (3/3 positives, 3/3 clean negatives). Live echo not run (B1)."
         },
         {
           "variant": "full_only",
@@ -2815,7 +2834,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13. Task 13: private-path probe in the configured permission mode on 2.1.305: probed_limited (file tools and cat/head/cp blocked by probe-only rules, sh -c and interpreters not; hooks unaffected); nothing installed; revision chain unavailable. Decision 0024: the chain is built for the full profile only; a preview store still never writes revision_chain, and storage/integrity.py reports every integrity form unavailable_in_preview (verify raises capability_unavailable, doctor --full-integrity exits 4, health unavailable)."
+          "notes": "Task 5 part: revision_chain is reserved and stays empty after real applications, service writes and undo; storage/integrity.py does not exist, so nothing reports chain verification. The private-path probe/coverage report is Task 13; health reporting of chain unavailability is Task 17. Task 17: health reports the private-path probe state (not_run gates the operator guard; limited/unsupported is reported, never gating), installed rules unavailable_in_preview and os_level_isolation false; revision_chain unavailable (deferred_full_release, revision_chain_unavailable_in_preview); doctor reports it. The real probe is Task 13. Task 13: private-path probe in the configured permission mode on 2.1.305: probed_limited (file tools and cat/head/cp blocked by probe-only rules, sh -c and interpreters not; hooks unaffected); nothing installed; revision chain unavailable. Decision 0024: the chain is built for the full profile only; a preview store still never writes revision_chain, and storage/integrity.py reports every integrity form unavailable_in_preview (verify raises capability_unavailable, doctor --full-integrity exits 4, health unavailable). Decision 0027: the private-path probe also ran natively on Windows (request capture, 2.1.309), interpreter attempt with python (python3 is the Store alias in Git Bash)."
         },
         {
           "variant": "full_only",
@@ -3041,7 +3060,8 @@
           "tests": [
             "tests/platform/test_capture_only_claude.py::test_ambiguous_and_unregistered_tools_never_guess",
             "tests/platform/test_capture_only_claude.py::test_command_parse_is_exact_or_unknown",
-            "tests/unit/test_conditions.py::test_real_actions_use_host_arrays_and_ambiguity_stays_unknown"
+            "tests/unit/test_conditions.py::test_real_actions_use_host_arrays_and_ambiguity_stays_unknown",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_309_fixtures_map_like_2_1_306"
           ],
           "platforms": [
             "linux",
@@ -3049,7 +3069,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Claude Bash commands: exact argv only for unambiguous POSIX words; pipelines, redirection, expansion, globs, escapes and compound commands are unknown; unregistered tools (e.g. PowerShell) conservative. Codex/generic adapters are Task 14. Task 8: conditions use the captured argv verbatim; an unparsed action has unknown kind and paths (never guessed)."
+          "notes": "Claude Bash commands: exact argv only for unambiguous POSIX words; pipelines, redirection, expansion, globs, escapes and compound commands are unknown; unregistered tools (e.g. PowerShell) conservative. Codex/generic adapters are Task 14. Task 8: conditions use the captured argv verbatim; an unparsed action has unknown kind and paths (never guessed). Decision 0027: Bash commands captured on native Windows (Git Bash) parse exactly as on Linux (same parse statuses and exit codes)."
         }
       ]
     },
@@ -3170,7 +3190,10 @@
             "tests/integration/test_claude_adapter.py::test_marked_callers_are_refused_before_any_effect",
             "tests/integration/test_claude_adapter.py::test_deny_rules_cover_admin_forms_in_launcher_and_module_spellings",
             "tests/integration/test_claude_adapter.py::test_probe_host_is_guarded_and_names_the_operator_harness",
-            "tests/unit/test_eval_harness.py::test_operator_token_route_never_bypasses_the_guard"
+            "tests/unit/test_eval_harness.py::test_operator_token_route_never_bypasses_the_guard",
+            "tests/integration/test_claude_adapter.py::test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher",
+            "tests/unit/test_probe_engine_platform.py::test_posix_deny_commands_are_unchanged",
+            "tests/unit/test_probe_engine_platform.py::test_windows_deny_commands_reach_the_guard_through_the_cmd_launcher"
           ],
           "platforms": [
             "linux",
@@ -3178,7 +3201,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host). Task 13: certified deny rules denied all 29 covered commands on the real host; the gap spellings reached the CLI on the actual tool subprocess (CLAUDECODE and CLAUDE_CODE_CHILD_SESSION inherited) and the guard refused them with a captured audit; no admin effect. Task 18: the evaluation harness's token init route gets the guard's refusal from a host-marked process; it never mints a token or clears a marker."
+          "notes": "Task 4 permitted-start control plus the Task 12a CLI guard: every agent-refusable form (30 spellings of DATA_CONTRACTS §12) is exit 6 for host/worker/curator-marked callers with and without terminal and token, through the launcher and both module spellings, with no requested effect and a content-free audit; unmarked noninteractive callers are refused; pre-init token minting needs a terminal and no installation lookup; noninteractive init with a provisioned token succeeds once; bad/revoked tokens are 6 without terminal fallback; audit failure still refuses; pre-init refusal creates nothing; the hook still starts the worker without the CLI. Simulated markers and terminals are controlled test states: a live operator workflow from a real IDE host and Task 13's host command-pattern deny rules remain (requires_live_host). Task 13: certified deny rules denied all 29 covered commands on the real host; the gap spellings reached the CLI on the actual tool subprocess (CLAUDECODE and CLAUDE_CODE_CHILD_SESSION inherited) and the guard refused them with a captured audit; no admin effect. Task 18: the evaluation harness's token init route gets the guard's refusal from a host-marked process; it never mints a token or clears a marker. Decision 0027: Windows deny rules add the .cmd launcher and Scripts\\python.exe spellings; the host probe (tests/platform/test_claude_smoke.py) ran natively on Windows against 2.1.309 in request capture: every covered spelling host-denied, the gaps refused by the guard on the tool subprocess. Not a live certification."
         }
       ]
     }

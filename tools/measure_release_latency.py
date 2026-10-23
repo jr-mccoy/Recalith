@@ -344,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     text = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(text, encoding="utf-8")
+        args.output.write_text(text, encoding="utf-8", newline="\n")  # LF on every OS, as .gitattributes pins
     summary = {name: {k: pop.get(k) for k in ("n", "eligible_delivered_rate", "degraded_rate", "reasons", "by_event")}
                | {"p95_ms": (pop.get("wall_spawn_to_exit") or {}).get("p95_ms"), "p99_ms": (pop.get("wall_spawn_to_exit") or {}).get("p99_ms"),
                   "entry_p95_ms": (pop.get("entry_to_exit") or {}).get("p95_ms"), "windows": windows(pop.get("series") or {})}
