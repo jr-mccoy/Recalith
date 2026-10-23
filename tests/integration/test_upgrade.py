@@ -683,6 +683,21 @@ def test_transition_requires_the_operator_and_a_verified_artifact(tmp_path, monk
     assert hs.tree_digest(root) == before
 
 
+def files_outside_live_state(root: Path) -> dict[str, str]:
+    """Digests of B's files except what its running worker owns (``run/``: its lock, status and scratch; ``state/``: the live store).
+
+    Those directories are skipped before any file is opened: on Windows the
+    running worker holds a byte-range lock on ``run/worker.lock``, so even
+    reading it fails. B's store is compared through ``semantic`` instead.
+    """
+    import hashlib
+
+    base = root / ".recalith"
+    skip = (base / "run", base / "state")
+    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(base.rglob("*")) if p.is_file() and not any(d in p.parents for d in skip)}
+
+
 def test_upgrade_A_leaves_B_running(tmp_path, started):
     """A02 full: A's transition stops A's own worker and changes nothing of B, whose real worker keeps running."""
     a, b = hs.project(tmp_path, "a"), hs.project(tmp_path, "b")
@@ -691,12 +706,12 @@ def test_upgrade_A_leaves_B_running(tmp_path, started):
         wh.start_direct(p.root)
         assert wh.wait_running(p.root, 60)
     b_pid = wh.status(b.root)["pid"]
-    b_before, b_store = {k: v for k, v in hs.tree_digest(b.root).items() if not k.startswith((".recalith/run/", ".recalith/state/"))}, us.semantic(b.root)
+    b_before, b_store = files_outside_live_state(b.root), us.semantic(b.root)
     result = transit(a.root, tmp_path, stop_wait=30)
     assert result.state == "activated" and not process_env.worker_running(str(a.root))
     assert us.semantic(a.root)["profile"] == "full"
     assert process_env.worker_running(str(b.root)) and wh.wait_running(b.root, 10)["pid"] == b_pid
-    assert {k: v for k, v in hs.tree_digest(b.root).items() if not k.startswith((".recalith/run/", ".recalith/state/"))} == b_before
+    assert files_outside_live_state(b.root) == b_before
     assert us.semantic(b.root) == b_store and us.store_profile(b.root) == "claude_preview"
 
 
