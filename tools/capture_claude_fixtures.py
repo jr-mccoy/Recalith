@@ -142,14 +142,48 @@ def responder_for(ws: Path) -> Callable[[dict], tuple[str, Any]]:
 # Sanitization
 
 
+WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
+
+
+def path_forms(path: str) -> list[str]:
+    """Every spelling of ``path`` a host payload can carry.
+
+    A POSIX path appears as is. A Windows drive path also appears with forward
+    slashes (``$CLAUDE_PROJECT_DIR`` in Git Bash), JSON-escaped once or twice
+    (a hook command the host echoes inside a JSON string, as ``/compact``
+    does) and in the MSYS form Git Bash prints (``/c/...``).
+    """
+    if not WINDOWS_PATH.match(path):
+        return [path]
+    native = path.replace("/", "\\").rstrip("\\")
+    msys = "/" + native[0].lower() + native[2:].replace("\\", "/")
+    return list(dict.fromkeys([native, native.replace("\\", "/"), native.replace("\\", "\\\\"), native.replace("\\", "\\\\\\\\"), msys]))
+
+
+def host_tmp_dir(env: Mapping[str, str], *, windows: bool = os.name == "nt") -> str:
+    """Where the host keeps per-session files (background task output): ``/tmp/claude-UID`` on POSIX; on Windows,
+    node's ``os.tmpdir()`` for the child environment (``TEMP``, ``TMP``, else ``SystemRoot\\temp``) plus ``claude``."""
+    if not windows:
+        return str(Path(tempfile.gettempdir()) / f"claude-{os.getuid()}")
+    base = env.get("TEMP") or env.get("TMP") or (env.get("SystemRoot") or env.get("SYSTEMROOT") or env.get("windir") or "C:\\Windows") + "\\temp"
+    return base.rstrip("\\") + "\\claude"
+
+
 class Placeholders:
+    """Literal replacement of known paths; Windows drive paths in each of their spellings, case-insensitively."""
+
     def __init__(self, pairs: Mapping[str, str]) -> None:
-        self.pairs = sorted(((k, v) for k, v in pairs.items() if k), key=lambda kv: len(kv[0]), reverse=True)
+        rules = [(form, new, bool(WINDOWS_PATH.match(old))) for old, new in pairs.items() if old for form in path_forms(old)]
+        self.pairs = sorted(rules, key=lambda rule: len(rule[0]), reverse=True)
 
     def text(self, value: str) -> str:
-        for old, new in self.pairs:
-            value = value.replace(old, new)
+        for old, new, fold in self.pairs:
+            value = re.sub(re.escape(old), lambda _m, new=new: new, value, flags=re.IGNORECASE) if fold else value.replace(old, new)
         return value
+
+    def residue(self, value: str) -> bool:
+        """Whether ``value`` still holds a spelling these placeholders replace (sanitized text is a fixed point)."""
+        return self.text(value) != value
 
     def value(self, obj: Any) -> Any:
         if isinstance(obj, str):
@@ -159,6 +193,13 @@ class Placeholders:
         if isinstance(obj, dict):
             return {self.text(k): self.value(v) for k, v in obj.items()}
         return obj
+
+
+def unsanitized(text: str, placeholders: Placeholders, *, user: str | None = None) -> bool:
+    """A written fixture still holds a replaceable path, the placeholder key, or the login name as a path component."""
+    user = Path.home().name if user is None else user
+    component = bool(user) and re.search(r"(^|[\\/])" + re.escape(user) + r"([\\/]|$)", text, flags=re.IGNORECASE | re.MULTILINE) is not None
+    return placeholders.residue(text) or PLACEHOLDER_KEY in text or component
 
 
 MESSAGE_TYPES = {"user", "assistant", "system", "summary"}
@@ -271,8 +312,8 @@ def capture(exe: str, output: Path) -> int:
     settings = ws / ".claude" / "settings.local.json"
     pd._write_settings(settings, unrelated_settings())
     slug = re.sub(r"[^A-Za-z0-9]", "-", str(ws))
-    host_tmp = Path(tempfile.gettempdir()) / f"claude-{os.getuid()}" if hasattr(os, "getuid") else None
-    placeholders = Placeholders({str(host_tmp or ""): "<host-tmp>", tempfile.gettempdir(): "<tmp>", str(ws): "<workspace>", slug: "<workspace-slug>", str(home): "<home>", str(base): "<fixture-root>", str(REPO_ROOT): "<repo>", sys.executable: "<python>", str(Path.home()): "<user-home>"})
+    host_tmp = host_tmp_dir(child_env(home, ""))
+    placeholders = Placeholders({host_tmp: "<host-tmp>", tempfile.gettempdir(): "<tmp>", str(ws): "<workspace>", slug: "<workspace-slug>", str(home): "<home>", str(base): "<fixture-root>", str(REPO_ROOT): "<repo>", sys.executable: "<python>", str(Path.home()): "<user-home>"})
     manifest = pd.install_owned_hooks(settings, recorder_entries(log), timeout_s=10)
     results: dict[str, Any] = {}
     sessions: dict[str, str] = {}
@@ -331,11 +372,11 @@ def capture(exe: str, output: Path) -> int:
         "events_observed": sorted(fired),
         "events_registered_not_observed": sorted(set(HOOK_EVENTS) - fired),
         "owned_hook_cleanup": cleanup,
-        "sanitization": "Fixture paths replaced by <workspace>, <workspace-slug>, <home>, <host-tmp>, <tmp>, <fixture-root>, <repo>, <python>, <user-home>; transcript non-message records reduced to type skeletons; no credentials (placeholder key only, never sent to hooks).",
+        "sanitization": "Fixture paths (on Windows in every spelling: native, forward-slash, JSON-escaped, MSYS; case-insensitive) replaced by <workspace>, <workspace-slug>, <home>, <host-tmp>, <tmp>, <fixture-root>, <repo>, <python>, <user-home>; transcript non-message records reduced to type skeletons; no credentials (placeholder key only, never sent to hooks).",
     }
     (target / "manifest.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
     shutil.rmtree(base, ignore_errors=True)
-    leaked = [p for p in target.iterdir() if str(base) in p.read_text(encoding="utf-8") or PLACEHOLDER_KEY in p.read_text(encoding="utf-8")]
+    leaked = [p for p in target.iterdir() if unsanitized(p.read_text(encoding="utf-8"), placeholders)]
     if leaked:
         print(f"capture_claude_fixtures: unsanitized content in {leaked}", file=sys.stderr)
         return 1

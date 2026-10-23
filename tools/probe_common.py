@@ -624,7 +624,7 @@ def merge_report_section(path: Path, section: str, key: str, value: Mapping[str,
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".host-compat-", dir=str(path.parent))
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:  # LF on every OS, as .gitattributes pins
             json.dump(report, fh, indent=2, sort_keys=False, ensure_ascii=False)
             fh.write("\n")
             fh.flush()
