@@ -2314,7 +2314,7 @@
             "full"
           ],
           "description": "Complete case (transfer/capsule/MCP component)",
-          "status": "in_progress",
+          "status": "pending",
           "tests": [
             "tests/integration/test_capsules.py::test_a55_quote_at_offset_900_with_unicode_survives_source_expiry",
             "tests/integration/test_capsules.py::test_compaction_commits_atomically_with_one_purge_entry",
@@ -2330,7 +2330,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 full capsule slice (decision 0025): a synthetic prompt (real capture path) with two-byte, three-byte and astral characters before and inside a quote at code points 900–953; after day 31 in a full-profile store the payload is capsule-only and the capsule span returns the exact original substring by its original locator and digest, with at most 160 code points of context; resolving by the event ref or the capsule ref gives the same text and old offsets applied to any capsule text give something else; capsule insertion, link redirection and payload removal are one transaction (an exception before commit leaves all three undone; one purge chain entry names the capsule, link and event rows); backups carry the capsules and restore keeps them exact; a later model request carries the span. Not passed: full-profile stores are reachable only through the provisioning function in tests (init --release-profile full stays refused and the preview-to-full transition, Task 17 full, is not built)."
+          "notes": "Task 15 full capsule slice (decision 0025): a synthetic prompt (real capture path) with two-byte, three-byte and astral characters before and inside a quote at code points 900–953; after day 31 in a full-profile store the payload is capsule-only and the capsule span returns the exact original substring by its original locator and digest, with at most 160 code points of context; resolving by the event ref or the capsule ref gives the same text and old offsets applied to any capsule text give something else; capsule insertion, link redirection and payload removal are one transaction (an exception before commit leaves all three undone; one purge chain entry names the capsule, link and event rows); backups carry the capsules and restore keeps them exact; a later model request carries the span. Stays pending (a preview-excluded case is pending or unavailable until the full profile is reachable): full-profile stores are reachable only through the provisioning function in tests (init --release-profile full stays refused and the preview-to-full transition, Task 17 full, is not built)."
         }
       ]
     },

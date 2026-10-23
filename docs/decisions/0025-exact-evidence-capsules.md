@@ -59,5 +59,5 @@ The documents left open: what "sufficient" means for a reference without a locat
 ## Consequences
 
 - No schema migration: `SCHEMA_VERSION` stays 11; existing preview stores and backups stay writable and restorable (not `migration_required`). The `ModelRequest` JSON schema snapshot gains the optional `capsules` property (regenerated); the hook wire is unchanged.
-- A55 has its full variant implemented and tested; A35's full_only variant (capsule compaction, redirects, retained pins) is implemented and tested; both stay `in_progress` (A35 still has no live variant evidence; nothing is passed by deterministic tests alone where the gate requires more). A21 gains the capsule kill/restart family.
+- A55 has its full variant implemented and tested but stays `pending`: a preview-excluded case is pending or unavailable until the full profile is reachable in a real installation (the manifest gate in `test_evaluation.py`). A35's full_only variant (capsule compaction, redirects, retained pins) is implemented and tested and moves to `in_progress`; nothing is passed. A21 gains the capsule kill/restart family.
 - SYSTEM_SPEC §11 and DATA_CONTRACTS §6 point here for the details; DATA_CONTRACTS §7 (`ModelRequest`) and §12 (`show`) name the additions; IMPLEMENTATION_PLAN Task 15 records the built slice; OPERATIONS §3 lists the `capsules` health entry.
