@@ -22,6 +22,45 @@
       "title": "BoundaryContext",
       "type": "object"
     },
+    "CapsuleSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "context_after": {
+          "maxLength": 2048,
+          "title": "Context After",
+          "type": "string"
+        },
+        "context_before": {
+          "maxLength": 2048,
+          "title": "Context Before",
+          "type": "string"
+        },
+        "origin_ref": {
+          "$ref": "#/$defs/RecordRef"
+        },
+        "original_locator": {
+          "$ref": "#/$defs/SpanLocator"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "origin_ref",
+        "original_locator",
+        "text",
+        "context_before",
+        "context_after",
+        "text_digest"
+      ],
+      "title": "CapsuleSpan",
+      "type": "object"
+    },
     "ClaimRevision": {
       "additionalProperties": false,
       "properties": {
@@ -812,6 +851,68 @@
       "title": "EventEnvelope",
       "type": "object"
     },
+    "EvidenceCapsule": {
+      "additionalProperties": false,
+      "properties": {
+        "capsule_id": {
+          "title": "Capsule Id",
+          "type": "string"
+        },
+        "captured_at": {
+          "title": "Captured At",
+          "type": "string"
+        },
+        "content_digest": {
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "origin_event_key": {
+          "$ref": "#/$defs/OriginEventKey"
+        },
+        "preserved_observation": {
+          "additionalProperties": true,
+          "title": "Preserved Observation",
+          "type": "object"
+        },
+        "redacted": {
+          "title": "Redacted",
+          "type": "boolean"
+        },
+        "root_event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Root Event Ids",
+          "type": "array"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "spans": {
+          "items": {
+            "$ref": "#/$defs/CapsuleSpan"
+          },
+          "title": "Spans",
+          "type": "array"
+        }
+      },
+      "required": [
+        "capsule_id",
+        "source_ref",
+        "origin_event_key",
+        "root_event_ids",
+        "preserved_observation",
+        "spans",
+        "captured_at",
+        "redacted",
+        "content_digest"
+      ],
+      "title": "EvidenceCapsule",
+      "type": "object"
+    },
     "EvidenceLink": {
       "additionalProperties": false,
       "properties": {
@@ -1046,6 +1147,29 @@
         "job_id"
       ],
       "title": "ModelProvenance",
+      "type": "object"
+    },
+    "OriginEventKey": {
+      "additionalProperties": false,
+      "properties": {
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_namespace": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Namespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_namespace",
+        "source_event_key"
+      ],
+      "title": "OriginEventKey",
       "type": "object"
     },
     "PendingAction": {
@@ -1865,6 +1989,13 @@
         "$ref": "#/$defs/BoundaryContext"
       },
       "title": "Boundaries",
+      "type": "array"
+    },
+    "capsules": {
+      "items": {
+        "$ref": "#/$defs/EvidenceCapsule"
+      },
+      "title": "Capsules",
       "type": "array"
     },
     "claims": {

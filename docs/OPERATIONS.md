@@ -57,6 +57,8 @@ Also not available in preview: in-place upgrade and the preview-to-full transiti
 
 The revision chain is built for the full profile (decision 0024) but a full store cannot be initialized yet: `init --release-profile full` stays refused until the full release. In a full store, `recalith doctor` verifies the chain entries since its private checkpoint and the rows they touched, and `recalith doctor --full-integrity` the whole chain and every current row (O(store), progress on stderr); findings exit 8 with `revision_chain_findings`. It detects out-of-band edits, not a same-user rewrite of the store and chain together.
 
+Exact evidence capsules are also built for the full profile only (decision 0025), with the same caveat. In a full store the worker's retention step replaces a pinned payload past the 30-day window with an exact capsule when every live reference can be kept exactly, and keeps the payload pinned otherwise; health reports `capsules` with `capsule_count`, `capsule_bytes`, `deferred_compaction_count` and the last compaction's deferral reasons, and `recalith show cap_…` prints a capsule. Preview never compacts.
+
 ## 4. One-time setup (operator, from an ordinary terminal)
 
 Administrative commands are refused inside an agent's process tree, even with a terminal and a token (exit 6). Run them from an ordinary OS terminal launched outside Claude Code (not an IDE terminal that inherits its marker), using the project launcher `.recalith/bin/recalith`.

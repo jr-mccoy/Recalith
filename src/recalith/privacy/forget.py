@@ -81,7 +81,7 @@ from recalith.contracts.privacy import ForgetPreview, ForgetRequest, ForgetResul
 from recalith.core import lineage
 from recalith.errors import RecalithError
 from recalith.fast import failpoints, process_env, session, spool
-from recalith.privacy import retention
+from recalith.privacy import capsules, retention
 from recalith.storage import records
 from recalith.storage.db import SCHEMA_VERSION, STATE_DB, Store, Txn, open_store
 
@@ -98,7 +98,7 @@ SCRATCH_LOCK_WAIT = 0.5
 SCRATCH_LOCK_BUDGET = 2.0
 BUSY_RETRY_SECONDS = 5.0
 WORKER_STOP_SECONDS = 15.0
-CONTENT_FREE_OPERATIONS = frozenset({"payload_release", "support_lost", "retention_expiry", FORGET_KIND, RESTORE_KIND, "recheck", "job_retry"})
+CONTENT_FREE_OPERATIONS = frozenset({"payload_release", "support_lost", "retention_expiry", capsules.KIND, FORGET_KIND, RESTORE_KIND, "recheck", "job_retry"})
 LIMITS = (
     "external_exports_not_recallable",
     "remote_provider_copies_not_recallable",
@@ -107,7 +107,7 @@ LIMITS = (
     "ledger_digest_membership_disclosure",
     "paraphrase_not_detected",
 )
-_ID = re.compile(r"\b(?:evt|claim|task|ep)_(?:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[0-9a-f]{64})\b")
+_ID = re.compile(r"\b(?:evt|claim|task|ep|cap)_(?:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[0-9a-f]{64})\b")
 _IN = 400
 _KIND_OF_PREFIX = {"evt": "event", "claim": "claim", "task": "task", "ep": "episode"}
 _SHELL_FIELDS = (
@@ -230,6 +230,7 @@ class Closure:
     seed_records: set[tuple[str, str]] = field(default_factory=set)
     events: set[str] = field(default_factory=set)  # stored events released as forgotten
     spool_events: set[str] = field(default_factory=set)  # selected events still in the spool
+    capsules: set[str] = field(default_factory=set)  # capsules of released events (full profile, decision 0025): purged with them
     forgotten: set[tuple[str, str]] = field(default_factory=set)
     quarantined: dict[tuple[str, str], list[str]] = field(default_factory=dict)  # -> surviving root events
     heads: dict[tuple[str, str], int] = field(default_factory=dict)
@@ -246,15 +247,18 @@ class Closure:
 
     @property
     def targets(self) -> list[str]:
-        """Tombstone targets: every forgotten event (stored or spooled) and forgotten record."""
-        return sorted(self.events | self.spool_events | {rid for _k, rid in self.forgotten})
+        """Tombstone targets: every forgotten event (stored or spooled), its capsule, and forgotten record."""
+        return sorted(self.events | self.spool_events | self.capsules | {rid for _k, rid in self.forgotten})
 
     def digest(self, selector: Any, tombstone_epoch: int) -> str:
-        return digest_of({
+        data = {
             "selector": selector, "events": sorted(self.events), "forgotten": sorted([k, i] for k, i in self.forgotten),
             "quarantined": sorted([k, i, roots] for (k, i), roots in self.quarantined.items()), "heads": sorted([k, i, r] for (k, i), r in self.heads.items()),
             "backups": sorted(self.backups), "exports": sorted(self.exports), "tombstone_epoch": tombstone_epoch,
-        })
+        }
+        if self.capsules:
+            data["capsules"] = sorted(self.capsules)
+        return digest_of(data)
 
 
 def _events_of_sessions(q: Any, session_ids: Iterable[str]) -> list[tuple[str, int, int | None]]:
@@ -293,7 +297,13 @@ def _seeds(q: Any, ctx: InstallationContext, selector: ForgetSelector) -> tuple[
                 raise RecalithError("invalid_schema", "a selected record is not a record of this installation")
             found.add((ref.kind, ref.id))
         else:
-            raise RecalithError("invalid_schema", "capsules are full-release records; select their source events")
+            origin = capsules.origin_event(q, ref.id)
+            if origin is None:
+                profile = q.execute("SELECT release_profile FROM installation_meta WHERE singleton = 1").fetchone()[0]
+                if profile != "full":
+                    raise RecalithError("invalid_schema", "capsules are full-release records; select their source events")
+                raise RecalithError("invalid_schema", "a selected capsule is not a capsule of this installation")
+            events.add(origin)  # forgetting a capsule forgets the evidence it keeps: its origin event (decision 0025)
     for task_id in selector.task_ids:
         if records.head(q, "task", task_id) is None:
             raise RecalithError("invalid_schema", "a selected task is not a task of this installation")
@@ -378,12 +388,14 @@ def _surviving(q: Any, kind: str, record_id: str, revision: int, events: set[str
         candidates = set(json.loads(roots or "[]"))
         if target_kind == "event":
             candidates.add(target_id)
+        elif target_kind == "capsule" and (origin := capsules.origin_event(q, target_id)) is not None:
+            candidates.add(origin)
         elif (target_kind, target_id) not in records_ and target_kind in records.HEAD_TABLES:
             head = records.head(q, target_kind, target_id)
             record_alive = record_alive or (head is not None and head[1] not in PURGED)
         for event_id in candidates - events:
             row = q.execute("SELECT payload_state FROM events WHERE event_id = ?", (event_id,)).fetchone()
-            if row is not None and row[0] == "available":
+            if row is not None and row[0] in ("available", "capsule_only"):
                 alive.add(event_id)
     if alive or record_alive:
         return sorted(alive)
@@ -438,7 +450,8 @@ def compute_closure(q: Any, ctx: InstallationContext, seed_events: set[str], see
     for record in sorted(seed_records):
         add(record)
     for event_id in sorted(events | set(spool_events)):
-        for owner in sorted(by_target.get(("event", event_id), set()) | by_root.get(event_id, set())):
+        owners = by_target.get(("event", event_id), set()) | by_target.get(("capsule", capsules.capsule_id(event_id)), set()) | by_root.get(event_id, set())
+        for owner in sorted(owners):
             add(owner)
     while queue:
         record = queue.pop()
@@ -447,6 +460,7 @@ def compute_closure(q: Any, ctx: InstallationContext, seed_events: set[str], see
     record_ids = {rid for _k, rid in found}
     events |= _receipts_naming(q, record_ids)
     cl.events = events
+    cl.capsules = set(capsules.existing(q, events))
     for record in sorted(found):
         revision = records.head(q, *record)[0]
         cl.heads[record] = revision
@@ -639,7 +653,7 @@ def purge(txn: Txn, ctx: InstallationContext, cl: Closure, *, now: str) -> dict[
         _purge_record(txn, *record, "forgotten", now=now, backend=backend)
     for record in sorted(cl.quarantined):
         _purge_record(txn, *record, "quarantined", now=now, backend=backend)
-    ids = cl.record_ids | cl.events | cl.spool_events
+    ids = cl.record_ids | cl.events | cl.spool_events | cl.capsules
     cancelled = _cancel_jobs(txn, ids, cl.events | cl.spool_events)
     counts = _purge_bookkeeping(txn, ids, cl.events | cl.spool_events)
     _purge_projections(txn)

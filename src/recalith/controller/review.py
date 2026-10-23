@@ -144,8 +144,9 @@ def request_data(view: Any, ctx: InstallationContext, *, job_id: str, version: s
         if event_id not in event_ids:
             event_ids.append(event_id)
     loaded = sorted(requests.load_events(view, ctx, event_ids), key=lambda pair: pair[0])
+    kept = requests.load_capsules(view, ctx, event_ids)
     claims = [candidate_view(c) for c in candidates] + [c for c in cited_claims if c.claim_id not in {x.claim_id for x in candidates}]
-    allowed = [e.link.ref for e in batch.evidence_index] + [RecordRef(kind="event", id=e.event_id, revision=1) for _s, e in loaded]
+    allowed = [e.link.ref for e in batch.evidence_index] + [RecordRef(kind="event", id=e.event_id, revision=1) for _s, e in loaded] + requests.capsule_refs(kept)
     read_set = ReadSet(workspace_id=ctx.workspace_id, policy_revision=policy_revision, tombstone_epoch=tombstone_epoch)
     return {
         "request_schema": 1, "job_id": job_id, "purpose": "review_claims", "prompt_version": version, "instruction_text": instruction,
@@ -154,6 +155,7 @@ def request_data(view: Any, ctx: InstallationContext, *, job_id: str, version: s
         "boundaries": [], "allowed_evidence_refs": [r.model_dump(mode="json") for r in dict.fromkeys(allowed)],
         "read_set": read_set.model_dump(mode="json"), "output_schema": requests.output_schema("review_claims"),
         "review_batch": batch.model_dump(mode="json"), "limits": requests.limits_for("review_claims", timeout_seconds).model_dump(mode="json"),
+        **({"capsules": [c.model_dump(mode="json") for c in kept]} if kept else {}),
     }
 
 

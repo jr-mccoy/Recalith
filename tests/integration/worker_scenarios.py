@@ -280,7 +280,7 @@ def main(argv: list[str]) -> int:
         return 0
     import retention_scenarios as retention
 
-    retention_spec = retention.scenario(root)  # Task 15 core: backups, the day-181 retention step, bounded backup retention
+    retention_spec = retention.scenario(root)  # Task 15 core: backups, the day-181 retention step, bounded backup retention (+ capsules in full)
     if retention_spec is not None:
         if len(argv) > 3 and argv[3] == "count":
             hits_path = Path(argv[4])
@@ -289,7 +289,7 @@ def main(argv: list[str]) -> int:
                 with open(hits_path, "a", encoding="utf-8") as fh:
                     fh.write(f"{name} {retention.outstanding(root)}\n")
 
-            for name in (*failpoints.RETENTION, *failpoints.BACKUP):
+            for name in (*failpoints.RETENTION, *failpoints.BACKUP, *failpoints.CAPSULE, *failpoints.CHAIN):  # CAPSULE, CHAIN: full-profile stores only
                 failpoints.arm(name, record_retention_hit, times=10**6)
         elif len(argv) > 3:
             failpoints.arm(argv[3], failpoints.kill, skip=int(argv[4]))

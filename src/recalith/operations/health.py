@@ -75,7 +75,7 @@ LATEST_LEDGER = Path(".recalith") / "state" / "ledger.json"  # storage.backup.LA
 MAX_DEGRADED_CODES = 32
 DEFERRED_REASONS: dict[str, tuple[str, ...]] = {"revision_chain": ("revision_chain_unavailable_in_preview",)}
 # Deferred full-release features this engine builds: reported from their own state in a full store (decision 0024).
-BUILT_FULL_CAPABILITIES = frozenset({"revision_chain"})
+BUILT_FULL_CAPABILITIES = frozenset({"revision_chain", "capsules"})  # capsules: decision 0025
 GUARD_MARKERS = frozenset((*process_env.HOST_MARKERS, process_env.WORKER_MARKER, process_env.CURATOR_MARKER))
 
 
@@ -207,6 +207,9 @@ def _store_facts(ctx: InstallationContext, *, now: str, deep: bool) -> dict[str,
         out["retention"] = retention.summary(view, ctx, now=now, config=config.retention)
         out["last_sweep"] = retention.last_report(view)
         out["chain"] = integrity.chain_state(ctx, view)  # O(1) chain reads; verification is doctor's (decision 0024)
+        from recalith.privacy import capsules
+
+        out["capsules"] = capsules.stats(view)
         out["integrity"] = None
         if deep:
             out["integrity"] = view.execute("PRAGMA quick_check").fetchone()[0]
@@ -507,6 +510,7 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
         gaps.append("revision_chain_unavailable_in_preview")
     else:
         _chain_capability(caps["revision_chain"], facts.get("chain"), schema_state, gaps)
+        _capsule_capability(caps["capsules"], facts, schema_state)
 
     # ---------------------------------------------------------------- summaries
     retention_summary = facts.get("retention")
@@ -568,6 +572,22 @@ def _chain_capability(cap: _Cap, chain: dict[str, Any] | None, schema_state: str
         gaps.append(cap.reasons[0])
     elif chain["entries_since_checkpoint"]:
         gaps.append(f"revision_chain_unverified_entries:{chain['entries_since_checkpoint']}")
+
+
+def _capsule_capability(cap: _Cap, facts: dict[str, Any], schema_state: str) -> None:
+    """The full profile's exact capsules (decision 0025): counts and the last compaction, from the store; never required."""
+    stats = facts.get("capsules")
+    if stats is None:
+        cap.flag("unavailable", SCHEMA_REASON.get(schema_state, "store_unreadable"))
+        return
+    summary = facts.get("retention")
+    last = (facts.get("last_sweep") or {}).get("last_sweep") or {}
+    cap.coverage = {
+        "capsule_count": stats[0], "capsule_bytes": stats[1],
+        "deferred_compaction_count": summary.deferred_compaction_count if summary is not None else None,
+        "last_compaction": {"swept_at": (facts.get("last_sweep") or {}).get("swept_at"), "compacted_count": last.get("compacted_count", 0),
+                            "deferred": dict(last.get("compaction_deferred") or {}), "links_redirected": last.get("links_redirected", 0)},
+    }
 
 
 def _wall(now: str) -> float:

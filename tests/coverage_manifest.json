@@ -848,7 +848,8 @@
             "tests/integration/test_worker.py::test_typed_reduction_crash_matches_reference",
             "tests/integration/test_worker.py::test_worker_crash_at_job_boundaries_matches_reference",
             "tests/integration/test_worker.py::test_api_provider_path_crash_matches_reference",
-            "tests/integration/test_worker.py::test_full_profile_chain_crash_matches_reference"
+            "tests/integration/test_worker.py::test_full_profile_chain_crash_matches_reference",
+            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference"
           ],
           "platforms": [
             "linux",
@@ -856,7 +857,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies. Decision 0024: the full-profile chain matrix (failpoints.CHAIN + failpoints.WORKER) kills while a transaction's chain entry is pending or appended and at the worker boundaries; the restarted full store equals its reference and the chain is contiguous and verifies over every current row."
+          "notes": "Tasks 4+5: lease generations fence proposal persistence and the real apply_proposal transaction (groups, operation IDs, application record, store revision, job completion); a superseded or expired attempt applies nothing; a committed application returns its original result. The kill/restart matrix now runs real operations over real captured events at 7 worker failpoints (incl. proposal.before_commit and apply.after_group) and equals a reference run. Task 10 revision paths remain. Task 6: typed reduction and binding application run inside fenced transactions; a kill/restart matrix (9 failpoints incl. reduce.after_apply and binding.after_rebind, kills targeted at hits with reduction or the split outstanding) reopens to the reference state. Task 7: the provider-path matrix (7 worker + 2 provider failpoints, kills at hits with a model job unfinished) runs the production preparer, persisted review batch, reservation and a real bounded child; the restarted worker reaps a curator tree its killed predecessor left and the store equals the reference. Task 10: revalidation results are fenced by their lease; the revision kill/restart matrix (recheck/settle/ingest/review/worker failpoints) matches its reference. Task 12a adds the guarded service-write matrix (service.after_event, service.before_commit, service.after_commit, init.after_store, review.after_schedule). Task 15 core: the retention/backup matrix (failpoints.RETENTION + failpoints.BACKUP, kills only where work is owed judged from effects) reopens to the reference state. Task 16: the forget/restore kill/restart matrix. Decision 0023: the provider-path kill/restart matrix (failpoints.WORKER + failpoints.PROVIDER) also runs through the direct-API backend against a loopback fake Chat Completions provider; at provider.after_spawn the spawn record must exist before the worker dies. Decision 0024: the full-profile chain matrix (failpoints.CHAIN + failpoints.WORKER) kills while a transaction's chain entry is pending or appended and at the worker boundaries; the restarted full store equals its reference and the chain is contiguous and verifies over every current row. Task 15 full capsule slice (decision 0025): the full-profile capsule kill/restart matrix (capsule.after_plan/before_commit/after_commit, the retention failpoints and the chain seals, kills where work is owed judged from effects) never leaves a pinned payload gone, a claim changed or live evidence unresolvable, the chain verifies after the kill, and the re-run equals the reference."
         }
       ]
     },
@@ -1460,8 +1461,17 @@
             "full"
           ],
           "description": "Exact capsule compaction/redirects, retaining pins on insufficient preservation",
-          "status": "pending",
-          "tests": [],
+          "status": "in_progress",
+          "tests": [
+            "tests/integration/test_retention.py::test_expiry_preserves_required_capsule",
+            "tests/integration/test_capsules.py::test_expiry_preserves_required_capsule_and_retains_insufficient_pins",
+            "tests/integration/test_capsules.py::test_insufficient_capsule_keeps_pin_and_never_weakens_evidence",
+            "tests/integration/test_capsules.py::test_compaction_is_not_new_support_and_keeps_admission",
+            "tests/integration/test_capsules.py::test_released_capsule_expires_and_its_links_revert",
+            "tests/integration/test_capsules.py::test_preview_keeps_180_day_pins_and_reports_capsules_unavailable",
+            "tests/integration/test_capsules.py::test_full_health_reports_capsules",
+            "tests/integration/test_worker.py::test_full_profile_capsule_crash_matches_reference"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -1469,7 +1479,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 15 full capsule slice (decision 0025): at day 31 (30-day full window) unpinned payloads expire and pinned ones a capsule keeps exactly (located quotes, whole statements, typed exit-code mappings, identity-only roots) become capsule-only with their claim links redirected; payloads needed by unfinished work or open working context, non-root (walked) events, unlocated tool-result citations and an unresolvable locator keep their pins, each with a reported reason (sweep report, RetentionSummary.deferred_compaction_count, full health `capsules`); retention alone lowers nothing: every admission gate, strength, classes and last_supported_at are unchanged and a capsule never adds a root; a released capsule-only event expires with its capsule and its links revert; the full-profile kill/restart matrix (CAPSULE, RETENTION, CHAIN) reproduces the reference with evidence resolvable and the chain verifying. Preview keeps its 180-day pins and reports capsules unavailable. Not passed: the full profile is not reachable in a real installation yet (Task 17 transition)."
         }
       ]
     },
@@ -1500,7 +1511,8 @@
             "tests/integration/test_forgetting.py::test_new_independent_statement_is_allowed",
             "tests/integration/test_forgetting.py::test_old_job_cannot_resurrect_forgotten_source",
             "tests/integration/test_forgetting.py::test_source_range_selects_by_capture_ordinal_and_spool",
-            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference"
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference",
+            "tests/integration/test_capsules.py::test_forget_reaches_capsules_and_restore_does_not_resurrect"
           ],
           "platforms": [
             "linux",
@@ -1508,7 +1520,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): the task's text (claims direct, multi-root and record-transitive, an episode, task revisions, proposal and operation bodies, views, the lexical index and FTS shadow tables, scratch, receipts, a spooled prompt, an older backup) is purged or content-free quarantined in one transaction through the real guarded CLI; a marker search over every table, file and retained backup finds nothing; jobs over forgotten input are cancelled, a late proposal is fenced or kept body-less, known source replay and an old spool segment are suppressed; persisted phases resume before delivery; the kill/restart matrix (failpoints.FORGET + RESTORE) converges with no forgotten text after the purge commit. Live certification not claimed."
+          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): the task's text (claims direct, multi-root and record-transitive, an episode, task revisions, proposal and operation bodies, views, the lexical index and FTS shadow tables, scratch, receipts, a spooled prompt, an older backup) is purged or content-free quarantined in one transaction through the real guarded CLI; a marker search over every table, file and retained backup finds nothing; jobs over forgotten input are cancelled, a late proposal is fenced or kept body-less, known source replay and an old spool segment are suppressed; persisted phases resume before delivery; the kill/restart matrix (failpoints.FORGET + RESTORE) converges with no forgotten text after the purge commit. Live certification not claimed. Task 15 full capsule slice (decision 0025): forgetting a capsule's source (or selecting the capsule) purges the capsule with the event, names both in content-free tombstones, deletes the recorded backup that held it, and the suppression-aware restore of an operator's external copy taken after compaction purges the capsule before the swap: its text is nowhere in the store."
         }
       ]
     },
@@ -1539,7 +1551,8 @@
             "tests/integration/test_restore.py::test_restore_requires_exclusive_maintenance",
             "tests/integration/test_restore.py::test_restore_uses_the_latest_ledger_copy_when_the_store_is_lost",
             "tests/integration/test_restore.py::test_suppression_happens_before_the_restored_store_is_served",
-            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference"
+            "tests/integration/test_worker.py::test_forget_restore_crash_matches_reference",
+            "tests/integration/test_capsules.py::test_forget_reaches_capsules_and_restore_does_not_resurrect"
           ],
           "platforms": [
             "linux",
@@ -1547,7 +1560,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): restore of an operator's external copy of a pre-forget backup through the real guarded CLI applies every newer tombstone (live store, latest ledger copy) in memory before anything is written or served; the staged store holds no forgotten text at the swap; an interrupted restore is finished or discarded before the worker opens the store; affected recorded backups follow the deletion policy; the external copy itself is a reported limit."
+          "notes": "Task 15 core lays the backup parts this case builds on (decision 0016): every backup carries its snapshot's tombstone ledger, the latest ledger copy (.recalith/state/ledger.json) follows the store's epoch, restore verifies first, and release_payloads is the pin override forgetting calls (tests/integration/test_retention.py::test_backup_contains_current_ledger, ::test_forget_overrides_pin). Not claimed: forgetting and suppression-aware restore are Task 16. Task 16 (decision 0017): restore of an operator's external copy of a pre-forget backup through the real guarded CLI applies every newer tombstone (live store, latest ledger copy) in memory before anything is written or served; the staged store holds no forgotten text at the swap; an interrupted restore is finished or discarded before the worker opens the store; affected recorded backups follow the deletion policy; the external copy itself is a reported limit. Task 15 full capsule slice (decision 0025): forgetting a capsule's source (or selecting the capsule) purges the capsule with the event, names both in content-free tombstones, deletes the recorded backup that held it, and the suppression-aware restore of an operator's external copy taken after compaction purges the capsule before the swap: its text is nowhere in the store."
         }
       ]
     },
@@ -1671,7 +1684,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed."
+          "notes": "Task 17: the full-only tests exist as explicit pending skips (A02/A40) or as preview checks of the explicit unavailable result (A46: MCP/Codex never claim capture, delivery or readiness); never passed. Task 15 full capsule slice (decision 0025): failed capsule sufficiency retaining the pin is built and tested under A35 full; the transition's capsule/link preparation and its failure boundaries remain Task 17 full."
         }
       ]
     },
@@ -2302,7 +2315,13 @@
           ],
           "description": "Complete case (transfer/capsule/MCP component)",
           "status": "pending",
-          "tests": [],
+          "tests": [
+            "tests/integration/test_capsules.py::test_a55_quote_at_offset_900_with_unicode_survives_source_expiry",
+            "tests/integration/test_capsules.py::test_compaction_commits_atomically_with_one_purge_entry",
+            "tests/integration/test_capsules.py::test_resolver_dispatches_by_record_ref_kind",
+            "tests/integration/test_capsules.py::test_backup_and_restore_preserve_capsules",
+            "tests/integration/test_capsules.py::test_model_requests_carry_capsule_only_evidence"
+          ],
           "preview_status": "unavailable",
           "unavailable_reason": "deferred_full_release",
           "platforms": [
@@ -2310,7 +2329,8 @@
             "macos",
             "windows"
           ],
-          "requires_live_host": false
+          "requires_live_host": false,
+          "notes": "Task 15 full capsule slice (decision 0025): a synthetic prompt (real capture path) with two-byte, three-byte and astral characters before and inside a quote at code points 900–953; after day 31 in a full-profile store the payload is capsule-only and the capsule span returns the exact original substring by its original locator and digest, with at most 160 code points of context; resolving by the event ref or the capsule ref gives the same text and old offsets applied to any capsule text give something else; capsule insertion, link redirection and payload removal are one transaction (an exception before commit leaves all three undone; one purge chain entry names the capsule, link and event rows); backups carry the capsules and restore keeps them exact; a later model request carries the span. Stays pending (a preview-excluded case is pending or unavailable until the full profile is reachable): full-profile stores are reachable only through the provisioning function in tests (init --release-profile full stays refused and the preview-to-full transition, Task 17 full, is not built)."
         }
       ]
     },

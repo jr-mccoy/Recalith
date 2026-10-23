@@ -77,6 +77,7 @@ from recalith.contracts.operations import (
 from recalith.core import lineage, policy, regions
 from recalith.core.paths import PathPolicy
 from recalith.errors import RecalithError
+from recalith.privacy import capsules
 from recalith.storage import records
 from recalith.storage.db import Store, open_store
 from recalith.working import bindings
@@ -227,8 +228,11 @@ def check_link(q: Any, link: EvidenceLink) -> str | None:
         row = q.execute("SELECT envelope, payload, payload_state FROM events WHERE event_id = ?", (ref.id,)).fetchone()
         if row is None or ref.revision != 1:
             return "evidence_missing"
-        if row[2] != "available" or row[1] is None:
+        capsule = capsules.for_event(q, ref.id) if row[2] == "capsule_only" else None
+        if capsule is None and (row[2] != "available" or row[1] is None):
             return "evidence_unavailable"
+        if capsule is not None and not capsules.covers(capsule, link.locator, link.mapping):
+            return "evidence_unavailable"  # the capsule keeps exactly what its owners cited, nothing else (decision 0025)
         envelope = json.loads(row[0])
         if envelope.get("authority") == "derived" and envelope.get("kind") in MEMORY_KINDS:
             allowed: set[str] = set()  # delivery telemetry is never a support root
@@ -238,10 +242,16 @@ def check_link(q: Any, link: EvidenceLink) -> str | None:
             allowed = {ref.id}
         if not set(roots_needed) <= allowed:
             return "root_mismatch"  # a proposal cannot invent or reassign evidence-root identity
-        if not _quote_ok(json.loads(row[1]), link):
-            return "quote_mismatch"
+        if capsule is None and not _quote_ok(json.loads(row[1]), link):
+            return "quote_mismatch"  # a capsule's coverage is by exact original locator and digest
     elif ref.kind == "capsule":
-        return "evidence_missing"  # capsules are a full-release feature; none exist in preview
+        capsule = capsules.load(q, ref.id)
+        if capsule is None or ref.revision != 1:
+            return "evidence_missing"
+        if not capsules.covers(capsule, link.locator, link.mapping):
+            return "evidence_unavailable"
+        if not set(roots_needed) <= {capsules.origin_of(capsule)}:
+            return "root_mismatch"  # a capsule is never a root: only its origin event may be named
     else:
         if not records.revision_exists(q, ref.kind, ref.id, ref.revision):
             return "evidence_missing"
@@ -278,9 +288,33 @@ def check_scope(q: Any, scope: Scope) -> str | None:
 # Semantic gates (Task 9, decision 0011)
 
 
-def _stored_event(q: Any, event_id: str) -> tuple[EventEnvelope, dict[str, Any], int] | None:
-    """The stored envelope (with its payload) and commit sequence; None when absent or unavailable."""
+@dataclass(frozen=True)
+class _StoredEnvelope:
+    """The envelope fields the typed gates read, for a capsule-only event (its stored metadata; no payload)."""
+
+    event_id: str
+    workspace_id: str
+    kind: str
+    channel: str
+    authority: str
+    derived_from: list[Any]
+
+
+def _stored_event(q: Any, event_id: str, *, typed: bool = False) -> tuple[Any, dict[str, Any], int] | None:
+    """The stored envelope (with its payload) and commit sequence; None when absent or unavailable.
+
+    ``typed``: a capsule-only event gives its preserved typed fields instead
+    (decision 0025), for the gates that read only those (the mappings and the
+    failure derivation); never its text.
+    """
     row = q.execute("SELECT envelope, payload, payload_state, commit_sequence FROM events WHERE event_id = ?", (event_id,)).fetchone()
+    if row is not None and typed and row[2] == "capsule_only":
+        capsule = capsules.for_event(q, event_id)
+        if capsule is None or not isinstance(capsule.preserved_observation.get("tool"), dict):
+            return None
+        env = json.loads(row[0])
+        view = _StoredEnvelope(env["event_id"], env["workspace_id"], env["kind"], env["channel"], env["authority"], list(env.get("derived_from") or []))
+        return view, capsules.typed_payload(capsule), int(row[3])
     if row is None or row[2] != "available" or row[1] is None:
         return None
     payload = json.loads(row[1])
@@ -289,7 +323,7 @@ def _stored_event(q: Any, event_id: str) -> tuple[EventEnvelope, dict[str, Any],
     return EventEnvelope.model_validate(body), payload, int(row[3])
 
 
-def _certified_result(env: EventEnvelope, payload: dict[str, Any]) -> bool:
+def _certified_result(env: Any, payload: dict[str, Any]) -> bool:
     """A finished tool result under certified host authority (never derived or forwarded)."""
     return (
         env.kind == "tool_finished" and env.channel == "tool" and env.authority == "observed_tool" and not env.derived_from
@@ -342,9 +376,10 @@ def check_mapping(q: Any, link: EvidenceLink) -> tuple[str | None, str | None]:
         return "mapping_unregistered", None
     if MAPPINGS[mapping] is None:
         return "mapping_parser_unregistered", None  # config.exact_value: no registered config parser in this build
-    if link.ref.kind != "event":
+    event_id = lineage.cited_event(q, link)
+    if event_id is None:
         return "mapping_requires_tool_result", None
-    stored = _stored_event(q, link.ref.id)
+    stored = _stored_event(q, event_id, typed=True)
     if stored is None or not _certified_result(stored[0], stored[1]):
         return "mapping_requires_tool_result", None
     payload = stored[1]
@@ -395,21 +430,54 @@ def observed_refusal(q: Any, *, kind: str, proposition: str, supports: Sequence[
     return None
 
 
-DECLARATION_FIELDS = {"user_message": "text", "operator_declaration": "statement", "operator_correction": "statement"}
+DECLARATION_FIELDS = capsules.DECLARATION_FIELDS
 
 
 def user_channel_link(q: Any, link: EvidenceLink) -> bool:
-    if link.ref.kind != "event":
+    event_id = lineage.cited_event(q, link)
+    if event_id is None:
         return False
-    row = q.execute("SELECT channel FROM events WHERE event_id = ?", (link.ref.id,)).fetchone()
+    row = q.execute("SELECT channel FROM events WHERE event_id = ?", (event_id,)).fetchone()
     return row is not None and row[0] == "user"
+
+
+def _capsule_declaration_refusal(q: Any, link: EvidenceLink, event_id: str) -> str | None:
+    """The declaration check repeated on a capsule (decision 0025): the same rules over the preserved span, regions and parts."""
+    capsule = capsules.for_event(q, event_id)
+    member = lineage.member(q, event_id)
+    row = q.execute("SELECT envelope FROM events WHERE event_id = ?", (event_id,)).fetchone()
+    statement = capsule.preserved_observation.get("statement") if capsule is not None else None
+    if capsule is None or member is None or member.observation_kind != "user_declaration" or not isinstance(statement, dict) or row is None:
+        return "declaration_requires_user_evidence"
+    env = json.loads(row[0])
+    name = DECLARATION_FIELDS.get(env.get("kind"))
+    if name is None or statement.get("field") != name:
+        return "declaration_requires_user_evidence"
+    coverage = env.get("coverage") or {}
+    if coverage.get("truncated") or coverage.get("missing_context") or statement.get("text_part_count", 1) != 1:
+        return "declaration_coverage_incomplete"
+    if link.locator is not None and link.locator.field != name:
+        return "declaration_field_invalid"
+    span = capsules.whole_statement(capsule) if link.locator is None else capsules.find_span(capsule, link.locator)
+    if span is None:
+        return "declaration_requires_user_evidence"  # the capsule does not keep this span: nothing to check it against
+    start, end = span.original_locator.start, span.original_locator.end
+    if not span.text.strip():
+        return "declaration_span_empty"
+    if any(a < end and start < b for a, b in statement.get("regions") or []):
+        return "declaration_in_nondeclaration_region"
+    return None
 
 
 def declaration_refusal(q: Any, link: EvidenceLink) -> str | None:
     """A direct user statement, complete, whose cited span lies outside every nondeclaration region."""
-    if link.ref.kind != "event":
+    event_id = lineage.cited_event(q, link)
+    if event_id is None:
         return "declaration_requires_user_evidence"
-    stored = _stored_event(q, link.ref.id)
+    state = q.execute("SELECT payload_state FROM events WHERE event_id = ?", (event_id,)).fetchone()
+    if state is not None and state[0] == "capsule_only":
+        return _capsule_declaration_refusal(q, link, event_id)
+    stored = _stored_event(q, event_id)
     if stored is None:
         return "declaration_requires_user_evidence"
     env, payload, _seq = stored
@@ -454,9 +522,10 @@ def derive_failure(q: Any, supports: Sequence[EvidenceLink]) -> tuple[str | None
 
     latest: tuple[int, EventEnvelope, dict[str, Any]] | None = None
     for link in supports:
-        if link.ref.kind != "event":
+        event_id = lineage.cited_event(q, link)
+        if event_id is None:
             continue
-        stored = _stored_event(q, link.ref.id)
+        stored = _stored_event(q, event_id, typed=True)
         if stored is None:
             continue
         env, payload, seq = stored

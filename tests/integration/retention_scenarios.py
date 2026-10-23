@@ -66,7 +66,21 @@ PROPS = {
     "forwarded": "The subagent echoed its marker.",
     "intermediary": "test_pass passes with output capture off.",
     "transitive": "The passing fixture test prints its output.",
+    "quote": "The Unicode fixture note is kept at offset nine hundred.",
+    "located": "The Edit updated the fixture file.",
+    "observed": "`pytest -q test_mid.py` exited with code 1.",
 }
+
+# A55 (synthetic prompt text, real capture path): 900 code points with non-ASCII text (two-byte, three-byte and
+# astral characters) before the quoted span, more inside it, and text after it.
+A55_LEAD = "Fixture café notes: façade naïve Ωmega — 漢字かな 🙂 ß; "
+A55_QUOTE = "Keep the Ünïcode fixture 🙂 note at offset 九百 exactly."
+A55_TAIL = " The rest of this note — 🙂 — is ordinary context after the quoted span."
+
+
+def a55_text() -> str:
+    lead = (A55_LEAD * (900 // len(A55_LEAD) + 1))[:900]
+    return lead + A55_QUOTE + A55_TAIL
 
 
 @dataclass
@@ -170,7 +184,42 @@ def subagent_results(p: wks.Project) -> list[str]:
     return out
 
 
-def build(tmp: Path, name: str = "retention", *, open_work: bool = True) -> Built:
+def located_fact(p: wks.Project, proposition: str, link: dict[str, Any], *, subject: str, basis: str = "inferred", admit: bool = True) -> str:
+    """A fact whose one support link is ``link`` (e.g. a located quote), extracted and admitted through the real paths."""
+    claim_id = adm.created_claim(adm.extract(p, [osc.op("q", "propose_claim", adm.claim(proposition, subject=subject, basis=basis), evidence=[link])]))
+    if admit and basis != "observed":
+        adm.admit(p, claim_id)
+    return claim_id
+
+
+def capsule_owners(b: Built) -> None:
+    """Live owners whose evidence a full-profile capsule can keep exactly (located, whole-statement and typed references).
+
+    A55: an inferred fact quoting the synthetic prompt at code points 900–… ;
+    a fact quoting a nonzero offset of the real ``Edit`` result; an
+    observed fact mapping a rerun of the real failing ``pytest -q test_mid.py``
+    (synthetic variant: new tool-use ID) through ``tool.exit_code``, followed by
+    a passing rerun of the same command (the real passing result, a synthetic
+    variant) that resolves its failure trigger. The
+    declaration (whole ``text``) and the typed declaration come from :func:`build`.
+    """
+    p, ev, c = b.p, b.events, b.claims
+    said = adm.prompt(p, a55_text())
+    assert said["payload"]["text"][900 : 900 + len(A55_QUOTE)] == A55_QUOTE
+    ev["quote"] = said["id"]
+    c["quote"] = located_fact(p, PROPS["quote"], adm.link(said, field="text", start=900, end=900 + len(A55_QUOTE)), subject="unicode")
+    edit = p.event("tool_finished", call="toolu_probe_0010")
+    text = edit["payload"]["result_text"]
+    assert len(text) > 6
+    c["located"] = located_fact(p, PROPS["located"], adm.link(edit, field="result_text", start=2, end=len(text) - 1), subject="edit")
+    rerun = adm.call(p, cs.MID, "obs")
+    ev["observed"] = rerun["id"]
+    ev["fixed"] = adm.call(p, cs.MID, "fixed", outcome_of=cs.PASS)["id"]  # the same command passing: the real debounce resolves its trigger
+    c["observed"] = located_fact(p, PROPS["observed"], adm.link(rerun, mapping="tool.exit_code"), subject="obs", basis="observed")
+    osc.cancel_trigger_extractions(p.root)
+
+
+def build(tmp: Path, name: str = "retention", *, open_work: bool = True, capsules: bool = False) -> Built:
     """Every kind of live owner A35 names, over real payloads; both host sessions' tasks completed (no task pins).
 
     Owners: an active failure lesson, fact, declaration and operator typed
@@ -216,6 +265,8 @@ def build(tmp: Path, name: str = "retention", *, open_work: bool = True) -> Buil
     c["transitive"] = record_claim(p, PROPS["transitive"], "claim", c["intermediary"], [], subject="output")  # no named roots: only the record chain pins
     status_change(p, c["intermediary"], "archived")
     osc.cancel_trigger_extractions(p.root)
+    if capsules:
+        capsule_owners(b)
     b.tasks["lifecycle"] = complete(p, wks.LIFECYCLE_SESSION, COMPLETE)
     b.tasks["subagent"] = complete(p, ls.SUBAGENT_SESSION, SUBAGENT_DONE)
     ev["complete"] = p.event("user_message", text=COMPLETE)["id"]
@@ -372,12 +423,17 @@ def forge_schema(source: Path, target: Path, version: int) -> str:
 # a backup at day 181 (``new``). After a kill the operator re-runs the commands
 # that did not complete (a backup is complete once a ``backups`` row names its
 # output) and the worker drains again.
+#
+# Full-profile variant (``capsules=True`` in a ``release_profile: full`` store,
+# decision 0025): the capsule owners of :func:`capsule_owners` too, and the
+# day-181 retention step also compacts the pinned payloads a capsule keeps
+# exactly; a payload the reference compacted still available is owed work.
 
 SCENARIO = "retention.json"
 
 
-def crash_project(tmp: Path, name: str) -> Path:
-    b = build(tmp, name, open_work=False)
+def crash_project(tmp: Path, name: str, *, capsules: bool = False) -> Path:
+    b = build(tmp, name, open_work=False, capsules=capsules)
     p = b.p
     tombstone(p, [b.claims["candidate"]])
     clock = day(p, 181)
@@ -396,11 +452,12 @@ def scenario(root: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
-def expect(root: Path, expired_keys: list[str], derived: dict[str, int] | None = None) -> None:
+def expect(root: Path, expired_keys: list[str], derived: dict[str, int] | None = None, capsule_keys: list[str] | None = None) -> None:
     spec = scenario(root)
     assert spec is not None
     spec["expect_expired"] = sorted(expired_keys)
     spec["expect_derived"] = derived
+    spec["expect_capsules"] = sorted(capsule_keys or [])
     (root / SCENARIO).write_text(json.dumps(spec), encoding="utf-8")
 
 
@@ -504,6 +561,7 @@ def outstanding(root: Path) -> str:
         return "1"
     old, new = Path(spec["old"]["output"]), Path(spec["new"]["output"])
     owed = any(states.get(k) == "available" for k in expected)
+    owed = owed or any(states.get(k) == "available" for k in spec.get("expect_capsules") or [])  # a compaction still owed
     owed = owed or rows.get(str(old)) != "deleted" or old.exists()
     owed = owed or rows.get(str(new)) != "verified" or not _independently_verified(new)
     owed = owed or bool(_partials(spec))
@@ -533,6 +591,7 @@ def retention_state(root: Path) -> dict[str, Any]:
         rows = sorted((roles.get(loc, "other"), state, epoch) for loc, state, epoch in view.execute("SELECT location, state, tombstone_epoch FROM backups").fetchall())
         audits = view.execute("SELECT COUNT(*) FROM operations WHERE kind IN ('retention_expiry', 'retention_record_aging')").fetchone()[0]
         epochs = view.execute("SELECT tombstone_epoch FROM installation_meta").fetchone()
+        kept = capsule_view(view)
     old, new = Path(spec["old"]["output"]), Path(spec["new"]["output"])
     ledger = json.loads((root / ".recalith" / "state" / "ledger.json").read_text(encoding="utf-8")) if (root / ".recalith" / "state" / "ledger.json").exists() else None
     new_ledger = json.loads((new / "ledger.json").read_text(encoding="utf-8")) if (new / "ledger.json").exists() else None
@@ -543,7 +602,7 @@ def retention_state(root: Path) -> dict[str, Any]:
     finally:
         conn.close()
     return {
-        "payloads": states, "claims": sorted(claims), "backups": rows, "audits": audits, "derived": derived,
+        "payloads": states, "claims": sorted(claims), "backups": rows, "audits": audits, "derived": derived, **kept,
         "files": {"old": old.exists(), "new": _independently_verified(new), "partials": len(_partials(spec))},
         "ledger": None if ledger is None else (ledger["tombstone_epoch"], len(ledger["tombstones"])), "tombstone_epoch": epochs[0],
         "new_backup": None if new_ledger is None else (new_ledger["tombstone_epoch"], len(new_ledger["tombstones"]), snapshot_states),
@@ -558,7 +617,7 @@ def kill_invariants(root: Path, reference: dict[str, Any]) -> list[str]:
         out = Path(spec[key]["output"])
         if out.exists() and not _independently_verified(out):
             problems.append(f"{key}_output_does_not_verify")
-    kept = {k for k, state, _null in reference["payloads"] if state == "available"}
+    kept = {k for k, state, _null in reference["payloads"] if state in ("available", "capsule_only")}
     ctx = osc.context(root)
     with db.open_store(ctx, readonly=True) as store, store.read() as view:
         now = dict(view.execute("SELECT source_event_key, payload_state FROM events").fetchall())
@@ -566,10 +625,45 @@ def kill_invariants(root: Path, reference: dict[str, Any]) -> list[str]:
         for claim_id, revision, status in view.execute("SELECT claim_id, revision, status FROM claim_heads").fetchall():
             body = records.body(view, "claim", claim_id, revision)
             claims.append((body["proposition"], status, body["strength"], body["freshness"], body["evidence_availability"]))
-    if any(now.get(k) != "available" for k in kept):
+        resolvable = evidence_resolvable(view)
+    if any(now.get(k) not in ("available", "capsule_only") for k in kept):
         problems.append("pinned_payload_expired")
     if sorted(claims) != reference["claims"]:
         problems.append("claims_changed")
+    if not all(ok for _p, ok in resolvable):
+        problems.append("live_evidence_unresolvable")
     return problems
+
+
+def capsule_view(view: Any) -> dict[str, Any]:
+    """Capsules and redirected links in installation-independent terms (origin source keys, locators, exact span texts),
+    every live claim's evidence resolvability, and the capsule audits."""
+    from recalith.contracts.common import digest_of
+    from recalith.contracts.memory import EvidenceCapsule
+
+    keys = dict(view.execute("SELECT event_id, source_event_key FROM events").fetchall())
+    out = []
+    for (body,) in view.execute("SELECT body FROM evidence_capsules").fetchall():
+        data = json.loads(body)
+        capsule = EvidenceCapsule.model_validate(data)
+        sealed = digest_of({k: v for k, v in data.items() if k != "content_digest"}) == capsule.content_digest  # recomputed here, not trusted
+        spans = sorted((s.original_locator.field, s.original_locator.start, s.original_locator.end, s.text_digest, s.text) for s in capsule.spans)
+        out.append((keys[capsule.preserved_observation["event_id"]], sealed, json.dumps(spans, ensure_ascii=False)))
+    redirected = view.execute("SELECT COUNT(*) FROM evidence_links WHERE target_kind = 'capsule'").fetchone()[0]
+    audits = view.execute("SELECT COUNT(*) FROM operations WHERE kind = 'retention_capsule'").fetchone()[0]
+    return {"capsules": sorted(out), "redirected_links": redirected, "capsule_audits": audits, "evidence": evidence_resolvable(view)}
+
+
+def evidence_resolvable(view: Any) -> list[tuple[str, bool]]:
+    """(proposition, every support link's chain available) for every live claim head."""
+    from recalith.contracts.common import EvidenceLink
+    from recalith.core import lineage
+
+    out = []
+    for claim_id, revision in view.execute("SELECT claim_id, revision FROM claim_heads WHERE status IN ('candidate', 'active', 'disputed')").fetchall():
+        body = records.body(view, "claim", claim_id, revision)
+        links = [EvidenceLink.model_validate(i) for i in body.get("supports") or []]
+        out.append((body["proposition"], all(lineage.chain_available(view, link) for link in links)))
+    return sorted(out)
 
 __all__ = ["Built", "build", "plus", "day", "newest"]

@@ -3,7 +3,7 @@
 Production code calls :func:`hit` at named points around spool temp write,
 flush, rename, cursor advance, database begin/commit, job lease, budget
 reservation, proposal persistence, job completion, retention expiry,
-backup completion, forgetting, restore, the revision chain and host integration. Nothing is armed
+backup completion, forgetting, restore, the revision chain, evidence capsules and host integration. Nothing is armed
 unless a test calls :func:`arm` in its own process; there is no environment
 variable, flag or configuration that arms a failpoint, so this is not a
 switch an agent or operator can flip.
@@ -166,6 +166,12 @@ RESTORE_AFTER_SWAP = "restore.after_swap"
 # appended (the commit pending).
 CHAIN_BEFORE_SEAL = "chain.before_seal"
 CHAIN_AFTER_SEAL = "chain.after_seal"
+# Exact evidence capsules (Task 15 full capsule slice, decision 0025; full-profile stores only): the
+# retention sweep chose the payloads to compact (nothing written); inside the compaction transaction with
+# capsules written, links redirected and payloads removed (the commit pending); after its commit.
+CAPSULE_AFTER_PLAN = "capsule.after_plan"
+CAPSULE_BEFORE_COMMIT = "capsule.before_commit"
+CAPSULE_AFTER_COMMIT = "capsule.after_commit"
 INTEGRATE_AFTER_RECORD = "integrate.after_record"
 INTEGRATE_AFTER_SETTINGS = "integrate.after_settings"
 INTEGRATE_AFTER_IGNORE = "integrate.after_ignore"
@@ -193,8 +199,9 @@ BACKUP = (BACKUP_AFTER_SNAPSHOT, BACKUP_AFTER_MANIFEST, BACKUP_AFTER_PUBLISH, BA
 FORGET = (FORGET_AFTER_MARKER, FORGET_BEFORE_COMMIT, FORGET_AFTER_COMMIT, FORGET_AFTER_FILES, FORGET_AFTER_LEDGER, FORGET_AFTER_BACKUP, FORGET_AFTER_DELETE, FORGET_AFTER_RECONSTRUCT)
 RESTORE = (RESTORE_AFTER_STAGE, RESTORE_BEFORE_COMMIT, RESTORE_BEFORE_SWAP, RESTORE_AFTER_SWAP)
 CHAIN = (CHAIN_BEFORE_SEAL, CHAIN_AFTER_SEAL)
+CAPSULE = (CAPSULE_AFTER_PLAN, CAPSULE_BEFORE_COMMIT, CAPSULE_AFTER_COMMIT)
 INTEGRATION = (INTEGRATE_AFTER_RECORD, INTEGRATE_AFTER_SETTINGS, INTEGRATE_AFTER_IGNORE, INTEGRATE_AFTER_MANIFEST, REMOVE_AFTER_SETTINGS, REMOVE_AFTER_MANIFEST, REMOVE_AFTER_IGNORE)
-ALL = CAPTURE + WORKER + CHECKPOINT + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE + CHAIN + INTEGRATION
+ALL = CAPTURE + WORKER + CHECKPOINT + SERVICE + REDUCTION + PROVIDER + LINEAGE + ADMISSION + REVISION + RETRIEVAL + DELIVERY + RETENTION + BACKUP + FORGET + RESTORE + CHAIN + CAPSULE + INTEGRATION
 KILL_STATUS = 137
 
 if False:  # annotations only: importing typing costs hook startup time (SYSTEM_SPEC §5.1.1)

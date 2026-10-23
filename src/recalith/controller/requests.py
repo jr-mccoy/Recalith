@@ -58,7 +58,7 @@ from recalith.contracts.common import EvidenceLink, InstallationContext, ReadSet
 from recalith.contracts.config import MODEL_INPUT_CAP, PURPOSE_OUTPUT_ALLOWANCE, STDERR_CAP, WIRE_STDOUT_CAP, body_cap_for, estimate_tokens
 from recalith.contracts.events import EventEnvelope
 from recalith.contracts.jobs import Job
-from recalith.contracts.memory import ClaimRevision, Episode, ReviewBatch, TaskState
+from recalith.contracts.memory import ClaimRevision, Episode, EvidenceCapsule, ReviewBatch, TaskState
 from recalith.contracts.operations import PAYLOAD_MODELS, PURPOSE_KINDS, BoundaryContext, ModelRequest, ModelResponse, RequestEvidencePayload, RequestLimits
 from recalith.controller import jobs
 from recalith import prompts
@@ -176,6 +176,33 @@ def load_events(view: Any, ctx: InstallationContext, event_ids: Iterable[str]) -
         envelope = repository.event_from_row(row[:3])
         if envelope is not None:  # an expired or forgotten payload is not resent
             out.append((row[3], envelope))
+    return out
+
+
+def load_capsules(view: Any, ctx: InstallationContext, event_ids: Iterable[str]) -> list[EvidenceCapsule]:
+    """The capsules of the selected capsule-only events of this workspace (decision 0025): their kept spans, never a payload."""
+    from recalith.privacy import capsules
+
+    out = []
+    seen = set()
+    for event_id in event_ids:
+        if event_id in seen:
+            continue
+        seen.add(event_id)
+        row = view.execute("SELECT payload_state, workspace_id FROM events WHERE event_id = ?", (event_id,)).fetchone()
+        if row is None or row[0] != "capsule_only" or row[1] != ctx.workspace_id:
+            continue
+        capsule = capsules.for_event(view, event_id)
+        if capsule is not None:
+            out.append(capsule)
+    return out
+
+
+def capsule_refs(kept: Sequence[EvidenceCapsule]) -> list[RecordRef]:
+    """What a proposal may cite for kept capsules: the origin events (resolved through their capsules) and the capsules."""
+    out: list[RecordRef] = []
+    for capsule in kept:
+        out += [RecordRef(kind="event", id=capsule.preserved_observation["event_id"], revision=1), RecordRef(kind="capsule", id=capsule.capsule_id, revision=1)]
     return out
 
 
@@ -408,6 +435,7 @@ def limits_for(purpose: str, timeout_seconds: int) -> RequestLimits:
 def _assemble(view: Any, ctx: InstallationContext, job: Job, sel: Selection, *, instruction: str, timeout_seconds: int) -> ModelRequest:
     policy_revision, tombstone_epoch = view_meta(view)
     loaded = load_events(view, ctx, sel.events)
+    kept = load_capsules(view, ctx, sel.events)
     order = {event_id: i for i, event_id in enumerate(sel.events)}
     loaded.sort(key=lambda pair: order[pair[1].event_id])  # priority order for trimming
     events = list(loaded)
@@ -422,7 +450,7 @@ def _assemble(view: Any, ctx: InstallationContext, job: Job, sel: Selection, *, 
         if sel.batch is not None:
             read_set = read_set.model_copy(update={"entity_revisions": list(dict.fromkeys([*consulted, *sel.batch.read_set.entity_revisions]))})
         shown = sorted(events, key=lambda pair: pair[0])
-        allowed = list(dict.fromkeys(consulted + [RecordRef(kind="event", id=e.event_id, revision=1) for _seq, e in shown]))
+        allowed = list(dict.fromkeys(consulted + [RecordRef(kind="event", id=e.event_id, revision=1) for _seq, e in shown] + capsule_refs(kept)))
         data = {
             "request_schema": 1, "job_id": job.job_id, "purpose": job.kind, "prompt_version": job.prompt_version, "instruction_text": instruction,
             "events": [e.model_dump(mode="json") for _seq, e in shown], "episodes": [e.model_dump(mode="json") for e in episodes],
@@ -431,6 +459,8 @@ def _assemble(view: Any, ctx: InstallationContext, job: Job, sel: Selection, *, 
             "read_set": read_set.model_dump(mode="json"), "output_schema": schema, "review_batch": sel.batch.model_dump(mode="json") if sel.batch is not None else None,
             "limits": limits.model_dump(mode="json"),
         }
+        if kept:
+            data["capsules"] = [c.model_dump(mode="json") for c in kept]
         if len(canonical_json(data)) <= MODEL_INPUT_CAP:
             return ModelRequest.model_validate(data)
         if len(events) > 1:
