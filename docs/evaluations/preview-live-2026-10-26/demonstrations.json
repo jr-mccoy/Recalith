@@ -1,0 +1,167 @@
+{
+ "demonstrations": {
+  "changed_condition_revision": {
+   "demonstrated": false,
+   "scenarios": {
+    "smoke-R1-fieldnotes-check-env-fixed": {
+     "legitimate_retry_success": null,
+     "lesson": [],
+     "retry_point": [],
+     "revalidation": [],
+     "task_success": false
+    },
+    "smoke-R2-ledgerlite-import-fixed": {
+     "legitimate_retry_success": null,
+     "lesson": [],
+     "retry_point": [],
+     "revalidation": [],
+     "task_success": false
+    }
+   }
+  },
+  "forgetting_and_restore": {
+   "backup_before": {
+    "external_copy": true,
+    "manifest_digest": "4e75cbd8e5aa1d810322053aa3ff18b23f88e5c1857150b9eb96640dd7da6568",
+    "store_hits_before": 12
+   },
+   "delivered_after_forget": false,
+   "delivered_after_restore": false,
+   "demonstrated": true,
+   "forget": {
+    "backup_state": "verified",
+    "purge_state": "completed",
+    "purged_count": 45,
+    "quarantined_count": 0
+   },
+   "restore": {
+    "applied_schema": 11,
+    "deleted_backup_ids": [],
+    "limits": [
+     "external_copy_holds_suppressed_content",
+     "external_exports_not_recallable",
+     "remote_provider_copies_not_recallable",
+     "operator_backup_copies_not_recallable",
+     "filesystem_forensics_outside_guarantee",
+     "ledger_digest_membership_disclosure",
+     "paraphrase_not_detected"
+    ],
+    "preserved_tombstone_epoch": 1,
+    "restored_revision": 159,
+    "source_contains_suppressed": true,
+    "suppressed_record_count": 45
+   },
+   "route": "the guarded CLI with the operator token (live)",
+   "scenario": "smoke-L3-household-grocery-budget",
+   "selector": {
+    "claims": 1,
+    "tasks": 1
+   },
+   "stopped_after": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "stopped_before_backup": {
+    "exit": 0,
+    "state": "not_running"
+   },
+   "stopped_before_restore": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "store_hits_after_forget": 0,
+   "store_hits_after_restore": 0
+  },
+  "fresh_session_reuse": {
+   "admitted": [
+    "In the ledgerlite project, the unit tests run successfully with `PYTHONPATH=src python -m unittest discover -s tests -v`.",
+    "In this ledgerlite environment, pytest is not installed; `python -m pytest` fails with \"No module named pytest\"."
+   ],
+   "baseline_repeated_mistakes": 0,
+   "candidate_first_test_command_in_B": "cd <run>/work/L1/c/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -15",
+   "candidate_repeated_mistakes": 0,
+   "demonstrated": false,
+   "note": "session B's knowledge came through delivered context (the scripted agent consults nothing else); the session-start point is unmet by design (decision 0013: a fresh start with no task binding carries only open intent questions) and the prompt packet carried it",
+   "remember_instruction": false,
+   "retrieval_points": [
+    {
+     "delivered": true,
+     "items": [],
+     "satisfied": false,
+     "spec": {
+      "must_include": "PYTHONPATH=src",
+      "purpose": "session_start",
+      "session": "B"
+     }
+    }
+   ],
+   "scenario": "smoke-L1-ledgerlite-test-command"
+  },
+  "isolation": {
+   "cross_project_leak_commands": 0,
+   "cross_record_ids": [],
+   "cross_text_in_search": [],
+   "demonstrated": true,
+   "fieldnotes_active_claims": [
+    "Running tools/check.py without NOTES_HOME set exits with code 1; setting NOTES_HOME to a temporary directory allowed the run to pass.",
+    "`python tools/check.py` exited with code 1."
+   ],
+   "fieldnotes_session_b_delivered": [],
+   "installations": {
+    "distinct": true,
+    "fieldnotes": "inst_5cc5e438-1931-4cc4-9bc6-9d3765b98579",
+    "ledgerlite": "inst_899a6783-0925-49dc-99fd-704f085ea132"
+   },
+   "ledgerlite_active_claims": [
+    "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the ledgerlite project root ran the two ledgerlite unit tests and reported OK.",
+    "`python -m pytest` fails in the ledgerlite project because pytest is not installed for the Python 3.13 interpreter."
+   ],
+   "reverse_session": {
+    "actions": 4,
+    "gap": {
+     "last": {
+      "due_jobs": 0,
+      "due_kinds": [],
+      "leased": 0,
+      "next_due_in_s": null,
+      "pending_triggers": 0,
+      "progress": [
+       45,
+       36,
+       44
+      ],
+      "quiet": true,
+      "spool_ready": 0,
+      "waiting_reasons": []
+     },
+     "polls": 18,
+     "state": "quiet",
+     "waited_s": 599.0,
+     "worker_seen": true
+    }
+   },
+   "scenario": "smoke-C4-cross-project-near-match",
+   "task_success": true,
+   "worker_stop": [
+    {
+     "exit": 0,
+     "state": "stopped"
+    },
+    {
+     "exit": 0,
+     "state": "not_running"
+    }
+   ]
+  },
+  "zero_interventions": {
+   "demonstrated": true,
+   "jobs_awaiting_a_human": 0,
+   "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+   "operator_interventions": 0,
+   "trials": 24,
+   "workload_days": 3
+  }
+ },
+ "label": "live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token",
+ "mode": "live"
+}

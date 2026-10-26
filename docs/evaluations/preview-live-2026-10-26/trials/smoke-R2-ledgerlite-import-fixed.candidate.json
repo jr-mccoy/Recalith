@@ -1,0 +1,150 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "category": "revision",
+ "error": "bind_host_record_failed",
+ "error_detail": "exit 4: {\"verdict\": \"unavailable\", \"reason\": \"host_version_changed: installed 2.1.310, certified 2.1.309\"}",
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A plain discovery failed with ModuleNotFoundError.",
+   "Before C, tests/__init__.py was added."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tests/__init__.py (absent in A)",
+    "kind": "failure_lesson",
+    "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+    "retry_condition": "Retry if the test package changes import setup."
+   }
+  ]
+ },
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev0-py3-none-any.whl",
+  "wheel_sha256": "87a03a07eeada6b43a82d01196962e26110cee77693c8e9f41e5c03bf46b02c3"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [
+    "installation_mismatch"
+   ],
+   "inherited_instructions": [],
+   "label": "contaminated",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.309 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "outcomes": {
+  "background_tokens": null,
+  "detours": null,
+  "elapsed_seconds": null,
+  "foreground_tokens": null,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": null,
+  "task_success": false
+ },
+ "project": "ledgerlite",
+ "provisioning_steps": [
+  {
+   "exit": 0,
+   "seconds": 0.3,
+   "step": "init"
+  },
+  {
+   "exit": 0,
+   "seconds": 4.5,
+   "step": "bootstrap"
+  },
+  {
+   "exit": 0,
+   "seconds": 16.9,
+   "step": "route"
+  },
+  {
+   "exit": 0,
+   "seconds": 1.0,
+   "step": "integrate"
+  },
+  {
+   "exit": 4,
+   "seconds": 0.9,
+   "step": "bind_host_record"
+  }
+ ],
+ "scenario": "smoke-R2-ledgerlite-import-fixed",
+ "sessions": [],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "R2/c/w"
+}

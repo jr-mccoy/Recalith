@@ -113,7 +113,7 @@ Logical forgetting does not reach explicit exports, operator or third-party copi
 
 ## 6. Evaluation status
 
-The preview release gate (ACCEPTANCE_TESTS §6.1, §8) has **not run live**. B1 has cleared on native Windows: the pilot project holds a live-certified route and host record. The live trial path is built (decision 0028), but no live gate has run yet. The evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) have run only in recorded/scripted mode, which is mechanics evidence and never a live pass. See the Task 18 checkpoints in [BUILD_PROGRESS](BUILD_PROGRESS.md).
+The preview release gate (ACCEPTANCE_TESTS §6.1, §8) has **not passed**. B1 has cleared on native Windows: the pilot project holds a live-certified route and host record (Claude Code 2.1.309). The first live gate ran on 2026-10-23 to 2026-10-26 and **failed**: the host updated itself to 2.1.310 partway through, the laptop slept over a weekend, and the curator's reasoning filled `update_task`'s output allowance, so most waits never settled ([the run's record](evaluations/preview-live-2026-10-26/report.md); the checkpoint in [BUILD_PROGRESS](BUILD_PROGRESS.md)). Before that, the evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) have run only in recorded/scripted mode, which is mechanics evidence and never a live pass. See the Task 18 checkpoints in [BUILD_PROGRESS](BUILD_PROGRESS.md).
 
 ### Running the live gate (decision 0028)
 
@@ -127,3 +127,18 @@ Run it from an ordinary terminal that you opened yourself, with the selected key
 ```
 
 Exit 0 means the gate passed (`passed_smoke`). Exit 8 means it ran and failed: the report lists every reason, including anything that did not run. Exit 4 means a required input or certification was missing and nothing ran.
+
+Before you start it:
+
+- **Keep the host at the certified version for the whole run.** The trial sessions already run with `DISABLE_AUTOUPDATER=1` (the delivery section's `nonsecret_env`), but your own interactive Claude Code sessions update the shared installation. Set `DISABLE_AUTOUPDATER=1` for them as well, in your user environment or in the `env` block of your Claude Code settings, until the run ends. The harness checks `claude --version` against the certified version before every session. On a change it schedules no further trial and writes the report of what ran (exit 8).
+- **Keep the machine awake and on power.** The run asks Windows not to idle-sleep while it lasts (macOS: `caffeinate -i`), but a lid close or an explicit sleep still suspends it. A session or wait that ran across a suspension is recorded as `suspended`, and the gate fails on it.
+
+After it finishes, the live §5.1 support and recall need a reviewer's labels, because a live curator's claims are free text that no frozen term list can judge (ACCEPTANCE_TESTS §5):
+
+```powershell
+& .venv\Scripts\python.exe evals\run.py adjudicate C:\Code\rl-gate
+# label every entry of C:\Code\rl-gate\adjudication.template.json, add yourself under "reviewers", save it as adjudication.json
+& .venv\Scripts\python.exe evals\run.py report C:\Code\rl-gate
+```
+
+Until every admitted claim and gold lesson is labeled, the report gives those three measures as unestablished and the gate fails with `claims_unadjudicated`.

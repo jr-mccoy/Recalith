@@ -1,6 +1,6 @@
 # Decision 0028: Live evaluation installations and the live trial path
 
-Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review · Date: 2026-10-23 · Host: Claude Code 2.1.309 on native Windows; no live trial has run
+Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review; items 12–15 added after the first live gate · Date: 2026-10-23, amended 2026-10-26 · Host: Claude Code 2.1.309 on native Windows; two one-scenario pilots and one failed live gate have run
 
 ## Context
 
@@ -67,11 +67,35 @@ Where a rule was ambiguous the stricter reading was kept, and no gate, target or
 
     Anything missing fails the gate, with one reason per gap: `smoke_trials_missing`, `trial_errors`, `contaminated_arms`, `workload_days_short`, `demonstrations_unmet`. A task the agent failed is an outcome, not a gap. Before this change a live report could reach `passed_smoke` with trials, days or demonstrations absent, because the gate read only the §5.1 measures. A workload day that did not run is now listed (`days_not_run`) instead of crashing the report.
 
+The first live gate (2026-10-23 to 2026-10-26, BUILD_PROGRESS) failed, and four of its causes were the harness's to close. None of the following changes a gate, a target or a fixture:
+
+12. **Every live session runs on the certified host version.** The host updated itself from 2.1.309 to 2.1.310 partway through the run. The bind refused the five candidates provisioned after that (`host_version_changed`). But sessions of installations provisioned earlier, and every later baseline session, ran on 2.1.310 unnoticed; only the host's own transcripts showed it.
+    - The setup now carries the version the source project's live host record certifies, and refuses without one (`host_version_unknown`).
+    - Every live trial checks `claude --version` against it, before provisioning (so no route certification is spent) and before every session, including the second project's and the demonstrations' fresh sessions. A mismatch is the trial error `host_version_changed`.
+    - Each session records its host version. `smoke` schedules no further trial after a mismatch, and `gate` then writes the report of what ran (exit 8).
+    - Completeness fails any live session whose version is absent or differs (`host_version_mismatches`).
+13. **A suspension of the machine is recorded and fails the gate.** The laptop slept over a weekend: one baseline session measured 61 hours under its 900-second bound, and two final waits ended `deadline` after about 5,300 s.
+    - A session that outlasted its own timeouts by more than 120 s is `suspended`. So is a wait whose poll came back more than 120 s after its sleep ended (`suspended_s`).
+    - Completeness fails on either (`suspended`).
+    - A live run asks the platform not to idle-sleep while it lasts (Windows `SetThreadExecutionState`, macOS `caffeinate -i`), and `run.json` records what was granted. A lid close or an explicit sleep is still possible, and is still recorded.
+14. **Live §5.1 support and recall come from reviewers' labels.** The report scored each admitted claim by whether its text contains the scenario's frozen gold terms (`GOLD_TERMS`). That fits the recorded curator, whose proposals were written with the gold. For a live curator the same test fails in both directions:
+    - It scored true claims outside the gold as unsupported. Examples: L1's `python -m pytest` fails because pytest is not installed; fieldnotes' checks enforce a 100-character line limit.
+    - It scored L1's failure lesson as recalled from the procedure claim, although that run's agent never made the failing call.
+
+    ACCEPTANCE_TESTS §5 says a model judge may assist but does not solely adjudicate support. So in live mode:
+    - `supported_precision`, `useful_recall` and `failed_approach_recall` come from `adjudication.json` in the results directory. Each admitted claim is labeled `supported` or `unsupported` (a prohibited generalization is unsupported). Each gold lesson is labeled `recalled`, `missed` or `evidence_absent`.
+    - `evidence_absent` (the trial's sessions never produced the lesson's evidence) leaves the denominators and is listed. The spec counts abstention as missed recall only "when the evidence was sufficient".
+    - A trial that did not run recalled nothing.
+    - Unlabeled items leave the measures unestablished, and the gate fails with `claims_unadjudicated`.
+    - `evals/run.py adjudicate DIR` writes the sheet and a template whose term-match fields are suggestions, never labels. The report keeps the term match as `term_match_provisional`, and states the single-reviewer limitation when fewer than two reviewers are named.
+    - Scripted runs keep the term match unchanged.
+15. **Curator call outcomes stay in the record.** Each live candidate trial and live workload day records, per purpose, its charged calls, the calls that ended at the output cap, provider-reported input and output, and the visible reply's local estimate (`live.provider_outcomes`), plus the curation jobs' failure codes. The report sums them (`curator_call_outcomes`). In the first gate, the workload stores were removed with the run and these counts could not be recovered.
+
 ## Consequences
 
-Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`).
+Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`). After the first live gate: the host-version check, suspension records and keep-awake, the adjudicated live quality measures and `evals/run.py adjudicate`, and the curator call outcomes (items 12–15).
 
-Not run: any live trial. The owner runs the gate from an ordinary terminal; the commands and the cost/time estimate are in BUILD_PROGRESS.
+Run: two one-scenario pilots and one full live gate, all by the owner from an ordinary terminal. The gate failed (BUILD_PROGRESS, 2026-10-26; the sanitized record is in `docs/evaluations/preview-live-2026-10-26/`).
 
 Limits:
 - Real-time gaps, not the scenarios' two hours.

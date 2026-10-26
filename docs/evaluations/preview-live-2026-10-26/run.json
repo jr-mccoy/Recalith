@@ -1,0 +1,103 @@
+{
+ "authorship": {
+  "held_out": "none (full release; intentionally empty)",
+  "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
+  "smoke": {
+   "independent_of_system_spec_7": false,
+   "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC \u00a77; development fixtures, not held out",
+   "route": [
+    "repository author (coding agent)"
+   ]
+  },
+  "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions"
+ },
+ "blockers": [],
+ "init_route": "operator_token",
+ "limitations": [
+  "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC \u00a77; no held-out or independent corpus exists.",
+  "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+  "Each candidate installation's route is certified live for that installation; its host record is bound from the source project's live engine-mode certification for the same host version, model and configuration (decision 0028), not re-observed per installation.",
+  "Sessions run on real time. Between sessions the harness waits until the hook-started worker owes nothing due within 20 minutes (or 45 minutes pass, or progress stalls for 5); the scenarios' two-hour gaps are not reproduced.",
+  "Delivered context is read from the host's hook_response records (the hook's exact stdout as the host received it); that the model saw it is the separate canary certification, not re-checked per trial.",
+  "Workload days replay synthetic recorded timelines in process through the real stdlib hook path (no host session); scheduling runs on the day's virtual clock while every curator call is real.",
+  "Background tokens come from the budget ledger (provider-reported where the call reported usage); foreground cost is the host's own reported session cost.",
+  "On native Windows a hook-started worker runs inside the venv redirector's job (decision 0027 item 8): recovery is degraded while it runs."
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev0-py3-none-any.whl",
+  "wheel_sha256": "87a03a07eeada6b43a82d01196962e26110cee77693c8e9f41e5c03bf46b02c3"
+ },
+ "mode": "live",
+ "native_memory": {
+  "configuration": "the live trials' own session flags, disposable HOME and environment",
+  "installed_host_observation": {
+   "configuration": {
+    "env": [
+     "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+    ],
+    "session_args": "the live trials' session flags",
+    "settings": {
+     "autoMemoryEnabled": false
+    }
+   },
+   "control": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": true
+   },
+   "disabled": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": false
+   },
+   "host_version": "2.1.309 (Claude Code)",
+   "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+   "state": "disabled"
+  }
+ },
+ "operator_action": null,
+ "preflight": {
+  "delivery": {
+   "host_version": "2.1.309",
+   "reasons": [],
+   "state": "certified"
+  },
+  "exit": 0,
+  "inference": {
+   "reasons": [],
+   "state": "certified"
+  }
+ },
+ "profile": "claude_preview",
+ "run_schema": 1,
+ "started_at": "2026-10-23T22:09:43Z",
+ "versions": {
+  "certified_capture_versions": [
+   "2.1.301",
+   "2.1.305",
+   "2.1.306",
+   "2.1.309"
+  ],
+  "commit": "98bf674ba26de4f57347e9f4ae7367a54943061f",
+  "engine": "0.1.0.dev0",
+  "installed_host": "2.1.309 (Claude Code)",
+  "platform": "Windows 11 AMD64",
+  "prompts": {
+   "build_episode": "build_episode@1",
+   "extract_claims": "extract_claims@1",
+   "revalidate": "revalidate@1",
+   "review_claims": "review_claims@1",
+   "update_task": "update_task@1"
+  },
+  "python": "3.13.15",
+  "schema": 11,
+  "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)",
+  "sqlite": "3.50.4",
+  "tree_clean": true
+ }
+}
