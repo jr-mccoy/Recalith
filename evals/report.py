@@ -107,11 +107,13 @@ def load(directory: Path) -> dict[str, Any]:
 
     demos = directory / "demonstrations.json"
     run = directory / "run.json"
+    labels = directory / ADJUDICATION
     return {
         "run": json.loads(run.read_text(encoding="utf-8")) if run.exists() else {},
         "trials": read_all("trials"),
         "workload": read_all("workload"),
         "demonstrations": json.loads(demos.read_text(encoding="utf-8")) if demos.exists() else None,
+        "adjudication": json.loads(labels.read_text(encoding="utf-8")) if labels.exists() else None,
     }
 
 
@@ -172,7 +174,73 @@ def _matches(claim: dict[str, Any], terms: list[str]) -> bool:
     return all(t in text for t in terms)
 
 
-def quality(trials: list[dict[str, Any]]) -> dict[str, Any]:
+ADJUDICATION = "adjudication.json"
+CLAIM_LABELS = ("supported", "unsupported")
+LESSON_LABELS = ("recalled", "missed", "evidence_absent")
+ADJUDICATED = ("supported_precision", "useful_recall", "failed_approach_recall")
+
+
+def claim_key(scenario: str, claim: dict[str, Any]) -> str:
+    return f"{scenario}:{claim.get('claim_id')}"
+
+
+def lesson_key(scenario: str, index: int) -> str:
+    return f"{scenario}#{index}"
+
+
+def adjudicated_quality(trials: list[dict[str, Any]], adjudication: dict[str, Any] | None) -> dict[str, Any]:
+    """Live §5.1 support and recall from the reviewers' labels (ACCEPTANCE_TESTS §5: a model judge may assist but does
+    not solely adjudicate support). A live curator's claims are free text: a term match cannot say a true claim outside
+    the gold is unsupported, nor that a lesson whose evidence never occurred in the trial was missed. Unlabeled items
+    leave the measure unestablished; ``evidence_absent`` lessons leave the denominators and are listed."""
+    labels_c = ((adjudication or {}).get("claims") or {})
+    labels_l = ((adjudication or {}).get("lessons") or {})
+    admitted = supported = gold_total = gold_hit = fail_total = fail_hit = 0
+    pending_claims: list[str] = []
+    pending_lessons: list[str] = []
+    absent: list[str] = []
+    unsupported: list[str] = []
+    missed: list[str] = []
+    for t in (t for t in trials if t["arm"] == "candidate"):
+        sid = t["scenario"]
+        for c in (c for c in t.get("claims", []) if c["status"] in ("active", "disputed")):
+            label = (labels_c.get(claim_key(sid, c)) or {}).get("label")
+            if label not in CLAIM_LABELS:
+                pending_claims.append(claim_key(sid, c))
+                continue
+            admitted += 1
+            supported += label == "supported"
+            if label == "unsupported":
+                unsupported.append(f"{sid}: {(c.get('proposition') or '')[:120]}")
+        for i, lesson in enumerate(t["gold"].get("supported_lessons", [])):
+            label = "missed" if t.get("error") else (labels_l.get(lesson_key(sid, i)) or {}).get("label")  # a trial that did not run recalled nothing
+            if label not in LESSON_LABELS:
+                pending_lessons.append(lesson_key(sid, i))
+                continue
+            if label == "evidence_absent":
+                absent.append(f"{lesson_key(sid, i)}: {lesson['proposition'][:120]}")
+                continue
+            gold_total += 1
+            gold_hit += label == "recalled"
+            if lesson["kind"] == "failure_lesson":
+                fail_total += 1
+                fail_hit += label == "recalled"
+            if label == "missed":
+                missed.append(f"{sid}: {lesson['proposition'][:120]}")
+    measures = {"supported_precision": proportion(supported, admitted), "useful_recall": proportion(gold_hit, gold_total), "failed_approach_recall": proportion(fail_hit, fail_total)}
+    pending = len(pending_claims) + len(pending_lessons)
+    for name, m in measures.items():
+        m["basis"] = "reviewer labels (adjudication.json)"
+        m["unadjudicated"] = len(pending_claims) if name == "supported_precision" else len(pending_lessons)
+        m["target"] = " ".join(str(x) for x in QUALITY_TARGETS[name])
+        m["met"] = None if m["unadjudicated"] else target_met(name, m["value"])
+    reviewers = (adjudication or {}).get("reviewers") or []
+    return {"measures": measures, "unadjudicated": {"claims": pending_claims, "lessons": pending_lessons, "count": pending}, "evidence_absent": absent,
+            "examples": {"unsupported_admitted": unsupported[:12], "missed_lessons": missed[:12]}, "reviewers": reviewers,
+            "limitation": None if len(reviewers) >= 2 else "fewer than two independent reviewers (ACCEPTANCE_TESTS §5: report the limitation)"}
+
+
+def quality(trials: list[dict[str, Any]], *, live: bool = False, adjudication: dict[str, Any] | None = None) -> dict[str, Any]:
     cands = [t for t in trials if t["arm"] == "candidate"]
     admitted = matched_admitted = 0
     gold_total = gold_hit = fail_total = fail_hit = 0
@@ -237,7 +305,15 @@ def quality(trials: list[dict[str, Any]]) -> dict[str, Any]:
         value = m.get("value", m.get("count"))
         m["target"] = " ".join(str(x) for x in QUALITY_TARGETS[name])
         m["met"] = target_met(name, value)
-    return {"measures": measures, "examples": {k: v[:12] for k, v in examples.items()}, "population": f"{len(cands)} candidate smoke trials (one per scenario)"}
+    out = {"measures": measures, "examples": {k: v[:12] for k, v in examples.items()}, "population": f"{len(cands)} candidate smoke trials (one per scenario)"}
+    if live:
+        # The term match was frozen against the recorded curator's wording; for a live curator it is provisional only.
+        judged = adjudicated_quality(trials, adjudication)
+        out["term_match_provisional"] = {n: measures[n] for n in ADJUDICATED}
+        out["measures"] = {**measures, **judged["measures"]}
+        out["adjudication"] = {k: v for k, v in judged.items() if k != "measures"}
+        out["examples"] = {**out["examples"], **judged["examples"]}
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -410,17 +486,75 @@ def build(directory: Path) -> dict[str, Any]:
         "native_memory": run.get("native_memory", {}),
         "baselines": {"run": ["candidate", "no_memory"], "not_run": {"breadcrumbs": "full release only", "notes": "full release only"}},
         "paired_outcomes": paired(trials),
-        "quality_5_1": quality(trials),
+        "quality_5_1": quality(trials, live=mode == "live", adjudication=data["adjudication"]),
         "operational_5_2": operational(workload, trials),
         "retrieval_points": retrieval_summary(trials),
+        "curator_call_outcomes": call_outcomes(trials, workload),
         "demonstrations_6_1": data["demonstrations"],
         "completeness": completeness(trials, workload, data["demonstrations"]),
         "unsuccessful_runs": unsuccessful,
         "cost_and_time": cost_and_time(run, trials, workload),
         "limitations": run.get("limitations", []),
     }
+    if mode == "live":
+        pending = report["quality_5_1"]["adjudication"]["unadjudicated"]["count"]
+        report["completeness"]["unadjudicated"] = pending
+        report["completeness"]["complete"] = report["completeness"]["complete"] and not pending
     report["gate"] = gate(report, run)
     return report
+
+
+def adjudication_sheet(directory: Path) -> dict[str, Any]:
+    """Write ``adjudication-sheet.md`` (each candidate trial's gold, admitted claims and session actions) and
+    ``adjudication.template.json`` (every key with ``label: null`` and the term match as a suggestion only). A reviewer
+    fills the labels and saves the file as ``adjudication.json``; the report counts only labeled entries."""
+    trials = [t for t in load(directory)["trials"] if t["arm"] == "candidate"]
+    template: dict[str, Any] = {"adjudication_schema": 1, "reviewers": [], "claims": {}, "lessons": {},
+                                "instructions": "Label each claim supported|unsupported against the trial's evidence (scope included: a prohibited generalization is unsupported), and each gold lesson "
+                                                "recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as "
+                                                "{\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels."}
+    lines = ["# Claim adjudication sheet", "", "Labels go in `adjudication.json` (start from `adjudication.template.json`). A model judge may assist but does not solely adjudicate support (ACCEPTANCE_TESTS §5).", ""]
+    for t in sorted(trials, key=lambda t: t["scenario"]):
+        sid = t["scenario"]
+        terms = GOLD_TERMS.get(sid, [])
+        claims = [c for c in t.get("claims", []) if c["status"] in ("active", "disputed")]
+        lines += [f"## {sid}" + (f" (trial error: {t['error']})" if t.get("error") else ""), ""]
+        for i, lesson in enumerate(t["gold"].get("supported_lessons", [])):
+            ts = terms[i] if i < len(terms) else []
+            hit = bool(ts) and any(_matches(c, ts) for c in claims)
+            template["lessons"][lesson_key(sid, i)] = {"label": "missed" if t.get("error") else None, "kind": lesson["kind"], "lesson": lesson["proposition"], "term_match": "recalled" if hit else "missed"}
+            lines.append(f"- lesson `{lesson_key(sid, i)}` ({lesson['kind']}): {lesson['proposition']}")
+        lines += [f"- prohibited: {p}" for p in t["gold"].get("prohibited_generalizations", [])]
+        for c in claims:
+            ok = any(_matches(c, ts) for ts in terms)
+            template["claims"][claim_key(sid, c)] = {"label": None, "proposition": c.get("proposition"), "status": c["status"], "strength": c.get("strength"), "term_match": "supported" if ok else "unsupported"}
+            lines.append(f"- claim `{claim_key(sid, c)}` [{c['status']}, {c.get('strength')}]: {c.get('proposition')}")
+        for s in t.get("sessions", []):
+            lines.append(f"- session {s['name']}: " + "; ".join(f"{a.get('tool')} {(a.get('command') or a.get('path') or '')[:140]}" + ("" if a.get("exit_code") is None else f" (exit {a['exit_code']})")
+                                                              for a in s.get("actions", [])))
+        lines.append("")
+    (directory / "adjudication-sheet.md").write_text("\n".join(lines), encoding="utf-8")
+    (directory / "adjudication.template.json").write_text(json.dumps(template, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return {"claims": len(template["claims"]), "lessons": len(template["lessons"]), "sheet": "adjudication-sheet.md", "template": "adjudication.template.json", "labels": ADJUDICATION}
+
+
+def call_outcomes(trials: list[dict[str, Any]], workload: list[dict[str, Any]]) -> dict[str, Any]:
+    """Curator calls per purpose from the records' ``provider_outcomes``: how many ended at the output cap, and the
+    provider-reported output against the visible reply's local estimate (reasoning is charged as output)."""
+    sources = {"smoke": [t.get("provider_outcomes") for t in trials], "workload": [(d.get("curation") or {}).get("provider_outcomes") for d in workload]}
+    out: dict[str, Any] = {}
+    for name, rows in sources.items():
+        total: dict[str, dict[str, int]] = {}
+        errors: dict[str, int] = {}
+        for row in (r for r in rows if r):
+            for purpose, v in row.get("by_purpose", {}).items():
+                acc = total.setdefault(purpose, {})
+                for k, n in v.items():
+                    acc[k] = acc.get(k, 0) + int(n)
+            for code, n in row.get("job_errors", {}).items():
+                errors[code] = errors.get(code, 0) + int(n)
+        out[name] = {"by_purpose": total, "job_errors": errors}
+    return out
 
 
 SMOKE_IDS = tuple(sorted(p.stem for p in (Path(__file__).resolve().parent / "scenarios" / "smoke").glob("smoke-*.json")))
@@ -443,9 +577,21 @@ def completeness(trials: list[dict[str, Any]], workload: list[dict[str, Any]], d
     # means the next session ran against an engine that had not processed the last one (the protocol did not run).
     unsettled = [f"{t['scenario']}.{t['arm']}:{g.get('before')}:{g.get('state')}" + (":" + ",".join((g.get("last") or {}).get("waiting_reasons") or []) if (g.get("last") or {}).get("waiting_reasons") else "")
                  for t in trials for g in t.get("gaps") or [] if g.get("state") != "quiet"]
+    # Every live session ran on the host version the bound record certifies (the first live gate's host updated mid-run),
+    # and none ran, nor any wait elapsed, across a suspension of the machine.
+    hosts: list[str] = []
+    suspended: list[str] = []
+    for t in (t for t in trials if t.get("mode") == "live"):
+        certified = (t.get("live") or {}).get("host_version")
+        for s in t.get("sessions") or []:
+            if s.get("host_version") is None or s.get("host_version") != certified:
+                hosts.append(f"{t['scenario']}.{t['arm']}:{s.get('name')}:{s.get('host_version') or 'unrecorded'}")
+            if s.get("suspended"):
+                suspended.append(f"{t['scenario']}.{t['arm']}:session {s.get('name')}")
+        suspended += [f"{t['scenario']}.{t['arm']}:wait before {g.get('before')}" for g in t.get("gaps") or [] if g.get("suspended_s")]
     return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "unsettled_gaps": unsettled, "workload_days_run": len(ran),
-            "workload_days_not_run": [d.get("project") for d in days if d not in ran], "demonstrations_unmet": unmet,
-            "complete": not missing and not errors and not contaminated and not unsettled and len(ran) >= WORKLOAD_DAYS and not unmet}
+            "workload_days_not_run": [d.get("project") for d in days if d not in ran], "demonstrations_unmet": unmet, "host_version_mismatches": hosts, "suspended": suspended,
+            "complete": not missing and not errors and not contaminated and not unsettled and len(ran) >= WORKLOAD_DAYS and not unmet and not hosts and not suspended}
 
 
 def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
@@ -468,6 +614,12 @@ def gate(report: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
         reasons.append(f"workload_days_short:{done.get('workload_days_run', 0)}/{WORKLOAD_DAYS}")
     if done.get("demonstrations_unmet"):
         reasons.append("demonstrations_unmet:" + ",".join(done["demonstrations_unmet"]))
+    if done.get("host_version_mismatches"):
+        reasons.append("host_version_mismatches:" + ",".join(done["host_version_mismatches"])[:400])
+    if done.get("suspended"):
+        reasons.append("suspended:" + ",".join(done["suspended"])[:400])
+    if done.get("unadjudicated"):
+        reasons.append(f"claims_unadjudicated:{done['unadjudicated']} (evals/run.py adjudicate)")
     incomplete = bool(done) and not done.get("complete")
     return {"state": "blocked" if report["mode"] != "live" else ("failed" if failed or incomplete else "passed_smoke"), "reasons": reasons, "superiority_claim": False}
 
@@ -493,6 +645,13 @@ def markdown(report: dict[str, Any]) -> str:
     for name, m in report["quality_5_1"]["measures"].items():
         nd = f"{m['numerator']}/{m['denominator']}" if "numerator" in m else f"count over {m['population']}"
         lines.append(f"| {name} | {_fmt(m.get('value', m.get('count')))} | {nd} | {m.get('wilson_95')} | {m['target']} | {m['met']} |")
+    judged = report["quality_5_1"].get("adjudication")
+    if judged is not None:
+        lines += ["", f"Support and recall come from reviewer labels (`{ADJUDICATION}`); {judged['unadjudicated']['count']} item(s) unlabeled (`evals/run.py adjudicate`). "
+                  f"Lessons whose evidence never occurred: {len(judged['evidence_absent'])}. {judged['limitation'] or ''}",
+                  "Term match (provisional, frozen against the recorded curator's wording): "
+                  + ", ".join(f"{n} {m['numerator']}/{m['denominator']}" for n, m in report["quality_5_1"]["term_match_provisional"].items())]
+    lines += ["", "## Curator call outcomes", "", "```json", json.dumps(report.get("curator_call_outcomes"), indent=1, sort_keys=True), "```"]
     lines += ["", "## §5.2 operational measures", "", "```json", json.dumps(report["operational_5_2"], indent=1, sort_keys=True)[:12000], "```", ""]
     rp = report["retrieval_points"]
     lines += ["## Expected retrieval points (candidate)", "", f"{rp['numerator']}/{rp['denominator']} satisfied (Wilson 95 % {rp['wilson_95']}). Unmet:", ""]

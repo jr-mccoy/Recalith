@@ -438,6 +438,7 @@ def run_day(project: str, work: Path, *, mode: str = "scripted", live_setup: Any
         if mode == "live":
             record["curation"]["processing"] = {"real_seconds": _dist([c.get("real_seconds", 0.0) for c in calls]), "note": "real provider call durations; queue wait is on the virtual clock"}
             record["curation"]["proposals"] = trial.curator_calls(ws)
+            record["curation"]["provider_outcomes"] = live.provider_outcomes(ws)
         record["harness_real_seconds"] = round(time.monotonic() - started_real, 2)
     except Exception as exc:  # noqa: BLE001 - an unsuccessful day is reported, never dropped
         record["error"] = f"{type(exc).__name__}: {str(exc)[:300]}"

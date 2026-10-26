@@ -250,6 +250,7 @@ def _live_session(ws: Path, home: Path, setup: Any, name: str, prompt: str, agen
     home.mkdir(parents=True, exist_ok=True)
     baselines.prepare_home(home)
     worker = agent_factory() if agent_factory is not None else agent.LiveClaudeAgent(setup.executable, setup.model)
+    live.check_host(setup, worker)  # a demonstration's fresh session runs on the certified host too, or fails
     return worker.run_session(name, [prompt], ws, home, env=live.agent_env(setup, home, route_keys=live.route_keys(ws)))
 
 

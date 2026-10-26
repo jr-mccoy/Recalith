@@ -497,13 +497,14 @@ def _relative_paths(result: Any, ws: Path) -> None:
                     break
 
 
-def _live_session_log(name: str, project: str, result: Any, overlays: list[str]) -> dict[str, Any]:
+def _live_session_log(name: str, project: str, result: Any, overlays: list[str], host_version: str) -> dict[str, Any]:
     from evals import agent
 
     return {"name": name, "project": project, "host_session_id": result.session_id, "overlays": overlays, "actions": [a.log() for a in result.actions],
             "deliveries": [{"purpose": d.purpose, "state": d.state, "at": d.at, "items": len(agent.parse_items(d.context or "", d.purpose)), "degradations": d.degradations,
                             "context": (d.context or "")[:4000] or None} for d in result.deliveries],
-            "elapsed_seconds": round(result.elapsed_seconds, 3), "reply": result.reply, "agent": result.extra, "foreground_tokens": result.foreground_tokens_estimate}
+            "elapsed_seconds": round(result.elapsed_seconds, 3), "reply": result.reply, "agent": result.extra, "foreground_tokens": result.foreground_tokens_estimate,
+            "host_version": host_version, "suspended": bool(result.extra.get("suspended"))}
 
 
 def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], setup: Any, native_memory: dict[str, Any], agent_factory: Any = None) -> dict[str, Any]:
@@ -530,6 +531,7 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
     side: dict[str, Any] = {}
     agent_record = {"kind": "claude_code", "live": True, "model": "<agent-model>", "invocation": [*live.SESSION_FLAGS, "--permission-mode", "acceptEdits", "--allowedTools", *live.AGENT_TOOLS]}
     try:
+        live.check_host(setup, worker)  # before provisioning spends the route certification's calls
         if arm == "candidate":
             installation = {"init": live.provision(ws, spec["project"], setup, label=f"{sid}.{arm}"), "manifest": {"kind": "integrate claude", "delivery": "bound live record (decision 0028)"}}
             owned.append(ws)
@@ -541,24 +543,26 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
             name = session["name"]
             overlays = apply_overlays(ws, session)
             if sid == "smoke-C4-cross-project-near-match" and name == "A":
-                result, side = _live_second_project(spec, session, arm, base, setup, worker, owned)
+                result, side, version = _live_second_project(spec, session, arm, base, setup, worker, owned)
                 results[name] = result
-                record["sessions"].append({**_live_session_log(name, "ledgerlite", result, overlays), "second_project": True})
+                record["sessions"].append({**_live_session_log(name, "ledgerlite", result, overlays, version), "second_project": True})
                 continue
             if installation is not None:
                 if index:
                     record["gaps"].append({"before": name, **live.wait_quiescent(ws)})
                 record["horizon_checks"].append({"before": name, **evidence_horizon(ws, allowed_host_sessions=ran, not_after=utc_now(), ingest=False)})
+            version = live.check_host(setup, worker)
             env = live.agent_env(setup, home, route_keys=live.route_keys(ws) if installation is not None else [])
             result = worker.run_session(name, session["prompts"], ws, home, env=env)
             _relative_paths(result, ws)
             results[name] = result
             ran.add(result.session_id)
-            record["sessions"].append(_live_session_log(name, spec["project"], result, overlays))
+            record["sessions"].append(_live_session_log(name, spec["project"], result, overlays, version))
             if name == spec["oracle"]["session"]:
                 break
         if installation is not None:
             record["gaps"].append({"before": "measurement", **live.wait_quiescent(ws)})
+            record["provider_outcomes"] = live.provider_outcomes(ws)
         actions = [a.log() for r in results.values() for a in r.actions]
         judged = smoke.judge(spec["oracle"]["check"], ws, actions, spec["oracle"]["session"])
         background = background_usage(ws) if installation is not None else {"model_calls": 0, "tokens": 0}
@@ -587,7 +591,7 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
     return record
 
 
-def _live_second_project(spec: dict[str, Any], session: dict[str, Any], arm: str, base: Path, setup: Any, worker: Any, owned: list[Path]) -> tuple[Any, dict[str, Any]]:
+def _live_second_project(spec: dict[str, Any], session: dict[str, Any], arm: str, base: Path, setup: Any, worker: Any, owned: list[Path]) -> tuple[Any, dict[str, Any], str]:
     """C4 session A, live, in an independent ledgerlite workspace (an installation of its own for the candidate)."""
     from evals import baselines, live
 
@@ -601,10 +605,11 @@ def _live_second_project(spec: dict[str, Any], session: dict[str, Any], arm: str
         info["init"] = live.provision(ws2, "ledgerlite", setup, label=f"{spec['id']}.{arm}.second")
         owned.append(ws2)
         info["installation_id"] = context(ws2).installation_id
+    version = live.check_host(setup, worker)
     result = worker.run_session("A", session["prompts"], ws2, home2, env=live.agent_env(setup, home2, route_keys=live.route_keys(ws2) if arm == "candidate" else []))
     _relative_paths(result, ws2)
     if arm == "candidate":
         info["gap"] = live.wait_quiescent(ws2)
         info["claims"] = claim_heads(ws2)
         info["curator_calls"] = curator_calls(ws2)
-    return result, info
+    return result, info, version

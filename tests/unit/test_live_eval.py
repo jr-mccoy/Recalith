@@ -97,9 +97,10 @@ class Setup:
         self.model = "<agent-model>"
         self.delivery = {"platform_env_keys": ["PATH", "SYSTEMROOT"], "network_env_keys": [], "auth_route": {"env_keys": ["RECALITH_TEST_AGENT_KEY"]}, "home_env": {"HOME": "{home}", "USERPROFILE": "{home}"},
                          "nonsecret_env": {"DISABLE_AUTOUPDATER": "1"}, "host_markers": list(pc.DEFAULT_HOST_MARKERS)}
+        self.host_version = "2.1.309"
 
     def label(self) -> dict:
-        return {"backend": "anthropic_messages", "agent_model": "<agent-model>"}
+        return {"backend": "anthropic_messages", "agent_model": "<agent-model>", "host_version": self.host_version}
 
 
 def test_the_agent_environment_is_built_not_inherited(tmp_path, monkeypatch):
@@ -318,10 +319,15 @@ def test_provisioning_runs_the_operators_own_tools_in_order(tmp_path, monkeypatc
 
 
 class FakeLiveAgent:
-    """Synthetic: returns a fixed session result in the live agent's shape; runs nothing."""
+    """Synthetic: returns a fixed session result in the live agent's shape; runs nothing. ``versions`` is what each
+    ``claude --version`` check reports in turn (the last repeats)."""
 
-    def __init__(self) -> None:
+    def __init__(self, versions: tuple[str, ...] = ("2.1.309",)) -> None:
         self.envs: list[dict] = []
+        self.versions = list(versions)
+
+    def host_version(self):
+        return self.versions.pop(0) if len(self.versions) > 1 else self.versions[0]
 
     def run_session(self, name, prompts, ws, home, *, env):
         from evals import agent
@@ -366,9 +372,144 @@ def test_a_live_trial_records_its_sessions_gaps_and_manifest(tmp_path, monkeypat
     assert manifest["recalith_installation"]["installation_id"].startswith("inst_") and calls["provision"] == ["smoke-L1-ledgerlite-test-command.candidate"]
     assert len(calls["stopped"]) == 1 and record["worker_stop"] == [{"state": "not_running"}]
     assert "oracle" in record and record["curator_calls"] == [] and isinstance(record["claims"], list)
+    assert [s["host_version"] for s in record["sessions"]] == ["2.1.309", "2.1.309"] and not any(s["suspended"] for s in record["sessions"])
+    assert record["provider_outcomes"] == {"by_purpose": {}, "job_errors": {}}  # kept in the record: the store goes with the run
     baseline = trial.run_trial("smoke-L1-ledgerlite-test-command", "no_memory", tmp_path / "work", mode="live", native_memory=native, live=Setup(tmp_path), agent_factory=lambda: fake)
     assert baseline["gaps"] == [] and baseline["manifest"]["no_memory"]["recalith_installation"] is None and baseline["worker_stop"] == []
     assert baseline["manifest"]["no_memory"]["label"] == "no_memory" and fake.envs[-1]["ROUTE_KEYS"] == ""
+
+
+def test_a_changed_host_stops_the_trial_before_its_next_session(tmp_path, monkeypatch):
+    """The first live gate: the host updated itself mid-run. Before provisioning nothing is spent; mid-trial the next
+    session does not run on the uncertified version."""
+    from evals import trial
+
+    calls: dict = {}
+    fake_live(monkeypatch, calls)
+    record = trial.run_trial("smoke-L1-ledgerlite-test-command", "candidate", tmp_path / "w1", mode="live", live=Setup(tmp_path), agent_factory=lambda: FakeLiveAgent(("2.1.310",)))
+    assert record["error"] == "host_version_changed" and "installed 2.1.310, certified 2.1.309" in record["error_detail"]
+    assert "provision" not in calls and record["sessions"] == []  # no route certification spent on a host that cannot run
+    later = FakeLiveAgent(("2.1.309", "2.1.309", "2.1.310"))  # before provisioning, before A, before B
+    record = trial.run_trial("smoke-L1-ledgerlite-test-command", "candidate", tmp_path / "w2", mode="live", live=Setup(tmp_path), agent_factory=lambda: later)
+    assert record["error"] == "host_version_changed" and [s["name"] for s in record["sessions"]] == ["A"] and len(later.envs) == 1
+    assert record["worker_stop"] == [{"state": "not_running"}]  # the installation's worker is still stopped
+
+
+def test_the_live_agent_flags_a_session_that_outlasted_its_bound(tmp_path, monkeypatch):
+    from evals import agent, live
+
+    pc_mod = live._tool("probe_common")
+
+    class Run:
+        returncode, timed_out, stdout_overflow, stdout = 0, False, False, b""
+
+        def __init__(self, ms: int) -> None:
+            self.duration_ms = ms
+
+    worker = agent.LiveClaudeAgent("claude.exe", "<agent-model>", timeout_seconds=900)
+    monkeypatch.setattr(pc_mod, "run_bounded", lambda *a, **k: Run(30_000))
+    assert worker.run_session("A", ["go"], tmp_path, tmp_path, env={}).extra["suspended"] is False
+    monkeypatch.setattr(pc_mod, "run_bounded", lambda *a, **k: Run(219_444_000))  # C4's no-memory session A over the weekend
+    assert worker.run_session("A", ["go"], tmp_path, tmp_path, env={}).extra["suspended"] is True
+
+
+def test_wait_quiescent_records_a_suspension(tmp_path, monkeypatch):
+    from evals import live
+
+    states = iter([{"quiet": False, "leased": 0, "next_due_in_s": 0.0, "progress": [1]}, {"quiet": True, "leased": 0, "next_due_in_s": None, "progress": [2]}])
+    monkeypatch.setattr(live, "queue_state", lambda root, now, horizon: next(states))
+    t = [0.0]
+    out = live.wait_quiescent(tmp_path, clock=lambda: t[0], sleep=lambda s: t.__setitem__(0, t[0] + s + 3000.0), worker_running=lambda root: True)
+    assert out["state"] == "quiet" and out["suspended_s"] == 3000.0  # the poll came back 50 minutes after its sleep ended
+
+
+def test_keep_awake_requests_and_releases_the_platform_state():
+    from evals import live
+
+    if os.name != "nt":
+        with live.keep_awake() as state:
+            assert isinstance(state, str)
+        return
+
+    class Kernel:
+        def __init__(self) -> None:
+            self.calls: list[int] = []
+
+        def SetThreadExecutionState(self, flags: int) -> int:  # noqa: N802 - the Win32 name
+            self.calls.append(flags)
+            return 0x80000000
+
+    kernel = Kernel()
+    with live.keep_awake(kernel=kernel) as state:
+        assert state.startswith("SetThreadExecutionState") and kernel.calls == [0x80000001]
+    assert kernel.calls == [0x80000001, 0x80000000]  # cleared on exit
+
+
+def test_provider_outcomes_count_capped_replies_and_job_errors(tmp_path):
+    from evals import live
+
+    ws = installation(tmp_path)
+    conn = sqlite3.connect(ws / ".recalith" / "state" / "memory.sqlite")
+    with conn:
+        for i, (out, local) in enumerate(((1500, None), (1391, {"input_estimate": 30773, "output_estimate": 348}))):  # the first live gate's update_task replies
+            body = {"estimated_output_limit": 1500, "reported_usage": {"input_tokens": 49076, "output_tokens": out}, "local_estimated_usage": local}
+            conn.execute("INSERT INTO provider_usage (reservation_id, job_id, invocation_id, utc_day, purpose, state, provider_id, model, body) VALUES (?, ?, ?, '2026-10-26', 'update_task', 'charged', 'p', 'm', ?)",
+                         (f"rsv_{i}", "job_t", f"inv_{i}", json.dumps(body)))
+        conn.execute("INSERT INTO jobs (job_id, kind, state, idempotency_key, priority, due_at, budget_pool, body) VALUES ('job_t', 'update_task', 'pending', 'k', 4, '2026-10-26T13:52:43Z', 'ordinary', ?)",
+                     (json.dumps({"last_error_code": "output_cap_reached"}),))
+    conn.close()
+    out = live.provider_outcomes(ws)
+    assert out["by_purpose"]["update_task"] == {"calls": 2, "at_output_cap": 1, "reported_input_tokens": 98152, "reported_output_tokens": 2891, "visible_output_estimate": 348, "replies_parsed": 1}
+    assert out["job_errors"] == {"update_task:output_cap_reached": 1}
+
+
+def test_live_quality_comes_from_reviewer_labels(tmp_path):
+    """A live curator's claims are free text: the frozen term match is provisional, and support and recall are the
+    reviewers' labels (ACCEPTANCE_TESTS §5). Unlabeled items leave the measures unestablished and fail the gate."""
+    from evals import report
+
+    gold = {"supported_lessons": [{"kind": "procedure", "proposition": "Run the tests with PYTHONPATH=src."}, {"kind": "failure_lesson", "proposition": "Without PYTHONPATH=src imports fail."}]}
+    claims = [{"claim_id": "clm_1", "status": "active", "proposition": "Run `PYTHONPATH=src python -m unittest discover -s tests`."},
+              {"claim_id": "clm_2", "status": "active", "proposition": "pytest is not installed in this environment."}]
+    trials = [{"scenario": "smoke-L1-ledgerlite-test-command", "arm": "candidate", "mode": "live", "gold": gold, "claims": claims, "retrieval_points": [], "outcomes": {"task_success": True}}]
+    q = report.quality(trials, live=True)
+    assert q["term_match_provisional"]["supported_precision"]["numerator"] == 1  # the true pytest claim scores unsupported by terms
+    assert q["measures"]["supported_precision"]["met"] is None and q["adjudication"]["unadjudicated"]["count"] == 4
+    labels = {"reviewers": [{"route": "owner", "independent_of_system_spec_7": False}],
+              "claims": {"smoke-L1-ledgerlite-test-command:clm_1": {"label": "supported"}, "smoke-L1-ledgerlite-test-command:clm_2": {"label": "supported"}},
+              "lessons": {"smoke-L1-ledgerlite-test-command#0": {"label": "recalled"}, "smoke-L1-ledgerlite-test-command#1": {"label": "evidence_absent"}}}
+    q = report.quality(trials, live=True, adjudication=labels)
+    m = q["measures"]
+    assert (m["supported_precision"]["numerator"], m["supported_precision"]["denominator"], m["supported_precision"]["met"]) == (2, 2, True)
+    assert (m["useful_recall"]["numerator"], m["useful_recall"]["denominator"]) == (1, 1) and m["failed_approach_recall"]["denominator"] == 0  # evidence never occurred
+    assert q["adjudication"]["evidence_absent"][0].startswith("smoke-L1-ledgerlite-test-command#1") and q["adjudication"]["limitation"]
+    assert report.quality([dict(trials[0], mode="scripted")])["measures"]["supported_precision"]["numerator"] == 1  # scripted runs keep the frozen term match
+    out = tmp_path / "run"
+    (out / "trials").mkdir(parents=True)
+    (out / "trials" / "smoke-L1-ledgerlite-test-command.candidate.json").write_text(json.dumps({**trials[0], "sessions": [{"name": "A", "actions": [{"tool": "Bash", "command": "python -m pytest", "exit_code": 1}]}]}), encoding="utf-8")
+    sheet = report.adjudication_sheet(out)
+    template = json.loads((out / "adjudication.template.json").read_text(encoding="utf-8"))
+    assert sheet["claims"] == 2 and sheet["lessons"] == 2 and all(v["label"] is None for v in template["claims"].values())
+    assert template["claims"]["smoke-L1-ledgerlite-test-command:clm_2"]["term_match"] == "unsupported" and "python -m pytest (exit 1)" in (out / "adjudication-sheet.md").read_text(encoding="utf-8")
+
+
+def test_completeness_requires_the_certified_host_and_no_suspension():
+    from evals import report
+
+    trials = [{"scenario": sid, "arm": arm, "mode": "live", "live": {"host_version": "2.1.309"}, "manifest": {arm: {"label": arm}},
+               "sessions": [{"name": "A", "host_version": "2.1.309"}]} for sid in report.SMOKE_IDS for arm in ("candidate", "no_memory")]
+    days = [{"kind": "workload_day", "project": p, "budget": {}} for p in ("ledgerlite", "fieldnotes", "household")]
+    demos = {"demonstrations": {n: {"demonstrated": True} for n in report.DEMONSTRATIONS}}
+    assert report.completeness(trials, days, demos)["complete"] is True
+    trials[2]["sessions"].append({"name": "B", "host_version": "2.1.310"})
+    trials[3]["sessions"] = [{"name": "A"}]  # recorded before the check existed: not shown to be certified
+    trials[4]["sessions"][0]["suspended"] = True
+    trials[5]["gaps"] = [{"before": "B", "state": "quiet", "suspended_s": 5000.0}]
+    done = report.completeness(trials, days, demos)
+    assert done["host_version_mismatches"] == [f"{trials[2]['scenario']}.candidate:B:2.1.310", f"{trials[3]['scenario']}.no_memory:A:unrecorded"]
+    assert done["suspended"] == [f"{trials[4]['scenario']}.candidate:session A", f"{trials[5]['scenario']}.no_memory:wait before B"] and done["complete"] is False
+    reasons = report.gate({"mode": "live", "quality_5_1": {"measures": {}}, "completeness": done}, {})["reasons"]
+    assert any(r.startswith("host_version_mismatches:") for r in reasons) and any(r.startswith("suspended:") for r in reasons)
 
 
 def test_the_report_reads_live_records(tmp_path, monkeypatch):
@@ -457,6 +598,13 @@ def test_live_setup_refuses_missing_or_uncertified_inputs(tmp_path):
     with pytest.raises(live.LiveError) as build:
         live.load_setup(config=config, token_file=token, source_project=tmp_path / "source", evidence=None, wheel=wheel, wheelhouse=house, run_dir=tmp_path)
     assert build.value.code == "wheel_not_certified_build"  # the trial installations run the certified project's own build
+    import hashlib
+
+    (source / "engine.lock").write_text('lock_schema = 1\nengine_version = "0.1.0.dev0"\nartifact_sha256 = "' + hashlib.sha256(wheel.read_bytes()).hexdigest() + '"\n', encoding="utf-8")
+    with pytest.raises(live.LiveError) as unknown:
+        live.load_setup(config=config, token_file=token, source_project=tmp_path / "source", evidence=None, wheel=wheel, wheelhouse=house, run_dir=tmp_path)
+    assert unknown.value.code == "host_version_unknown"  # every session is checked against the certified version, so it must be named
+    assert live.load_setup(config=config, token_file=token, source_project=tmp_path / "source", evidence=None, wheel=wheel, wheelhouse=house, run_dir=tmp_path, host_version="2.1.309").label()["host_version"] == "2.1.309"
 
 
 def test_the_certified_route_backend_records_calls_and_forwards_the_rest(tmp_path):

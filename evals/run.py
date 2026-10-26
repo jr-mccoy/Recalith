@@ -8,6 +8,7 @@
     python evals/run.py workload --out DIR [--mode scripted|live] [--project NAME ...]
     python evals/run.py demonstrate --out DIR [--mode scripted|live]
     python evals/run.py report DIR
+    python evals/run.py adjudicate DIR
     python evals/run.py gate --out DIR [--mode scripted|live] [...]
 
     live inputs: --config LOCAL_CONFIG --operator-token-file FILE --source-project CERTIFIED_PROJECT
@@ -50,6 +51,11 @@ must equal the source project's ``engine.lock``) and ``--wheelhouse``, a live
 route certification of its own, ``integrate claude``, and its host record
 bound from the source project's live engine-mode record. ``--slots`` runs that
 many trials at once, each in its own installation (ACCEPTANCE_TESTS §6.2).
+Every live session checks the installed host against the certified version
+first; on a change the run schedules no further trial and the gate reports
+what ran (exit 8). A live run asks the platform not to idle-sleep.
+``adjudicate`` writes the claim sheet and label template from which a
+reviewer's ``adjudication.json`` gives live §5.1 support and recall.
 """
 
 from __future__ import annotations
@@ -62,6 +68,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -244,7 +251,7 @@ LIMITATIONS_LIVE = [
 ]
 
 
-def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str, route: Path | None = None, host_record: Path | None = None, setup=None) -> dict:
+def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str, route: Path | None = None, host_record: Path | None = None, setup=None, keep_awake: str | None = None) -> dict:
     code, pre = preflight(route, host_record) if mode == "live" else preflight(None)
     run = {
         "run_schema": 1, "mode": mode, "profile": "claude_preview", "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "versions": versions(), "authorship": authorship(),
@@ -256,6 +263,7 @@ def write_run(out_dir: Path, mode: str, *, native_memory: dict, init_route: str,
     }
     if setup is not None:
         run["live"] = setup.label()
+        run["keep_awake"] = keep_awake or "not_requested"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "run.json").write_text(json.dumps(run, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return run
@@ -278,7 +286,8 @@ def live_setup(ns: argparse.Namespace):
     if code != EXIT_OK:
         return None, {"verdict": "unavailable", "inference": pre["inference"], "delivery": pre["delivery"], "operator_action": OPERATOR_STEPS}
     try:
-        setup = live.load_setup(config=ns.config, token_file=ns.operator_token_file, source_project=ns.source_project, evidence=ns.evidence, wheel=ns.wheel, wheelhouse=ns.wheelhouse, run_dir=ns.out)
+        setup = live.load_setup(config=ns.config, token_file=ns.operator_token_file, source_project=ns.source_project, evidence=ns.evidence, wheel=ns.wheel, wheelhouse=ns.wheelhouse, run_dir=ns.out,
+                                host_version=pre["delivery"].get("host_version"))
     except live.LiveError as exc:
         return None, {"verdict": "unavailable", "reason": exc.code, "detail": exc.detail, "operator_action": OPERATOR_STEPS}
     return setup, None
@@ -306,15 +315,21 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
     else:
         native = baselines.observe_native_memory(shutil.which("claude"))
     route, host = live_inputs(ns)
-    write_run(ns.out, ns.mode, native_memory=native, init_route=ns.init_route if setup is None else "operator_token", route=route, host_record=host, setup=setup)
+    write_run(ns.out, ns.mode, native_memory=native, init_route=ns.init_route if setup is None else "operator_token", route=route, host_record=host, setup=setup,
+              keep_awake=getattr(ns, "keep_awake", None))
     trials_dir = ns.out / "trials"
     trials_dir.mkdir(parents=True, exist_ok=True)
     work = ns.out / "work"
     chosen = ns.scenario or sorted(scenarios())
+    halted = threading.Event()  # the installed host changed: no later trial can run on the certified version
 
     def one(job: tuple[str, str]) -> dict:
         sid, arm = job
+        if halted.is_set():
+            return {"scenario": sid, "arm": arm, "success": None, "error": "not_run:host_version_changed"}
         record = trial.run_trial(sid, arm, work, mode=ns.mode, init_route=ns.init_route, token_file=ns.operator_token_file, native_memory=native, live=setup)
+        if record.get("error") == "host_version_changed":
+            halted.set()
         (trials_dir / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
         out = {"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")}
         if record.get("gaps"):  # live candidates: whether the worker finished its due work before each next session
@@ -328,8 +343,8 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
         summary = list(pool.map(one, jobs))
     if not ns.keep_workspaces and not getattr(ns, "gate_keeps_work", False):
         shutil.rmtree(work, ignore_errors=True)
-    print(json.dumps({"mode": ns.mode, "trials": summary}, sort_keys=True))
-    return EXIT_OK
+    print(json.dumps({"mode": ns.mode, "trials": summary, **({"halted": "host_version_changed"} if halted.is_set() else {})}, sort_keys=True))
+    return EXIT_GATE if halted.is_set() else EXIT_OK
 
 
 def cmd_workload(ns: argparse.Namespace) -> int:
@@ -415,7 +430,19 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--slots", type=int, default=1, help="live: trials run at once, each in its own installation")
     rep = sub.add_parser("report")
     rep.add_argument("results", type=Path)
+    adj = sub.add_parser("adjudicate", help="write the claim adjudication sheet and label template for a live run")
+    adj.add_argument("results", type=Path)
     ns = parser.parse_args(argv)
+    if ns.command in ("smoke", "workload", "demonstrate", "gate") and ns.mode == "live":
+        from evals import live
+
+        with live.keep_awake() as awake:  # a live run is real time: idle sleep would suspend sessions and waits
+            ns.keep_awake = awake
+            return _dispatch(ns)
+    return _dispatch(ns)
+
+
+def _dispatch(ns: argparse.Namespace) -> int:
     try:
         if ns.command == "preflight":
             code, out = preflight(ns.route, ns.host_record)
@@ -436,10 +463,17 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_demonstrate(ns)
         if ns.command == "report":
             return cmd_report(ns.results)
+        if ns.command == "adjudicate":
+            from evals import report
+
+            print(json.dumps(report.adjudication_sheet(ns.results), sort_keys=True))
+            return EXIT_OK
         ns.gate_keeps_work = True  # the live demonstrations run on the smoke trials' kept workspaces
         for step in (cmd_smoke, cmd_workload, cmd_demonstrate):
             code = step(ns)
             if code != EXIT_OK:
+                if code == EXIT_GATE:
+                    cmd_report(ns.out)  # a halted run is still reported: what ran, and why the rest did not
                 return code
         return cmd_report(ns.out)
     except KeyError as exc:

@@ -28,12 +28,21 @@ clock with the certified route, gated by the production isolation recheck.
 Between the sessions of a live trial the hook-started worker (the product's
 registered start) does the curation on real time; :func:`wait_quiescent`
 watches the store read-only until nothing is due within the horizon.
+
+Every live session first checks that the installed host is still the certified
+version (:func:`check_host`): the first live gate (2026-10-26) saw the host
+update itself mid-run, and sessions already under way ran on the uncertified
+version unnoticed. A wait or session that outlasted its own bound records the
+machine's suspension (``suspended_s``); the run asks the platform to stay awake
+(:func:`keep_awake`).
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -57,6 +66,10 @@ AGENT_TOOLS = ("Bash", "Read", "Edit", "Write")
 TEMP_ENV_KEYS = ("TEMP", "TMP", "TMPDIR")
 # The certified engine-mode session flags (tools/probe_engine.py Fixture.argv), with the trial's tool permissions.
 SESSION_FLAGS = ("-p", "--strict-mcp-config", "--output-format", "stream-json", "--verbose", "--include-hook-events")
+# A poll or session that overran its own bound by more than this was not running: the machine was suspended
+# (the first live gate slept over a weekend: one session measured 61 hours under a 900 s bound).
+SUSPEND_SLACK_SECONDS = 120.0
+HOST_VERSION = re.compile(r"\d+\.\d+\.\d+")
 
 
 class LiveError(RuntimeError):
@@ -93,14 +106,17 @@ class LiveSetup:
     executable: str
     model: str
     delivery: dict[str, Any] = field(repr=False, default_factory=dict)
+    host_version: str | None = None  # the version the source project's live host record certifies
 
     def label(self) -> dict[str, Any]:
         """Run metadata without paths of this machine or model identifiers (decision 0027)."""
         return {"backend": self.backend, "agent_model": "<agent-model>", "curator_model": "<curator-model>", "wheel": self.wheel.name, "wheel_sha256": self.expected_digest,
-                "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)", "route": "certified per installation by tools/probe_provider.py --route-out"}
+                "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)", "route": "certified per installation by tools/probe_provider.py --route-out",
+                "host_version": self.host_version}
 
 
-def load_setup(*, config: Path | None, token_file: Path | None, source_project: Path | None, evidence: Path | None, wheel: Path | None, wheelhouse: Path | None, run_dir: Path) -> LiveSetup:
+def load_setup(*, config: Path | None, token_file: Path | None, source_project: Path | None, evidence: Path | None, wheel: Path | None, wheelhouse: Path | None, run_dir: Path,
+               host_version: str | None = None) -> LiveSetup:
     """Validate the operator's inputs (names only); raises :class:`LiveError` naming what is missing."""
     missing = [name for name, value in (("--config", config), ("--operator-token-file", token_file), ("--source-project", source_project), ("--wheel", wheel), ("--wheelhouse", wheelhouse)) if value is None]
     if missing:
@@ -124,8 +140,33 @@ def load_setup(*, config: Path | None, token_file: Path | None, source_project: 
     lock = _engine_lock(source_project)
     if lock.get("artifact_sha256") not in (None, digest):
         raise LiveError("wheel_not_certified_build", "the wheel's digest differs from the certified project's engine.lock")
+    if not host_version:
+        raise LiveError("host_version_unknown", "the source project's live host record names no host version")
     return LiveSetup(config=config, token_file=token_file, source_project=source_project, evidence=evidence or ROOT / "docs" / "host-compatibility.json", wheel=wheel,
-                     expected_digest=digest, wheelhouse=wheelhouse, run_dir=run_dir, backend=provider["backend"], executable=delivery["executable"], model=delivery["model"], delivery=delivery)
+                     expected_digest=digest, wheelhouse=wheelhouse, run_dir=run_dir, backend=provider["backend"], executable=delivery["executable"], model=delivery["model"], delivery=delivery,
+                     host_version=host_version)
+
+
+def installed_host_version(executable: str, *, timeout: float = 60.0) -> str | None:
+    """``claude --version`` of the installed host (the binary the next session would run), as ``X.Y.Z``."""
+    try:
+        proc = subprocess.run([executable, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL, timeout=timeout, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    found = HOST_VERSION.search(proc.stdout or "")
+    return found.group(0) if found else None
+
+
+def check_host(setup: Any, worker: Any) -> str:
+    """The installed host before a live session; raises ``host_version_changed`` unless it is the certified version.
+
+    The bind refuses a changed host at provisioning, but a session of an already provisioned installation would
+    otherwise run on whatever the updater installed (the first live gate, 2026-10-26)."""
+    certified = getattr(setup, "host_version", None)
+    installed = worker.host_version()
+    if not certified or installed != certified:
+        raise LiveError("host_version_changed", f"installed {installed}, certified {certified}")
+    return installed
 
 
 def _sha256(path: Path) -> str:
@@ -339,9 +380,11 @@ def wait_quiescent(ws: Path, *, horizon: float = QUIET_HORIZON_SECONDS, deadline
                    clock: Callable[[], float] = time.time, sleep: Callable[[float], None] = time.sleep, worker_running: Callable[[Path], bool] | None = None) -> dict[str, Any]:
     """Wait on real time until the installation owes nothing due within ``horizon`` (or ``deadline`` / a stall ends the wait).
 
-    Returns ``{"state": "quiet"|"deadline"|"stalled", "waited_s", "last": queue_state, "polls", "worker_seen"}``.
+    Returns ``{"state": "quiet"|"deadline"|"stalled", "waited_s", "last": queue_state, "polls", "worker_seen", "suspended_s"}``.
     ``stalled``: due work and no store progress for ``stall`` seconds (for example no worker or a route that went
     unavailable); the trial records it and continues, so the next session sees what the engine really had.
+    ``suspended_s``: time the wait was not running (a poll that came back more than ``SUSPEND_SLACK_SECONDS`` after
+    its sleep ended); a nonzero value means the machine slept and the gap's timing is not the protocol's.
     """
     from recalith.fast import process_env
 
@@ -350,21 +393,88 @@ def wait_quiescent(ws: Path, *, horizon: float = QUIET_HORIZON_SECONDS, deadline
     last_progress, last_change = None, started
     polls = 0
     seen = False
+    suspended = 0.0
+    woke_by: float | None = None
     while True:
         now = clock()
+        if woke_by is not None and now - woke_by > SUSPEND_SLACK_SECONDS:
+            suspended += now - woke_by
         state = queue_state(ws, now=now, horizon=horizon)
         polls += 1
         seen = seen or running(ws)
+        out = {"waited_s": round(now - started, 1), "last": state, "polls": polls, "worker_seen": seen, "suspended_s": round(suspended, 1)}
         if state["quiet"]:
-            return {"state": "quiet", "waited_s": round(now - started, 1), "last": state, "polls": polls, "worker_seen": seen}
+            return {"state": "quiet", **out}
         if state["progress"] != last_progress:
             last_progress, last_change = state["progress"], now
         if now - started >= deadline:
-            return {"state": "deadline", "waited_s": round(now - started, 1), "last": state, "polls": polls, "worker_seen": seen}
+            return {"state": "deadline", **out}
         if now - last_change >= stall and not state["leased"]:
-            return {"state": "stalled", "waited_s": round(now - started, 1), "last": state, "polls": polls, "worker_seen": seen}
+            return {"state": "stalled", **out}
         due_in = state["next_due_in_s"]
-        sleep(POLL_SECONDS if due_in is None or due_in <= 0 else min(max(due_in, 1.0), 60.0))
+        pause = POLL_SECONDS if due_in is None or due_in <= 0 else min(max(due_in, 1.0), 60.0)
+        sleep(pause)
+        woke_by = now + pause
+
+
+@contextlib.contextmanager
+def keep_awake(*, kernel: Any = None):
+    """Ask the platform not to idle-sleep while a live run is under way; yields what was requested.
+
+    Windows: ``SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)`` on this thread, cleared on exit. macOS:
+    ``caffeinate -i`` bound to this process. A lid close or an explicit sleep still suspends the run; the waits and
+    sessions then record ``suspended`` and the gate fails on them."""
+    if os.name == "nt":
+        if kernel is None:
+            import ctypes
+
+            kernel = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        continuous, system_required = 0x80000000, 0x00000001
+        held = bool(kernel.SetThreadExecutionState(continuous | system_required))
+        try:
+            yield "SetThreadExecutionState(ES_CONTINUOUS|ES_SYSTEM_REQUIRED)" if held else "refused"
+        finally:
+            if held:
+                kernel.SetThreadExecutionState(continuous)
+        return
+    caffeinate = shutil.which("caffeinate") if sys.platform == "darwin" else None
+    if caffeinate is None:
+        yield "not_available"
+        return
+    proc = subprocess.Popen([caffeinate, "-i", "-w", str(os.getpid())], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        yield "caffeinate -i"
+    finally:
+        proc.terminate()
+
+
+def provider_outcomes(ws: Path) -> dict[str, Any]:
+    """Read-only, per purpose: charged calls, calls that ended at the output cap (provider-reported output equal to the
+    reserved allowance), reported input/output tokens and the visible reply's local estimate; plus the curation jobs'
+    current failure codes. Kept in the record because the store is removed with the run."""
+    from recalith.storage import db
+
+    from evals import trial
+
+    purposes: dict[str, dict[str, int]] = {}
+    with db.open_store(trial.context(ws), readonly=True) as store, store.read() as view:
+        for purpose, body in view.execute("SELECT purpose, body FROM provider_usage WHERE state = 'charged' ORDER BY rowid").fetchall():
+            data = json.loads(body)
+            reported = data.get("reported_usage") or {}
+            row = purposes.setdefault(purpose, {"calls": 0, "at_output_cap": 0, "reported_input_tokens": 0, "reported_output_tokens": 0, "visible_output_estimate": 0, "replies_parsed": 0})
+            row["calls"] += 1
+            out_tokens = reported.get("output_tokens")
+            row["at_output_cap"] += int(out_tokens is not None and out_tokens >= int(data.get("estimated_output_limit") or 0))
+            row["reported_input_tokens"] += int(reported.get("input_tokens") or 0)
+            row["reported_output_tokens"] += int(out_tokens or 0)
+            local = data.get("local_estimated_usage") or {}
+            if local:
+                row["replies_parsed"] += 1
+                row["visible_output_estimate"] += int(local.get("output_estimate") or 0)
+        codes: dict[str, int] = {}
+        for kind, code in view.execute("SELECT kind, json_extract(body, '$.last_error_code') FROM jobs WHERE kind != 'ingest' AND json_extract(body, '$.last_error_code') IS NOT NULL").fetchall():
+            codes[f"{kind}:{code}"] = codes.get(f"{kind}:{code}", 0) + 1
+    return {"by_purpose": purposes, "job_errors": codes}
 
 
 def has_launcher_runtime(ws: Path) -> bool:

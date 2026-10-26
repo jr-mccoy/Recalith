@@ -622,6 +622,11 @@ class LiveClaudeAgent:
 
         return [self.executable, *live.SESSION_FLAGS, "--model", self.model, "--permission-mode", "acceptEdits", "--allowedTools", *live.AGENT_TOOLS]
 
+    def host_version(self) -> str | None:
+        from evals import live
+
+        return live.installed_host_version(self.executable)
+
     def run_session(self, name: str, prompts: list[str], ws: Path, home: Path, *, env: dict[str, str]) -> SessionResult:
         from evals import live
 
@@ -642,9 +647,12 @@ class LiveClaudeAgent:
         tokens = sum(int(u.get(k) or 0) for u in usage for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"))
         cost = sum(float(m.get("total_cost_usd") or 0.0) for m in results)
         reply = next((m.get("result") or "" for m in reversed(results)), "")
+        elapsed = time.monotonic() - began
         extra = {"usage_reported": bool(results), "cost_usd": round(cost, 6), "runs": runs, "result_subtypes": [m.get("subtype") for m in results],
-                 "hook_failures": [h for h in hook_records(stream) if h.get("exit_code") not in (0, None)][:8]}
-        return SessionResult(name, session_id, actions_from_stream(stream, session=name), deliveries_from_stream(stream), time.monotonic() - began, reply, tokens, extra=extra)
+                 "hook_failures": [h for h in hook_records(stream) if h.get("exit_code") not in (0, None)][:8],
+                 # a session that outlasted its own timeouts was not running: the machine slept under it
+                 "suspended": elapsed > len(runs) * self.timeout_seconds + live.SUSPEND_SLACK_SECONDS or any(r["seconds"] > self.timeout_seconds + live.SUSPEND_SLACK_SECONDS for r in runs)}
+        return SessionResult(name, session_id, actions_from_stream(stream, session=name), deliveries_from_stream(stream), elapsed, reply, tokens, extra=extra)
 
 
 def hook_records(stream: list[dict[str, Any]]) -> list[dict[str, Any]]:
