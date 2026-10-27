@@ -1,0 +1,238 @@
+{
+  "captured_at": "2026-10-26T21:17:45.070801Z",
+  "events_observed": [
+    "PermissionRequest",
+    "PostCompact",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "PreCompact",
+    "PreToolUse",
+    "SessionEnd",
+    "SessionStart",
+    "Stop",
+    "SubagentStart",
+    "SubagentStop",
+    "UserPromptSubmit"
+  ],
+  "events_registered_not_observed": [
+    "ConfigChange",
+    "CwdChanged",
+    "Elicitation",
+    "ElicitationResult",
+    "FileChanged",
+    "InstructionsLoaded",
+    "Notification",
+    "PermissionDenied",
+    "StopFailure",
+    "TaskCompleted",
+    "TaskCreated"
+  ],
+  "fixture_schema": 1,
+  "host": "claude_code",
+  "host_version": "2.1.310",
+  "method": {
+    "recorder": "tools/fixtures/hook_recorder.py",
+    "session_args": [
+      "-p",
+      "--setting-sources",
+      "local",
+      "--strict-mcp-config",
+      "--model",
+      "recalith-fixture-scripted-model",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--input-format",
+      "stream-json",
+      "--allowedTools",
+      "<allowed tools>"
+    ],
+    "settings_scope": "workspace .claude/settings.local.json (--setting-sources local)",
+    "tool": "tools/capture_claude_fixtures.py"
+  },
+  "mode": "request_capture",
+  "mode_note": "Real installed-host hook payloads and transcript structure; model turns came from a loopback scripted endpoint with a placeholder key. Not a live certification and not evidence of model-visible delivery.",
+  "owned_hook_cleanup": {
+    "missing": 0,
+    "modified": 0,
+    "removed": 23,
+    "unrelated_preserved": true
+  },
+  "platform": {
+    "arch": "x86_64",
+    "os": "windows",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.15"
+  },
+  "sanitization": "Fixture paths (on Windows in every spelling: native, forward-slash, JSON-escaped, MSYS; case-insensitive) replaced by <workspace>, <workspace-slug>, <home>, <host-tmp>, <tmp>, <fixture-root>, <repo>, <python>, <user-home>; transcript non-message records reduced to type skeletons; no credentials (placeholder key only, never sent to hooks).",
+  "scenarios": {
+    "denied": {
+      "allowed": [
+        "Read"
+      ],
+      "description": "a Bash call that the permission configuration denies in non-interactive mode",
+      "events": {
+        "PermissionRequest": 1,
+        "PreToolUse": 1,
+        "SessionEnd": 1,
+        "SessionStart": 1,
+        "Stop": 1,
+        "UserPromptSubmit": 1
+      },
+      "result": {
+        "returncode": 0,
+        "session_id": "d798cc01-e16c-4a07-aa3b-6c7377d39d92",
+        "stderr_bytes": 98,
+        "timed_out": false,
+        "timeline_kinds": [
+          "init",
+          "tool_use",
+          "tool_result",
+          "text",
+          "result"
+        ]
+      },
+      "turns": [
+        "FIXTURE denied: run the scripted tool."
+      ]
+    },
+    "lifecycle": {
+      "allowed": [
+        "Bash",
+        "Read",
+        "Write",
+        "Edit"
+      ],
+      "description": "start, prompts, Bash success/failure/no-match/timeout/pipeline, Read success/failure, Write, Edit, manual compaction, stop and end",
+      "events": {
+        "PostCompact": 1,
+        "PostToolUse": 8,
+        "PostToolUseFailure": 5,
+        "PreCompact": 1,
+        "PreToolUse": 13,
+        "SessionEnd": 1,
+        "SessionStart": 2,
+        "Stop": 1,
+        "SubagentStop": 1,
+        "UserPromptSubmit": 2
+      },
+      "result": {
+        "returncode": 0,
+        "session_id": "6a70248e-545c-4384-9235-50e1b2a6547d",
+        "stderr_bytes": 98,
+        "timed_out": false,
+        "timeline_kinds": [
+          "init",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "tool_use",
+          "tool_result",
+          "text",
+          "result",
+          "init",
+          "compact_boundary",
+          "result"
+        ]
+      },
+      "turns": [
+        "FIXTURE lifecycle: run the scripted tools.",
+        "/compact",
+        "Reply OK."
+      ]
+    },
+    "secret_and_resume": {
+      "allowed": [],
+      "description": "resumed session, a credential-shaped prompt and /clear",
+      "events": {
+        "SessionEnd": 2,
+        "SessionStart": 2,
+        "Stop": 2,
+        "UserPromptSubmit": 2
+      },
+      "result": {
+        "returncode": 0,
+        "session_id": "6a70248e-545c-4384-9235-50e1b2a6547d",
+        "stderr_bytes": 98,
+        "timed_out": false,
+        "timeline_kinds": [
+          "init",
+          "text",
+          "result",
+          "init",
+          "result",
+          "init",
+          "text",
+          "result"
+        ]
+      },
+      "resume_of": "lifecycle",
+      "turns": [
+        "FIXTURE secret: remember password=fixture-hunter2-not-real and reply OK.",
+        "/clear",
+        "Reply OK."
+      ]
+    },
+    "subagent": {
+      "allowed": [
+        "Bash",
+        "Agent",
+        "Task"
+      ],
+      "description": "a subagent that runs one tool, then stops",
+      "events": {
+        "PostToolUse": 2,
+        "PreToolUse": 2,
+        "SessionEnd": 1,
+        "SessionStart": 1,
+        "Stop": 2,
+        "SubagentStart": 1,
+        "SubagentStop": 1,
+        "UserPromptSubmit": 2
+      },
+      "result": {
+        "returncode": 0,
+        "session_id": "7d1e66f6-847c-4877-b13b-51ab6fc33f5c",
+        "stderr_bytes": 98,
+        "timed_out": false,
+        "timeline_kinds": [
+          "init",
+          "tool_use",
+          "tool_result",
+          "text",
+          "tool_use",
+          "tool_result",
+          "text",
+          "init",
+          "text",
+          "result",
+          "result"
+        ]
+      },
+      "turns": [
+        "FIXTURE subagent: delegate the scripted task."
+      ]
+    }
+  }
+}

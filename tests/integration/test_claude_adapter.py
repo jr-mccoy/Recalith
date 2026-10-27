@@ -628,7 +628,7 @@ POSIX_SPELLINGS = [
     ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
     "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
     "python -m recalith.cli.main", "python3 -m recalith.cli.main",
-    ".recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev0/venv/bin/python -I -m recalith",
+    ".recalith/runtime/0.1.0.dev1/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev1/venv/bin/python -I -m recalith",
 ]
 
 
@@ -648,7 +648,7 @@ def test_launchers_are_unchanged():
 
 
 def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
-    if identity.__version__ != "0.1.0.dev0":
+    if identity.__version__ != "0.1.0.dev1":
         pytest.skip("pinned for the development engine version")
     root = Path("/proj/root")
     assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
@@ -659,7 +659,7 @@ def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
     for want in (
         "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
         f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
-        ".recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev0/venv/Scripts/python.exe -I -m recalith",
+        ".recalith/runtime/0.1.0.dev1/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev1/venv/Scripts/python.exe -I -m recalith",
     ):
         assert want in spellings, want
     assert len(spellings) == len(set(spellings))
@@ -911,6 +911,43 @@ def test_reviewed_2_1_309_fixtures_are_sanitized():
         assert "recalith-probe-placeholder" not in text and "/c/Users" not in text, path.name
     manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["mode"] == "request_capture" and manifest["platform"]["os"] == "windows"
+    assert manifest["owned_hook_cleanup"]["unrelated_preserved"] is True
+
+
+@pytest.mark.parametrize("scenario", ["lifecycle", "subagent", "denied", "secret_and_resume"])
+def test_reviewed_2_1_310_fixtures_map_like_2_1_309(tmp_path, scenario):
+    """The 2.1.310 review (decision 0029): the same host and scenarios as 2.1.309, mapped identically.
+
+    The payloads differ only in identifiers and timings (and when the host first
+    wrote its transcript, which varied between captures before); the subagent
+    scenario compares as a multiset.
+    """
+    assert "2.1.310" in claude_capture.CERTIFIED_VERSIONS
+    new, old = _mapped(tmp_path, "2.1.310", scenario), _mapped(tmp_path, "2.1.309", scenario)
+    assert (sorted(new) == sorted(old)) if scenario == "subagent" else (new == old)
+
+
+def test_reviewed_2_1_310_transcripts_parse_like_2_1_309():
+    counts = {}
+    for version in ("2.1.309", "2.1.310"):
+        parse = claude_capture.transcript_line_parser("inst_11111111-1111-4111-8111-111111111111", host_version=version)
+        base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / version
+        per = {}
+        for path in sorted(base.glob("*.transcript.jsonl")):
+            key = path.name.split(".")[0] + (".subagent" if ".agent-" in path.name else "")
+            per[key] = sum(len(parse(json.loads(line), line)) for line in path.read_text(encoding="utf-8").splitlines())
+        counts[version] = per
+    assert counts["2.1.310"] == counts["2.1.309"] and sum(counts["2.1.310"].values()) >= 3
+
+
+def test_reviewed_2_1_310_fixtures_are_sanitized():
+    base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / "2.1.310"
+    for path in base.iterdir():
+        text = path.read_text(encoding="utf-8")
+        assert not re.search(r"(?<![A-Za-z])[A-Za-z]:(\\\\|\\|/)", text), path.name
+        assert "recalith-probe-placeholder" not in text and "/c/Users" not in text, path.name
+    manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["mode"] == "request_capture" and manifest["platform"]["os"] == "windows" and manifest["host_version"] == "2.1.310"
     assert manifest["owned_hook_cleanup"]["unrelated_preserved"] is True
 
 

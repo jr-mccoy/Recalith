@@ -26,7 +26,7 @@ import operation_scenarios as osc
 import worker_scenarios as ws
 from recalith.capture import pipeline
 from recalith.contracts.common import RecordRef, digest_of, parse_utc, utc_now
-from recalith.contracts.config import MODEL_INPUT_CAP, BudgetConfig, ProjectConfig
+from recalith.contracts.config import MODEL_INPUT_CAP, REASONING_HEADROOM, BudgetConfig, ProjectConfig, body_cap_for, provider_output_cap
 from recalith.contracts.jobs import MODEL_JOB_KINDS, BudgetReservation
 from recalith.controller import apply, budgets, jobs, worker
 from recalith.errors import RecalithError
@@ -75,6 +75,23 @@ def seed_reservations(root, purpose: str, count: int, *, input_estimate: int = 1
     with db.open_store(ws.context(root)) as store, store.transaction() as txn:
         for i in range(count):
             out.append(budgets.reserve(txn, job_id=f"job_{digest_of([purpose, i, now])}", purpose=purpose, input_estimate=input_estimate, now=now, config=config))
+    return out
+
+
+def seed_charged(root, purpose: str, count: int, *, input_estimate: int = 100, output_tokens: int = 100, now: str = ws.START, config: BudgetConfig | None = None) -> list:
+    """Reserve and settle ``count`` invocations at a known small output, as finished calls are (the headroom is released)."""
+    from recalith.contracts.jobs import LocalUsage
+    from recalith.contracts.operations import UsageReport
+
+    config = config or BudgetConfig()
+    out = []
+    with db.open_store(ws.context(root)) as store, store.transaction() as txn:
+        for i in range(count):
+            res = budgets.reserve(txn, job_id=f"job_{digest_of([purpose, 'charged', i, now])}", purpose=purpose, input_estimate=input_estimate, now=now, config=config)
+            if isinstance(res, BudgetReservation):
+                usage = UsageReport(input_tokens=input_estimate, output_tokens=output_tokens, estimated_input_tokens=input_estimate, estimated_output_tokens=output_tokens, provider_request_id=None, duration_ms=5)
+                res = budgets.charge(txn, res.reservation_id, reported=usage, local=LocalUsage(input_estimate=input_estimate, output_estimate=output_tokens))
+            out.append(res)
     return out
 
 
@@ -189,8 +206,8 @@ def test_budget_reservation_precedes_launch(root):
 
 
 def test_ordinary_cannot_spend_protected_pool(root):
-    seed_reservations(root, "update_task", 18, input_estimate=32_768)
-    seed_reservations(root, "update_task", 1, input_estimate=600_000 - 18 * 32_768)  # 600,000 ordinary input used
+    seed_charged(root, "update_task", 18, input_estimate=32_768)
+    seed_charged(root, "update_task", 1, input_estimate=600_000 - 18 * 32_768)  # 600,000 ordinary input used
     refused = seed_reservations(root, "update_task", 1, input_estimate=1)[0]
     assert isinstance(refused, budgets.Refusal) and refused.reason == "budget_exhausted:ordinary.input_estimate"
     with db.open_store(ws.context(root), readonly=True) as store, store.read() as view:
@@ -211,34 +228,40 @@ def test_ordinary_cannot_spend_protected_pool(root):
 
 
 def test_review_can_borrow_remaining_ordinary_pool(root):
-    reviews = seed_reservations(root, "review_claims", 20)  # 60,000 protected output: exhausted
-    assert all(r.protected.output_estimate == 3000 and r.ordinary.output_estimate == 0 for r in reviews)
+    reviews = seed_reservations(root, "review_claims", 6)  # 54,000 of 60,000 protected output, each the 9,000 cap
+    assert all(r.protected.output_estimate == 9000 and r.ordinary.output_estimate == 0 for r in reviews)
+    split = seed_reservations(root, "review_claims", 1)[0]  # protected output exhausted mid-reservation
+    assert (split.protected.output_estimate, split.ordinary.output_estimate) == (6000, 3000)
     borrowed = seed_reservations(root, "review_claims", 1, now="2026-10-16T09:00:00.000000Z")[0]
-    assert borrowed.protected.invocations == 1 and borrowed.protected.output_estimate == 0 and borrowed.ordinary.output_estimate == 3000
-    seed_reservations(root, "revalidate", 9)  # protected invocations: 30 used
+    assert borrowed.protected.invocations == 1 and borrowed.protected.output_estimate == 0 and borrowed.ordinary.output_estimate == 9000
+    seed_charged(root, "revalidate", 22)  # protected invocations: 30 used (each settled at 100 output tokens)
     after = seed_reservations(root, "review_claims", 1)[0]
     assert after.protected.invocations == 0 and after.ordinary.invocations == 1  # the invocation itself is borrowed
     # Ordinary capacity is finite too: once it is gone, review waits like anything else.
-    seed_reservations(root, "extract_claims", 13)  # 104,000 + 2×3,000 borrowed = 110,000 of 120,000 ordinary output
-    seed_reservations(root, "review_claims", 3)
+    seed_reservations(root, "extract_claims", 6)  # 84,000 + 21,000 borrowed + 2,200 settled = 107,200 of 120,000 ordinary output
+    seed_reservations(root, "review_claims", 1)  # 116,200
     last = seed_reservations(root, "review_claims", 1)[0]
     assert isinstance(last, budgets.Refusal) and last.reason == "budget_exhausted:protected+ordinary.output_estimate"
 
 
-def test_48_call_full_reservation_arithmetic(root):
-    """Twelve 8,000 + sixteen 1,500 ordinary and twenty 3,000 protected reservations fill both output pools."""
-    made = seed_reservations(root, "extract_claims", 12) + seed_reservations(root, "update_task", 16) + seed_reservations(root, "review_claims", 20)
-    assert all(isinstance(r, BudgetReservation) for r in made) and len(made) == 48
-    assert all(r.max_response_body_bytes == 3 * r.estimated_output_limit and r.max_wire_stdout_bytes == 262_144 and r.max_stderr_bytes == 65_536 for r in made)
+def test_full_reservation_arithmetic_with_reasoning_headroom(root):
+    """Three 14,000 extractions, ten 7,500 task updates and seven 9,000 reviews (the last borrowing 3,000 ordinary) fill both output pools.
+
+    Each reservation is the purpose's allowance plus the 6,000 reasoning headroom (decision 0029); the body cap stays 3 × the allowance.
+    """
+    made = seed_reservations(root, "extract_claims", 3) + seed_reservations(root, "update_task", 10) + seed_reservations(root, "review_claims", 7)
+    assert all(isinstance(r, BudgetReservation) for r in made) and len(made) == 20
+    assert all(r.estimated_output_limit == provider_output_cap(r.purpose) and r.reasoning_headroom == REASONING_HEADROOM for r in made)
+    assert all(r.max_response_body_bytes == body_cap_for(r.purpose) and r.max_wire_stdout_bytes == 262_144 and r.max_stderr_bytes == 65_536 for r in made)
     for purpose, reason in (("extract_claims", "ordinary.output_estimate"), ("update_task", "ordinary.output_estimate"), ("review_claims", "protected+ordinary.output_estimate"), ("revalidate", "protected+ordinary.output_estimate")):
         refusal = seed_reservations(root, purpose, 1)[0]
         assert isinstance(refusal, budgets.Refusal) and refusal.reason == f"budget_exhausted:{reason}", purpose
     with db.open_store(ws.context(root), readonly=True) as store, store.read() as view:
         summary = budgets.summary(view, "2026-10-16", BudgetConfig())
     remaining_calls = summary["pools"]["ordinary"]["remaining"]["invocations"] + summary["pools"]["protected"]["remaining"]["invocations"]
-    assert remaining_calls == 42  # 90 is only the call ceiling
+    assert remaining_calls == 70  # 90 is only the call ceiling
     assert summary["pools"]["ordinary"]["exhausted"] == ["output_estimate"] and summary["pools"]["protected"]["exhausted"] == ["output_estimate"]
-    assert summary["per_purpose"]["extract_claims"] == {"calls": 12, "input_estimate": 1200, "output_estimate": 96_000}
+    assert summary["per_purpose"]["extract_claims"] == {"calls": 3, "input_estimate": 300, "output_estimate": 42_000}
     # A smaller known usage releases capacity; unknown interrupted usage keeps it.
     from recalith.contracts.jobs import LocalUsage
     from recalith.contracts.operations import UsageReport
@@ -246,14 +269,14 @@ def test_48_call_full_reservation_arithmetic(root):
     with db.open_store(ws.context(root)) as store, store.transaction() as txn:
         budgets.charge(txn, made[0].reservation_id, reported=UsageReport(input_tokens=90, output_tokens=2000, estimated_input_tokens=100, estimated_output_tokens=2100, provider_request_id=None, duration_ms=5), local=LocalUsage(input_estimate=100, output_estimate=2100))
         budgets.charge(txn, made[1].reservation_id, reported=None, local=None)
-    assert isinstance(seed_reservations(root, "update_task", 1)[0], BudgetReservation)  # 6,000 released
+    assert isinstance(seed_reservations(root, "update_task", 1)[0], BudgetReservation)  # 12,000 released
     assert isinstance(seed_reservations(root, "update_task", 4)[-1], budgets.Refusal)  # the interrupted one released nothing
 
 
 def test_input_estimate_limits_and_model_input_cap(root):
     """Input pools bound calls too; one request is capped at 96 KiB serialized (32,768 estimates)."""
     assert budgets.MAX_INPUT_ESTIMATE == 32_768
-    made = seed_reservations(root, "update_task", 19, input_estimate=32_768)
+    made = seed_charged(root, "update_task", 19, input_estimate=32_768)
     assert all(isinstance(r, BudgetReservation) for r in made[:18])
     assert isinstance(made[18], budgets.Refusal) and made[18].reason == "budget_exhausted:ordinary.input_estimate"
     assert seed_reservations(root, "revalidate", 1, input_estimate=32_769)[0].reason == "model_input_oversized"
@@ -347,7 +370,7 @@ def test_review_priority_is_code_assigned_and_batches_keep_their_origin():
 def test_declaration_cannot_bypass_exhausted_budget(root):
     """Priority orders launches; it never adds capacity."""
     config = BudgetConfig(daily_invocations=30)  # protected 30 + ordinary 0
-    seed_reservations(root, "revalidate", 30, config=config)
+    seed_charged(root, "revalidate", 30, config=config)  # every invocation used; settled small, so only invocations run out
     correction = ws.enqueue_model_job(root, "review_claims", key="c", candidates=[jobs.ReviewCandidate(claim_id="claim_c", origin="operator_correction", claim_kind="fact")])
     clock = ws.FakeClock()
     backend = ws.FakeBackend()
@@ -577,6 +600,28 @@ def test_typed_ingestion_runs_while_model_is_pending(tmp_path):
     assert worker.read_status(replayer.root)["state"] == "stopped"
 
 
+def test_a_handler_failure_names_its_exception_type(tmp_path):
+    """The first live pilot's ingest jobs read only ``handler_error``; a failed handler now names the type, as ``lane_error:<type>`` does."""
+    import sqlite3
+
+    import claude_fixtures as cf
+
+    replayer = cf.Replay(tmp_path / "replay")
+    clock = ws.FakeClock(utc_now())
+    w = worker.Worker(replayer.ctx, clock=clock, config=ProjectConfig.defaults_for(cf.PROJECT_ID))
+
+    def unwritable(txn, job, worker_):
+        raise sqlite3.OperationalError("unable to open database file")  # what the pilot's reductions raised
+
+    w.handlers["ingest"] = unwritable
+    _capture_lifecycle(replayer, tmp_path)
+    clock.advance(max(1.0, (parse_utc(utc_now()) - parse_utc(clock.now())).total_seconds() + 1))
+    w.poll_once()
+    with db.open_store(replayer.ctx, readonly=True) as store, store.read() as view:
+        failed = [jobs.get_job(view, r[0]) for r in view.execute("SELECT job_id FROM jobs WHERE kind = 'ingest'")]
+    assert failed and {(j.state, j.last_error_code) for j in failed} == {("pending", "handler_error:OperationalError")}
+
+
 def test_budget_exhaustion_blocks_launch_but_not_capture(tmp_path):
     """A31: no new invocation starts; capture and deterministic ingestion still work."""
     import claude_fixtures as cf
@@ -584,7 +629,7 @@ def test_budget_exhaustion_blocks_launch_but_not_capture(tmp_path):
     replayer = cf.Replay(tmp_path / "replay")
     ctx = replayer.ctx
     clock = ws.FakeClock(utc_now())  # ingestion stamps real time; the fake clock starts there
-    seed_reservations(replayer.root, "update_task", 60, now=clock.now())  # all 60 ordinary invocations
+    seed_charged(replayer.root, "update_task", 60, now=clock.now())  # all 60 ordinary invocations
     with db.open_store(ctx) as store, store.transaction() as txn:
         job_id, _ = jobs.enqueue(txn, kind="extract_claims", input_refs=[RecordRef(kind="claim", id=f"claim_{digest_of('x')}", revision=1)], now=clock.now(), prompt_version="test@1")
     backend = ws.FakeBackend()

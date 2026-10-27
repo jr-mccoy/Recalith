@@ -247,11 +247,41 @@ def test_store_connection_policy(tmp_path):
         assert conn.execute("PRAGMA synchronous").fetchone()[0] == 2  # FULL
         assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == 250
+        assert conn.execute("PRAGMA temp_store").fetchone()[0] == 2  # MEMORY (decision 0029)
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
     finally:
         conn.close()
     expected = {"installation_meta", "workspaces", "sessions", "capture_sources", "source_conflicts", "root_classes", "root_members", "root_aliases", "task_boundaries", "task_binding_revisions", "task_binding_heads", "failure_triggers", "environment_observations", "review_batches", "events", "task_revisions", "task_heads", "episode_revisions", "episode_heads", "claim_revisions", "claim_heads", "evidence_links", "evidence_capsules", "dependencies", "relations", "jobs", "proposals", "operations", "revision_chain", "privacy_operations", "deliveries", "outcome_links", "tombstones", "imports", "exports", "backups", "provider_usage", "context_views", "lexical_index"}
     assert expected <= tables
+
+
+TEMP_PROBE = """
+import sys
+sys.path.insert(0, sys.argv[1])
+from pathlib import Path
+from recalith.storage import db
+conn = db.connect(Path(sys.argv[2]))
+conn.execute("PRAGMA cache_size = 8")  # small, so a sort and a statement journal spill past the page cache
+conn.execute("CREATE TABLE temp_probe (k INTEGER PRIMARY KEY, v TEXT UNIQUE)")
+conn.execute("BEGIN IMMEDIATE")
+conn.executemany("INSERT INTO temp_probe (v) VALUES (?)", ((f"{i:08d}" + "x" * 300,) for i in range(5000)))
+conn.execute("COMMIT")
+assert len(conn.execute("SELECT v FROM temp_probe ORDER BY substr(v, 5) DESC").fetchall()) == 5000
+conn.execute("BEGIN IMMEDIATE")
+conn.execute("UPDATE temp_probe SET v = v || 'y' WHERE k > 10")
+conn.execute("UPDATE temp_probe SET v = v || 'z'")
+conn.execute("COMMIT")
+print("ok")
+"""
+
+
+def test_store_writes_need_no_temp_directory(tmp_path):
+    """The first live pilot: a hook-started worker inherited no TEMP/TMP, and on Windows SQLite then reached for the
+    Windows directory (``unable to open database file``). Its temporary files stay in memory, so writes that spill succeed."""
+    a = make_project(tmp_path, "a")
+    env = {"PATH": os.environ.get("PATH", "")} | ({"SYSTEMROOT": os.environ["SYSTEMROOT"]} if "SYSTEMROOT" in os.environ else {})
+    proc = subprocess.run([sys.executable, "-I", "-c", TEMP_PROBE, str(ROOT / "src"), str(a.root / ".recalith/state/memory.sqlite")], capture_output=True, text=True, env=env, timeout=120)
+    assert (proc.returncode, proc.stdout.strip()) == (0, "ok"), proc.stderr[-2000:]
 
 
 def test_busy_writer_fails_within_busy_timeout(tmp_path):

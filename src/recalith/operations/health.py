@@ -189,7 +189,7 @@ def _store_facts(ctx: InstallationContext, *, now: str, deep: bool) -> dict[str,
         out["ordinary_blocked"] = isinstance(budgets.plan("update_task", 1, used=used, limits=limits), budgets.Refusal)
         out["review_blocked"] = isinstance(budgets.plan("review_claims", 1, used=used, limits=limits), budgets.Refusal)
         protected = limits["protected"] - used["protected"]
-        out["protected_exhausted"] = protected.invocations < 1 or protected.input_estimate < 1 or protected.output_estimate < min(budgets.PURPOSE_OUTPUT_ALLOWANCE[p] for p in budgets.PROTECTED_PURPOSES)
+        out["protected_exhausted"] = protected.invocations < 1 or protected.input_estimate < 1 or protected.output_estimate < min(budgets.provider_output_cap(p) for p in budgets.PROTECTED_PURPOSES)
         out["hours_to_exhaustion"] = _hours_to_exhaustion(used, limits, now)
         out["conflict_count"] = view.execute("SELECT COUNT(*) FROM source_conflicts WHERE state = 'unresolved'").fetchone()[0]
         out["conflicts"] = view.execute(

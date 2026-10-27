@@ -48,6 +48,10 @@ def _migrations() -> list[tuple[int, str]]:
 
 def _configure(conn: sqlite3.Connection, *, readonly: bool) -> None:
     conn.execute("PRAGMA foreign_keys = ON")
+    # SQLite's own temporary files (statement journals, sort spills, TEMP tables) stay in memory: a
+    # hook-started worker may inherit no temp directory, and on Windows SQLite then falls back to
+    # the Windows directory, which a normal user cannot write (decision 0029).
+    conn.execute("PRAGMA temp_store = MEMORY")
     conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     if readonly:
         conn.execute("PRAGMA query_only = ON")

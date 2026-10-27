@@ -63,11 +63,20 @@ PURPOSE_OUTPUT_ALLOWANCE: dict[str, int] = {
     "revalidate": 3000,
 }
 PROTECTED_PURPOSES = frozenset({"review_claims", "revalidate"})
+# A thinking model's reasoning counts against the provider's hard output cap
+# (decision 0027 item 9), so the cap sent and reserved is the allowance plus
+# this headroom; the decoded-body cap stays 3 × the allowance (decision 0029).
+REASONING_HEADROOM = 6000
 
 
 def body_cap_for(purpose: str) -> int:
-    """Decoded logical JSON body cap: 3 × reserved output estimate."""
+    """Decoded logical JSON body cap: 3 × the purpose's output allowance."""
     return 3 * PURPOSE_OUTPUT_ALLOWANCE[purpose]
+
+
+def provider_output_cap(purpose: str) -> int:
+    """The provider's hard output cap and the reserved output estimate: the allowance plus the reasoning headroom."""
+    return PURPOSE_OUTPUT_ALLOWANCE[purpose] + REASONING_HEADROOM
 
 
 def estimate_tokens(utf8_bytes: int) -> int:

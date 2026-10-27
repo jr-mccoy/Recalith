@@ -5,4 +5,4 @@ points under ``recalith.fast`` must not transitively import Pydantic or other
 heavy modules through it (SYSTEM_SPEC §5.1.1).
 """
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0.dev1"

@@ -20,7 +20,7 @@ import operation_scenarios as osc
 import provider_scenarios as ps
 import worker_scenarios as ws
 from recalith.contracts.common import digest_of, new_id
-from recalith.contracts.config import ProviderConfig
+from recalith.contracts.config import ProviderConfig, provider_output_cap
 from recalith.controller import worker
 from recalith.fast import process_env
 from recalith.operations import health as operations_health
@@ -133,6 +133,9 @@ def test_certified_api_route_reserves_charges_failures_and_backs_off(tmp_path):
         sent = fake.snapshot()
     rows = usage_rows(root)
     assert len(rows) == len(sent) > len(failed)
+    # Decision 0029: the hard cap sent is what was reserved, the allowance plus the reasoning headroom.
+    assert [json.loads(c["body"])["max_completion_tokens"] for c in sent] == [r["estimated_output_limit"] for r in rows]
+    assert all(r["estimated_output_limit"] == provider_output_cap(r["purpose"]) and r["reasoning_headroom"] == 6000 for r in rows)
     assert any(r["reported_usage"] and r["reported_usage"]["output_tokens"] == 7 for r in rows)
     assert all(dict(c["headers"]).get("Authorization") == f"Bearer {VALUE}" for c in sent)
     assert provider.report()["last_call_failure"] is None

@@ -23,7 +23,7 @@ import pytest
 from pydantic import ValidationError
 
 from recalith.contracts.common import ReadSet, canonical_json, digest_of, new_id
-from recalith.contracts.config import PURPOSE_OUTPUT_ALLOWANCE, ProviderConfig, body_cap_for
+from recalith.contracts.config import PURPOSE_OUTPUT_ALLOWANCE, ProviderConfig, body_cap_for, provider_output_cap
 from recalith.contracts.operations import ModelRequest, RequestLimits
 from recalith.errors import RecalithError
 from recalith.fast import process_env
@@ -218,7 +218,7 @@ def test_exact_request_shape_per_dialect(backend):
     assert sum(VALUE in v for v in headers.values()) == 1  # the selected key travels in exactly one header
     wire = record["body"] + json.dumps(record["headers"]).encode()
     assert not [k for k, v in DECOYS.items() if v.encode() in wire]  # no other credential reaches the provider
-    cap = PURPOSE_OUTPUT_ALLOWANCE["update_task"]
+    cap = provider_output_cap("update_task")  # the allowance plus the reasoning headroom (decision 0029)
     assert record["body"] == api.build_body(cfg, raw, output_cap=cap)  # byte-identical to what the engine built
     body = json.loads(record["body"])
     assert set(body) == api.expected_body_keys(cfg) and not set(body) & TOOL_KEYS
@@ -242,7 +242,7 @@ def test_output_cap_field_and_json_mode_options():
         _b, _raw, _o, result = call(cfg, env(), purpose="revalidate")
         (record,) = fake.snapshot()
     body = json.loads(record["body"])
-    assert result.code is None and body["max_tokens"] == PURPOSE_OUTPUT_ALLOWANCE["revalidate"]
+    assert result.code is None and body["max_tokens"] == provider_output_cap("revalidate") == 9000
     assert "max_completion_tokens" not in body and "response_format" not in body
     assert header_map(record)["api-key"] == VALUE and "authorization" not in header_map(record)
 

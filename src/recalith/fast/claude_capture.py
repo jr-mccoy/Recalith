@@ -1,4 +1,4 @@
-"""Claude Code capture adapter for the exact host versions 2.1.301, 2.1.305, 2.1.306 and 2.1.309.
+"""Claude Code capture adapter for the exact host versions 2.1.301, 2.1.305, 2.1.306, 2.1.309 and 2.1.310.
 
 Standard library only. The mapping below was established from real hook
 payloads of the installed host (``tests/fixtures/hosts/claude/2.1.301/``,
@@ -9,8 +9,10 @@ known metadata records), and 2.1.306 likewise (decision 0020: identical event
 kinds, field sets and value types; only a background subagent's interleaving
 differs), and 2.1.309 on native Windows (decision 0027: the same events, field
 sets and types; values differ only by platform: Windows path separators and
-CRLF in Windows subprocess output). A similar event name on another version is not
-certification (DATA_CONTRACTS §2.3, SYSTEM_SPEC §9.2).
+CRLF in Windows subprocess output), and 2.1.310 on the same host (decision 0029:
+the same events, field sets and types; values differ only in identifiers and
+timings). A similar event name on another version is not certification
+(DATA_CONTRACTS §2.3, SYSTEM_SPEC §9.2).
 
 Hook event → normalized role → envelope kind:
 
@@ -68,7 +70,7 @@ from recalith.fast.normalize import RawEvent, RecordGap
 from recalith.fast.wire import derived_id, digest_of_text
 
 ADAPTER_ID = "claude_code"
-CERTIFIED_VERSIONS = frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309"})
+CERTIFIED_VERSIONS = frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310"})
 TRANSCRIPT_PARSER = "claude_code_transcript@2.1.301"
 
 ROLES = {

@@ -10,9 +10,11 @@ whatever ordinary capacity remains; ordinary purposes never touch the
 protected pool. Priority changes the order of launches, never these limits.
 
 Before every launch the worker reserves the actual estimated request size
-(``ceil(UTF-8 bytes / 3)``, labeled an estimate) plus the purpose's fixed
-output allowance (1,500 task narrative; 8,000 episode/extraction; 3,000
-review/revalidation). A reservation that does not fit is not made, and the
+(``ceil(UTF-8 bytes / 3)``, labeled an estimate) plus the purpose's provider
+output cap: its fixed output allowance (1,500 task narrative; 8,000
+episode/extraction; 3,000 review/revalidation) plus the reasoning headroom
+(6,000), because a reasoning model's thinking is charged against the same hard
+cap (decision 0029). A reservation that does not fit is not made, and the
 job waits with a visible ``budget_exhausted:<pool>.<dimension>`` reason. Every
 launched attempt is charged, failures included. After the call the
 reservation is *charged*: provider-reported usage replaces the local estimate
@@ -23,12 +25,13 @@ calls and stays visible rather than being forgiven.
 
 Output is bounded twice and separately: the raw host stdout (wire) at
 256 KiB while reading, and the decoded logical JSON body at ``3 ×`` the
-reserved output allowance, counted in its original UTF-8 bytes before strict
-parsing. Neither is ever compacted or clipped to pass.
+output allowance (never the headroom), counted in its original UTF-8 bytes
+before strict parsing. Neither is ever compacted or clipped to pass.
 
-90 is only the call ceiling: twelve 8,000-token extractions plus sixteen
-1,500-token task narratives (120,000) and twenty 3,000-token reviews (60,000)
-fully reserve the output pools after 48 calls.
+90 is only the call ceiling: three 14,000-token extractions plus ten
+7,500-token task narratives (117,000) and seven 9,000-token reviews (63,000,
+the last borrowing 3,000 ordinary) fully reserve the output pools after 20
+calls.
 """
 
 from __future__ import annotations
@@ -38,7 +41,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
 from recalith.contracts.common import new_id
-from recalith.contracts.config import MODEL_INPUT_CAP, PROTECTED_PURPOSES, PURPOSE_OUTPUT_ALLOWANCE, STDERR_CAP, WIRE_STDOUT_CAP, BudgetConfig, body_cap_for, estimate_tokens
+from recalith.contracts.config import MODEL_INPUT_CAP, PROTECTED_PURPOSES, REASONING_HEADROOM, STDERR_CAP, WIRE_STDOUT_CAP, BudgetConfig, body_cap_for, estimate_tokens, provider_output_cap
 from recalith.contracts.jobs import BudgetReservation, LocalUsage, PoolAllocation
 from recalith.contracts.operations import MalformedOperation, ProposedOperation, UsageReport, parse_model_body_partitioned
 from recalith.storage.db import Txn
@@ -157,7 +160,7 @@ class Refusal:
 
 def plan(purpose: str, input_estimate: int, *, used: Mapping[str, Amounts], limits: Mapping[str, Amounts]) -> Plan | Refusal:
     """Allocate one invocation's reservation across the pools, or say why it cannot fit."""
-    output = PURPOSE_OUTPUT_ALLOWANCE[purpose]
+    output = provider_output_cap(purpose)  # the allowance plus the reasoning headroom: what the provider may charge
     remaining = {pool: limits[pool] - used[pool] for pool in POOLS}
     ordinary = remaining["ordinary"]
     if not is_protected(purpose):
@@ -180,7 +183,7 @@ def plan(purpose: str, input_estimate: int, *, used: Mapping[str, Amounts], limi
 
 
 def fits_lower_bound(purpose: str, *, used: Mapping[str, Amounts], limits: Mapping[str, Amounts]) -> Refusal | None:
-    """Can any request of this purpose fit (one input estimate plus its output allowance)?"""
+    """Can any request of this purpose fit (one input estimate plus its provider output cap)?"""
     result = plan(purpose, 1, used=used, limits=limits)
     return result if isinstance(result, Refusal) else None
 
@@ -193,7 +196,7 @@ def reserve(txn: Txn, *, job_id: str, purpose: str, input_estimate: int, now: st
     result = plan(purpose, input_estimate, used=used_by_pool(txn, day), limits=pool_limits(config))
     if isinstance(result, Refusal):
         return result
-    output = PURPOSE_OUTPUT_ALLOWANCE[purpose]
+    output = provider_output_cap(purpose)
     res = BudgetReservation(
         reservation_id=new_id("rsv"),
         job_id=job_id,
@@ -204,6 +207,7 @@ def reserve(txn: Txn, *, job_id: str, purpose: str, input_estimate: int, now: st
         protected=PoolAllocation(**result.protected.as_dict()),
         estimated_input_limit=input_estimate,
         estimated_output_limit=output,
+        reasoning_headroom=REASONING_HEADROOM,
         max_response_body_bytes=body_cap_for(purpose),
         state="reserved",
     )

@@ -51,7 +51,7 @@ from typing import Any, Mapping
 from pydantic import ValidationError
 
 from recalith.contracts.common import InstallationContext, canonical_json, digest_of, utc_now
-from recalith.contracts.config import API_BACKENDS, MODEL_INPUT_CAP, PURPOSE_OUTPUT_ALLOWANCE, ProviderConfig, body_cap_for, estimate_tokens
+from recalith.contracts.config import API_BACKENDS, MODEL_INPUT_CAP, PURPOSE_OUTPUT_ALLOWANCE, ProviderConfig, body_cap_for, estimate_tokens, provider_output_cap
 from recalith.contracts.jobs import LocalUsage
 from recalith.contracts.operations import ModelRequest, ModelResponse, ResponseProvenance, UsageReport
 from recalith.controller import launch
@@ -387,7 +387,7 @@ class ProviderBackend:
         """What the child reads: the request itself, or for an API route the transport specification around the exact body."""
         if not self.is_api:
             return request
-        cap = output_cap if output_cap is not None else PURPOSE_OUTPUT_ALLOWANCE.get(purpose, CHECK_OUTPUT_CAP)
+        cap = output_cap if output_cap is not None else (provider_output_cap(purpose) if purpose in PURPOSE_OUTPUT_ALLOWANCE else CHECK_OUTPUT_CAP)
         body = api.build_body(self.config, request, output_cap=cap)
         spec = api.transport_spec(self.config, body, output_cap=cap, timeout_s=timeout_s, url=self.endpoint_url)
         self.last_spec = {k: v for k, v in spec.items() if k != "body"}

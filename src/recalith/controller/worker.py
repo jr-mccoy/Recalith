@@ -474,8 +474,8 @@ class Worker:
                 self.counters["fenced_results"] += 1
                 return
             self._fail(job, exc.code)
-        except Exception:  # noqa: BLE001 - a handler bug fails its job, not the worker
-            self._fail(job, "handler_error")
+        except Exception as exc:  # noqa: BLE001 - a handler bug fails its job, not the worker
+            self._fail(job, f"handler_error:{type(exc).__name__}"[:64])  # the type only, as the model lane's lane_error
 
     def _fail(self, job: Job, code: str) -> None:
         try:

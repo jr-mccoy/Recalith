@@ -27,6 +27,7 @@ from recalith.contracts.config import (
     RetentionValue,
     body_cap_for,
     estimate_tokens,
+    provider_output_cap,
 )
 from recalith.contracts.context import ContextItem, ContextPacket, DeliveryReceipt, OutcomeLink, SessionScratch
 from recalith.contracts.events import CaptureReceipt, EventEnvelope, Segment, TextChunk, ToolAssertion, ToolPayload
@@ -305,6 +306,20 @@ def test_budget_reservation_pools_and_caps():
     review = {**base, "purpose": "review_claims", "estimated_output_limit": 3000, "max_response_body_bytes": 9000, "ordinary": {"invocations": 0, "input_estimate": 1000, "output_estimate": 1000}, "protected": {"invocations": 1, "input_estimate": 4000, "output_estimate": 2000}}
     BudgetReservation.model_validate(review)  # protected first, then remaining ordinary capacity
     assert estimate_tokens(10) == 4 and body_cap_for("update_task") == 4500
+
+
+def test_reservations_hold_the_reasoning_headroom_and_keep_the_body_cap():
+    """Decision 0029: the reserved output (the provider's hard cap) is the allowance plus 6,000; the body cap stays 3 × the allowance."""
+    assert [provider_output_cap(p) for p in ("update_task", "build_episode", "extract_claims", "review_claims", "revalidate")] == [7500, 14000, 14000, 9000, 9000]
+    assert body_cap_for("update_task") == 4500 and body_cap_for("extract_claims") == 24000
+    base = {"reservation_id": new_id("rsv"), "job_id": new_id("job"), "invocation_id": new_id("inv"), "utc_day": "2026-10-26", "purpose": "update_task", "ordinary": {"invocations": 1, "input_estimate": 5000, "output_estimate": 7500}, "protected": {"invocations": 0, "input_estimate": 0, "output_estimate": 0}, "estimated_input_limit": 5000, "estimated_output_limit": 7500, "reasoning_headroom": 6000, "max_response_body_bytes": 4500, "state": "reserved"}
+    BudgetReservation.model_validate(base)
+    rejects(BudgetReservation, {**base, "max_response_body_bytes": 22500}, "3 × the purpose's output allowance")  # the headroom never widens the body
+    rejects(BudgetReservation, {**base, "reasoning_headroom": 4000, "estimated_output_limit": 5500, "ordinary": {**base["ordinary"], "output_estimate": 5500}}, "fixed headroom")
+    rejects(BudgetReservation, {**base, "reasoning_headroom": 0}, "allowance plus the reasoning headroom")
+    # A reservation stored before decision 0029 has no headroom field and still reads.
+    legacy = {k: v for k, v in base.items() if k != "reasoning_headroom"} | {"estimated_output_limit": 1500, "ordinary": {**base["ordinary"], "output_estimate": 1500}}
+    assert BudgetReservation.model_validate(legacy).reasoning_headroom == 0
 
 
 def test_job_pool_and_priority_rules():

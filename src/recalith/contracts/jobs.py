@@ -8,7 +8,7 @@ from typing import Annotated, Literal
 from pydantic import Field, model_validator
 
 from .common import Digest, Id, NonNegative, RecordRef, Revision, StrictModel, UtcTime
-from .config import PROTECTED_PURPOSES, PURPOSE_OUTPUT_ALLOWANCE, STDERR_CAP, WIRE_STDOUT_CAP, ModelPurpose
+from .config import PROTECTED_PURPOSES, PURPOSE_OUTPUT_ALLOWANCE, REASONING_HEADROOM, STDERR_CAP, WIRE_STDOUT_CAP, ModelPurpose, body_cap_for
 from .operations import UsageReport
 
 JobKind = Literal["ingest", "update_task", "build_episode", "extract_claims", "review_claims", "revalidate", "compile_context", "maintenance", "export"]
@@ -102,6 +102,7 @@ class BudgetReservation(StrictModel):
     protected: PoolAllocation
     estimated_input_limit: Annotated[int, Field(gt=0)]
     estimated_output_limit: Annotated[int, Field(gt=0)]
+    reasoning_headroom: NonNegative = 0  # 0 on a reservation made before decision 0029
     max_wire_stdout_bytes: Literal[262144] = WIRE_STDOUT_CAP  # type: ignore[assignment]
     max_response_body_bytes: Annotated[int, Field(gt=0)]
     max_stderr_bytes: Literal[65536] = STDERR_CAP  # type: ignore[assignment]
@@ -119,10 +120,12 @@ class BudgetReservation(StrictModel):
             raise ValueError("pool output allocations sum to the output limit")
         if self.purpose not in PROTECTED_PURPOSES and (self.protected.invocations or self.protected.input_estimate or self.protected.output_estimate):
             raise ValueError("ordinary jobs cannot consume protected reserves")
-        if self.estimated_output_limit != PURPOSE_OUTPUT_ALLOWANCE[self.purpose]:
-            raise ValueError("output allowance is fixed by purpose")
-        if self.max_response_body_bytes != 3 * self.estimated_output_limit:
-            raise ValueError("max_response_body_bytes is 3 × the output allowance")
+        if self.reasoning_headroom not in (0, REASONING_HEADROOM):
+            raise ValueError("reasoning headroom is the fixed headroom, or 0 before decision 0029")
+        if self.estimated_output_limit != PURPOSE_OUTPUT_ALLOWANCE[self.purpose] + self.reasoning_headroom:
+            raise ValueError("output limit is the purpose's allowance plus the reasoning headroom")
+        if self.max_response_body_bytes != body_cap_for(self.purpose):
+            raise ValueError("max_response_body_bytes is 3 × the purpose's output allowance")
         return self
 
 

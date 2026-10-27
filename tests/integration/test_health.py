@@ -303,6 +303,12 @@ def test_exhausted_budget_pools_are_reported(tmp_path):
         for i in range(config.daily_invocations + 1):
             if isinstance(budgets.reserve(txn, job_id=derived_id("job", ["extract_claims", i, now]), purpose="extract_claims", input_estimate=100, now=now, config=config), budgets.Refusal):
                 break
+    # Eight 14,000-token extractions leave 8,000: no extraction fits, but a 7,500-token task update still does (decision 0029).
+    assert "ordinary" not in hs.report(p, env).budget_summary["exhausted_pools"]
+    with db.open_store(p.ctx) as store, store.transaction() as txn:
+        for i in range(config.daily_invocations + 1):
+            if isinstance(budgets.reserve(txn, job_id=derived_id("job", ["update_task", i, now]), purpose="update_task", input_estimate=100, now=now, config=config), budgets.Refusal):
+                break
     rep = hs.report(p, env)
     assert "ordinary" in rep.budget_summary["exhausted_pools"]
     assert rep.capabilities["inference"].state == "degraded" and "ordinary_budget_exhausted" in rep.capabilities["inference"].reason_codes

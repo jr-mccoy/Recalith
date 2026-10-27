@@ -260,19 +260,21 @@ Thirty invocations, 300,000 input estimates, and 60,000 output estimates are pro
 
 Each evidence-expansion request is another invocation. An extraction plus one review batch can take up to three extraction and three review invocations with the two allowed expansion rounds: six total. For K review batches the maximum is `3 + 3K`, excluding separately scheduled episode construction, task narrative, retries, or revalidation. A normal five-candidate extraction with one fitting review batch and no expansion costs **two total calls: one ordinary extraction and one protected-priority review**, not two protected calls or six per-claim calls. The budget is a ceiling, not a promise of 90 useful jobs or all-day capacity. Report exhausted pools, hours to exhaustion, backlog age, and per-purpose calls/tokens. The 180-second admission target covers only the one-extraction/one-review, no-expansion, no-queue path.
 
-Reserve the actual estimated request size and the following purpose-specific output allowance before each launch:
+Reserve the actual estimated request size and the following purpose-specific provider output cap before each launch:
 
-| Model purpose | Estimated output allowance | Decoded logical JSON body cap |
-|---|---:|---:|
-| `update_task` | 1,500 tokens | 4,500 UTF-8 bytes |
-| `build_episode` | 8,000 tokens | 24,000 UTF-8 bytes |
-| `extract_claims` | 8,000 tokens | 24,000 UTF-8 bytes |
-| `review_claims` | 3,000 tokens | 9,000 UTF-8 bytes |
-| `revalidate` | 3,000 tokens | 9,000 UTF-8 bytes |
+| Model purpose | Estimated output allowance | Provider output cap (reserved) | Decoded logical JSON body cap |
+|---|---:|---:|---:|
+| `update_task` | 1,500 tokens | 7,500 tokens | 4,500 UTF-8 bytes |
+| `build_episode` | 8,000 tokens | 14,000 tokens | 24,000 UTF-8 bytes |
+| `extract_claims` | 8,000 tokens | 14,000 tokens | 24,000 UTF-8 bytes |
+| `review_claims` | 3,000 tokens | 9,000 tokens | 9,000 UTF-8 bytes |
+| `revalidate` | 3,000 tokens | 9,000 tokens | 9,000 UTF-8 bytes |
 
-Only these job purposes launch models; other jobs are deterministic or enqueue a listed purpose. The adapter bounds raw host stdout to 256 KiB while reading, validates the registered envelope, then checks the decoded response JSON body's original UTF-8 bytes against `3 × reserved_output_estimate` before strict DTO parsing. The envelope's escaped representation, usage, and session metadata do not consume the logical-body cap; they remain within the separate hard wire cap. Do not compact, truncate, or clip an oversized body to make it pass. A valid 15 KB episode body inside a larger certified host envelope must pass the 24,000-byte allowance. Malformed/oversized output is rejected and charged; repeated failures use the normal bounded backoff.
+The provider output cap is the allowance plus a reasoning headroom of 6,000 tokens for every purpose. A reasoning model's thinking counts against the same hard cap (`max_tokens` or the configured output-cap field), so the allowance alone left no room for it (decision 0029). The cap is sent, reserved and charged against; the decoded body cap stays 3 × the allowance, and the request's limits name the allowance.
 
-The 180,000 daily output pool remains an initial bound, not capacity for 90 maximum-size responses. For example, ordinary reservations of twelve 8,000-token jobs plus sixteen 1,500-token jobs total 120,000; twenty protected 3,000-token reviews total 60,000. That is 48 fully reserved calls, before considering the input ceiling. Smaller actual responses release unused reservations after accounting; unknown interrupted usage retains the reservation. This illustrative mix must be measured in the three workload days. Keep provider-reported usage and local estimates side by side; overages pause further calls and remain visible.
+Only these job purposes launch models; other jobs are deterministic or enqueue a listed purpose. The adapter bounds raw host stdout to 256 KiB while reading, validates the registered envelope, then checks the decoded response JSON body's original UTF-8 bytes against `3 × reserved_output_estimate` (the allowance) before strict DTO parsing. The envelope's escaped representation, usage, and session metadata do not consume the logical-body cap; they remain within the separate hard wire cap. Do not compact, truncate, or clip an oversized body to make it pass. A valid 15 KB episode body inside a larger certified host envelope must pass the 24,000-byte allowance. Malformed/oversized output is rejected and charged; repeated failures use the normal bounded backoff.
+
+The 180,000 daily output pool remains an initial bound, not capacity for 90 maximum-size responses. For example, ordinary reservations of three 14,000-token extractions plus ten 7,500-token task updates total 117,000; seven 9,000-token reviews total 63,000, the last borrowing 3,000 of the ordinary pool. That is 20 fully reserved calls, before considering the input ceiling. Smaller actual responses release unused reservations after accounting; unknown interrupted usage retains the reservation. This illustrative mix must be measured in the three workload days. Keep provider-reported usage and local estimates side by side; overages pause further calls and remain visible.
 
 The estimate is `ceil(UTF-8 bytes / 3)` and must be labeled an estimate. Exact provider usage replaces it when returned. Invocation, byte, and wall-clock limits are enforceable locally; subscription billing and provider-side tokens may not be exactly controllable. Reserve budget before launch and charge failed attempts too. Interrupted calls with unknown usage consume the reservation. Budget exhaustion queues work and leaves deterministic capture/delivery active.
 
