@@ -1,6 +1,6 @@
 # Decision 0028: Live evaluation installations and the live trial path
 
-Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review; items 12–15 added after the first live gate · Date: 2026-10-23, amended 2026-10-26 · Host: Claude Code 2.1.309 on native Windows; two one-scenario pilots and one failed live gate have run
+Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review; items 12–16 added after the first live gate · Date: 2026-10-23, amended 2026-10-26 · Host: Claude Code 2.1.309 on native Windows; two one-scenario pilots and one failed live gate have run
 
 ## Context
 
@@ -90,10 +90,20 @@ The first live gate (2026-10-23 to 2026-10-26, BUILD_PROGRESS) failed, and four 
     - `evals/run.py adjudicate DIR` writes the sheet and a template whose term-match fields are suggestions, never labels. The report keeps the term match as `term_match_provisional`, and states the single-reviewer limitation when fewer than two reviewers are named.
     - Scripted runs keep the term match unchanged.
 15. **Curator call outcomes stay in the record.** Each live candidate trial and live workload day records, per purpose, its charged calls, the calls that ended at the output cap, provider-reported input and output, and the visible reply's local estimate (`live.provider_outcomes`), plus the curation jobs' failure codes. The report sums them (`curator_call_outcomes`). In the first gate, the workload stores were removed with the run and these counts could not be recovered.
+16. **Fresh-session reuse counts any learning scenario.** ACCEPTANCE_TESTS §6.1 asks for "at least one fresh-session reuse"; the harness had pinned it to L1, whose failure a capable live agent avoids without memory: the first gate's baseline inspected the project and ran the working command first.
+    - The demonstration now holds when any of the four learning scenarios meets all three conditions, each read from that run's own trials:
+      - the candidate succeeded with no repeated mistake;
+      - a packet delivered in its fresh session B carried the scenario's session-B gold text (any packet, because L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson);
+      - the clean baseline, in the same session, failed the task or repeated session A's mistake.
+    - The record lists every learning scenario with its evaluation, and `met_by`. A live pair that did not run is listed under `not_run`, never replaced by a scripted trial.
+    - Compared with the L1-only rule, two conditions change.
+      - The baseline can show the gap by failing the task as well as by repeating the mistake. A preference or decision it never received shows as a failed task, not a repeat.
+      - Delivery of the gold text in session B is now required; it was implicit for the scripted agent.
+    - Decided before the rerun. Applied to the first gate's records, it counts L3: its baseline failed and its candidate's session-B prompt packet carried the $600 preference. That session ran on 2.1.310, which item 12 now refuses. On the recorded scripted run, L1, L2 and L3 meet it.
 
 ## Consequences
 
-Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`). After the first live gate: the host-version check, suspension records and keep-awake, the adjudicated live quality measures and `evals/run.py adjudicate`, and the curator call outcomes (items 12–15).
+Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`). After the first live gate: the host-version check, suspension records and keep-awake, the adjudicated live quality measures and `evals/run.py adjudicate`, the curator call outcomes, and fresh-session reuse over every learning scenario (items 12–16).
 
 Run: two one-scenario pilots and one full live gate, all by the owner from an ordinary terminal. The gate failed (BUILD_PROGRESS, 2026-10-26; the sanitized record is in `docs/evaluations/preview-live-2026-10-26/`).
 

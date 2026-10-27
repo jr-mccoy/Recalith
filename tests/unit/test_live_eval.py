@@ -642,6 +642,34 @@ def test_live_demonstrations_never_fall_back_to_scripted_trials(tmp_path):
         assert out["demonstrations"][name]["demonstrated"] is False and "LookupError" in out["demonstrations"][name]["error"], name
 
 
+def test_fresh_session_reuse_counts_any_learning_scenario_that_meets_the_criterion(tmp_path):
+    """Decision 0028 item 16: L1 alone is not required. A scenario counts when the candidate succeeded without a repeat, a
+    session-B packet carried the gold text, and the baseline failed or repeated the mistake; a pair that did not run is listed."""
+    from evals import demos
+
+    trials = tmp_path / "trials"
+    trials.mkdir()
+
+    def write(sid, arm, *, success, repeated=0, carried=""):
+        record = {"mode": "live", "scenario": sid, "arm": arm, "outcomes": {"task_success": success, "repeated_mistakes": repeated}, "claims": [],
+                  "sessions": [{"name": "A", "deliveries": []}, {"name": "B", "deliveries": [{"purpose": "prompt", "context": carried or None}]}]}
+        (trials / f"{sid}.{arm}.json").write_text(json.dumps(record), encoding="utf-8")
+
+    write("smoke-L1-ledgerlite-test-command", "candidate", success=True, carried="run PYTHONPATH=src python -m unittest")
+    write("smoke-L1-ledgerlite-test-command", "no_memory", success=True)  # the live baseline avoided the mistake unaided
+    write("smoke-L2-fieldnotes-iso-dates", "candidate", success=True, carried="dates are printed as typed")  # no gold text delivered
+    write("smoke-L2-fieldnotes-iso-dates", "no_memory", success=False)
+    write("smoke-L3-household-grocery-budget", "candidate", success=True, carried="Preference: keep groceries under $600 per month")
+    write("smoke-L3-household-grocery-budget", "no_memory", success=False)
+    out = demos.fresh_session_reuse(trials, tmp_path / "work", live=True)
+    assert out["demonstrated"] is True and out["met_by"] == ["smoke-L3-household-grocery-budget"]
+    assert out["scenarios"]["smoke-L1-ledgerlite-test-command"]["met"] is False and out["scenarios"]["smoke-L1-ledgerlite-test-command"]["carried_in_session_b"] == ["PYTHONPATH=src"]
+    assert out["scenarios"]["smoke-L2-fieldnotes-iso-dates"]["met"] is False and out["scenarios"]["smoke-L2-fieldnotes-iso-dates"]["carried_in_session_b"] == []
+    assert len(out["not_run"]) == 1 and "smoke-L4-ledgerlite-resume-refactor" in out["not_run"][0]  # never a scripted stand-in
+    write("smoke-L3-household-grocery-budget", "no_memory", success=True)
+    assert demos.fresh_session_reuse(trials, tmp_path / "work", live=True)["demonstrated"] is False
+
+
 def test_live_workload_days_need_the_live_setup(tmp_path):
     from evals import workload
 

@@ -1,8 +1,10 @@
 """The §6.1 preview demonstrations, scripted and recorded (ACCEPTANCE_TESTS §6.1; decision 0020).
 
-1. **Fresh-session reuse** — the L1 candidate learns the working test command
-   in session A; fresh session B receives it without any remember
-   instruction and does not repeat the failure, while the clean baseline does.
+1. **Fresh-session reuse** — in any learning scenario (decision 0028 item 16),
+   the candidate learns in session A, and fresh session B receives the
+   scenario's gold text without any remember instruction. The candidate
+   succeeds without repeating a mistake, while the clean baseline in the
+   same session fails or repeats session A's mistake.
 2. **Changed-condition revision with a legitimate retry** — R1/R2: the
    dependency changes before session C; no caution blocks the plain retry,
    the retry succeeds, and revalidation revises the lesson.
@@ -61,17 +63,48 @@ def _delivered(record: dict[str, Any], session: str) -> list[dict[str, Any]]:
     return []
 
 
+FRESH_SESSION_CRITERION = (
+    "a learning scenario whose candidate succeeded with no repeated mistake, whose fresh session B carried the scenario's gold text in a delivered packet, "
+    "and whose clean baseline, in the same session, failed or repeated session A's mistake; any one of the learning scenarios demonstrates it (decision 0028 item 16)"
+)
+
+
+def _carried(record: dict[str, Any], session: str, texts: list[str]) -> list[str]:
+    """The gold texts that some packet delivered in ``session`` carried, whatever its purpose."""
+    contexts = [d.get("context") or "" for d in _delivered(record, session)]
+    return [text for text in texts if any(text in context for context in contexts)]
+
+
 def fresh_session_reuse(trials_dir: Path, work: Path, *, live: bool = False) -> dict[str, Any]:
-    sid = "smoke-L1-ledgerlite-test-command"
-    cand, base = _trial(trials_dir, work, sid, "candidate", live=live), _trial(trials_dir, work, sid, "no_memory", live=live)
-    points = cand.get("retrieval_points", [])
-    b_actions = next((s["actions"] for s in cand["sessions"] if s["name"] == "B"), [])
-    first_test = next((a["command"] for a in b_actions if a["command"] and "unittest" in a["command"]), None)
+    from evals import trial
+
+    learning = {sid: s for sid, s in trial.scenarios().items() if s["category"] == "learning"}
+    out: dict[str, Any] = {}
+    not_run: list[str] = []
+    for sid, scenario in learning.items():
+        try:
+            cand, base = _trial(trials_dir, work, sid, "candidate", live=live), _trial(trials_dir, work, sid, "no_memory", live=live)
+        except LookupError as exc:  # live: that pair did not run; never a scripted stand-in
+            not_run.append(str(exc))
+            continue
+        gold = [p["must_include"] for p in scenario["gold"].get("expected_retrieval_points", []) if p["session"] == "B"]
+        co, bo = cand.get("outcomes") or {}, base.get("outcomes") or {}
+        carried = _carried(cand, "B", gold)
+        candidate_ok = not cand.get("error") and bool(co.get("task_success")) and co.get("repeated_mistakes") == 0
+        baseline_worse = not base.get("error") and (not bo.get("task_success") or (bo.get("repeated_mistakes") or 0) > 0)
+        out[sid] = {
+            "met": bool(candidate_ok and carried and baseline_worse), "gold_in_session_b": gold, "carried_in_session_b": carried,
+            "candidate_task_success": co.get("task_success"), "candidate_repeated_mistakes": co.get("repeated_mistakes"),
+            "baseline_task_success": bo.get("task_success"), "baseline_repeated_mistakes": bo.get("repeated_mistakes"),
+            "errors": [e for e in (cand.get("error"), base.get("error")) if e],
+            "admitted": [c["proposition"] for c in cand.get("claims", []) if c["status"] == "active"],
+        }
+    if not out:
+        raise LookupError("; ".join(not_run) or "no learning scenario")
+    met = [sid for sid, v in out.items() if v["met"]]
     return {
-        "scenario": sid, "demonstrated": bool(cand["outcomes"]["task_success"]) and cand["outcomes"]["repeated_mistakes"] == 0 and (base["outcomes"]["repeated_mistakes"] or 0) > 0,
-        "candidate_first_test_command_in_B": first_test, "candidate_repeated_mistakes": cand["outcomes"]["repeated_mistakes"], "baseline_repeated_mistakes": base["outcomes"]["repeated_mistakes"],
-        "admitted": [c["proposition"] for c in cand.get("claims", []) if c["status"] == "active"], "remember_instruction": False,
-        "retrieval_points": points, "note": "session B's knowledge came through delivered context (the scripted agent consults nothing else); the session-start point is unmet by design (decision 0013: a fresh start with no task binding carries only open intent questions) and the prompt packet carried it",
+        "demonstrated": bool(met), "met_by": met, "criterion": FRESH_SESSION_CRITERION, "scenarios": out, "not_run": not_run, "remember_instruction": False,
+        "note": "one trial per arm: a demonstration, not an estimate. The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
     }
 
 
