@@ -339,8 +339,24 @@ def _linux_group_states(pgid: int) -> list[str] | None:
     return states
 
 
+def _ps_group_states(pgid: int) -> list[str] | None:
+    """Process states of the group's members from ``ps`` (macOS, BSD), or None if unavailable."""
+    try:
+        out = subprocess.run(["/bin/ps", "-A", "-o", "pgid=,stat="], capture_output=True, timeout=5, check=False, env={"LC_ALL": "C"})
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    rows = (line.split() for line in out.stdout.decode("ascii", "replace").splitlines())
+    return [row[1] for row in rows if len(row) == 2 and row[0] == str(pgid)]
+
+
 def _process_group_alive(pgid: int) -> bool:
-    """True while any non-zombie member of the process group exists."""
+    """True while any non-zombie member of the process group exists.
+
+    Darwin refuses to signal a group whose members have all exited but are not
+    yet reaped (EPERM, not ESRCH); a refused probe reads the states from ``ps``.
+    """
     states = _linux_group_states(pgid)
     if states is not None:
         return any(state != "Z" for state in states)
@@ -349,7 +365,8 @@ def _process_group_alive(pgid: int) -> bool:
     except ProcessLookupError:
         return False
     except PermissionError:
-        return True
+        states = _ps_group_states(pgid)
+        return states is None or any(not state.startswith("Z") for state in states)
     return True
 
 
@@ -365,6 +382,8 @@ def _kill_tree(proc: subprocess.Popen, pgid: int | None) -> None:
             os.killpg(pgid, sig)
         except ProcessLookupError:
             return
+        except PermissionError:  # Darwin: the members exited but are not reaped
+            pass
         deadline = time.monotonic() + 1.0
         while time.monotonic() < deadline:
             proc.poll()  # reap the leader so it does not linger as a zombie

@@ -1558,6 +1558,7 @@ Add each later checkpoint with:
   - `PRAGMA temp_store = MEMORY` on store connections. Reproduced first in a scratch script with no `TEMP`/`TMP`: a sort spill and a statement journal both failed with `unable to open database file`, and both succeeded with the pragma.
   - `handler_error:<ExceptionType>`.
   - Engine `0.1.0.dev1`, because the wheel changes and the pilot cannot take a second `0.1.0.dev0` artifact.
+  - Added 2026-10-27, before any installation was provisioned with the first `0.1.0.dev1` build (decision 0029 item 6): the POSIX tree kill no longer raises when Darwin refuses to signal a process group whose members exited but are not yet reaped. When a probe is refused, liveness comes from `/bin/ps`. CI on `main` at `6281b6d` had failed once on macOS this way (`test_runtime_check_refuses_a_recorded_route_of_another_backend`, `PermissionError` from `killpg`), while the same commit passed on macOS in the branch run. Linux, Windows and the release artifacts passed on both runs. The probe tools' copy is fixed the same way.
 - **Harness** (decision 0028 item 16): fresh-session reuse holds when any learning scenario meets all three conditions:
   - the candidate succeeded with no repeated mistake;
   - a session-B packet carried the gold text;
@@ -1568,8 +1569,9 @@ Add each later checkpoint with:
   - Full suite: **stopped by Claude Code at 72 % because the machine ran critically low on memory** (not a test failure; not restarted). The 997 results it reached: 972 passed, 22 skipped, 3 failed. The failures were `test_exact_request_shape_per_dialect` (both dialects) and `test_output_cap_field_and_json_mode_options`, which pinned the sent cap to the bare allowance. They now expect the cap plus the headroom, and `test_api_providers.py` passes: 81 passed.
   - The 382 tests the stopped run did not reach, all in `tests/unit/`, passed in their own runs: the 11 files never run elsewhere → 166 passed, 39 skipped (Windows platform skips); the rest ran in the targeted runs above.
   - `uvx ruff@0.14.0 check --select F,E9,B` on the changed files → one finding, in unchanged code (`make_project` in `test_installations.py`). `tools/generate_schemas.py --check` → exit 0 after regenerating `BudgetReservation`. `tools/release_checklist.py` → no problems, verdict `blocked`.
-- **Wheel:** `uv build --wheel -o dist` → `recalith-0.1.0.dev1-py3-none-any.whl` (604,375 bytes), SHA-256 `d2c6ff11265674a4b6fa7a180f4fa7552c7c5c47f7e84f4b45f72aa3550c7163`. `tools/build_release.py --out <scratch>` → exit 0, `problems: []`, `signing: unsigned`, the same wheel digest (reproducible). The wheelhouse is unchanged: `requirements.lock` did not change.
-- **Acceptance:** statuses unchanged. A47 gains the 2.1.310 review, A30 and A31 the headroom reservations, A61's preview variant the fresh-session criterion; notes in `tests/coverage_manifest.json`. No live variant ran.
+  - For item 6 (2026-10-27): `test_provider_isolation.py`, `test_api_probe.py` and `test_provider_probe.py` → 27 passed, 32 skipped (POSIX-only fakes). The two new tests fail against the unfixed `launch.py` and pass with it. The manifest checks pass, and ruff is clean on the three changed files. On native Windows the tree kill is the Job Object, so the changed POSIX path runs only in Linux and macOS CI.
+- **Wheel:** `uv build --wheel -o dist` → `recalith-0.1.0.dev1-py3-none-any.whl` (604,788 bytes), SHA-256 `933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec`. `tools/build_release.py --out <scratch>` → exit 0, `problems: []`, `signing: unsigned`, the same wheel digest (reproducible). The wheelhouse is unchanged: `requirements.lock` did not change. It replaces the first `0.1.0.dev1` build (604,375 bytes, `d2c6ff11…7163`), which no installation was provisioned with; that digest is not to be used.
+- **Acceptance:** statuses unchanged. A47 gains the 2.1.310 review, A30 and A31 the headroom reservations (A30 also the macOS group kill), A61's preview variant the fresh-session criterion; notes in `tests/coverage_manifest.json`. No live variant ran.
 
 ## Blockers and decisions
 
@@ -1667,7 +1669,7 @@ Next actions, in order:
    $env:PILOT = 'C:\Code\rl-pilot2'; $py = '.\.venv\Scripts\python.exe'
    New-Item -ItemType Directory $env:PILOT | Out-Null; git -C $env:PILOT init -q                                    # 1. an empty repository, like rl-pilot
    & $py -m recalith init --project $env:PILOT --profile coding --release-profile claude_preview                     # 2. expect 0
-   py -3.13 bootstrap.py install --project $env:PILOT --wheel dist\recalith-0.1.0.dev1-py3-none-any.whl --expected-digest d2c6ff11265674a4b6fa7a180f4fa7552c7c5c47f7e84f4b45f72aa3550c7163 --wheelhouse wheelhouse   # 3. expect 0
+   py -3.13 bootstrap.py install --project $env:PILOT --wheel dist\recalith-0.1.0.dev1-py3-none-any.whl --expected-digest 933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec --wheelhouse wheelhouse   # 3. expect 0
    $env:ANTHROPIC_API_KEY = Read-Host -MaskInput 'Anthropic API key'
    & $py tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --output docs\host-compatibility.json --route-out $env:PILOT   # 4. expect 0
    & $py tools\check_provider_runtime.py --config probe-private\local-config.json --backend anthropic_messages --project $env:PILOT --output docs\host-compatibility.json   # 5. expect 0

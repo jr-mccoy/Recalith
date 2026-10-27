@@ -16,6 +16,8 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -29,7 +31,7 @@ from recalith.contracts.common import RecordRef, digest_of, new_id
 from recalith.contracts.config import STDERR_CAP, ProviderConfig
 from recalith.contracts.operations import ModelRequest, RequestLimits
 from recalith.contracts.common import ReadSet
-from recalith.controller import jobs, requests, worker
+from recalith.controller import jobs, launch, requests, worker
 from recalith.fast import process_env
 from recalith.providers import base, claude_cli, isolation
 from recalith.providers.errors import ProviderCallFailed
@@ -109,6 +111,51 @@ def test_output_flood_is_bounded(tmp_path):
     response = base.complete(request(), noisy.config, backend=noisy)
     assert response.no_op_reason == "nothing new"
     assert len(noisy.last_result.stderr) == STDERR_CAP and noisy.last_result.stderr_truncated
+
+
+def test_a_group_whose_members_exited_unreaped_is_settled_not_raised(monkeypatch):
+    """Darwin answers EPERM, not ESRCH, when every member of a group has exited but is not yet reaped.
+
+    A child whose own timeout fires at the launch deadline once raised that out
+    of the timeout kill on macOS (decision 0029 item 6); the kill now reaps and
+    reads the members' states instead.
+    """
+    sent = []
+    members = {"states": ["Z"]}
+
+    def refuse(pgid, sig):
+        sent.append(sig)
+        raise PermissionError(1, "Operation not permitted")
+
+    class Leader:
+        polls = 0
+
+        def poll(self):
+            self.polls += 1
+            return 0
+
+    monkeypatch.setattr(os, "killpg", refuse, raising=False)
+    monkeypatch.setattr(signal, "SIGKILL", getattr(signal, "SIGKILL", 9), raising=False)
+    monkeypatch.setattr(launch, "_linux_group_members", lambda pgid: None)
+    monkeypatch.setattr(launch, "_ps_group_states", lambda pgid: members["states"])
+    leader = Leader()
+    launch._kill_group(leader, 4242)
+    assert sent == [signal.SIGTERM, 0] and leader.polls == 1
+    assert not launch.group_alive(4242)
+    members["states"] = ["Z", "S"]  # a live member that refuses the signal still counts
+    assert launch.group_alive(4242)
+    members["states"] = None  # states it cannot read are never claimed dead
+    assert launch.group_alive(4242)
+
+
+def test_ps_group_states_reads_one_group(monkeypatch):
+    if Path("/bin/ps").exists():  # the real ps lists this test's own group, which is running
+        assert any(not state.startswith("Z") for state in launch._ps_group_states(os.getpgrp()))
+    listing = b"  4242 Z\n  4243 S+\n 4242 Ss\nPGID STAT\n"
+    monkeypatch.setattr(launch.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, listing, b""))
+    assert launch._ps_group_states(4242) == ["Z", "Ss"] and launch._ps_group_states(7) == []
+    monkeypatch.setattr(launch.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, b"", b"ps: refused"))
+    assert launch._ps_group_states(4242) is None
 
 
 def test_15kb_episode_response_is_accepted_through_a_real_launch(tmp_path):

@@ -101,7 +101,25 @@ def observed_environment_keys(pid: int, *, attempts: int = 20, interval_s: float
     return None
 
 
+def _ps_group_states(pgid: int) -> list[str] | None:
+    """Process states of the group's members from ``ps`` (macOS, BSD), or None if unavailable."""
+    try:
+        out = subprocess.run(["/bin/ps", "-A", "-o", "pgid=,stat="], capture_output=True, timeout=5, check=False, env={"LC_ALL": "C"})
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    rows = (line.split() for line in out.stdout.decode("ascii", "replace").splitlines())
+    return [row[1] for row in rows if len(row) == 2 and row[0] == str(pgid)]
+
+
 def group_alive(pgid: int) -> bool:
+    """True while any non-zombie member of the process group exists.
+
+    Darwin refuses to signal a group whose members have all exited but are not
+    yet reaped (EPERM, not ESRCH), so a refused probe reads the states from
+    ``ps``; a group it cannot read counts as alive.
+    """
     states = _linux_group_members(pgid)
     if states is not None:
         return any(state != "Z" for state in states)
@@ -110,7 +128,8 @@ def group_alive(pgid: int) -> bool:
     except ProcessLookupError:
         return False
     except PermissionError:
-        return True
+        states = _ps_group_states(pgid)
+        return states is None or any(not state.startswith("Z") for state in states)
     return True
 
 
@@ -120,6 +139,8 @@ def _kill_group(proc: subprocess.Popen, pgid: int) -> None:
             os.killpg(pgid, sig)
         except ProcessLookupError:
             return
+        except PermissionError:  # Darwin: the members exited but are not reaped; the wait below settles it
+            pass
         give_up = time.monotonic() + 1.0
         while time.monotonic() < give_up:
             proc.poll()

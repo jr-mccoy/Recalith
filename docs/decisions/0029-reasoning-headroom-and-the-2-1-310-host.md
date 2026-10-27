@@ -1,4 +1,4 @@
-# Decision 0029: Reasoning headroom, worker temporary files, handler error types and Claude Code 2.1.310
+# Decision 0029: Reasoning headroom, worker temporary files, handler error types, the macOS group kill and Claude Code 2.1.310
 
 Status: accepted (Task 4/7 engine slice and Task 3b capture review, preview; the reasoning headroom approved by the owner on 2026-10-26) · Date: 2026-10-26 · Engine: `0.1.0.dev1` · Observed: the first live gate (2026-10-23 to 2026-10-26), the two pilots' stores (read-only), and Claude Code 2.1.310 on native Windows in request capture (loopback scripted endpoint, placeholder key, private `HOME`; this session's credentials and proxy never used)
 
@@ -11,6 +11,8 @@ The first live gate failed (BUILD_PROGRESS, 2026-10-26 checkpoint; [its record](
 - **The failure was recorded only as `handler_error`.** The exception type was lost, while the model lane already records `lane_error:<type>`.
 
 The host also updated itself to 2.1.310 during the run (decision 0028 item 12), so the pilot's certification no longer matches the installed host.
+
+CI on the first build of these changes found a fourth engine fault, on macOS only. `test_runtime_check_refuses_a_recorded_route_of_another_backend` failed once with `PermissionError` out of the timeout kill (`controller/launch.py`); the same commit passed on macOS in the branch run. In its hang case the HTTP child's socket timeout equals the launch deadline, so the child can exit just as the launcher kills its process group. Darwin refuses to signal a group whose members have all exited but are not yet reaped (`EPERM`, not `ESRCH`). The kill did not expect that, and the liveness check counted such a group as alive.
 
 ## Decisions
 
@@ -26,7 +28,7 @@ The host also updated itself to 2.1.310 during the run (decision 0028 item 12), 
    - A reservation stored before this decision has no headroom field. It reads as 0, so its limit is the allowance alone.
 2. **SQLite keeps its temporary files in memory.** Every store connection sets `PRAGMA temp_store = MEMORY`: statement journals, sort spills and TEMP tables, including the integrity scanner's row capture. The store runs no `VACUUM`, and the memory involved is small. The hooks' read-only snapshot connections are unchanged; they run on the audited fast path and spill nothing.
 3. **A failed deterministic handler names its exception type** as `handler_error:<ExceptionType>` (64 characters at most; no message text), the same form as `lane_error:<type>`.
-4. **Engine version `0.1.0.dev1`.** Items 1–3 change the certified wheel. The bootstrap refuses a different artifact under a version it has already provisioned, and in-place upgrade is not in preview, so the live re-certification needs a fresh pilot provisioned with the new wheel.
+4. **Engine version `0.1.0.dev1`.** Items 1–3 and 6 change the certified wheel. The bootstrap refuses a different artifact under a version it has already provisioned, and in-place upgrade is not in preview, so the live re-certification needs a fresh pilot provisioned with the new wheel. Item 6 was added and the wheel rebuilt before any installation was provisioned with the first `0.1.0.dev1` build, so the version did not move again.
 5. **Capture certification of Claude Code 2.1.310** (Task 3b; decision 0019 procedure).
    - Captured with `tools/capture_claude_fixtures.py` → exit 0. It observed the same 12 events as 2.1.309, removed 23 owned hooks and preserved the unrelated settings.
    - Reviewed against the 2.1.309 capture on the same laptop:
@@ -39,6 +41,11 @@ The host also updated itself to 2.1.310 during the run (decision 0028 item 12), 
    - The adapter maps every record identically to 2.1.309 (the subagent scenario as a multiset), and the transcripts parse to the same record counts.
    - 2.1.310 joins `claude_capture.CERTIFIED_VERSIONS`, and its fixtures are `tests/fixtures/hosts/claude/2.1.310/`.
    - This is not a live certification. The live delivery certification of 2.1.310 is the owner's engine-mode run on the fresh pilot (`tools/probe_delivery.py --engine-project`), as for 2.1.309.
+6. **A process group whose members exited unreaped is settled, not raised (macOS).**
+   - The tree kill treats `EPERM` from `killpg` as possibly exited members. It reaps the leader and checks liveness as before, then moves to `SIGKILL` and the final check. It never raises out of the launch.
+   - When a liveness probe is refused, the members' states come from `/bin/ps` (`-A -o pgid=,stat=`, `LC_ALL=C`). The group is alive while any member is not a zombie. If `ps` cannot be read, the group counts as alive, so a refused group is never reported cleaned.
+   - Linux still reads `/proc`, and Windows still uses the Job Object; neither changes.
+   - The probe tools' copy (`tools/probe_common.py`) gets the same change.
 
 ## Tests
 
@@ -48,6 +55,7 @@ The host also updated itself to 2.1.310 during the run (decision 0028 item 12), 
 - `test_exhausted_budget_pools_are_reported`. After eight 14,000-token extractions, the ordinary pool still serves a 7,500-token task update, so health does not call it exhausted until a task update no longer fits. It always tested with the smallest ordinary call; only the arithmetic moved.
 - `test_store_connection_policy` (`temp_store`), and `test_store_writes_need_no_temp_directory`. The latter is a subprocess without `TEMP`/`TMP`. Against the tree without item 2 it fails on this laptop with `unable to open database file`; with item 2 it passes.
 - `test_a_handler_failure_names_its_exception_type`.
+- `test_a_group_whose_members_exited_unreaped_is_settled_not_raised` and `test_ps_group_states_reads_one_group`. The first refuses every signal with `EPERM`, as Darwin does, and checks that the kill reaps and returns, that a live refusing member still counts and that unreadable states are never called dead. The second runs the real `ps` where it exists and parses a fixed listing. Without item 6 both fail on this laptop. The race itself was seen once in macOS CI and is not forced here.
 - `test_reviewed_2_1_310_fixtures_map_like_2_1_309`, `test_reviewed_2_1_310_transcripts_parse_like_2_1_309`, `test_reviewed_2_1_310_fixtures_are_sanitized`.
 - The deny-spelling test is re-pinned to `0.1.0.dev1`; the launcher digests stay pinned to the texts of `0.1.0.dev0`.
 
