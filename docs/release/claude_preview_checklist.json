@@ -2,10 +2,10 @@
   "checklist_schema": 1,
   "profile": "claude_preview",
   "source": "docs/ACCEPTANCE_TESTS.md §8 (preview column); IMPLEMENTATION_PLAN Task 13 'Cut 1 release gate' and Task 18",
-  "engine": "0.1.0.dev0",
+  "engine": "0.1.0.dev1",
   "checked_by": "tools/release_checklist.py (tests/unit/test_eval_harness.py::test_release_checklist_and_dependency_inventory_are_consistent)",
   "verdict": "blocked",
-  "verdict_reason": "The first live gate (2026-10-26) failed: the installed host updated itself mid-run (2.1.309 to 2.1.310, now uncertified), the machine slept, and update_task replies hit their output allowance under a reasoning curator, so the worker's queue did not settle; live §5.1 support and recall now need reviewer labels. A scripted/recorded run is never a pass",
+  "verdict_reason": "The first live gate (2026-10-26) failed: the installed host updated itself mid-run (2.1.309 to 2.1.310), the machine slept, and update_task replies hit their output allowance under a reasoning curator, so the worker's queue did not settle; live §5.1 support and recall now need reviewer labels. Engine 0.1.0.dev1 adds reasoning headroom and capture-certifies 2.1.310 (decision 0029); its live certification and the rerun are the owner's next runs. A scripted/recorded run is never a pass",
   "items": [
     {
       "id": "deterministic_case_variants",
@@ -19,8 +19,8 @@
       "id": "inference_isolation_and_delivery_certified",
       "section_8": [2],
       "status": "blocked",
-      "detail": "Live-certified on native Windows on 2026-10-23 (the owner's run): the anthropic_messages curator route (provider probe and runtime check exit 0) and all four delivery paths of Claude Code 2.1.309 through the real engine and the installed hooks (3/3 positives and 3/3 clean negatives each). The installed host updated itself to 2.1.310 on 2026-10-26; that version is neither capture-reviewed nor live-certified. Linux and macOS are not observed live.",
-      "blocker": "the installed Claude Code 2.1.310 needs a capture review and a live engine-mode run (or 2.1.309 reinstalled); Linux and macOS live not observed",
+      "detail": "Live-certified on native Windows on 2026-10-23 (the owner's run): the anthropic_messages curator route (provider probe and runtime check exit 0) and all four delivery paths of Claude Code 2.1.309 through the real engine and the installed hooks (3/3 positives and 3/3 clean negatives each). The installed host updated itself to 2.1.310 on 2026-10-26; it is capture-certified since decision 0029 (request capture, reviewed against 2.1.309), not yet live-certified. Linux and macOS are not observed live.",
+      "blocker": "a fresh pilot on the 0.1.0.dev1 wheel with a live route certification and a live engine-mode run on 2.1.310 (BUILD_PROGRESS handoff item 2); Linux and macOS live not observed",
       "evidence": ["docs/host-compatibility.json", "docs/probes/LOCAL_CONFIG.md", "docs/probes/DELIVERY_PROBE.md", "docs/decisions/0023-direct-api-inference-backends.md", "docs/decisions/0027-native-windows-claude-host.md", "docs/BUILD_PROGRESS.md"]
     },
     {
@@ -28,7 +28,7 @@
       "section_8": [3],
       "status": "failed",
       "detail": "The first live 12-scenario comparative smoke ran on 2026-10-23 to 2026-10-26, with the workload days and demonstrations, and the gate failed. Five candidate trials were refused when the host updated itself mid-run, and other sessions ran on the uncertified version. The laptop slept. Most waits stalled on update_task's output allowance. Fresh-session reuse and the changed-condition revision were not shown, and every workload day exhausted the ordinary input pool (3.8 to 7.7 h). The term-match quality figures it reported are not valid for a live curator (decision 0028 item 14). The scripted/recorded run (mechanics only) remains in docs/evaluations/preview-recorded-2026-10-21/. Preview may only be published as an explicitly experimental build until a live gate passes.",
-      "blocker": "a rerun on a pinned, certified host after the owner's decisions on the output allowances and the fresh-session demonstration (BUILD_PROGRESS handoff item 2), with reviewer labels for live support and recall",
+      "blocker": "a rerun on engine 0.1.0.dev1 (reasoning headroom, decision 0029; fresh-session reuse over every learning scenario, decision 0028 item 16) on a pinned, live-certified host (BUILD_PROGRESS handoff item 2), with reviewer labels for live support and recall",
       "evidence": ["evals/run.py", "evals/report.py", "docs/evaluations/preview-live-2026-10-26/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/decisions/0028-live-evaluation-installations.md"]
     },
     {

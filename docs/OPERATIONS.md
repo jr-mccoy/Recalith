@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev0` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
+Engine `0.1.0.dev1` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -122,7 +122,7 @@ Run it from an ordinary terminal that you opened yourself, with the selected key
 ```powershell
 & .venv\Scripts\python.exe evals\run.py gate --mode live `
     --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
-    --source-project C:\Code\rl-pilot --wheel dist\recalith-0.1.0.dev0-py3-none-any.whl --wheelhouse wheelhouse `
+    --source-project C:\Code\rl-pilot2 --wheel dist\recalith-0.1.0.dev1-py3-none-any.whl --wheelhouse wheelhouse `
     --out C:\Code\rl-gate --slots 2
 ```
 
@@ -130,7 +130,10 @@ Exit 0 means the gate passed (`passed_smoke`). Exit 8 means it ran and failed: t
 
 Before you start it:
 
-- **Keep the host at the certified version for the whole run.** The trial sessions already run with `DISABLE_AUTOUPDATER=1` (the delivery section's `nonsecret_env`), but your own interactive Claude Code sessions update the shared installation. Set `DISABLE_AUTOUPDATER=1` for them as well, in your user environment or in the `env` block of your Claude Code settings, until the run ends. The harness checks `claude --version` against the certified version before every session. On a change it schedules no further trial and writes the report of what ran (exit 8).
+- **Keep the host at the certified version for the whole run.** The trial sessions already run with `DISABLE_AUTOUPDATER=1` (the delivery section's `nonsecret_env`), but your own interactive Claude Code sessions update the shared installation. Turn their background updates off too, from before the certification until the gate ends:
+  - **Off:** add `"env": { "DISABLE_AUTOUPDATER": "1" }` to `%USERPROFILE%\.claude\settings.json`, next to the other top-level keys. Running sessions pick up the saved change. `claude doctor` then reports auto-updates as disabled. Manual `claude update` still works, so don't run it either.
+  - **On again:** delete the `DISABLE_AUTOUPDATER` entry, and the `env` block if it is then empty. The next session start updates as usual. A new version then needs its own capture review and live certification before another gate (§4 step 3).
+  - The harness checks `claude --version` against the certified version before every session. On a change it schedules no further trial and writes the report of what ran (exit 8).
 - **Keep the machine awake and on power.** The run asks Windows not to idle-sleep while it lasts (macOS: `caffeinate -i`), but a lid close or an explicit sleep still suspends it. A session or wait that ran across a suspension is recorded as `suspended`, and the gate fails on it.
 
 After it finishes, the live §5.1 support and recall need a reviewer's labels, because a live curator's claims are free text that no frozen term list can judge (ACCEPTANCE_TESTS §5):

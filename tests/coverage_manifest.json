@@ -1251,7 +1251,9 @@
             "tests/unit/test_api_providers.py::test_no_tls_verification_bypass_exists",
             "tests/unit/test_api_providers.py::test_messages_reply_with_thinking_blocks_yields_only_its_text",
             "tests/unit/test_api_providers.py::test_messages_reply_still_needs_exactly_one_text_block_and_no_tool",
-            "tests/unit/test_api_providers.py::test_messages_thinking_under_the_cap_is_still_the_cap_reason"
+            "tests/unit/test_api_providers.py::test_messages_thinking_under_the_cap_is_still_the_cap_reason",
+            "tests/unit/test_contracts.py::test_reservations_hold_the_reasoning_headroom_and_keep_the_body_cap",
+            "tests/integration/test_api_worker.py::test_certified_api_route_reserves_charges_failures_and_backs_off"
           ],
           "platforms": [
             "linux",
@@ -1259,7 +1261,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1. Decision 0023: the API transport runs through the same bounded launcher (timeout and tree kill, 256 KiB wire and 64 KiB stderr caps); a hung loopback server is killed at the timeout, a flood is wire_stdout_oversized, a valid 15 KB episode body is accepted, truncated and malformed replies are rejected and charged. Decision 0027: a Messages reply may carry thinking/redacted_thinking blocks (thinking-by-default models); they are ignored, never parsed as the body; exactly one text block is still required, tool blocks still disable the route, the cap still covers thinking. Fake loopback server only; the live behavior is B1."
+          "notes": "Probe bounds and contract body caps tested; production adapter is Task 7. Worker side (Task 4) with fake backends: 256 KiB wire cap while reading, decoded-body cap counted in original UTF-8 bytes, 15 KB episode inside a larger envelope accepted, hang/flood/grandchild bounded (POSIX process group, Windows kill-on-close Job Object), stderr retained to 64 KiB, failures charged. The certified production provider and its envelope parser are Task 7. Task 7: the production ProviderBackend runs real children through run_bounded (timeout and process-tree kill, 256 KiB wire and 64 KiB stderr while reading); evaluate_outcome checks the wire, then the certified envelope (claude stream-json or json_process), then the decoded body's original UTF-8 bytes against 3x the allowance before parsing; a 15 KB episode inside a 60 KB+ envelope is accepted; usage/provenance come from the adapter. Live provider output is B1. Decision 0023: the API transport runs through the same bounded launcher (timeout and tree kill, 256 KiB wire and 64 KiB stderr caps); a hung loopback server is killed at the timeout, a flood is wire_stdout_oversized, a valid 15 KB episode body is accepted, truncated and malformed replies are rejected and charged. Decision 0027: a Messages reply may carry thinking/redacted_thinking blocks (thinking-by-default models); they are ignored, never parsed as the body; exactly one text block is still required, tool blocks still disable the route, the cap still covers thinking. Fake loopback server only; the live behavior is B1. Decision 0029: the provider's hard output cap and the reservation are the allowance plus a 6,000-token reasoning headroom; the decoded body cap stays 3 x the allowance, so the headroom never widens what is parsed."
         }
       ]
     },
@@ -1286,7 +1288,7 @@
             "tests/integration/test_worker.py::test_budget_reservation_precedes_launch",
             "tests/integration/test_worker.py::test_budget_exhaustion_blocks_launch_but_not_capture",
             "tests/integration/test_worker.py::test_declaration_cannot_bypass_exhausted_budget",
-            "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
+            "tests/integration/test_worker.py::test_full_reservation_arithmetic_with_reasoning_headroom",
             "tests/integration/test_worker.py::test_input_estimate_limits_and_model_input_cap",
             "tests/integration/test_retrieval.py::test_ten_thousand_claim_corpus"
           ],
@@ -1296,7 +1298,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Task 4: exhausted call/input/output pools start no invocation and leave a visible waiting reason; hook capture and deterministic ingestion continue. Deterministic retrieval does not exist until Task 11. Task 11: deterministic retrieval uses no model or budget (compile paths never touch the queue or reservations)."
+          "notes": "Task 4: exhausted call/input/output pools start no invocation and leave a visible waiting reason; hook capture and deterministic ingestion continue. Deterministic retrieval does not exist until Task 11. Task 11: deterministic retrieval uses no model or budget (compile paths never touch the queue or reservations). Decision 0029: reservations hold the allowance plus the reasoning headroom (7,500/14,000/9,000), so the illustrative full-reservation mix is now 20 calls; finished calls settle at their usage."
         }
       ]
     },
@@ -2002,7 +2004,10 @@
             "tests/unit/test_capture_sanitization.py::test_every_windows_spelling_is_replaced",
             "tests/unit/test_capture_sanitization.py::test_posix_sanitization_stays_literal",
             "tests/unit/test_capture_sanitization.py::test_host_tmp_dir_follows_the_child_environment",
-            "tests/unit/test_capture_sanitization.py::test_unsanitized_detects_residue_key_and_login_name"
+            "tests/unit/test_capture_sanitization.py::test_unsanitized_detects_residue_key_and_login_name",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_310_fixtures_map_like_2_1_309",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_310_transcripts_parse_like_2_1_309",
+            "tests/integration/test_claude_adapter.py::test_reviewed_2_1_310_fixtures_are_sanitized"
           ],
           "platforms": [
             "linux",
@@ -2010,7 +2015,7 @@
             "windows"
           ],
           "requires_live_host": false,
-          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020). Decision 0023: an unknown API reply shape is envelope_invalid, never parsed leniently; a different reported model is model_mismatch (never a silent substitution). Decision 0027: Claude Code 2.1.309 captured on native Windows (request capture) and reviewed field by field against the Linux 2.1.306 capture; certified for capture. The capture sanitizer now covers every Windows path spelling (a JSON-escaped echo had leaked the login name before the fix)."
+          "notes": "Capture slice (Task 3b): exact-version Claude 2.1.301 mapping, conservative unknown versions, explicit gaps for unsupported events/fields/records. Capability state in health and delivery-path coverage are Tasks 13/17. Task 7 (provider side): an unknown or changed provider host version is unavailable (host_version_changed/host_version_unobserved; recertification required), unknown envelope events are ignored and never parsed into results, non-integer usage is unknown and charged in full. Task 17: an unknown or uncertified host version is conservative capture (degraded) with explicit coverage gaps, and no delivery path is healthy for it. Task 13: an uncertified version integrates capture-only (no delivery, no notice, conservative capture); 2.1.305 certified only after a field-by-field fixture review. Task 18: Claude Code 2.1.306 reviewed against 2.1.305 before certification (decision 0020). Decision 0023: an unknown API reply shape is envelope_invalid, never parsed leniently; a different reported model is model_mismatch (never a silent substitution). Decision 0027: Claude Code 2.1.309 captured on native Windows (request capture) and reviewed field by field against the Linux 2.1.306 capture; certified for capture. The capture sanitizer now covers every Windows path spelling (a JSON-escaped echo had leaked the login name before the fix). Decision 0029: Claude Code 2.1.310 capture-certified after a field-by-field review against 2.1.309 on native Windows (request capture; not live)."
         },
         {
           "variant": "full_only",
@@ -2125,7 +2130,7 @@
             "tests/integration/test_worker.py::test_declaration_review_precedes_ordinary_review",
             "tests/integration/test_worker.py::test_review_priority_is_code_assigned_and_batches_keep_their_origin",
             "tests/integration/test_worker.py::test_declaration_cannot_bypass_exhausted_budget",
-            "tests/integration/test_worker.py::test_48_call_full_reservation_arithmetic",
+            "tests/integration/test_worker.py::test_full_reservation_arithmetic_with_reasoning_headroom",
             "tests/integration/test_worker.py::test_evidence_expansion_rounds_are_charged",
             "tests/integration/test_worker.py::test_body_and_wire_caps_are_separate",
             "tests/integration/test_worker.py::test_five_candidates_use_one_review_call",
@@ -2664,7 +2669,8 @@
             "tests/unit/test_live_eval.py::test_bind_writes_the_targets_record_from_the_certified_run",
             "tests/unit/test_live_eval.py::test_bind_refuses_what_the_evidence_does_not_support",
             "tests/unit/test_live_eval.py::test_deliveries_come_from_the_hosts_hook_responses",
-            "tests/unit/test_live_eval.py::test_a_changed_host_stops_the_trial_before_its_next_session"
+            "tests/unit/test_live_eval.py::test_a_changed_host_stops_the_trial_before_its_next_session",
+            "tests/unit/test_live_eval.py::test_fresh_session_reuse_counts_any_learning_scenario_that_meets_the_criterion"
           ],
           "platforms": [
             "linux",
@@ -2672,7 +2678,7 @@
             "windows"
           ],
           "requires_live_host": true,
-          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass. Task 18 report mechanics: preflight reads the host record (request capture is never certification) and the report's delivery-visibility measure reads sections.delivery_engine per path; no live certification (B1). Decision 0027: the engine-mode harness runs on native Windows (junctions, short fixture names under MAX_PATH, TerminateProcess, the deny probe through recalith.cmd, Windows path spellings sanitized in reports). Request capture on 2.1.309: all four paths request_visible (3/3 positives, 3/3 clean negatives). Live echo not run (B1). Live on native Windows (2026-10-23): the engine-mode protocol on Claude Code 2.1.309 passed every path, start and prompt (required) and pre-action and compaction (optional), each 3/3 positives with the exact echo and 3/3 clean negatives, no contamination, after three judge defects were fixed (decision 0027 item 10a). The stub-mode live run was not made; Linux and macOS live not observed: not passed. Decision 0028 (2026-10-23): a live trial installation's host record is bound from the certified engine-mode run by the certification harness (`probe_delivery.py --bind-from`: same digest, installation and host version, unmarked caller), and a live trial reads what each hook emitted from the host's hook_response records; tested with synthetic installations and the observed 2.1.309 record shape. The first live gate (2026-10-26) ran live trials through the installed hooks and failed. The host updated itself to 2.1.310 mid-run: the bind refused the later candidates, but sessions already provisioned ran on the uncertified version. Since then every live session checks the installed host against the certified version, and completeness fails on a mismatch (decision 0028 item 12). Not passed."
+          "notes": "Task 0b harness mechanics tested; live nonce certification not run (BUILD_PROGRESS B1). Task 13: the Task 0b harness repeated through the real engine (tools/probe_delivery.py --engine-project): request capture on 2.1.305 request_visible on all four paths; live echo not run (B1); a request-capture record never certifies a path; not a pass. Task 18 report mechanics: preflight reads the host record (request capture is never certification) and the report's delivery-visibility measure reads sections.delivery_engine per path; no live certification (B1). Decision 0027: the engine-mode harness runs on native Windows (junctions, short fixture names under MAX_PATH, TerminateProcess, the deny probe through recalith.cmd, Windows path spellings sanitized in reports). Request capture on 2.1.309: all four paths request_visible (3/3 positives, 3/3 clean negatives). Live echo not run (B1). Live on native Windows (2026-10-23): the engine-mode protocol on Claude Code 2.1.309 passed every path, start and prompt (required) and pre-action and compaction (optional), each 3/3 positives with the exact echo and 3/3 clean negatives, no contamination, after three judge defects were fixed (decision 0027 item 10a). The stub-mode live run was not made; Linux and macOS live not observed: not passed. Decision 0028 (2026-10-23): a live trial installation's host record is bound from the certified engine-mode run by the certification harness (`probe_delivery.py --bind-from`: same digest, installation and host version, unmarked caller), and a live trial reads what each hook emitted from the host's hook_response records; tested with synthetic installations and the observed 2.1.309 record shape. The first live gate (2026-10-26) ran live trials through the installed hooks and failed. The host updated itself to 2.1.310 mid-run: the bind refused the later candidates, but sessions already provisioned ran on the uncertified version. Since then every live session checks the installed host against the certified version, and completeness fails on a mismatch (decision 0028 item 12). Not passed. Decision 0028 item 16: fresh-session reuse holds for any learning scenario whose candidate succeeded without a repeat, whose session-B packet carried the gold text, and whose baseline failed or repeated the mistake."
         },
         {
           "variant": "full_only",
