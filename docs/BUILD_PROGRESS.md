@@ -1573,6 +1573,30 @@ Add each later checkpoint with:
 - **Wheel:** `uv build --wheel -o dist` → `recalith-0.1.0.dev1-py3-none-any.whl` (604,788 bytes), SHA-256 `933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec`. `tools/build_release.py --out <scratch>` → exit 0, `problems: []`, `signing: unsigned`, the same wheel digest (reproducible). The wheelhouse is unchanged: `requirements.lock` did not change. It replaces the first `0.1.0.dev1` build (604,375 bytes, `d2c6ff11…7163`), which no installation was provisioned with; that digest is not to be used.
 - **Acceptance:** statuses unchanged. A47 gains the 2.1.310 review, A30 and A31 the headroom reservations (A30 also the macOS group kill), A61's preview variant the fresh-session criterion; notes in `tests/coverage_manifest.json`. No live variant ran.
 
+### 2026-10-28 — The owner's fresh pilot on engine 0.1.0.dev1: route certified; the live delivery run did not start
+
+- **Who ran what.** The owner ran these in a PowerShell window they opened themselves (no host marker; `claude --version` printed 2.1.310). This session ran none of them. Pilot `C:\Code\rl-pilot2`, wheel `933042c6…47ec`.
+- **Results.** Exit codes were not reported separately; these come from the printed output.
+  1. Directory and `git init`; then `init` → ok (`operator_token_registered: false`).
+  2. `bootstrap.py install` → `provisioned`, `0.1.0.dev1`, the expected digest.
+  3. `probe_provider.py --route-out` → `certified`, no blocking dimensions. It wrote the pilot's `provider.json`.
+  4. `check_provider_runtime.py --project` → `certified`; isolation passes from clean and host-marked parents.
+  5. `integrate claude` → ok: 11 hooks, 450 deny rules, host 2.1.310 capture-certified. No delivery paths yet, since there is no host record.
+  6. `probe_delivery.py --engine-project` → `required_path_unavailable`, live `not_run`, `host_version_mismatch`. The ignored `probe-private\local-config.json` still had `delivery.expected_version` 2.1.309. Request capture: all four paths request-visible, deny rules `denied_all_covered`, private paths `probed_limited`.
+  7. `status` → `capability_degraded` (`delivery_request_capture_only`); every other required capability healthy.
+  8. The one-scenario pilot and the gate both refused at the live preflight (`verdict: unavailable`, delivery `delivery_request_capture_only`). No trial ran.
+- **The key was shown in clear text.**
+  - The handoff's `Read-Host -MaskInput` exists only in PowerShell 7. Windows PowerShell 5.1 folds the unknown argument into the prompt text, so the prompt read "-MaskInput Anthropic API key:" and the key echoed. The output was then pasted into this session.
+  - The owner was asked to revoke that key.
+  - Checked by count only, without printing anything: no tracked file, the report, the private config, or the pilot's `provider.json`, `host.json` or settings contains it.
+  - The handoff now uses `Read-Host -AsSecureString`, which masks in both PowerShell versions.
+- **Report review.**
+  - The failed delivery run had replaced the committed 2.1.309 live delivery record with a not-run entry. This session restored the committed `delivery_engine` section in the working copy; the next live run replaces it.
+  - The provider sections differ only in times, durations, `engine_build: 0.1.0.dev1` and one more inherited-but-not-permitted variable (a count). They hold no key, login name, drive path or model identifier.
+  - Held uncommitted until the live delivery run.
+- **Changed by this session outside tracked files:** `probe-private\local-config.json` `delivery.expected_version` 2.1.309 → 2.1.310, following the owner's decision to certify 2.1.310. Nothing else in it changed.
+- **Next:** the owner revokes the key, then runs handoff item 2 from step 7 onward with a new key at the `-AsSecureString` prompt.
+
 ## Blockers and decisions
 
 **B1 — Task 0/0b live certification (cleared on native Windows on 2026-10-23; Linux and macOS not observed).** Status after the owner's live run: the Anthropic Messages route and all four delivery paths of Claude Code 2.1.309 are live-certified for the pilot, whose health is `ready`; see the B1 live checkpoint. The history below is kept. Evidence: `docs/host-compatibility.json` (`auth_route.kind = not_configured`, live `not_run`). This cloud session has the Claude CLI but no explicitly configured build account route; the session's own host credentials/proxy are not a Recalith route and are not used. Minimal operator action, from an ordinary terminal outside any agent session:
@@ -1662,7 +1686,7 @@ Next actions, in order:
    - **During the run:** keep the laptop on power. The harness asks Windows not to idle-sleep, and records and fails a suspension.
    - **After the run:** `evals\run.py adjudicate C:\Code\rl-gate2`, label the template, save it as `adjudication.json`, then `evals\run.py report C:\Code\rl-gate2`.
 
-   Run these in native PowerShell, in an ordinary window you opened yourself, from the repository root. The key is typed at a masked prompt.
+   Run these in native PowerShell, in an ordinary window you opened yourself, from the repository root. The key is typed at a `-AsSecureString` prompt, which masks in Windows PowerShell 5.1 and PowerShell 7 alike. (`Read-Host -MaskInput` exists only in PowerShell 7; in 5.1 it echoed the key on 2026-10-28.) Steps 1–6 ran on 2026-10-28 (the checkpoint of that date); after a key change, run only 7 onward.
    ```powershell
    Get-ChildItem Env: | Where-Object Name -like '*CLAUDE*'   # must print nothing
    claude --version                                         # must print 2.1.310
@@ -1670,14 +1694,14 @@ Next actions, in order:
    New-Item -ItemType Directory $env:PILOT | Out-Null; git -C $env:PILOT init -q                                    # 1. an empty repository, like rl-pilot
    & $py -m recalith init --project $env:PILOT --profile coding --release-profile claude_preview                     # 2. expect 0
    py -3.13 bootstrap.py install --project $env:PILOT --wheel dist\recalith-0.1.0.dev1-py3-none-any.whl --expected-digest 933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec --wheelhouse wheelhouse   # 3. expect 0
-   $env:ANTHROPIC_API_KEY = Read-Host -MaskInput 'Anthropic API key'
+   $k = Read-Host -AsSecureString 'Anthropic API key'
+   $env:ANTHROPIC_API_KEY = [System.Net.NetworkCredential]::new('', $k).Password; Remove-Variable k
    & $py tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --output docs\host-compatibility.json --route-out $env:PILOT   # 4. expect 0
    & $py tools\check_provider_runtime.py --config probe-private\local-config.json --backend anthropic_messages --project $env:PILOT --output docs\host-compatibility.json   # 5. expect 0
    & "$env:PILOT\.recalith\bin\recalith.cmd" integrate claude                                                        # 6. expect 0
    & $py tools\probe_delivery.py --config probe-private\local-config.json --engine-project $env:PILOT --output docs\host-compatibility.json   # 7. expect 0 (live, on 2.1.310)
    & "$env:PILOT\.recalith\bin\recalith.cmd" status                                                                  # 8. 0, or 8 while a worker runs (worker_independence_degraded)
-   $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', $env:PILOT,
-             '--wheel', 'dist\recalith-0.1.0.dev1-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
+   $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', $env:PILOT, '--wheel', 'dist\recalith-0.1.0.dev1-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
    # 9a. One-scenario pilot (about 15-25 minutes, a dollar or two): both arms of L1, workspaces kept.
    & $py evals\run.py smoke --mode live --scenario smoke-L1-ledgerlite-test-command @live --out C:\Code\rl-p3 --keep-workspaces
    # 9b. Only if 9a exits 0, neither trial holds an "error", and the candidate shows "gaps": ["quiet", "quiet"] with "claims" above 0: the gate (several hours at 2 slots).
