@@ -541,6 +541,9 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
         ran: set[str] = set()
         for index, session in enumerate(spec["sessions"]):
             name = session["name"]
+            if installation is not None and index:
+                # The earlier sessions' curation settles on the files they saw, as a recorded run drains before the next overlay.
+                record["gaps"].append({"before": name, **live.wait_quiescent(ws)})
             overlays = apply_overlays(ws, session)
             if sid == "smoke-C4-cross-project-near-match" and name == "A":
                 result, side, version = _live_second_project(spec, session, arm, base, setup, worker, owned)
@@ -548,8 +551,6 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
                 record["sessions"].append({**_live_session_log(name, "ledgerlite", result, overlays, version), "second_project": True})
                 continue
             if installation is not None:
-                if index:
-                    record["gaps"].append({"before": name, **live.wait_quiescent(ws)})
                 record["horizon_checks"].append({"before": name, **evidence_horizon(ws, allowed_host_sessions=ran, not_after=utc_now(), ingest=False)})
             version = live.check_host(setup, worker)
             env = live.agent_env(setup, home, route_keys=live.route_keys(ws) if installation is not None else [])

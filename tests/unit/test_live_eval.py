@@ -379,6 +379,27 @@ def test_a_live_trial_records_its_sessions_gaps_and_manifest(tmp_path, monkeypat
     assert baseline["manifest"]["no_memory"]["label"] == "no_memory" and fake.envs[-1]["ROUTE_KEYS"] == ""
 
 
+def test_a_sessions_overlay_lands_after_the_earlier_sessions_curation(tmp_path, monkeypatch):
+    """The third R4 rerun (2026-10-29): C's overlay replaced ``store.py`` 12 s after A ended, while A's extraction was
+    still due, so the declared dependency recorded the new bytes and C's prompt showed the stale fact as current. A
+    recorded run drains after each session before the next one's overlay; the live trial now waits for quiet first too."""
+    from evals import live, trial
+
+    calls: dict = {}
+    fake_live(monkeypatch, calls)
+    store = Path("fieldnotes") / "store.py"
+    seen: list[bytes] = []
+    monkeypatch.setattr(live, "wait_quiescent", lambda ws, **kw: seen.append((ws / store).read_bytes()) or {"state": "quiet", "waited_s": 0.0})
+    record = trial.run_trial("smoke-R4-fieldnotes-storage-conflict", "candidate", tmp_path / "work", mode="live", native_memory={"state": "disabled"}, live=Setup(tmp_path),
+                             agent_factory=FakeLiveAgent)
+    assert "error" not in record, record.get("error_detail")
+    original = (trial.ROOT / "evals" / "projects" / "fieldnotes" / store).read_bytes()
+    changed = (trial.SMOKE / "overlays" / "fieldnotes_store_jsonl.py").read_bytes()
+    assert original != changed and [g["before"] for g in record["gaps"]] == ["C", "measurement"]
+    assert seen == [original, changed]  # A's curation settles on the bytes A saw; the change lands before C starts
+    assert [s["overlays"] for s in record["sessions"]] == [[], ["fieldnotes/store.py"]]
+
+
 def test_a_changed_host_stops_the_trial_before_its_next_session(tmp_path, monkeypatch):
     """The first live gate: the host updated itself mid-run. Before provisioning nothing is spent; mid-trial the next
     session does not run on the uncertified version."""
