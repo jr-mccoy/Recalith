@@ -45,3 +45,5 @@ The recorded curator's R4 proposal declares the same user statement with `{"kind
 ## Consequences
 
 The owner provisions a fourth pilot from `dist\recalith-0.1.0.dev3-py3-none-any.whl`, certifies its route and runs the engine-mode delivery probe (BUILD_PROGRESS handoff). R4 alone with `--keep-workspaces` then shows whether the live extractor declares the file and the label reaches C's prompt. The full gate waits for that. The third pilot (`0.1.0.dev2`) and its kept R4 workspaces stay as the record of this rerun.
+
+Observed afterwards (the fourth pilot's R4, 2026-10-29): every claim pinned `@2` and declared the files it describes, `fieldnotes/store.py` among them. The label was still missing, because the live trial changed the file before session A's curation (decision 0028 item 18).
