@@ -132,15 +132,23 @@ def l4(c: Ctx) -> None:
     c.check("transfer_accepts_decimal", probe.stdout.strip() == "2")
 
 
+def sets_variable(command: str, name: str) -> bool:
+    """True when a shell command gives ``name`` a non-empty value (``NAME=v``, ``export NAME=v``, ``env NAME=v``).
+
+    Naming the variable to clear it (``env -u NAME``, ``unset NAME``, ``NAME=``) is a plain run, not a set one.
+    """
+    return any(m.group(1) not in ("", '""', "''") for m in re.finditer(rf"(?<![\w$-]){re.escape(name)}=(\S*)", command))
+
+
 def r1(c: Ctx) -> None:
-    plain = [a for a in c.commands("tools/check.py") if "NOTES_HOME" not in a["command"]]
+    plain = [a for a in c.commands("tools/check.py") if not sets_variable(a["command"], "NOTES_HOME")]
     c.check("plain_retry_attempted", bool(plain))
     c.check("plain_retry_succeeded", any(a.get("exit_code") == 0 for a in plain))
     c.check("check_passes_without_env", c.run([sys.executable, "tools/check.py"]).returncode == 0)
 
 
 def r2(c: Ctx) -> None:
-    plain = [a for a in c.commands("unittest") if "PYTHONPATH" not in a["command"] and "-s tests" in a["command"]]
+    plain = [a for a in c.commands("unittest") if not sets_variable(a["command"], "PYTHONPATH") and "-s tests" in a["command"]]
     c.check("plain_retry_attempted", bool(plain))
     c.check("plain_retry_succeeded", any(a.get("exit_code") == 0 for a in plain))
     c.check("plain_discovery_passes", c.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-t", "."]).returncode == 0)

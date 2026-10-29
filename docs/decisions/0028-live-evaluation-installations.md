@@ -1,6 +1,6 @@
 # Decision 0028: Live evaluation installations and the live trial path
 
-Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review; items 12–16 added after the first live gate · Date: 2026-10-23, amended 2026-10-26 · Host: Claude Code 2.1.309 on native Windows; two one-scenario pilots and one failed live gate have run
+Status: accepted (Task 18 preview slice, live path); item 2 open for the owner's review; items 12–16 added after the first live gate, item 17 after the second · Date: 2026-10-23, amended 2026-10-26 and 2026-10-29 · Host: Claude Code 2.1.309, then 2.1.310, on native Windows; three one-scenario pilots and two failed live gates have run
 
 ## Context
 
@@ -100,12 +100,16 @@ The first live gate (2026-10-23 to 2026-10-26, BUILD_PROGRESS) failed, and four 
       - The baseline can show the gap by failing the task as well as by repeating the mistake. A preference or decision it never received shows as a failed task, not a repeat.
       - Delivery of the gold text in session B is now required; it was implicit for the scripted agent.
     - Decided before the rerun. Applied to the first gate's records, it counts L3: its baseline failed and its candidate's session-B prompt packet carried the $600 preference. That session ran on 2.1.310, which item 12 now refuses. On the recorded scripted run, L1, L2 and L3 meet it.
+17. **A retry that clears the variable is a plain retry (the R1 and R2 oracles).** In the second live gate, R2's candidate ran `env -u PYTHONPATH python -m unittest discover -s tests -t .` in session C. That is the plain retry the scenario asks for, with the variable cleared explicitly, and it passed. The oracle counted every command that named `PYTHONPATH` as not plain, so it scored the candidate's task as failed. R1's oracle had the same test for `NOTES_HOME`.
+    - A command is now not plain only when it gives the variable a non-empty value (`NAME=v`, `export NAME=v`, `env NAME=v`). `env -u NAME`, `unset NAME` and `NAME=` are plain (`smoke.sets_variable`).
+    - The tasks, the gold and the other checks are unchanged, and the rule applies to both arms alike from the next run.
+    - The second gate's record keeps the score it was given. R2's candidate is a failed task there; BUILD_PROGRESS (2026-10-29) calls it an oracle false negative.
 
 ## Consequences
 
-Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`). After the first live gate: the host-version check, suspension records and keep-awake, the adjudicated live quality measures and `evals/run.py adjudicate`, the curator call outcomes, and fresh-session reuse over every learning scenario (items 12–16).
+Built: the live path for smoke trials, workload days and demonstrations, the bind, and tests with labeled fakes and the observed 2.1.309 hook-event shape (`tests/unit/test_live_eval.py`). After the first live gate: the host-version check, suspension records and keep-awake, the adjudicated live quality measures and `evals/run.py adjudicate`, the curator call outcomes, and fresh-session reuse over every learning scenario (items 12–16). After the second: the plain-retry rule of the R1 and R2 oracles (item 17).
 
-Run: two one-scenario pilots and one full live gate, all by the owner from an ordinary terminal. The gate failed (BUILD_PROGRESS, 2026-10-26; the sanitized record is in `docs/evaluations/preview-live-2026-10-26/`).
+Run: three one-scenario pilots and two full live gates, all by the owner from an ordinary terminal. Both gates failed (BUILD_PROGRESS, 2026-10-26 and 2026-10-29; the sanitized records are in `docs/evaluations/preview-live-2026-10-26/` and `docs/evaluations/preview-live-2026-10-29/`).
 
 Limits:
 - Real-time gaps, not the scenarios' two hours.

@@ -153,6 +153,35 @@ def test_oracle_fails_untouched_seed_and_passes_reference(tmp_path, sid):
     assert result["passed"] is True, result
 
 
+PLAIN_RETRIES = [
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "env -u PYTHONPATH python -m unittest discover -s tests -t . 2>&1 | tail -30"),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "unset PYTHONPATH; python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "PYTHONPATH= python -m unittest discover -s tests -t ."),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "env -u NOTES_HOME python tools/check.py"),
+]
+SET_RETRIES = [
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "PYTHONPATH=src python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "export PYTHONPATH=src && python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "env PYTHONPATH=\"$PWD/src\" python -m unittest discover -s tests -t ."),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py"),
+]
+
+
+@pytest.mark.parametrize("check, sid, command", PLAIN_RETRIES)
+def test_a_retry_that_unsets_the_variable_is_a_plain_retry(tmp_path, check, sid, command):
+    """The 2026-10-29 live gate's R2 candidate ran ``env -u PYTHONPATH …``; naming the variable is not setting it."""
+    ws = materialize(tmp_path, sid)
+    result = smoke.judge(check, ws, [act("C", command)], "C")
+    assert result["checks"]["plain_retry_attempted"] is True and result["passed"] is True, result
+
+
+@pytest.mark.parametrize("check, sid, command", SET_RETRIES)
+def test_a_retry_that_sets_the_variable_is_not_plain(tmp_path, check, sid, command):
+    ws = materialize(tmp_path, sid)
+    result = smoke.judge(check, ws, [act("C", command)], "C")
+    assert result["checks"]["plain_retry_attempted"] is False and result["passed"] is False, result
+
+
 def test_cross_project_leak_is_detected(tmp_path):
     ws = materialize(tmp_path, "smoke-C4-cross-project-near-match")
     actions = [act("B", "PYTHONPATH=src python -m unittest discover -s tests", 1), act("B", "NOTES_HOME=/tmp/n python tools/check.py")]
