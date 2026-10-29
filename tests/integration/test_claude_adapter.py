@@ -628,7 +628,7 @@ POSIX_SPELLINGS = [
     ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
     "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
     "python -m recalith.cli.main", "python3 -m recalith.cli.main",
-    ".recalith/runtime/0.1.0.dev1/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev1/venv/bin/python -I -m recalith",
+    ".recalith/runtime/0.1.0.dev2/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev2/venv/bin/python -I -m recalith",
 ]
 
 
@@ -648,7 +648,7 @@ def test_launchers_are_unchanged():
 
 
 def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
-    if identity.__version__ != "0.1.0.dev1":
+    if identity.__version__ != "0.1.0.dev2":
         pytest.skip("pinned for the development engine version")
     root = Path("/proj/root")
     assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
@@ -659,7 +659,7 @@ def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
     for want in (
         "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
         f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
-        ".recalith/runtime/0.1.0.dev1/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev1/venv/Scripts/python.exe -I -m recalith",
+        ".recalith/runtime/0.1.0.dev2/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev2/venv/Scripts/python.exe -I -m recalith",
     ):
         assert want in spellings, want
     assert len(spellings) == len(set(spellings))

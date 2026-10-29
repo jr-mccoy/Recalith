@@ -382,6 +382,7 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
     contradicts = [link for link in op.evidence if link.relation == "contradicts"]
     context = [link for link in op.evidence if link.relation == "context"]
     _refused, dependencies = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, op.evidence)  # admission refused a mismatch
+    dependencies += revalidate.read_dependencies(run.txn, ctx, kind=typed.kind, scope=typed.scope, supports=supports, have=dependencies)
     klass, _why = revalidate.review_class(run.txn, kind=typed.kind, basis=typed.basis, dependencies=dependencies)
     failure = typed.failure
     if failure is not None:
@@ -432,6 +433,7 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         data = _new_claim_revision(old, now=run.now)
         data["supports"], data["contradicts"] = supports_out, contradicts_out
         data["context"], _ = _merge_links(old.get("context") or [], context)
+        _read_dependencies(run, data, supports)
         _supported_at(data, when)
         _strength(run, data)
         ref = _write_claim_revision(run, head.revision, data, change)
@@ -464,6 +466,7 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
             return _no_root_reason(run, data, op.evidence)  # duplicate mentions never refresh support
         data = _new_claim_revision(data, now=run.now)
         data["supports"] = merged
+        _read_dependencies(run, data, op.evidence)
         _supported_at(data, when)
         _refresh_failure(run, data)
     else:
@@ -476,6 +479,12 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
     ref = _write_claim_revision(run, revision, data, change)
     _queue(run, ref, data)  # changed support of a candidate needs its own review
     return None
+
+
+def _read_dependencies(run: _Run, data: dict[str, Any], supports: Sequence[Any]) -> None:
+    """Add the file dependencies that supporting reads of exact scope paths record (decision 0030)."""
+    links = [s if isinstance(s, EvidenceLink) else EvidenceLink.model_validate(s) for s in supports]
+    data["dependencies"] = [*data["dependencies"], *revalidate.read_dependencies(run.txn, run.ctx, kind=data["kind"], scope=data["scope"], supports=links, have=data["dependencies"])]
 
 
 def _refresh_failure(run: _Run, data: dict[str, Any]) -> None:
@@ -500,6 +509,7 @@ def _revise_claim(run: _Run, op: ProposedOperation, typed: ReviseClaimPayload, c
     if typed.dependencies is not None:
         supports = [EvidenceLink.model_validate(i) for i in data["supports"]]
         _refused, data["dependencies"] = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, supports)
+    _read_dependencies(run, data, [*data["supports"], *(link for link in op.evidence if link.relation == "supports")])  # replaced, rescoped or newly supported
     if typed.retry_conditions is not None:
         data["failure"] = {**data["failure"], "retry_conditions": [r.model_dump(mode="json") for r in typed.retry_conditions]}
     # Altered content needs a fresh review: the revision is an unreviewed candidate.

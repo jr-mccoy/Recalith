@@ -2,7 +2,7 @@
   "checklist_schema": 1,
   "profile": "claude_preview",
   "source": "docs/ACCEPTANCE_TESTS.md §8 (preview column); IMPLEMENTATION_PLAN Task 13 'Cut 1 release gate' and Task 18",
-  "engine": "0.1.0.dev1",
+  "engine": "0.1.0.dev2",
   "checked_by": "tools/release_checklist.py (tests/unit/test_eval_harness.py::test_release_checklist_and_dependency_inventory_are_consistent)",
   "verdict": "blocked",
   "verdict_reason": "Both live gates failed. The first (2026-10-26): the installed host updated itself mid-run, the machine slept, and update_task replies hit their output allowance under a reasoning curator. The second (2026-10-29, engine 0.1.0.dev1, Claude Code 2.1.310 live-certified): no curator call hit the output cap, but the lid was closed overnight and Wi-Fi dropped on waking, R4's working agents wrote CLAUDE.md in both arms, R4's stale fact was delivered without a freshness label, and fresh-session reuse and the changed-condition revision were not shown; live §5.1 support and recall await reviewer labels. A scripted/recorded run is never a pass",

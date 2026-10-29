@@ -86,6 +86,7 @@ SETTLED = "revalidation_settled"  # a revalidation job with nothing a model can 
 TRANSITIVE_LIMIT = 256
 DEPENDENCY_DEPTH = 16
 WRITE_KINDS = frozenset({"write", "delete"})
+INTENT_KINDS = frozenset({"decision", "preference"})  # state intent, not a file's contents
 
 
 # --------------------------------------------------------------------------
@@ -461,6 +462,16 @@ def file_writes(env: EventEnvelope) -> list[str]:
     return sorted({p for p in action.get("paths") or [] if isinstance(p, str)})
 
 
+def file_reads(env: EventEnvelope) -> list[str]:
+    """Workspace paths a certified result read (exact parse only)."""
+    if not certified_result(env):
+        return []
+    action = env.payload.get("action")
+    if not isinstance(action, dict) or action.get("parse_status") != "exact" or action.get("action_kind") != "read":
+        return []
+    return sorted({p for p in action.get("paths") or [] if isinstance(p, str)})
+
+
 def environment_fingerprint(key: str, value: str) -> str:
     return digest_of(["environment", key, value])
 
@@ -769,6 +780,34 @@ def resolve_dependencies(q: Any, ctx: InstallationContext, dependencies: Sequenc
             return "dependency_fingerprint_mismatch", []
         out.append({**d, "fingerprint": current})
     return None, out
+
+
+def read_dependencies(q: Any, ctx: InstallationContext, *, kind: str, scope: Any, supports: Sequence[EvidenceLink], have: Sequence[Any]) -> list[dict[str, Any]]:
+    """The ``file`` dependencies code adds to a claim (decision 0030), resolved, beyond those in ``have``.
+
+    A claim scoped to an exact workspace path whose support includes a
+    certified read of that path describes those bytes, so it depends on them
+    whether or not its proposal declared it. Each resolves by the registered
+    rule against the reads that named it: unknown when a certified write
+    followed the latest. A directory scope names no one file, and a decision
+    or preference states intent: neither adds anything.
+    """
+    if kind in INTENT_KINDS:
+        return []
+    paths = scope.paths if hasattr(scope, "paths") else (scope or {}).get("paths") or []
+    exact = {p for p in paths if not p.endswith("/")}
+    known = {(d.kind, d.key) if hasattr(d, "kind") else (d["kind"], d["key"]) for d in have}
+    naming: dict[str, list[EvidenceLink]] = {}
+    for link in supports if exact else ():
+        env = stored_event(q, link.ref.id) if link.ref.kind == "event" else None
+        for path in file_reads(env) if env is not None else ():
+            if path in exact and ("file", path) not in known:
+                naming.setdefault(path, []).append(link)
+    out = []
+    for path in sorted(naming):
+        _refused, resolved = resolve_dependencies(q, ctx, [{"kind": "file", "key": path, "fingerprint": None, "record": None}], naming[path])
+        out.extend(resolved)  # a null proposed fingerprint is never refused
+    return out
 
 
 def review_class(q: Any, *, kind: str, basis: str, dependencies: Sequence[Any], claim_id: str | None = None) -> tuple[str, list[str]]:

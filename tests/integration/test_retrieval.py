@@ -771,3 +771,27 @@ def test_uncaptured_dependency_change_labels_every_claim_kind(p):
         assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
     (p.root / cs.DEP).write_bytes(b"fixture v1\n")
     assert [i["freshness"] for i in items()] == ["current", "current"]
+
+
+def test_a_fact_read_from_its_scoped_file_is_labeled_when_the_file_changes(p):
+    """The live R4 rerun (2026-10-29) end to end: no declared dependency, yet the changed file labels the fact.
+
+    The extractor cited its Read of ``fieldnotes/store.py``, scoped the fact
+    to that file and declared no dependency, so the next session's prompt got
+    the stale fact as ``current``. Code now records the dependency (decision
+    0030) and the bounded live check labels the item in both compilers.
+    """
+    (p.root / cs.NOTES).write_bytes(b"fixture notes\n")
+    body = adm.claim("The notes file holds the fixture notes.", subject="notes file contents", scope=cs.scope(cs.NOTES), dependencies=[])
+    claim_id = adm.created_claim(adm.extract(p, [osc.op("f", "propose_claim", body, evidence=[adm.link(cs.read(p))])]))
+    adm.admit(p, claim_id)
+    q = rs.query(p, "prompt", text="What does the notes file hold?")
+    rs.publish(p)
+
+    def items():
+        return [rs.by_id(rs.service(p, q))[claim_id], rs.by_id(rs.hook(p, q)["packet"])[claim_id]]
+
+    assert [i["freshness"] for i in items()] == ["current", "current"]
+    (p.root / cs.NOTES).write_bytes(b"other notes, rewritten outside the host\n")
+    for item in items():
+        assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item

@@ -6,7 +6,8 @@ mapping, normalization, capture, ingestion and typed reduction
 failing ``pytest -q test_mid.py`` (``toolu_probe_0003``, certified exit code
 1 and pytest assertions), the passing ``pytest -q -s test_pass.py`` result
 (``toolu_probe_0004``), the ``Write`` of ``new.txt`` (``toolu_probe_0009``),
-the ``echo`` call and the prompts.
+the ``Read`` of ``notes.txt`` (``toolu_probe_0007``), the ``echo`` call and
+the prompts.
 
 **Synthetic variants** (named at each use; payload shape, mapping and
 normalization stay real): a rerun of the failing command whose result is the
@@ -47,7 +48,9 @@ MID = "toolu_probe_0003"  # failing `pytest -q test_mid.py`
 PASS = "toolu_probe_0004"  # the real passing pytest result
 WRITE = "toolu_probe_0009"  # Write new.txt
 ECHO = "toolu_probe_0001"  # echo hello-fixture
+READ = "toolu_probe_0007"  # Read notes.txt
 DEP = "dep.txt"
+NOTES = "notes.txt"
 LESSON = "Rerunning test_mid without fixing its fixture fails again."
 
 
@@ -62,6 +65,15 @@ def project(tmp: Path, name: str = "revision", *, dep: bytes | None = b"fixture 
 
 def failure(p: wks.Project) -> dict[str, Any]:
     return p.event("tool_finished", call=MID)
+
+
+def read(p: wks.Project) -> dict[str, Any]:
+    """The real certified ``Read`` of ``notes.txt``."""
+    return p.event("tool_finished", call=READ)
+
+
+def scope(*paths: str) -> dict[str, Any]:
+    return {"branch_refs": [], "environment": {}, "paths": list(paths), "task_ids": [], "workspace_ids": []}
 
 
 def recorded_at(p: wks.Project, event_id: str) -> str:
