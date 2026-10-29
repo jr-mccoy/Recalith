@@ -1,0 +1,540 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 122268,
+  "estimated_output_tokens": 33501,
+  "jobs_by_state": {
+   "completed": 6,
+   "pending": 2
+  },
+  "model_calls": 7,
+  "tokens": 155769,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_09c2647b-4bf9-497e-a04a-71c9b300e477",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "With tests/__init__.py in place (it inserts the src directory onto sys.path), `python -m unittest discover -s tests -t .` runs the 2 ledgerlite tests and both pass.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "C",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     19,
+     15,
+     20
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 18,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 353.9,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 2,
+    "due_kinds": [
+     "extract_claims",
+     "update_task"
+    ],
+    "leased": 0,
+    "next_due_in_s": -0.0,
+    "pending_triggers": 0,
+    "progress": [
+     33,
+     23,
+     29
+    ],
+    "quiet": false,
+    "spool_ready": 0,
+    "waiting_reasons": [
+     "endpoint_unreachable"
+    ]
+   },
+   "polls": 9,
+   "state": "stalled",
+   "suspended_s": 0.0,
+   "waited_s": 366.7,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A plain discovery failed with ModuleNotFoundError.",
+   "Before C, tests/__init__.py was added."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tests/__init__.py (absent in A)",
+    "kind": "failure_lesson",
+    "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+    "retry_condition": "Retry if the test package changes import setup."
+   }
+  ]
+ },
+ "hook_replies": 9,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-10-29T12:39:31.395285Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-10-29T12:45:43.384380Z",
+   "events": 14,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev1-py3-none-any.whl",
+  "wheel_sha256": "933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.3,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.5,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.3,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.9,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.3,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_d917144e-3c5d-48af-837b-2efd4286cf0d",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_76861327-49c5-4b63-b732-b2559607dd89"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r2",
+  "checks": {
+   "plain_discovery_passes": true,
+   "plain_retry_attempted": false,
+   "plain_retry_succeeded": false
+  },
+  "metrics": {},
+  "passed": false,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 155769,
+  "detours": 0,
+  "elapsed_seconds": 26.175,
+  "foreground_cost_usd": 0.043764,
+  "foreground_tokens": 127988,
+  "legitimate_retry_success": false,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": false
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 39073,
+    "reported_output_tokens": 3929,
+    "visible_output_estimate": 1051
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 1,
+    "reported_input_tokens": 29845,
+    "reported_output_tokens": 5025,
+    "visible_output_estimate": 1167
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 6835,
+    "reported_output_tokens": 1021,
+    "visible_output_estimate": 164
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 1,
+    "reported_input_tokens": 25705,
+    "reported_output_tokens": 2026,
+    "visible_output_estimate": 428
+   }
+  },
+  "job_errors": {
+   "extract_claims:endpoint_unreachable": 1,
+   "update_task:endpoint_unreachable": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: With tests/__init__.py in place (it inserts the src directory onto sys.path), `python -m unittest discover -s tests -t .` runs the 2 ledgerlite tests and "
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-R2-ledgerlite-import-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests -t . 2>&1 | tail -30; ls",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "ls -R tests src; cat README.md",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "head -15 tests/test_ledger.py; cat src/ledgerlite/__init__.py | head -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat > tests/__init__.py <<'EOF'\nimport sys\nfrom pathlib import Path\n\nsys.path.insert(0, str(Path(__file__).resolve().parent.parent / \"src\"))\nEOF\npython -m unittest discover -s tests -t . 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028872,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 17.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_ab04349b6f179f32741fb8ca82160b3fba5e00dfa33f0f9df2f44882a8735621\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b01598ae648d864e4b721ba644dc2b54da9e62062397980ec875a8ad436d9ad9",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 17.549,
+   "foreground_tokens": 92652,
+   "host_session_id": "ec608b98-0989-4e2d-969c-02ad79d1d935",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The tests now pass with the command unchanged: `python -m unittest discover -s tests -t .` runs 2 tests, both OK.\n\nThe command failed for two reasons. `tests/` had no `__init__.py`, so unittest refused it as a start directory. And `ledgerlite` lives under `src/`, which wasn't on the import path.\n\nI added `tests/__init__.py`, which puts `src/` on `sys.path`. I didn't change any other files.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "env -u PYTHONPATH python -m unittest discover -s tests -t . 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.014892,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 8.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: With tests/__init__.py in place (it inserts the src directory onto sys.path), `python -m unittest discover -s tests -t .` runs the 2 ledgerlite tests and both pass.\n  why: lexical_match \u2014 matches tests, python, unittest, discover\n  applies: unknown \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: paths tests/__init__.py\n  sources: claim_09c2647b-4bf9-497e-a04a-71c9b300e477 r2; evt_c83af8fa5d48efb41a1e6986ec14796aa957d97a43b6ccf28b663e675632b96e; evt_b7aec676112f58b247c9564f4455505ebb178332ca3c638f965cd6fd62911abf",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 8.625,
+   "foreground_tokens": 35336,
+   "host_session_id": "55fd7b64-1641-4c84-b388-14ea19a64f55",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "tests/__init__.py"
+   ],
+   "project": "ledgerlite",
+   "reply": "Yes, it passes now. I ran `python -m unittest discover -s tests -t .` with PYTHONPATH unset. It ran 2 tests and both passed (`OK`).",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "R2/c/w"
+}

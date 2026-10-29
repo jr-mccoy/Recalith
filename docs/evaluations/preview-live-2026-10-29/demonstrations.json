@@ -1,0 +1,266 @@
+{
+ "demonstrations": {
+  "changed_condition_revision": {
+   "demonstrated": false,
+   "scenarios": {
+    "smoke-R1-fieldnotes-check-env-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "Running python tools/check.py without NOTES_HOME set fails.",
+       "candidate",
+       "current",
+       2
+      ],
+      [
+       "tools/check.py requires the NOTES_HOME environment variable to be set.",
+       "active",
+       "current",
+       2
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Fact: tools/check.py requires the NOTES_HOME environment variable to be set."
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "NOTES_HOME",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [],
+     "task_success": true
+    },
+    "smoke-R2-ledgerlite-import-fixed": {
+     "legitimate_retry_success": false,
+     "lesson": [
+      [
+       "With tests/__init__.py in place (it inserts the src directory onto sys.path), `python -m unittest discover -s tests -t .` runs the 2 ledgerlite tests and both pass.",
+       "active",
+       "current",
+       2
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Fact: With tests/__init__.py in place (it inserts the src directory onto sys.path), `python -m unittest discover -s tests -t .` runs the 2 ledgerlite tests and "
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "PYTHONPATH",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [],
+     "task_success": false
+    }
+   }
+  },
+  "forgetting_and_restore": {
+   "backup_before": {
+    "external_copy": true,
+    "manifest_digest": "dee7030c8964754c31c45cb2fde45714c330cfecd0de8ad822e2d2baec2dfd53",
+    "store_hits_before": 15
+   },
+   "delivered_after_forget": false,
+   "delivered_after_restore": false,
+   "demonstrated": true,
+   "forget": {
+    "backup_state": "verified",
+    "purge_state": "completed",
+    "purged_count": 12,
+    "quarantined_count": 0
+   },
+   "restore": {
+    "applied_schema": 11,
+    "deleted_backup_ids": [],
+    "limits": [
+     "external_copy_holds_suppressed_content",
+     "external_exports_not_recallable",
+     "remote_provider_copies_not_recallable",
+     "operator_backup_copies_not_recallable",
+     "filesystem_forensics_outside_guarantee",
+     "ledger_digest_membership_disclosure",
+     "paraphrase_not_detected"
+    ],
+    "preserved_tombstone_epoch": 1,
+    "restored_revision": 117,
+    "source_contains_suppressed": true,
+    "suppressed_record_count": 12
+   },
+   "route": "the guarded CLI with the operator token (live)",
+   "scenario": "smoke-L3-household-grocery-budget",
+   "selector": {
+    "claims": 1,
+    "tasks": 1
+   },
+   "stopped_after": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "stopped_before_backup": {
+    "exit": 0,
+    "state": "not_running"
+   },
+   "stopped_before_restore": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "store_hits_after_forget": 0,
+   "store_hits_after_restore": 0
+  },
+  "fresh_session_reuse": {
+   "criterion": "a learning scenario whose candidate succeeded with no repeated mistake, whose fresh session B carried the scenario's gold text in a delivered packet, and whose clean baseline, in the same session, failed or repeated session A's mistake; any one of the learning scenarios demonstrates it (decision 0028 item 16)",
+   "demonstrated": false,
+   "met_by": [],
+   "not_run": [],
+   "note": "one trial per arm: a demonstration, not an estimate. The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
+   "remember_instruction": false,
+   "scenarios": {
+    "smoke-L1-ledgerlite-test-command": {
+     "admitted": [],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [],
+     "errors": [],
+     "gold_in_session_b": [
+      "PYTHONPATH=src"
+     ],
+     "met": false
+    },
+    "smoke-L2-fieldnotes-iso-dates": {
+     "admitted": [
+      "Every date fieldnotes prints must be ISO-8601 (YYYY-MM-DD...). Locale formats such as 'Jan 2' or '02/01/2026' must not be used.",
+      "tools/check.py requires the NOTES_HOME environment variable to be set before it runs."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "ISO-8601"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "ISO-8601"
+     ],
+     "met": false
+    },
+    "smoke-L3-household-grocery-budget": {
+     "admitted": [
+      "The user wants the household grocery budget kept under $600 per month, and wants anything that would push grocery spending over that amount flagged."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [],
+     "errors": [],
+     "gold_in_session_b": [
+      "600"
+     ],
+     "met": false
+    },
+    "smoke-L4-ledgerlite-resume-refactor": {
+     "admitted": [],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": false,
+     "carried_in_session_b": [],
+     "errors": [],
+     "gold_in_session_b": [
+      "money.parse"
+     ],
+     "met": false
+    }
+   }
+  },
+  "isolation": {
+   "cross_project_leak_commands": 0,
+   "cross_record_ids": [],
+   "cross_text_in_search": [],
+   "demonstrated": true,
+   "fieldnotes_active_claims": [
+    "tools/check.py requires the NOTES_HOME environment variable to be set, because it reads NOTES_HOME directly from the environment.",
+    "To run this project's checks and tests, set NOTES_HOME to a temporary directory if it is unset, then run `python tools/check.py` from the project root."
+   ],
+   "fieldnotes_session_b_delivered": [],
+   "installations": {
+    "distinct": true,
+    "fieldnotes": "inst_c7a5a258-9ddd-402a-9d11-652dae5a7549",
+    "ledgerlite": "inst_7a0cb238-12dc-4375-a98f-bc032615cda6"
+   },
+   "ledgerlite_active_claims": [
+    "pytest is not installed in the Python 3.13 interpreter used for this project, so python -m pytest fails; the ledgerlite tests use unittest.",
+    "Ledgerlite unit tests run from the project root with PYTHONPATH=src python -m unittest discover -s tests -v and report 2 tests OK."
+   ],
+   "reverse_session": {
+    "actions": 1,
+    "gap": {
+     "last": {
+      "due_jobs": 0,
+      "due_kinds": [],
+      "leased": 0,
+      "next_due_in_s": null,
+      "pending_triggers": 0,
+      "progress": [
+       37,
+       28,
+       37
+      ],
+      "quiet": true,
+      "spool_ready": 0,
+      "waiting_reasons": []
+     },
+     "polls": 10,
+     "state": "quiet",
+     "suspended_s": 0.0,
+     "waited_s": 315.4,
+     "worker_seen": true
+    }
+   },
+   "scenario": "smoke-C4-cross-project-near-match",
+   "task_success": true,
+   "worker_stop": [
+    {
+     "exit": 0,
+     "state": "stopped"
+    },
+    {
+     "exit": 0,
+     "state": "not_running"
+    }
+   ]
+  },
+  "zero_interventions": {
+   "demonstrated": true,
+   "jobs_awaiting_a_human": 0,
+   "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+   "operator_interventions": 0,
+   "trials": 24,
+   "workload_days": 3
+  }
+ },
+ "label": "live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token",
+ "mode": "live"
+}

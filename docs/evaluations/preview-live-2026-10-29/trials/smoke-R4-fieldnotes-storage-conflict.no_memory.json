@@ -1,0 +1,294 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "revision",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Which storage format the user intends going forward."
+  ],
+  "exact_observations": [
+   "A: user stated notes.json storage.",
+   "C: store.py now writes notes.jsonl."
+  ],
+  "expected_retrieval_points": [
+   {
+    "advice": "conflict_or_freshness_label",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "Current code contradicts the stored fact; the conflict is surfaced (dispute/needs_revalidation) rather than silently resolved, and the agent's script follows the current code.",
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "fact",
+    "proposition": "Notes are stored in notes.json under NOTES_HOME."
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev1-py3-none-any.whl",
+  "wheel_sha256": "933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [
+    "inherited_instructions"
+   ],
+   "inherited_instructions": [
+    "workspace:CLAUDE.md"
+   ],
+   "label": "contaminated",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r4",
+  "checks": {
+   "counts_current_storage": true,
+   "script_exists": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 100.807,
+  "foreground_cost_usd": 0.095418,
+  "foreground_tokens": 148498,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-R4-fieldnotes-storage-conflict",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": "echo \"NOTES_HOME=$NOTES_HOME\"; ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "d=$(mktemp -d) && NOTES_HOME=\"$d\" python -m fieldnotes.cli list; echo \"exit=$?\"; ls -A \"$d\" | wc -l",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "CLAUDE.md",
+     "session": "A",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.065315,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 85.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 85.357,
+   "foreground_tokens": 74307,
+   "host_session_id": "8ccc525b-258a-47ee-a2d4-44e8a9f36018",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "For an empty store, `list` prints nothing and exits with code 0.\n\nI ran `python -m fieldnotes.cli list` with `NOTES_HOME` pointed at a new empty temp directory. There was no output, and the command didn't create `notes.json`. `store.load()` returns `[]` when the file is missing, so the loop in `cli.py` has nothing to print.\n\nI saved your note in a new `CLAUDE.md` at the project root. It says notes live in `notes.json` under `NOTES_HOME`. It also says `NOTES_HOME` has no default and must be set, because `NOTES_HOME` is currently empty in this shell. If it's unset, `notes_path()` raises a `KeyError`.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "C",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "C",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "C",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/count_notes.py",
+     "session": "C",
+     "tool": "Write"
+    },
+    {
+     "command": "cd <run>/work/R4/b/w && export NOTES_HOME=$(mktemp -d) && python tools/count_notes.py && python -c \"\nfrom fieldnotes import store\nstore.add('one'); store.add('two')\" && python tools/count_notes.py; rm -rf \"$NOTES_HOME\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.030103,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 15.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 15.45,
+   "foreground_tokens": 74191,
+   "host_session_id": "3fc4e4bd-6ce2-4dfd-b093-f51733fb710c",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "fieldnotes/store.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "I wrote `tools/count_notes.py`. It prints the number of notes returned by `store.load()`.\n\nI tested it against a temporary `NOTES_HOME`, so your real notes weren't touched. It printed `0` on the empty store. After I added two notes with `store.add`, it printed `2`. I deleted the temporary directory afterwards.\n\n`CLAUDE.md` says notes are stored in `notes.json`. `fieldnotes/store.py` actually uses `notes.jsonl`, so the script goes through the store and reads whatever the code reads. You may want to correct the file name in `CLAUDE.md`.\n\nThe script needs `NOTES_HOME` set, and it fails with a `KeyError` if it isn't.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "R4/b/w"
+}

@@ -1,0 +1,434 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 82580,
+  "estimated_output_tokens": 44740,
+  "jobs_by_state": {
+   "completed": 3,
+   "pending": 2
+  },
+  "model_calls": 5,
+  "tokens": 127320,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 2,
+    "due_kinds": [
+     "extract_claims",
+     "update_task"
+    ],
+    "leased": 0,
+    "next_due_in_s": -2574.1,
+    "pending_triggers": 0,
+    "progress": [
+     14,
+     12,
+     14
+    ],
+    "quiet": false,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 8,
+   "state": "deadline",
+   "suspended_s": 2574.1,
+   "waited_s": 2877.4,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 2,
+    "due_kinds": [
+     "extract_claims",
+     "update_task"
+    ],
+    "leased": 0,
+    "next_due_in_s": -0.0,
+    "pending_triggers": 0,
+    "progress": [
+     14,
+     12,
+     15
+    ],
+    "quiet": false,
+    "spool_ready": 0,
+    "waiting_reasons": [
+     "endpoint_unreachable"
+    ]
+   },
+   "polls": 7,
+   "state": "stalled",
+   "suspended_s": 0.0,
+   "waited_s": 303.2,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "Step 1 (money.parse) was completed in session A; steps 2 and 3 were pending."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "supported_lessons": [],
+  "task_state": {
+   "next_action": "Step 2: make Ledger.transfer use money.parse",
+   "objective": "Three-step money refactor"
+  }
+ },
+ "hook_replies": 5,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-10-28T21:27:21.168647Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-10-28T22:15:40.625773Z",
+   "events": 11,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev1-py3-none-any.whl",
+  "wheel_sha256": "933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 7.3,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 18.5,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.4,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 2.0,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_a768dd03-2e02-4e5d-a2fa-df375a2b19e8",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_b2502160-f7ff-49e3-874d-85b44514d934"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l4",
+  "checks": {
+   "step1_present": true,
+   "step2_transfer_uses_money_parse": false,
+   "step3_not_started": true,
+   "suite_passes": true,
+   "transfer_accepts_decimal": true
+  },
+  "metrics": {},
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 127320,
+  "detours": 0,
+  "elapsed_seconds": 51495.35,
+  "foreground_cost_usd": 0.028779,
+  "foreground_tokens": 72260,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": false
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 21514,
+    "reported_output_tokens": 1740,
+    "visible_output_estimate": 496
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 0,
+    "reported_input_tokens": 0,
+    "reported_output_tokens": 0,
+    "visible_output_estimate": 0
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 0,
+    "reported_input_tokens": 0,
+    "reported_output_tokens": 0,
+    "visible_output_estimate": 0
+   }
+  },
+  "job_errors": {
+   "extract_claims:endpoint_unreachable": 1,
+   "update_task:endpoint_unreachable": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": false,
+   "items": [],
+   "satisfied": false,
+   "spec": {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-L4-ledgerlite-resume-refactor",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/money.py",
+     "session": "A",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028779,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 19.3,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_0d88a3e947994f2badf5086ce3e26045307bd43e70b0b791376c053c5593b98e\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_8fb159bd83cd0bc0e849ef58c5a6f7a50b40340232b76bab9850cc4aec524fc9",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 19.301,
+   "foreground_tokens": 72260,
+   "host_session_id": "92346693-02df-4117-ac63-82e636fe81b2",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Step 1 is done. I added `src/ledgerlite/money.py` with `parse(value: str | Decimal) -> Decimal`. I haven't run it or tested it, and I didn't touch `Ledger`.\n\n`parse` behaves like this:\n- **Wrong type:** anything other than `str` or `Decimal` raises `TypeError`. That includes `float` and `int`.\n- **Unparseable string:** raises `ValueError`.\n- **NaN or infinity:** raises `ValueError`. I added this check on top of your spec because `Decimal(\"NaN\") <= 0` raises `InvalidOperation` and infinity would pass the positive check.\n- **Zero or negative:** raises `ValueError(\"amount must be positive\")`, the same message `transfer` uses today.\n\n**Next step (step 2):** change `Ledger.transfer` in `src/ledgerlite/__init__.py` to call `money.parse(amount)`. That replaces the `Decimal(amount)` call and the manual `<= 0` check. `transfer` currently raises `decimal.InvalidOperation` on a malformed string, and after the change it will raise `ValueError`.\n\nI've stopped here, as you asked.",
+   "suspended": false
+  },
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0,
+    "hook_failures": [],
+    "result_subtypes": [],
+    "runs": [
+     {
+      "exit": 1,
+      "seconds": 51476.0,
+      "stdout_overflow": false,
+      "timed_out": true
+     }
+    ],
+    "suspended": true,
+    "usage_reported": false
+   },
+   "deliveries": [],
+   "elapsed_seconds": 51476.049,
+   "foreground_tokens": 0,
+   "host_session_id": "c59b1751-aad1-43ef-bf58-3a9f58338864",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "",
+   "suspended": true
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "L4/c/w"
+}

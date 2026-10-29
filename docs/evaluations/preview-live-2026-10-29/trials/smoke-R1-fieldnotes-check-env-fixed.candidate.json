@@ -1,0 +1,564 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 3,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 149278,
+  "estimated_output_tokens": 33066,
+  "jobs_by_state": {
+   "completed": 7,
+   "pending": 2
+  },
+  "model_calls": 8,
+  "tokens": 182344,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_67cc66d7-f0d8-4aac-b19c-8ca4ed224348",
+   "freshness": "current",
+   "kind": "failure_lesson",
+   "proposition": "Running python tools/check.py without NOTES_HOME set fails.",
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_e52832c2-3aee-4b1f-91d2-a83838c6ead7",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "tools/check.py requires the NOTES_HOME environment variable to be set.",
+   "revision": 2,
+   "status": "active",
+   "strength": "corroborated"
+  }
+ ],
+ "curator_calls": [
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "C",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     22,
+     15,
+     21
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 21,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 599.3,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 2,
+    "due_kinds": [
+     "extract_claims",
+     "update_task"
+    ],
+    "leased": 0,
+    "next_due_in_s": -0.0,
+    "pending_triggers": 0,
+    "progress": [
+     32,
+     24,
+     31
+    ],
+    "quiet": false,
+    "spool_ready": 0,
+    "waiting_reasons": [
+     "endpoint_unreachable"
+    ]
+   },
+   "polls": 12,
+   "state": "stalled",
+   "suspended_s": 0.0,
+   "waited_s": 375.3,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A, check.py failed with KeyError: 'NOTES_HOME' unless NOTES_HOME was set.",
+   "Before C, tools/check.py changed to default NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "NOTES_HOME",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [
+   "NOTES_HOME must always be set for every command."
+  ],
+  "quiet": false,
+  "revision_expectation": "After the check.py change the lesson is needs_revalidation (no caution); a plain run in C is a legitimate retry and succeeds.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tools/check.py",
+    "kind": "failure_lesson",
+    "proposition": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+    "retry_condition": "Retry without NOTES_HOME if tools/check.py changes."
+   }
+  ]
+ },
+ "hook_replies": 9,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-10-29T12:34:50.490627Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-10-29T12:45:08.243156Z",
+   "events": 14,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev1-py3-none-any.whl",
+  "wheel_sha256": "933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.3,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 5.2,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 21.9,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.0,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.5,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_39e27bec-ed09-405f-b208-808232c1ac68",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_e91d1a58-5056-4fc4-92f8-327aa8a57387"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r1",
+  "checks": {
+   "check_passes_without_env": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 182344,
+  "detours": 0,
+  "elapsed_seconds": 27.07,
+  "foreground_cost_usd": 0.076044,
+  "foreground_tokens": 126687,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 38391,
+    "reported_output_tokens": 3174,
+    "visible_output_estimate": 1014
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 3,
+    "replies_parsed": 2,
+    "reported_input_tokens": 54131,
+    "reported_output_tokens": 4690,
+    "visible_output_estimate": 1012
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 10152,
+    "reported_output_tokens": 1935,
+    "visible_output_estimate": 376
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 1,
+    "reported_input_tokens": 24868,
+    "reported_output_tokens": 1767,
+    "visible_output_estimate": 549
+   }
+  },
+  "job_errors": {
+   "extract_claims:endpoint_unreachable": 1,
+   "update_task:endpoint_unreachable": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: tools/check.py requires the NOTES_HOME environment variable to be set."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_not_include_caution": "NOTES_HOME",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python tools/check.py",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-R1-fieldnotes-check-env-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Grep"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.02724,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 17.8,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash `python tools/check.py`: failure; exit 1\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_3d90fe8d5306762042f3c529b259079e70f3af47a4a52c5b898af535efc0e46a\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_7224ccad91ecf77a45c14139db610e14885120091a7cab6d078f14532ea46d2f",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 17.837,
+   "foreground_tokens": 91094,
+   "host_session_id": "557ca644-002e-43ae-bb24-3808f7edcabf",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`python tools/check.py` now passes. The one unit test is OK and no lines are over 100 characters.\n\nThe only problem was that the script reads `NOTES_HOME` (`tools/check.py:24`) and crashed with a `KeyError` because it wasn't set. The script says the check harness writes scratch notes there. I didn't change any code. I set the variable to a fresh temp directory for the run:\n\n```\nexport NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py\n```\n\nTo run the checks yourself, set `NOTES_HOME` to any writable directory first. If you'd like it to work without that, I can make `check.py` default to a temp directory.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.048804,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 9.2,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: tools/check.py requires the NOTES_HOME environment variable to be set.\n  why: lexical_match \u2014 matches tools, check, py, environment\n  applies: unknown \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: paths tools/check.py\n  sources: claim_e52832c2-3aee-4b1f-91d2-a83838c6ead7 r2; evt_7224ccad91ecf77a45c14139db610e14885120091a7cab6d078f14532ea46d2f; evt_5d595da7423fac54c6dc242199816e777cd31eca0f1b6ee5d8c68d91654fa751",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Tentative (unreviewed candidate): Failure lesson: Running python tools/check.py without NOTES_HOME set fails. Observed: Running python tools/check.py without NOTES_HOME set exited with code 1 with KeyError: 'NOTES_HOME' at tools/check.py:24.\n  why: tentative_context \u2014 unreviewed candidate; same action family (workspace, directory, tool, argv); dependency_unknown\n  applies: unknown \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: paths tools/check.py\n  retry: NOTES_HOME is set to a writable directory before running python tools/check.py.\n  sources: claim_67cc66d7-f0d8-4aac-b19c-8ca4ed224348 r2; evt_3d90fe8d5306762042f3c529b259079e70f3af47a4a52c5b898af535efc0e46a",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 9.233,
+   "foreground_tokens": 35593,
+   "host_session_id": "6230f914-d7e3-4aab-b4dd-69d9c98f1d9e",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "tools/check.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "`python tools/check.py` passes. I ran it exactly as written, with no extra environment variables. It ran 1 test and reported `OK`.\n\nThe script printed `using NOTES_HOME=<temp>\\fieldnotes-check-tmzkksvx`, so it picked a temporary directory for `NOTES_HOME` itself. Project memory said it needs that variable set and fails with a `KeyError` otherwise, but that didn't happen in this run.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "R1/c/w"
+}

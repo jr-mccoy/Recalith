@@ -1,0 +1,211 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "The cause of the September increase is unknown."
+  ],
+  "exact_observations": [
+   "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any admitted causal explanation for the September increase."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev1-py3-none-any.whl",
+  "wheel_sha256": "933042c65d4a363e300adb75268543274e19c6032072ccb4fb201fef1f9a47ec"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c3",
+  "checks": {
+   "plan_exists": true,
+   "plan_has_estimate": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 31.006,
+  "foreground_cost_usd": 0.044101,
+  "foreground_tokens": 71684,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C3-household-utilities-speculation",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0.017097,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 10.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 10.898,
+   "foreground_tokens": 17881,
+   "host_session_id": "df0af4a6-69d5-4f68-b210-134bacc83931",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Here are some possible reasons, from most to least likely. I haven't looked at the file, so these are guesses.\n\n**Weather and seasonal use**\n- **Late-summer heat.** September can still be hot, so air conditioning may have run a lot. This is often the biggest cause.\n- **A cooler-than-usual September.** If you have electric heat, an early cold snap could do it.\n\n**Billing and measurement**\n- **Longer billing period.** A 33-day cycle instead of 29 raises usage without any change in habits.\n- **Estimated reads.** A catch-up after estimated bills can make one month look inflated.\n- **Rate changes.** Many utilities adjust rates in summer or fall. Time-of-use pricing, tiered pricing, or new fees would raise the cost per kWh. Check whether the log tracks kWh or dollars, since the answer differs.\n- **Data or entry errors.** A duplicated row, a unit mix-up, or a misplaced decimal could be the cause.\n\n**Household changes**\n- **People home more.** Kids back at school, someone working from home, or guests staying over.\n- **New appliances or devices.** An EV charger, a space heater, a dehumidifier, a pool pump, a second fridge or freezer, or a new computer setup.\n- **A failing appliance.** An aging AC, water heater, or fridge can use much more power as it breaks down.\n- **Something left running.** A pump, heat lamp, or similar device.\n\n**Other**\n- **Fewer cooler days than in prior months.** If the summer was mild and September was hot, the jump may just look big by comparison.\n- **A neighbor or shared meter.** In a duplex or with a shared circuit, someone else's usage could be on your bill.\n\n**Quick checks when you're ready**\n1. Compare September with last September. If both rose, the cause is probably seasonal.\n2. Check the billing-period lengths and the kWh versus dollar columns.\n3. Look at the daily or hourly data, if your utility offers it. A steady rise points to a new device or a rate change. A spike points to a specific event.\n\nI can open the CSV and check these if you'd like.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-log.csv",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.027004,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 20.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 20.107,
+   "foreground_tokens": 53803,
+   "host_session_id": "769e91ec-e361-41dd-b61e-a6b30697a301",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `utilities-plan.md` with a November 2026 utilities budget of **$228**, within a likely range of $205\u2013$240.\n\n| Category | Estimate |\n|---|---:|\n| Electricity | $125 |\n| Water | $43 |\n| Internet | $60 |\n\n- **Electricity:** I set it above the $104 three-month average because September jumped to $131. If it falls back to about $100, the total lands near the low end of the range.\n- **Water and internet:** Water has stayed between $41 and $44, and internet is a flat $60.\n- **Limits of the data:** The log has only July to September and no October bill. I don't know why September spiked, so the electricity figure is the least certain. If you add October to the CSV, I can tighten the estimate.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C3/b/w"
+}

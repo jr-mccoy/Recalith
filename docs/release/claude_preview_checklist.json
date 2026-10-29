@@ -5,13 +5,13 @@
   "engine": "0.1.0.dev1",
   "checked_by": "tools/release_checklist.py (tests/unit/test_eval_harness.py::test_release_checklist_and_dependency_inventory_are_consistent)",
   "verdict": "blocked",
-  "verdict_reason": "The first live gate (2026-10-26) failed: the installed host updated itself mid-run (2.1.309 to 2.1.310), the machine slept, and update_task replies hit their output allowance under a reasoning curator, so the worker's queue did not settle; live §5.1 support and recall now need reviewer labels. Engine 0.1.0.dev1 adds reasoning headroom and capture-certifies 2.1.310 (decision 0029); its live certification and the rerun are the owner's next runs. A scripted/recorded run is never a pass",
+  "verdict_reason": "Both live gates failed. The first (2026-10-26): the installed host updated itself mid-run, the machine slept, and update_task replies hit their output allowance under a reasoning curator. The second (2026-10-29, engine 0.1.0.dev1, Claude Code 2.1.310 live-certified): no curator call hit the output cap, but the lid was closed overnight and Wi-Fi dropped on waking, R4's working agents wrote CLAUDE.md in both arms, R4's stale fact was delivered without a freshness label, and fresh-session reuse and the changed-condition revision were not shown; live §5.1 support and recall await reviewer labels. A scripted/recorded run is never a pass",
   "items": [
     {
       "id": "deterministic_case_variants",
       "section_8": [1],
       "status": "blocked",
-      "detail": "Every deterministic suite passes locally on Python 3.12/3.13/3.14 and in CI on Linux, macOS and Windows (see the Task 18 checkpoint); the manifest maps every one of the 67 preview IDs and their §2.1 partial variants to existing tests. No case is marked passed: several preview variants include live-host parts (A27, A28, A29, A30, A61, A67 and the live delivery paths) that need a passing live run. B1 cleared on native Windows, and the first live gate failed (2026-10-26).",
+      "detail": "Every deterministic suite passes locally on Python 3.12/3.13/3.14 and in CI on Linux, macOS and Windows (see the Task 18 checkpoint); the manifest maps every one of the 67 preview IDs and their §2.1 partial variants to existing tests. No case is marked passed: several preview variants include live-host parts (A27, A28, A29, A30, A61, A67 and the live delivery paths) that need a passing live run. B1 cleared on native Windows, and both live gates failed (2026-10-26, 2026-10-29).",
       "blocker": "live variants (no live gate has passed)",
       "evidence": ["tests/coverage_manifest.json", "tests/integration/test_evaluation.py::test_acceptance_manifest_covers_A01_through_A73_by_profile", "docs/BUILD_PROGRESS.md"]
     },
@@ -19,17 +19,17 @@
       "id": "inference_isolation_and_delivery_certified",
       "section_8": [2],
       "status": "blocked",
-      "detail": "Live-certified on native Windows on 2026-10-23 (the owner's run): the anthropic_messages curator route (provider probe and runtime check exit 0) and all four delivery paths of Claude Code 2.1.309 through the real engine and the installed hooks (3/3 positives and 3/3 clean negatives each). The installed host updated itself to 2.1.310 on 2026-10-26; it is capture-certified since decision 0029 (request capture, reviewed against 2.1.309), not yet live-certified. Linux and macOS are not observed live.",
-      "blocker": "a fresh pilot on the 0.1.0.dev1 wheel with a live route certification and a live engine-mode run on 2.1.310 (BUILD_PROGRESS handoff item 2); Linux and macOS live not observed",
+      "detail": "Live-certified on native Windows on 2026-10-23 (the owner's run): the anthropic_messages curator route (provider probe and runtime check exit 0) and all four delivery paths of Claude Code 2.1.309 through the real engine and the installed hooks (3/3 positives and 3/3 clean negatives each). On 2026-10-28 the same held for engine 0.1.0.dev1 on a fresh pilot: the route (provider probe and runtime check certified) and all four delivery paths of Claude Code 2.1.310 (3/3 and 3/3 each). Linux and macOS are not observed live.",
+      "blocker": "Linux and macOS live not observed",
       "evidence": ["docs/host-compatibility.json", "docs/probes/LOCAL_CONFIG.md", "docs/probes/DELIVERY_PROBE.md", "docs/decisions/0023-direct-api-inference-backends.md", "docs/decisions/0027-native-windows-claude-host.md", "docs/BUILD_PROGRESS.md"]
     },
     {
       "id": "smoke_quality_gates",
       "section_8": [3],
       "status": "failed",
-      "detail": "The first live 12-scenario comparative smoke ran on 2026-10-23 to 2026-10-26, with the workload days and demonstrations, and the gate failed. Five candidate trials were refused when the host updated itself mid-run, and other sessions ran on the uncertified version. The laptop slept. Most waits stalled on update_task's output allowance. Fresh-session reuse and the changed-condition revision were not shown, and every workload day exhausted the ordinary input pool (3.8 to 7.7 h). The term-match quality figures it reported are not valid for a live curator (decision 0028 item 14). The scripted/recorded run (mechanics only) remains in docs/evaluations/preview-recorded-2026-10-21/. Preview may only be published as an explicitly experimental build until a live gate passes.",
-      "blocker": "a rerun on engine 0.1.0.dev1 (reasoning headroom, decision 0029; fresh-session reuse over every learning scenario, decision 0028 item 16) on a pinned, live-certified host (BUILD_PROGRESS handoff item 2), with reviewer labels for live support and recall",
-      "evidence": ["evals/run.py", "evals/report.py", "docs/evaluations/preview-live-2026-10-26/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/decisions/0028-live-evaluation-installations.md"]
+      "detail": "Two live 12-scenario comparative smoke runs, with the workload days and demonstrations, have failed. The first (2026-10-23 to 2026-10-26): five candidates refused after the host updated itself mid-run, the laptop slept, and most waits stalled on update_task's output allowance. The second (2026-10-28 to 2026-10-29, engine 0.1.0.dev1): none of 144 curator calls hit the output cap; the lid was closed overnight and Wi-Fi dropped on waking, which stopped L3, L4, R1, R2 and R3's candidates; R4's agents wrote CLAUDE.md in both arms (contaminated); R4's stale fact was delivered without a freshness label (conflict/uncertainty preservation 0/1); R2's candidate was scored failed by an oracle false negative (fixed, decision 0028 item 17); fresh-session reuse and the changed-condition revision were not shown; two of three workload days exhausted the ordinary input pool at about 4 h. The scripted/recorded run (mechanics only) remains in docs/evaluations/preview-recorded-2026-10-21/. Preview may only be published as an explicitly experimental build until a live gate passes.",
+      "blocker": "a live gate that passes, after the owner's decisions in the 2026-10-29 checkpoint (R4's agent-written instruction files and freshness label, fresh-session reuse with a capable agent, the input pool), on a machine that stays awake and online, with reviewer labels for live support and recall",
+      "evidence": ["evals/run.py", "evals/report.py", "docs/evaluations/preview-live-2026-10-29/report.md", "docs/evaluations/preview-live-2026-10-26/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/decisions/0028-live-evaluation-installations.md"]
     },
     {
       "id": "backup_restore_forget_retention_guards_isolation",
@@ -56,8 +56,8 @@
       "id": "evaluation_report_contents",
       "section_8": [8],
       "status": "passed",
-      "detail": "The report format carries unsuccessful runs, all seven §5.2 measures, the observed native-memory setting, scenario authorship, pilot status and the §6.2 arithmetic labeled as illustrative, actual costs, limitations and no superiority claim; the recorded run's report is checked into docs/evaluations/. The first live report (a failed gate) is checked in sanitized under docs/evaluations/preview-live-2026-10-26/.",
-      "evidence": ["evals/report.py", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.json", "docs/evaluations/preview-live-2026-10-26/report.md"]
+      "detail": "The report format carries unsuccessful runs, all seven §5.2 measures, the observed native-memory setting, scenario authorship, pilot status and the §6.2 arithmetic labeled as illustrative, actual costs, limitations and no superiority claim; the recorded run's report is checked into docs/evaluations/. Both live reports (failed gates) are checked in sanitized under docs/evaluations/preview-live-2026-10-26/ and docs/evaluations/preview-live-2026-10-29/.",
+      "evidence": ["evals/report.py", "docs/evaluations/preview-recorded-2026-10-21/report.md", "docs/evaluations/preview-recorded-2026-10-21/report.json", "docs/evaluations/preview-live-2026-10-26/report.md", "docs/evaluations/preview-live-2026-10-29/report.md"]
     },
     {
       "id": "review_focus_rechecked",
