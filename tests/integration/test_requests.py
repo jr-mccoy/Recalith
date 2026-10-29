@@ -30,7 +30,8 @@ from recalith.storage import db, failpoints, records
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "fixtures" / "providers"))
 import fake_backend  # noqa: E402
 
-PROMPT_VERSION = {purpose: f"{purpose}@1" for purpose in PURPOSE_KINDS}
+PROMPT_VERSION = {purpose: f"{purpose}@1" for purpose in PURPOSE_KINDS}  # jobs these tests pin themselves
+SCHEDULED_VERSION = {**PROMPT_VERSION, "extract_claims": "extract_claims@2"}  # what the engine pins for a new job (decision 0031)
 
 
 @pytest.fixture(autouse=True)
@@ -125,7 +126,7 @@ def test_reduction_schedules_narrative_within_the_ordinary_budget(tmp_path):
     assert sorted(j["input_refs"][0]["id"] for j in build) == sorted(e["episode_id"] for e in episodes)
     assert len(narrative) == 1 and narrative[0]["input_refs"][0]["kind"] == "task"
     for job in found:
-        assert job["budget_pool"] == "ordinary" and job["prompt_version"] == PROMPT_VERSION[job["kind"]] and job["state"] == "pending"
+        assert job["budget_pool"] == "ordinary" and job["prompt_version"] == SCHEDULED_VERSION[job["kind"]] and job["state"] == "pending"
     assert {j["priority"] for j in build} == {jobs.BAND_EPISODE} and narrative[0]["priority"] == jobs.BAND_EXTRACTION
     # Task narrative waits for a quiet task: due after the quiet window, not at the checkpoint.
     task = p.task(narrative[0]["input_refs"][0]["id"])

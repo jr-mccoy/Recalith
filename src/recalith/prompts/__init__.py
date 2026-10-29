@@ -13,7 +13,9 @@ Changing any text here requires a new version string, so a persisted
 ``ReviewBatch.prompt_digest`` and a job's pinned version keep meaning one text.
 The extraction, review and revalidation instructions are package-data files
 (``extract_v1.md``, ``review_v1.md``, decision 0011; ``revalidate_v1.md``,
-decision 0012), loaded here and digested separately: a claim's
+decision 0012; ``extract_v2.md``, decision 0031, which asks for the files a
+claim describes; a job that pinned ``extract_claims@1`` is still served that
+text), loaded here and digested separately: a claim's
 ``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
 ``ReviewBatch`` its review prompt digest, and the golden-digest tests in
 ``tests/integration/test_claim_admission.py`` and
@@ -64,6 +66,7 @@ INSTRUCTIONS: dict[str, str] = {
         "outcomes; never restate carried context as new evidence. " + _COMMON
     ),
     "extract_claims@1": _file("extract_v1.md") + " " + _COMMON,
+    "extract_claims@2": _file("extract_v2.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
     "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
 }
@@ -71,7 +74,7 @@ INSTRUCTIONS: dict[str, str] = {
 CURRENT: dict[str, str] = {
     "update_task": "update_task@1",
     "build_episode": "build_episode@1",
-    "extract_claims": "extract_claims@1",
+    "extract_claims": "extract_claims@2",
     "review_claims": "review_claims@1",
     "revalidate": "revalidate@1",
 }

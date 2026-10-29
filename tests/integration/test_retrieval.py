@@ -795,3 +795,34 @@ def test_a_fact_read_from_its_scoped_file_is_labeled_when_the_file_changes(p):
     (p.root / cs.NOTES).write_bytes(b"other notes, rewritten outside the host\n")
     for item in items():
         assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
+
+
+def test_a_declared_fact_with_its_declared_file_is_labeled_when_the_file_changes(p):
+    """The second live R4 rerun (2026-10-29): the user's own words, no scope, no read cited.
+
+    The extractor cited only the user's statement (basis ``user_declared``, as
+    the gold has it), so no code rule could tie the fact to ``store.py``.
+    ``extract_claims@2`` asks for the file a claim describes (decision 0031).
+    This is the mechanics that answer relies on: a declaration's declared file
+    dependency resolves to the bytes at admission, and the bounded live check
+    labels the item in both compilers once they change outside the host.
+    """
+    (p.root / cs.NOTES).write_bytes(b"fixture notes\n")
+    said = adm.prompt(p, "Remember for this project: the notes file holds the fixture notes.", at_=adm.at(1))
+    dependency = {"kind": "file", "key": cs.NOTES, "fingerprint": None, "record": None}
+    body = adm.claim("The notes file holds the fixture notes.", basis="user_declared", subject="notes file contents", dependencies=[dependency])
+    claim_id = adm.created_claim(adm.extract(p, [osc.op("f", "propose_claim", body, evidence=[adm.link(said, field="text", quote="the notes file holds the fixture notes")])]))
+    adm.admit(p, claim_id)
+    head = adm.head(p, claim_id)
+    assert (head["basis"], head["scope"]["paths"], head["status"]) == ("user_declared", [], "active")
+    assert [(d["kind"], d["key"]) for d in head["dependencies"]] == [("file", cs.NOTES)] and head["dependencies"][0]["fingerprint"] is not None
+    q = rs.query(p, "prompt", text="What does the notes file hold?")
+    rs.publish(p)
+
+    def items():
+        return [rs.by_id(rs.service(p, q))[claim_id], rs.by_id(rs.hook(p, q)["packet"])[claim_id]]
+
+    assert [i["freshness"] for i in items()] == ["current", "current"]
+    (p.root / cs.NOTES).write_bytes(b"other notes, rewritten outside the host\n")
+    for item in items():
+        assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
