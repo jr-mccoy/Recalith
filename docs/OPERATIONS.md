@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev3` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
+Engine `0.1.0.dev4` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -122,7 +122,7 @@ Run it from an ordinary terminal that you opened yourself, with the selected key
 ```powershell
 & .venv\Scripts\python.exe evals\run.py gate --mode live `
     --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
-    --source-project C:\Code\rl-pilot4 --wheel dist\recalith-0.1.0.dev3-py3-none-any.whl --wheelhouse wheelhouse `
+    --source-project C:\Code\rl-pilot5 --wheel dist\recalith-0.1.0.dev4-py3-none-any.whl --wheelhouse wheelhouse `
     --out C:\Code\rl-gate --slots 2
 ```
 

@@ -25,7 +25,7 @@ from recalith.contracts.common import InstallationContext, ReadSet, RecordRef, u
 from recalith.errors import RecalithError
 from recalith.storage import integrity
 
-SCHEMA_VERSION = 11  # 0011: the hook's bounded lexical lookup (decision 0021)
+SCHEMA_VERSION = 12  # 0012: contradiction rechecks and observed file bytes (decisions 0032, 0033)
 MIN_SQLITE = (3, 37, 0)  # STRICT tables
 BUSY_TIMEOUT_MS = 250
 STATE_DB = Path("state") / "memory.sqlite"

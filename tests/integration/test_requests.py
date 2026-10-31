@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "fixtures" / "provi
 import fake_backend  # noqa: E402
 
 PROMPT_VERSION = {purpose: f"{purpose}@1" for purpose in PURPOSE_KINDS}  # jobs these tests pin themselves
-SCHEDULED_VERSION = {**PROMPT_VERSION, "extract_claims": "extract_claims@2"}  # what the engine pins for a new job (decision 0031)
+SCHEDULED_VERSION = {**PROMPT_VERSION, "extract_claims": "extract_claims@2", "revalidate": "revalidate@2"}  # what the engine pins for a new job (decisions 0031, 0032)
 
 
 @pytest.fixture(autouse=True)

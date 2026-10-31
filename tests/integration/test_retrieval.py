@@ -797,6 +797,24 @@ def test_a_fact_read_from_its_scoped_file_is_labeled_when_the_file_changes(p):
         assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
 
 
+def test_a_fact_whose_file_changed_before_its_curation_is_labeled(p):
+    """The third live R4 rerun (2026-10-29) end to end: the file changed 12 s after session A read it, and A's extraction
+    ran minutes later. The dependency records the bytes the read saw (decision 0033), so the next session's prompt shows
+    the fact ``needs_revalidation`` in both compilers instead of ``current``."""
+    (p.root / cs.NOTES).write_bytes(b"fixture notes\n")
+    cs.send(p, cs.READ, "session-a")
+    cs.ingest(p)
+    read = p.event("tool_finished", call=f"{cs.READ}_session-a")
+    (p.root / cs.NOTES).write_bytes(b"other notes, changed before the curation\n")  # outside any captured tool
+    body = adm.claim("The notes file holds the fixture notes.", subject="notes file contents", dependencies=[{"kind": "file", "key": cs.NOTES, "fingerprint": None, "record": None}])
+    claim_id = adm.created_claim(adm.extract(p, [osc.op("f", "propose_claim", body, evidence=[adm.link(read)])]))
+    adm.admit(p, claim_id)
+    q = rs.query(p, "prompt", text="What does the notes file hold?")
+    rs.publish(p)
+    for item in (rs.by_id(rs.service(p, q))[claim_id], rs.by_id(rs.hook(p, q)["packet"])[claim_id]):
+        assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
+
+
 def test_a_declared_fact_with_its_declared_file_is_labeled_when_the_file_changes(p):
     """The second live R4 rerun (2026-10-29): the user's own words, no scope, no read cited.
 

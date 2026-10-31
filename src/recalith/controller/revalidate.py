@@ -8,9 +8,10 @@ with ambiguous chronology (``order_unknown``), a changed dependency
 (``dependency_changed``, also transitively through claim dependencies), an
 unresolved source conflict (``source_conflict``), required evidence that is no
 longer available (``support_lost``, Task 15: a forgetting override or a
-reactivation over expired support), a due review (``review_due``) or a
-consolidation group (``consolidation``). The first five
-set ``needs_revalidation`` on live guidance and suppress caution at once
+reactivation over expired support), evidence newly attached to live guidance
+as ``contradicts`` (``contradiction``, decision 0032), a due review
+(``review_due``) or a consolidation group (``consolidation``). All but the
+last two set ``needs_revalidation`` on live guidance and suppress caution at once
 (:func:`mark`): a new claim revision with the counter-observation attached as
 ``context`` (never support, never ``contradicts``), the guidance epoch
 advanced, a content-free audit operation, and a coalesced protected
@@ -35,6 +36,8 @@ whose new fingerprint equals the recorded one preserves applicability; any
 other change, an unknown new value included, marks the claim, then every live
 claim depending on it (bounded, cycle-safe). Changes come from certified
 writes and deletions (``artifact_writes``) and new environment observations.
+A live certified read records the bytes it read (``file_observations``,
+:func:`record_reads`, decision 0033), and a file dependency resolves to them.
 
 **Settling** (:func:`settle`). A revalidation job's proposal applies through
 ``apply_proposal`` like any other; afterwards each of its claims' pending
@@ -73,10 +76,11 @@ from recalith.storage.db import Store, Txn, open_store
 
 LIVE = frozenset({"candidate", "active", "disputed"})
 GUIDANCE = frozenset({"active", "disputed"})
-FRESHNESS_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "source_conflict", "support_lost"})
+FRESHNESS_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "source_conflict", "support_lost", "contradiction"})
 # Reasons a model can settle. A source conflict waits for a new authoritative observation. A ``support_lost`` keep
-# never restores strength or availability: strength counts only support that is still available (Task 15).
-MODEL_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "review_due", "consolidation", "support_lost"})
+# never restores strength or availability: strength counts only support that is still available (Task 15). A
+# ``contradiction`` keep leaves the link attached, so the claim still cannot be corroborated (decision 0032).
+MODEL_REASONS = frozenset({"later_success", "order_unknown", "dependency_changed", "review_due", "consolidation", "support_lost", "contradiction"})
 RECHECK_REF = "@recheck"
 SETTLE_REF = "@settle"
 RECHECK_KIND = "recheck"
@@ -87,6 +91,8 @@ TRANSITIVE_LIMIT = 256
 DEPENDENCY_DEPTH = 16
 WRITE_KINDS = frozenset({"write", "delete"})
 INTENT_KINDS = frozenset({"decision", "preference"})  # state intent, not a file's contents
+OBSERVATION_WINDOW_SECONDS = 120  # a read ingested later than this records no observation (decision 0033)
+OBSERVED_PATHS = 16  # per read, as the hook's bounded live check
 
 
 # --------------------------------------------------------------------------
@@ -472,6 +478,51 @@ def file_reads(env: EventEnvelope) -> list[str]:
     return sorted({p for p in action.get("paths") or [] if isinstance(p, str)})
 
 
+def record_reads(txn: Txn, ctx: InstallationContext, env: EventEnvelope, *, now: str) -> int:
+    """Record the bytes a live certified read saw (decision 0033); returns how many paths it recorded.
+
+    It runs in the read's ingestion transaction, and only while nothing can
+    have changed the bytes since: a successful read that a live hook captured
+    in this workspace, ingested within the window, of a regular file inside
+    the workspace whose modification time is not later than the capture.
+    Anything else records nothing, and a dependency on the path falls back to
+    the admission-time rule (:func:`resolve_dependencies`).
+    """
+    from recalith.controller import admission
+    from recalith.core.paths import PathPolicy
+
+    paths = file_reads(env)
+    if not paths or env.payload.get("outcome") != "success" or env.workspace_id != ctx.workspace_id or env.origin.origin_kind != "hook":
+        return 0
+    captured = parse_utc(env.recorded_at)
+    if not -5 <= (parse_utc(now) - captured).total_seconds() <= OBSERVATION_WINDOW_SECONDS:
+        return 0  # a late replay or recovery: the file may have changed since the read
+    seq = txn.one("SELECT commit_sequence FROM events WHERE event_id = ?", (env.event_id,))
+    guard = PathPolicy([ctx.workspace_root])
+    recorded = 0
+    for path in paths[:OBSERVED_PATHS]:
+        try:
+            target = guard.authorize(path)
+            if not target.is_file() or target.stat().st_mtime > captured.timestamp():
+                continue  # missing, or changed after the read was captured: the bytes read are unknown
+            fingerprint = admission.fingerprint_file(ctx, path)
+        except (OSError, RecalithError):
+            continue
+        txn.execute("INSERT OR IGNORE INTO file_observations (event_id, path, fingerprint, commit_sequence) VALUES (?, ?, ?, ?)", (env.event_id, path, fingerprint, seq[0] if seq else 0))
+        recorded += 1
+    return recorded
+
+
+def observed_fingerprint(q: Any, path: str, event_ids: Iterable[str]) -> str | None:
+    """The bytes the latest of these events read at ``path`` (decision 0033); None when none of them recorded any."""
+    ids = sorted(set(event_ids))
+    if not ids:
+        return None
+    marks = ",".join("?" for _ in ids)
+    row = q.execute(f"SELECT fingerprint FROM file_observations WHERE path = ? AND event_id IN ({marks}) ORDER BY commit_sequence DESC LIMIT 1", (path, *ids)).fetchone()  # noqa: S608 - placeholders
+    return row[0] if row is not None else None
+
+
 def environment_fingerprint(key: str, value: str) -> str:
     return digest_of(["environment", key, value])
 
@@ -538,6 +589,7 @@ def on_ingested(txn: Txn, ctx: InstallationContext, env: EventEnvelope, *, obser
     """FailureRecheck and dependency changes for one newly inserted event, in its ingestion transaction."""
     marked = failure_recheck(txn, ctx, env, now=now)
     marked += dependents(txn, ctx, changes_for_event(txn, env, observations), now=now)
+    record_reads(txn, ctx, env, now=now)
     return marked
 
 
@@ -546,6 +598,32 @@ def on_conflict(txn: Txn, ctx: InstallationContext, original_event_id: str, conf
     marked: list[str] = []
     for ref in lineage.claims_citing(txn, [original_event_id]):
         marked += mark(txn, ctx, ref.id, reason="source_conflict", key=conflict_id, event_id=original_event_id, detail={"conflict_id": conflict_id}, context=None, now=now, causal_root=original_event_id)
+    return marked
+
+
+def contradicted(txn: Txn, ctx: InstallationContext, claim_id: str, links: Sequence[EvidenceLink], *, now: str) -> list[str]:
+    """Evidence newly attached as ``contradicts`` to live guidance (decision 0032); returns the claims it marked.
+
+    One ``contradiction`` recheck per contradicting record: the claim needs
+    revalidation at once, and a protected revalidation reads the evidence. A
+    candidate is not marked, because its own review reads its contradictions.
+    A user's declared decision or preference is not marked either: it states
+    intent, which an observation cannot refute, and conflicting declarations
+    become an intent question (SYSTEM_SPEC §7.2).
+    """
+    head = records.head(txn, "claim", claim_id)
+    if head is None or head[1] not in GUIDANCE:
+        return []
+    data = records.body(txn, "claim", claim_id, head[0]) or {}
+    if data.get("basis") == "user_declared" and data.get("kind") in INTENT_KINDS:
+        return []
+    marked: list[str] = []
+    for link in links:
+        if link.relation != "contradicts":
+            continue
+        event_id = link.ref.id if link.ref.kind == "event" else None
+        marked += mark(txn, ctx, claim_id, reason="contradiction", key=f"{link.ref.kind}:{link.ref.id}", event_id=event_id, detail={"contradicts": link.ref.model_dump(mode="json")},
+                       context=None, now=now, causal_root=event_id)
     return marked
 
 
@@ -748,11 +826,14 @@ def _latest_evidence_sequence(q: Any, evidence: Sequence[EvidenceLink]) -> int:
     return max((s[0] for s in seqs if s is not None), default=0)
 
 
-def resolve_dependencies(q: Any, ctx: InstallationContext, dependencies: Sequence[Any], evidence: Sequence[EvidenceLink]) -> tuple[str | None, list[dict[str, Any]]]:
+def resolve_dependencies(q: Any, ctx: InstallationContext, dependencies: Sequence[Any], evidence: Sequence[EvidenceLink], *, consulted: Iterable[str] = ()) -> tuple[str | None, list[dict[str, Any]]]:
     """(refusal, resolved dependency dicts): every fingerprint follows its registered resolution rule.
 
-    ``file``: the current workspace bytes, but unknown (null) when a certified
-    write to the path was observed after the claim's latest event evidence;
+    ``file``: the bytes the evidence observed (decision 0033): the latest
+    recorded read of the path among the cited events, else among
+    ``consulted`` (the events the proposal read). With no recorded read, the
+    current workspace bytes, but unknown (null) when a certified write to the
+    path was observed after the claim's latest event evidence.
     ``environment``: the one current observed value; ``config``: unknown (no
     registered parser); ``claim``: the dependency's content fingerprint. A
     proposed fingerprint must equal the resolved one; a null one is filled.
@@ -761,12 +842,15 @@ def resolve_dependencies(q: Any, ctx: InstallationContext, dependencies: Sequenc
 
     out = []
     since = _latest_evidence_sequence(q, evidence)
+    cited = [link.ref.id for link in evidence if link.ref.kind == "event"]
     for dep in dependencies:
         d = dep.model_dump(mode="json") if hasattr(dep, "model_dump") else dict(dep)
         if d["kind"] == "file":
-            current = admission.current_fingerprint(ctx, "file:" + d["key"])
-            if q.execute("SELECT 1 FROM artifact_writes WHERE path = ? AND commit_sequence > ?", (d["key"], since)).fetchone() is not None:
-                current = None  # changed after the evidence: the observed state is unknown
+            # The bytes a certified read saw, whatever happened since: a later change shows in the live check.
+            current = observed_fingerprint(q, d["key"], cited) or observed_fingerprint(q, d["key"], consulted)
+            if current is None:
+                written = q.execute("SELECT 1 FROM artifact_writes WHERE path = ? AND commit_sequence > ?", (d["key"], since)).fetchone() is not None
+                current = None if written else admission.current_fingerprint(ctx, "file:" + d["key"])  # written after the evidence: unknown
         elif d["kind"] == "environment":
             current = _environment_now(q, ctx.workspace_id, d["key"])
         elif d["kind"] == "config":

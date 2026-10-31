@@ -13,6 +13,8 @@ from __future__ import annotations
 import datetime as _dt
 import hashlib
 import json
+import os
+import time
 
 import pytest
 
@@ -387,6 +389,93 @@ def test_a_supporting_read_of_a_scoped_file_records_its_dependency(p):
     assert cs.head(p, later)["dependencies"] == [{**dep, "fingerprint": None}]
 
 
+def test_an_attached_contradiction_makes_live_guidance_need_revalidation(p):
+    """Decision 0032 (SYSTEM_SPEC §3.5): evidence attached against live guidance as ``contradicts`` is a revalidation trigger.
+
+    Found by the live R4 reruns (2026-10-29): extraction attached session C's
+    read of the changed ``store.py`` as ``contradicts``, admission accepted it,
+    and the fact stayed ``current`` with no recheck and no revalidation.
+    """
+    fact = cs.fact(p, "test_mid fails its assertion.", subject="test_mid outcome")
+    assert (cs.head(p, fact)["status"], cs.head(p, fact)["freshness"]) == ("active", "current")
+    green = cs.success(p, "green")
+
+    def attach(claim_id, local_ref="k"):
+        return adm.extract(p, [OP(local_ref, "attach_evidence", {"claim_ref": cs.ref(p, claim_id), "relation": "contradicts"}, evidence=[cs.link(green, relation="contradicts")])])
+
+    attach(fact)
+    head = cs.head(p, fact)
+    assert head["freshness"] == "needs_revalidation" and [link["ref"]["id"] for link in head["contradicts"]] == [green["id"]]
+    with p.view() as v:
+        assert [(r["reason"], r["state"], r["event_id"]) for r in revalidate.rechecks(v, fact)] == [("contradiction", "pending", green["id"])]
+    (job,) = cs.jobs_of(p, claim_id=fact, states=("pending",))
+    assert any(r.id == green["id"] for r in job.input_refs)  # the protected revalidation reads the contradiction
+    assert decisions(attach(fact, "again")) == [("apply", "duplicate_evidence")]  # once per contradicting record
+    # A keep that read it settles it: current again; the link stays, so the claim still cannot be corroborated.
+    cs.run_revalidation(p, job.job_id, lambda request: [])
+    head = cs.head(p, fact)
+    assert head["freshness"] == "current" and head["contradicts"] and head["strength"] != "corroborated"
+    with p.view() as v:
+        assert [(r["reason"], r["state"], r["outcome"]) for r in revalidate.rechecks(v, fact)] == [("contradiction", "cleared", "kept")]
+    # Not marked: a candidate (its own review reads the contradiction) and a user's declared preference (intent).
+    pending = cs.fact(p, "test_mid fails on its fixture.", subject="test_mid fixture", admit=False)
+    said = adm.prompt(p, "Prefer reruns of test_mid over skipping it.", at_=adm.at(3))
+    preference = adm.created_claim(adm.extract(p, [OP("d", "propose_claim", adm.claim("Rerun test_mid rather than skip it.", kind="preference", basis="user_declared", subject="test_mid reruns"),
+                                                      evidence=[adm.link(said, field="text", quote="Prefer reruns of test_mid over skipping it.")])]))
+    adm.admit(p, preference)
+    for claim_id, status in ((pending, "candidate"), (preference, "active")):
+        attach(claim_id, f"k-{status}")
+        head = cs.head(p, claim_id)
+        assert (head["status"], head["freshness"]) == (status, "current") and head["contradicts"], status
+        with p.view() as v:
+            assert revalidate.rechecks(v, claim_id) == [], status
+
+
+def test_a_file_dependency_records_the_bytes_its_read_observed(p):
+    """Decision 0033: the third live R4 rerun. The file changed outside any captured tool after the read and before the
+    extraction, so the admission-time bytes made the stale fact look current. A live certified read now records the bytes
+    it saw at ingestion, and a dependency resolves to them, cited or only consulted; a late or already-changed read records
+    nothing, and the admission-time rule applies."""
+    sha = lambda data: hashlib.sha256(data).hexdigest()  # noqa: E731
+    (p.root / cs.NOTES).write_bytes(b"fixture notes\n")
+    cs.send(p, cs.READ, "observed")
+    cs.ingest(p)
+    read = p.event("tool_finished", call=f"{cs.READ}_observed")
+
+    def observed(event_id):
+        with p.view() as v:
+            return v.execute("SELECT fingerprint FROM file_observations WHERE event_id = ? AND path = ?", (event_id, cs.NOTES)).fetchall()
+
+    assert observed(read["id"]) == [(sha(b"fixture notes\n"),)]
+    (p.root / cs.NOTES).write_bytes(b"other notes, changed before the curation\n")  # outside any captured tool
+    dependency = [{"kind": "file", "key": cs.NOTES, "fingerprint": None, "record": None}]
+    cited = cs.fact(p, "The notes file holds the fixture notes.", subject="notes contents", evidence=read, dependencies=dependency)
+    assert cs.head(p, cited)["dependencies"][0]["fingerprint"] == sha(b"fixture notes\n")  # the bytes read, not the bytes now
+    # Only consulted: a declaration citing the user's words, from a proposal that read the session's events.
+    said = adm.prompt(p, "Remember: the notes file holds the fixture notes.", at_=adm.at(4))
+    body = adm.claim("The notes file holds the fixture notes, as the user said.", basis="user_declared", subject="notes declared", dependencies=dependency)
+    op = OP("d", "propose_claim", body, evidence=[adm.link(said, field="text", quote="the notes file holds the fixture notes")])
+    job = osc.leased(p.root, "extract_claims", input_refs=[RecordRef(kind="event", id=said["id"], revision=1)], now=utc_now())
+    response = osc.response([op], purpose="extract_claims")
+    from recalith.controller import apply
+
+    with db.open_store(p.ctx) as store:
+        apply.persist_proposal(store, job, response, osc.read_set(p.root, refs=[RecordRef(kind="event", id=e, revision=1) for e in (said["id"], read["id"])]), now=utc_now())
+        declared = adm.created_claim(apply.apply_proposal(p.ctx, job, response, store=store, now=utc_now()))
+    assert cs.head(p, declared)["dependencies"][0]["fingerprint"] == sha(b"fixture notes\n")
+    # No observation: a read ingested past the window, and one whose file changed after its capture.
+    cs.send(p, cs.READ, "late", at=format_utc(parse_utc(utc_now()) - _dt.timedelta(minutes=10)))
+    cs.ingest(p)
+    cs.send(p, cs.READ, "changed")
+    (p.root / cs.NOTES).write_bytes(b"changed again, after the read was captured\n")
+    later = time.time() + 5
+    os.utime(p.root / cs.NOTES, (later, later))  # explicitly after the capture: Windows file times can be coarser than its clock
+    cs.ingest(p)
+    assert [observed(p.event("tool_finished", call=f"{cs.READ}_{s}")["id"]) for s in ("late", "changed")] == [[], []]
+    unobserved = cs.fact(p, "The notes file was changed again.", subject="notes changed", evidence=p.event("tool_finished", call=f"{cs.READ}_changed"), dependencies=dependency)
+    assert cs.head(p, unobserved)["dependencies"][0]["fingerprint"] == sha(b"changed again, after the read was captured\n")  # the admission-time rule
+
+
 def test_revalidation_result_is_fenced_and_bounded(p):
     """A20/A21: a stale revalidation result requeues (bounded) and an expired lease never applies."""
     lesson = cs.lesson(p)
@@ -688,12 +777,15 @@ def test_source_conflict_suspends_dependent_guidance(p):
 
 
 def test_revalidate_prompt_is_versioned_package_data():
-    """Decision 0012: revalidate@1 is the shipped revalidate_v1.md, pinned by its golden digest."""
+    """Decisions 0012 and 0032: revalidate@1 and @2 are the shipped revalidate_v1.md and _v2.md, pinned by golden digests."""
     from importlib import resources
 
     text = (resources.files("recalith.prompts") / "revalidate_v1.md").read_text(encoding="utf-8")
     assert prompts.INSTRUCTIONS["revalidate@1"].startswith(text.strip().splitlines()[0])
-    assert prompts.prompt_digest("revalidate@1") == GOLDEN_REVALIDATE
+    assert prompts.prompt_digest("revalidate@1") == GOLDEN_REVALIDATE  # still served to jobs that pinned it
+    assert prompts.CURRENT["revalidate"] == "revalidate@2" and prompts.prompt_digest("revalidate@2") == GOLDEN_REVALIDATE_2
+    assert "its contradicts links" in prompts.INSTRUCTIONS["revalidate@2"] and "contradicts links" not in prompts.INSTRUCTIONS["revalidate@1"]
 
 
 GOLDEN_REVALIDATE = "46204936095a76e2179f33ad934d929132305d05777f904a4955cbb33457a525"
+GOLDEN_REVALIDATE_2 = "73da3f915be8ddd7cd0c309a12421b2efae951ced93baecdce8976bfb188a815"

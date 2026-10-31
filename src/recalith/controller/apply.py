@@ -381,7 +381,7 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
     supports = [link for link in op.evidence if link.relation == "supports"]
     contradicts = [link for link in op.evidence if link.relation == "contradicts"]
     context = [link for link in op.evidence if link.relation == "context"]
-    _refused, dependencies = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, op.evidence)  # admission refused a mismatch
+    _refused, dependencies = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, op.evidence, consulted=_consulted(run))  # admission refused a mismatch
     dependencies += revalidate.read_dependencies(run.txn, ctx, kind=typed.kind, scope=typed.scope, supports=supports, have=dependencies)
     klass, _why = revalidate.review_class(run.txn, kind=typed.kind, basis=typed.basis, dependencies=dependencies)
     failure = typed.failure
@@ -439,6 +439,8 @@ def _propose_claim(run: _Run, op: ProposedOperation, typed: ProposeClaimPayload,
         ref = _write_claim_revision(run, head.revision, data, change)
         run.resolution.locals[op.local_ref] = ref
         _queue(run, ref, data)
+        if c_added:
+            run.revalidate_claims.update(revalidate.contradicted(run.txn, run.ctx, head.claim_id, contradicts, now=run.now))
         return "duplicate_new_evidence"
     if candidate.status == "active":
         candidate = candidate.model_copy(update={"strength": admission.assign_strength(run.txn, candidate.model_dump(mode="json"))})
@@ -478,7 +480,14 @@ def _attach_evidence(run: _Run, op: ProposedOperation, typed: AttachEvidencePayl
     _strength(run, data)
     ref = _write_claim_revision(run, revision, data, change)
     _queue(run, ref, data)  # changed support of a candidate needs its own review
+    if typed.relation == "contradicts":
+        run.revalidate_claims.update(revalidate.contradicted(run.txn, run.ctx, typed.claim_ref.id, op.evidence, now=run.now))
     return None
+
+
+def _consulted(run: _Run) -> list[str]:
+    """The events the proposal read: a declared file dependency resolves to the bytes they observed (decision 0033)."""
+    return [r.id for r in run.read_set.entity_revisions if r.kind == "event"] if run.read_set is not None else []
 
 
 def _read_dependencies(run: _Run, data: dict[str, Any], supports: Sequence[Any]) -> None:
@@ -508,7 +517,7 @@ def _revise_claim(run: _Run, op: ProposedOperation, typed: ReviseClaimPayload, c
                 data[name] = value.model_dump(mode="json") if hasattr(value, "model_dump") else value
     if typed.dependencies is not None:
         supports = [EvidenceLink.model_validate(i) for i in data["supports"]]
-        _refused, data["dependencies"] = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, supports)
+        _refused, data["dependencies"] = revalidate.resolve_dependencies(run.txn, run.ctx, typed.dependencies, supports, consulted=_consulted(run))
     _read_dependencies(run, data, [*data["supports"], *(link for link in op.evidence if link.relation == "supports")])  # replaced, rescoped or newly supported
     if typed.retry_conditions is not None:
         data["failure"] = {**data["failure"], "retry_conditions": [r.model_dump(mode="json") for r in typed.retry_conditions]}

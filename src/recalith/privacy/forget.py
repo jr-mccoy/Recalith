@@ -542,6 +542,7 @@ def _purge_events(txn: Txn, ctx: InstallationContext, events: set[str], *, now: 
         )
         txn.execute(f"DELETE FROM environment_observations WHERE source_event_id IN ({marks})", tuple(chunk))  # noqa: S608
         txn.execute(f"DELETE FROM artifact_writes WHERE event_id IN ({marks})", tuple(chunk))  # noqa: S608
+        txn.execute(f"DELETE FROM file_observations WHERE event_id IN ({marks})", tuple(chunk))  # noqa: S608 - the bytes a forgotten read saw
         # A forgotten call or result no longer pairs: a later result of a forgotten call is new capture, bound on its own.
         txn.execute(f"UPDATE tool_calls SET start_event_id = NULL WHERE start_event_id IN ({marks})", tuple(chunk))  # noqa: S608
         txn.execute(f"UPDATE tool_calls SET finish_event_id = NULL WHERE finish_event_id IN ({marks})", tuple(chunk))  # noqa: S608

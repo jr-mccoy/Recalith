@@ -14,8 +14,9 @@ Changing any text here requires a new version string, so a persisted
 The extraction, review and revalidation instructions are package-data files
 (``extract_v1.md``, ``review_v1.md``, decision 0011; ``revalidate_v1.md``,
 decision 0012; ``extract_v2.md``, decision 0031, which asks for the files a
-claim describes; a job that pinned ``extract_claims@1`` is still served that
-text), loaded here and digested separately: a claim's
+claim describes; ``revalidate_v2.md``, decision 0032, which names an attached
+contradiction as a cause; a job that pinned an older version is still served
+its text), loaded here and digested separately: a claim's
 ``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
 ``ReviewBatch`` its review prompt digest, and the golden-digest tests in
 ``tests/integration/test_claim_admission.py`` and
@@ -69,6 +70,7 @@ INSTRUCTIONS: dict[str, str] = {
     "extract_claims@2": _file("extract_v2.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
     "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
+    "revalidate@2": _file("revalidate_v2.md") + " " + _COMMON,
 }
 
 CURRENT: dict[str, str] = {
@@ -76,7 +78,7 @@ CURRENT: dict[str, str] = {
     "build_episode": "build_episode@1",
     "extract_claims": "extract_claims@2",
     "review_claims": "review_claims@1",
-    "revalidate": "revalidate@1",
+    "revalidate": "revalidate@2",
 }
 
 
