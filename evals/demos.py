@@ -64,8 +64,10 @@ def _delivered(record: dict[str, Any], session: str) -> list[dict[str, Any]]:
 
 
 FRESH_SESSION_CRITERION = (
-    "a learning scenario whose candidate succeeded with no repeated mistake, whose fresh session B carried the scenario's gold text in a delivered packet, "
-    "and whose clean baseline, in the same session, failed or repeated session A's mistake; any one of the learning scenarios demonstrates it (decision 0028 item 16)"
+    "a learning scenario whose candidate succeeded with no repeated mistake and whose fresh session B carried the scenario's gold text in a delivered packet; "
+    "any one of the learning scenarios demonstrates it (decision 0028 items 16 and 20). Whether the clean baseline, in the same session, failed or repeated "
+    "session A's mistake is reported as made_a_difference, never required: the frozen scenarios leave each answer in the repository, so a capable agent "
+    "can recover it without memory"
 )
 
 
@@ -93,7 +95,7 @@ def fresh_session_reuse(trials_dir: Path, work: Path, *, live: bool = False) -> 
         candidate_ok = not cand.get("error") and bool(co.get("task_success")) and co.get("repeated_mistakes") == 0
         baseline_worse = not base.get("error") and (not bo.get("task_success") or (bo.get("repeated_mistakes") or 0) > 0)
         out[sid] = {
-            "met": bool(candidate_ok and carried and baseline_worse), "gold_in_session_b": gold, "carried_in_session_b": carried,
+            "met": bool(candidate_ok and carried), "made_a_difference": bool(candidate_ok and carried and baseline_worse), "gold_in_session_b": gold, "carried_in_session_b": carried,
             "candidate_task_success": co.get("task_success"), "candidate_repeated_mistakes": co.get("repeated_mistakes"),
             "baseline_task_success": bo.get("task_success"), "baseline_repeated_mistakes": bo.get("repeated_mistakes"),
             "errors": [e for e in (cand.get("error"), base.get("error")) if e],
@@ -103,8 +105,10 @@ def fresh_session_reuse(trials_dir: Path, work: Path, *, live: bool = False) -> 
         raise LookupError("; ".join(not_run) or "no learning scenario")
     met = [sid for sid, v in out.items() if v["met"]]
     return {
-        "demonstrated": bool(met), "met_by": met, "criterion": FRESH_SESSION_CRITERION, "scenarios": out, "not_run": not_run, "remember_instruction": False,
-        "note": "one trial per arm: a demonstration, not an estimate. The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
+        "demonstrated": bool(met), "met_by": met, "made_a_difference_in": [sid for sid, v in out.items() if v["made_a_difference"]], "criterion": FRESH_SESSION_CRITERION,
+        "scenarios": out, "not_run": not_run, "remember_instruction": False,
+        "note": "one trial per arm: a demonstration that reuse happened, not an estimate of its benefit (a Cut 2 comparison). The gold text may arrive in any packet of session B "
+                "(L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
     }
 
 

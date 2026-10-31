@@ -47,6 +47,10 @@ NOT_RUN = {"breadcrumbs": "full release only (ACCEPTANCE_TESTS §6.1)", "notes":
 DISABLE_SETTINGS = {"autoMemoryEnabled": False}
 DISABLE_ENV = {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
 INSTRUCTION_FILES = ("CLAUDE.md", "CLAUDE.local.md", "AGENTS.md", ".claude/CLAUDE.md")
+# Neither arm's working agent may write an instruction file (decision 0028 item 19): one it writes is a memory channel
+# outside both arms, which session C then loads. ``Edit`` rules also cover Write, MultiEdit, NotebookEdit and shell
+# redirections; bare patterns match at any depth below the working directory. The private home is added absolutely.
+INSTRUCTION_DENY = ("Edit(**/CLAUDE.md)", "Edit(**/CLAUDE.local.md)", "Edit(**/AGENTS.md)", "Edit(.claude/**)")
 PLACEHOLDER_KEY = "placeholder" + "-request-capture-" + "not-a-credential"
 
 
@@ -54,11 +58,24 @@ def _slug(path: Path) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", str(path))
 
 
+def home_rule(home: Path) -> str:
+    """The private home's ``.claude`` as an absolute rule: ``//`` from the root, a Windows drive as ``/c/...``."""
+    posix = home.resolve().as_posix()
+    if re.match(r"^[A-Za-z]:/", posix):
+        posix = "/" + posix[0].lower() + posix[2:]
+    return f"Edit(/{posix}/.claude/**)"
+
+
+def trial_settings(home: Path) -> dict[str, Any]:
+    """The private home's settings: native memory disabled, instruction files not writable."""
+    return {**DISABLE_SETTINGS, "permissions": {"deny": [*INSTRUCTION_DENY, home_rule(home)]}}
+
+
 def prepare_home(home: Path) -> Path:
     """A disposable private HOME with host-native automatic memory disabled; returns its settings file."""
     settings = home / ".claude" / "settings.json"
     settings.parent.mkdir(parents=True, exist_ok=True)
-    settings.write_text(json.dumps(DISABLE_SETTINGS, indent=1) + "\n", encoding="utf-8")
+    settings.write_text(json.dumps(trial_settings(home), indent=1) + "\n", encoding="utf-8")
     return settings
 
 
@@ -178,4 +195,5 @@ def manifest(arm: str, *, mode: str, ws: Path, home: Path, native_memory: dict[s
     return {
         "arm": arm, "label": label, "contamination": reasons, "native_memory": effective, "inherited_instructions": instructions,
         "retrieval_services": services, "recalith_installation": installation, "agent": agent, "memory_maintenance_instructions": [],
+        "instruction_writes": {"denied": [*INSTRUCTION_DENY, "the private home's .claude/**"], "where": "the private home's settings, both arms (decision 0028 item 19)"},
     }

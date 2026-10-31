@@ -664,8 +664,9 @@ def test_live_demonstrations_never_fall_back_to_scripted_trials(tmp_path):
 
 
 def test_fresh_session_reuse_counts_any_learning_scenario_that_meets_the_criterion(tmp_path):
-    """Decision 0028 item 16: L1 alone is not required. A scenario counts when the candidate succeeded without a repeat, a
-    session-B packet carried the gold text, and the baseline failed or repeated the mistake; a pair that did not run is listed."""
+    """Decision 0028 items 16 and 20: L1 alone is not required. A scenario counts when the candidate succeeded without a
+    repeat and a session-B packet carried the gold text; whether the baseline failed or repeated the mistake is reported as
+    ``made_a_difference``, not required. A pair that did not run is listed."""
     from evals import demos
 
     trials = tmp_path / "trials"
@@ -683,12 +684,32 @@ def test_fresh_session_reuse_counts_any_learning_scenario_that_meets_the_criteri
     write("smoke-L3-household-grocery-budget", "candidate", success=True, carried="Preference: keep groceries under $600 per month")
     write("smoke-L3-household-grocery-budget", "no_memory", success=False)
     out = demos.fresh_session_reuse(trials, tmp_path / "work", live=True)
-    assert out["demonstrated"] is True and out["met_by"] == ["smoke-L3-household-grocery-budget"]
-    assert out["scenarios"]["smoke-L1-ledgerlite-test-command"]["met"] is False and out["scenarios"]["smoke-L1-ledgerlite-test-command"]["carried_in_session_b"] == ["PYTHONPATH=src"]
+    assert out["demonstrated"] is True and out["met_by"] == ["smoke-L1-ledgerlite-test-command", "smoke-L3-household-grocery-budget"]
+    assert out["made_a_difference_in"] == ["smoke-L3-household-grocery-budget"]  # L1's baseline avoided the mistake unaided
+    l1 = out["scenarios"]["smoke-L1-ledgerlite-test-command"]
+    assert (l1["met"], l1["made_a_difference"], l1["carried_in_session_b"]) == (True, False, ["PYTHONPATH=src"])
     assert out["scenarios"]["smoke-L2-fieldnotes-iso-dates"]["met"] is False and out["scenarios"]["smoke-L2-fieldnotes-iso-dates"]["carried_in_session_b"] == []
     assert len(out["not_run"]) == 1 and "smoke-L4-ledgerlite-resume-refactor" in out["not_run"][0]  # never a scripted stand-in
-    write("smoke-L3-household-grocery-budget", "no_memory", success=True)
-    assert demos.fresh_session_reuse(trials, tmp_path / "work", live=True)["demonstrated"] is False
+    write("smoke-L1-ledgerlite-test-command", "candidate", success=True, repeated=1, carried="run PYTHONPATH=src python -m unittest")
+    write("smoke-L3-household-grocery-budget", "candidate", success=False, carried="Preference: keep groceries under $600 per month")
+    assert demos.fresh_session_reuse(trials, tmp_path / "work", live=True)["demonstrated"] is False  # delivery alone is never reuse
+
+
+def test_neither_arm_may_write_an_instruction_file(tmp_path):
+    """Decision 0028 item 19: R4's agents answered "Remember for this project" by writing CLAUDE.md, a memory channel
+    outside both arms. Both arms' private home settings deny it, with native memory still disabled."""
+    from evals import baselines
+
+    home = tmp_path / "h"
+    settings = json.loads(baselines.prepare_home(home).read_text(encoding="utf-8"))
+    assert settings["autoMemoryEnabled"] is False
+    deny = settings["permissions"]["deny"]
+    assert deny[:4] == ["Edit(**/CLAUDE.md)", "Edit(**/CLAUDE.local.md)", "Edit(**/AGENTS.md)", "Edit(.claude/**)"]
+    assert deny[4].startswith("Edit(//") and deny[4].endswith("/.claude/**)") and "\\" not in deny[4] and ":" not in deny[4]
+    where, rule = ("C:/Code/rl/h", "Edit(//c/Code/rl/h/.claude/**)") if os.name == "nt" else ("/srv/h", "Edit(//srv/h/.claude/**)")
+    assert baselines.home_rule(Path(where)) == rule  # Windows paths are matched in /c/... form
+    record = baselines.manifest("no_memory", mode="live", ws=tmp_path / "ws", home=home, native_memory={"state": "disabled"}, installation=None, agent={})
+    assert record["instruction_writes"]["denied"][:4] == deny[:4] and str(tmp_path) not in json.dumps(record["instruction_writes"])  # no machine path
 
 
 def test_live_workload_days_need_the_live_setup(tmp_path):
