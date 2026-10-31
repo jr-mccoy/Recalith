@@ -2,10 +2,10 @@
 
 Each installation has one ledger per UTC day in ``provider_usage``: one
 :class:`BudgetReservation` per model invocation. The daily totals (default
-90 calls, 900,000 input and 180,000 output estimates) are split into a
-*protected* reserve (30 / 300,000 / 60,000) for ``review_claims``, correction
-review and ``revalidate``, and the *ordinary* remainder (60 / 600,000 /
-120,000). Protected purposes take the protected pool first and may borrow
+90 calls, 1,800,000 input and 180,000 output estimates; decision 0034) are
+split into a *protected* reserve (30 / 300,000 / 60,000) for
+``review_claims``, correction review and ``revalidate``, and the *ordinary*
+remainder (60 / 1,500,000 / 120,000). Protected purposes take the protected pool first and may borrow
 whatever ordinary capacity remains; ordinary purposes never touch the
 protected pool. Priority changes the order of launches, never these limits.
 

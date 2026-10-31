@@ -243,7 +243,7 @@ These are initial engineering defaults, configurable per installation and evalua
 | Episode target | 8,000 estimated input tokens |
 | Episode hard serialized input cap | 96 KiB, including selected existing memory |
 | Model invocations | 90 per installation per UTC day |
-| Estimated input budget | 900,000 tokens per UTC day |
+| Estimated input budget | 1,800,000 tokens per UTC day (900,000 until decision 0034) |
 | Estimated output budget | 180,000 tokens per UTC day |
 | Concurrent model requests | 1 |
 | Model process timeout | 120 seconds |
@@ -256,7 +256,7 @@ These are initial engineering defaults, configurable per installation and evalua
 | Review of volatile claims | 30 days, or earlier when dependencies change |
 | Review of stable claims | 180 days, or earlier when dependencies change |
 
-Thirty invocations, 300,000 input estimates, and 60,000 output estimates are protected for `review_claims`, correction review, and `revalidate`. Ordinary extraction/consolidation can use the other 60 invocations, 600,000 input estimates, and 120,000 output estimates. Priority jobs consume their protected pool first, then any remaining ordinary pool; ordinary jobs cannot consume protected reserves. Schedule waiting reviews and corrections before new extraction. Preemption means choosing the next job; do not kill a healthy in-flight call to preempt it. Capture, typed task reduction, and deterministic retrieval use no model budget; narrative task/episode work is charged to ordinary extraction.
+Thirty invocations, 300,000 input estimates, and 60,000 output estimates are protected for `review_claims`, correction review, and `revalidate`. Ordinary extraction/consolidation can use the other 60 invocations, 1,500,000 input estimates, and 120,000 output estimates (decision 0034: in the second live gate, calls averaged about 24,000 ledger tokens, nearly all input, so 600,000 ran out after about four hours and 20–24 calls on two of three workload days, with the 60-invocation cap far from reached). Priority jobs consume their protected pool first, then any remaining ordinary pool; ordinary jobs cannot consume protected reserves. Schedule waiting reviews and corrections before new extraction. Preemption means choosing the next job; do not kill a healthy in-flight call to preempt it. Capture, typed task reduction, and deterministic retrieval use no model budget; narrative task/episode work is charged to ordinary extraction.
 
 Each evidence-expansion request is another invocation. An extraction plus one review batch can take up to three extraction and three review invocations with the two allowed expansion rounds: six total. For K review batches the maximum is `3 + 3K`, excluding separately scheduled episode construction, task narrative, retries, or revalidation. A normal five-candidate extraction with one fitting review batch and no expansion costs **two total calls: one ordinary extraction and one protected-priority review**, not two protected calls or six per-claim calls. The budget is a ceiling, not a promise of 90 useful jobs or all-day capacity. Report exhausted pools, hours to exhaustion, backlog age, and per-purpose calls/tokens. The 180-second admission target covers only the one-extraction/one-review, no-expansion, no-queue path.
 

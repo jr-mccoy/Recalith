@@ -206,8 +206,8 @@ def test_budget_reservation_precedes_launch(root):
 
 
 def test_ordinary_cannot_spend_protected_pool(root):
-    seed_charged(root, "update_task", 18, input_estimate=32_768)
-    seed_charged(root, "update_task", 1, input_estimate=600_000 - 18 * 32_768)  # 600,000 ordinary input used
+    seed_charged(root, "update_task", 45, input_estimate=32_768)
+    seed_charged(root, "update_task", 1, input_estimate=1_500_000 - 45 * 32_768)  # 1,500,000 ordinary input used (decision 0034)
     refused = seed_reservations(root, "update_task", 1, input_estimate=1)[0]
     assert isinstance(refused, budgets.Refusal) and refused.reason == "budget_exhausted:ordinary.input_estimate"
     with db.open_store(ws.context(root), readonly=True) as store, store.read() as view:
@@ -276,9 +276,9 @@ def test_full_reservation_arithmetic_with_reasoning_headroom(root):
 def test_input_estimate_limits_and_model_input_cap(root):
     """Input pools bound calls too; one request is capped at 96 KiB serialized (32,768 estimates)."""
     assert budgets.MAX_INPUT_ESTIMATE == 32_768
-    made = seed_charged(root, "update_task", 19, input_estimate=32_768)
-    assert all(isinstance(r, BudgetReservation) for r in made[:18])
-    assert isinstance(made[18], budgets.Refusal) and made[18].reason == "budget_exhausted:ordinary.input_estimate"
+    made = seed_charged(root, "update_task", 46, input_estimate=32_768)  # 45 fit the 1,500,000 ordinary pool (decision 0034)
+    assert all(isinstance(r, BudgetReservation) for r in made[:45])
+    assert isinstance(made[45], budgets.Refusal) and made[45].reason == "budget_exhausted:ordinary.input_estimate"
     assert seed_reservations(root, "revalidate", 1, input_estimate=32_769)[0].reason == "model_input_oversized"
     # Through the worker: a request of exactly 96 KiB launches; one byte more never reaches the backend.
     fits = ws.enqueue_model_job(root, "review_claims", key="fits")

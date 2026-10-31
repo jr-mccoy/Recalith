@@ -90,7 +90,7 @@ def estimate_tokens(utf8_bytes: int) -> int:
 
 class BudgetConfig(StrictModel):
     daily_invocations: PositiveInt = 90
-    daily_input_estimate: PositiveInt = 900_000
+    daily_input_estimate: PositiveInt = 1_800_000  # ordinary 1,500,000: the invocation cap binds first at live request sizes (decision 0034)
     daily_output_estimate: PositiveInt = 180_000
     protected_invocations: PositiveInt = 30
     protected_input_estimate: PositiveInt = 300_000

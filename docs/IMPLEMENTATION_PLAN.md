@@ -21,7 +21,7 @@
 - No background job edits `CLAUDE.md`, `AGENTS.md`, or the project's source files.
 - Python 3.12, 3.13, and 3.14 are the core CI matrix; native Windows, macOS, and Linux are required for platform acceptance.
 - Event payload cap: 64 KiB. Segment cap: 256 KiB. Model serialized input cap: 96 KiB. Host wire stdout cap: 256 KiB; decoded body caps follow purpose-specific reservations (4,500/24,000/9,000 bytes).
-- Default model invocations: 90 per installation per UTC day; input estimates: 900,000; output estimates: 180,000; concurrent requests: 1; timeout: 120 seconds. Protect 30 invocations/300,000 input/60,000 output for review/correction/revalidation; ordinary jobs cannot borrow that reserve.
+- Default model invocations: 90 per installation per UTC day; input estimates: 1,800,000 (900,000 until decision 0034); output estimates: 180,000; concurrent requests: 1; timeout: 120 seconds. Protect 30 invocations/300,000 input/60,000 output for review/correction/revalidation; ordinary jobs cannot borrow that reserve.
 - Default context budgets: start 2,000, prompt 1,000, pre-action 400, unchanged memory per session 4,000 estimated tokens. If pre-action is unavailable and eligible caution is substituted, an ordinary prompt has one shared additional 400 allowance (1,400 total); compaction restoration remains capped at 2,000 including cautions.
 - The domain layer imports no CLI, MCP, or host adapter module.
 - Provider routing and credential use are explicit; missing capability does not authorize a weaker fallback.
