@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev5` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
+Engine `0.1.0.dev6` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -122,11 +122,11 @@ Run it from an ordinary terminal that you opened yourself, with the selected key
 ```powershell
 & .venv\Scripts\python.exe evals\run.py gate --mode live `
     --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
-    --source-project C:\Code\rl-pilot6 --wheel dist\recalith-0.1.0.dev5-py3-none-any.whl --wheelhouse wheelhouse `
+    --source-project C:\Code\rl-pilot7 --wheel dist\recalith-0.1.0.dev6-py3-none-any.whl --wheelhouse wheelhouse `
     --out C:\Code\rl-gate --slots 6
 ```
 
-`--slots` is how many smoke trials, and then workload days, run at once, each in its own installation. The time is mostly waiting for curation, not CPU. The third gate took 102 minutes at 2 slots: 80 for the smoke, 16 for the three days run one after another, and 6 for the demonstrations. At 6 slots, with the days run together, expect about 45–60 minutes. More slots raise the tokens per minute the key must serve. If the report's curator call outcomes show rate-limit errors or a wait stalls, use fewer slots.
+`--slots` is how many smoke trials, and then workload days, run at once, each in its own installation. The time is mostly waiting for curation, not CPU. The third gate took 102 minutes at 2 slots: 80 for the smoke, 16 for the three days run one after another, and 6 for the demonstrations. The fourth took 45 minutes at 6 slots, with the days run together; a fresh pilot before it adds about 9 minutes, mostly the delivery probe. More slots raise the tokens per minute the key must serve. If the report's curator call outcomes show rate-limit errors or a wait stalls, use fewer slots.
 
 Exit 0 means the gate passed (`passed_smoke`). Exit 8 means it ran and failed: the report lists every reason, including anything that did not run. Exit 4 means a required input or certification was missing and nothing ran.
 

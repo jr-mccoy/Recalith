@@ -1,0 +1,783 @@
+{
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "budget": {
+  "backlog": {
+   "jobs": 0,
+   "kinds": [],
+   "oldest_age_seconds": 0.0
+  },
+  "exhausted_at": null,
+  "exhausted_at_hours": null,
+  "pools_hit": [],
+  "priority_inversions": 0,
+  "wait_seconds": {
+   "correction_declaration_review": [
+    1.0
+   ],
+   "ordinary": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    2.0,
+    4.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0
+   ],
+   "ordinary_review": [
+    1.0
+   ]
+  }
+ },
+ "budgets": "default (ProjectConfig defaults; UTC day never reset)",
+ "curation": {
+  "admitted_claims": 2,
+  "calls": 33,
+  "calls_by_purpose": {
+   "build_episode": 7,
+   "extract_claims": 18,
+   "review_claims": 2,
+   "update_task": 6
+  },
+  "calls_per_admitted_claim": 16.5,
+  "calls_per_settled_episode": 4.714,
+  "estimated_tokens_by_purpose": {
+   "build_episode": 138129,
+   "extract_claims": 334392,
+   "review_claims": 7841,
+   "update_task": 103604
+  },
+  "processing": {
+   "note": "real provider call durations; queue wait is on the virtual clock",
+   "real_seconds": {
+    "max": 17.639,
+    "n": 33,
+    "p50": 7.733,
+    "p95": 17.572
+   }
+  },
+  "proposals": [
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Existing active claim already covers the bare unittest ModuleNotFoundError. The PYTHONPATH=src runs are in-progress work with no durable lesson: a failing test_close run is followed by a passing run after an edit, and the user objective is not cited in allowed_evidence_refs. The boundary stays pending.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable signal, the bare unittest import failure, is already captured by the existing active claim. The other results are a one-off failing test under development and a routine edit, and no user declaration appears in the events.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable-looking material is already covered by existing claim claim_b805ac0b (revision 2). The user's request to document and rerun the suite is a task directive, not a durable project rule. The PYTHONPATH=src test run has no recorded exit code or parsed assertions, so it cannot support an observed claim.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "reject",
+      "reason": "invalid_result"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Session events show only transient in-progress work on money.py and test results that are still changing; the existing claim already covers the bare-invocation import failure, so nothing new is durable.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable content is an unfinished task whose final state is unclear: the zero-value test failed in three runs, the last run reported 3 tests instead of 4, and the events do not show the cause or the final code. No user-declared rule or preference was stated, and the only observed results are non-durable exit codes and partial test output, so nothing here is strong enough to propose.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable failure (bare unittest import error) is already captured by the existing active claim. The new results are transient: a test failure in an in-progress edit, and the exit-code observation has no exact argv label. The user's objective is tracked in task state, not stated as a project rule.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable-looking results are a Bash run that exited 1 with no recorded argv, which cannot support an observed fact, and an Edit with no exit code, which also cannot. The test failure is in-progress work on an active task, and the existing bare-unittest import failure claim is unaffected. The boundary stays pending.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable-looking content is an in-progress refactor with a transient test failure and an objective that is not citable from allowed_evidence_refs. No durable fact, decision, preference, or lesson is supported.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session only shows an in-progress refactor: one Bash test run failed with an AssertionError in test_transfer, and the rest are reads and one edit. Nothing here is a durable project fact, decision, or failure lesson, and the existing claim is not contradicted by these events.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Session outcome is unresolved: the Ledger.transfer refactor's completion is not established, the two test_transfer failures have no established cause, and the one passing run is not tied to the change. The user's objective is task-specific and already held on the task. The existing failure_lesson claim concerns a ModuleNotFoundError that these events do not show, so no claim change is supported.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only failing tool result is an unparsed Bash test run with an AssertionError in test_transfer, which is a transient test failure rather than a durable lesson. The user's objective is not among the cited events, so it cannot be cited, and the Edit and Read results do not support observed or durable claims.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The episode shows an in-progress refactor with one failing test run and a later passing 2-test run. The user's objective is a task goal, not a stated project rule or preference. The only observed tool result is a generic exit-code-1 Bash call with an unparsed command, and I cannot exactly quote or verify the traceback for an inferred claim. Nothing durable is established, and the existing failure ",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     },
+     {
+      "kind": "update_task",
+      "outcome": "reject",
+      "reason": "invalid_result"
+     }
+    ],
+    "operations": [
+     "update_task",
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable result is the bare unittest ModuleNotFoundError, which is already recorded as an active supported failure_lesson (claim_b805ac0b). The PYTHONPATH=src success has no typed test assertions or exit code to cite as observed, and the user declaration already exists as claim_ff5b89c2. Nothing new is durable.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "reject",
+      "reason": "invalid_result"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session recorded a one-off feature task and transient test results. No durable user rule was stated, and the existing claims already cover the Decimal rule and the bare unittest import failure.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "reject",
+      "reason": "invalid_result"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Session events show a failing unittest run, one Edit to a stub, and a passing run. No durable project rule, decision, or preference was stated, and the existing failure lesson already covers the bare-invocation import error.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Session produced only a task-scoped edit and a passing test run that the existing failure lesson already covers; the task objective is not a durable project rule, and no observed or user-declared claim is supported beyond existing records.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   }
+  ],
+  "provider_outcomes": {
+   "by_purpose": {
+    "build_episode": {
+     "at_output_cap": 0,
+     "calls": 7,
+     "replies_parsed": 7,
+     "reported_input_tokens": 211164,
+     "reported_output_tokens": 16688,
+     "visible_output_estimate": 4719
+    },
+    "extract_claims": {
+     "at_output_cap": 0,
+     "calls": 18,
+     "replies_parsed": 18,
+     "reported_input_tokens": 499863,
+     "reported_output_tokens": 22613,
+     "visible_output_estimate": 2960
+    },
+    "review_claims": {
+     "at_output_cap": 0,
+     "calls": 2,
+     "replies_parsed": 2,
+     "reported_input_tokens": 10992,
+     "reported_output_tokens": 1858,
+     "visible_output_estimate": 331
+    },
+    "update_task": {
+     "at_output_cap": 0,
+     "calls": 6,
+     "replies_parsed": 6,
+     "reported_input_tokens": 159974,
+     "reported_output_tokens": 8400,
+     "visible_output_estimate": 2239
+    }
+   },
+   "job_errors": {
+    "update_task:coalesced": 1
+   }
+  },
+  "queue_wait_seconds": {
+   "max": 4.0,
+   "n": 33,
+   "p50": 0.0,
+   "p95": 3.0
+  },
+  "settled_episodes": 7
+ },
+ "deliveries": {
+  "S1": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S2": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S3": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S4": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:none"
+  ],
+  "S5": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "compact_restore:emitted",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none"
+  ],
+  "S6": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ],
+  "S7": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ],
+  "S8": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S9": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ]
+ },
+ "episodes": {
+  "settled": 7
+ },
+ "events": 107,
+ "harness_real_seconds": 307.31,
+ "horizon": {
+  "checks": 9,
+  "examples": [],
+  "violations": 0
+ },
+ "kind": "workload_day",
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator": "the installation's certified route (production supervisor, isolation recheck passed); scheduling on the day's virtual clock (ACCEPTANCE_TESTS \u00a75.2)",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host": "recorded timeline replayed in process through the real stdlib hook path (no host session)",
+  "host_version": "2.1.310",
+  "provisioning": {
+   "host": false,
+   "route": "operator_token",
+   "steps": [
+    {
+     "exit": 0,
+     "seconds": 0.6,
+     "step": "init"
+    },
+    {
+     "exit": 0,
+     "seconds": 19.3,
+     "step": "route"
+    }
+   ]
+  },
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev5-py3-none-any.whl",
+  "wheel_sha256": "71a845fc32ef2219dccb8dce9a93abd176709722d23b0b7419acaac77505d92d"
+ },
+ "mode": "live",
+ "project": "ledgerlite",
+ "same_session_learning": {
+  "count": 11,
+  "observations": [
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 43.0,
+    "mentions_failure": true,
+    "session": "S1",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 38.0,
+    "mentions_failure": true,
+    "session": "S2",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 48.0,
+    "mentions_failure": false,
+    "session": "S2",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 55.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 49.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 47.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 9.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 34.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": false,
+    "interval_s": 26.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "none"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 12.0,
+    "mentions_failure": true,
+    "session": "S7",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 27.0,
+    "mentions_failure": false,
+    "session": "S8",
+    "state": "emitted"
+   }
+  ],
+  "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+ },
+ "start": "2026-11-03T08:00:00.000000Z",
+ "strength": {
+  "day_end": {
+   "supported:inferred": 1,
+   "supported:user_declared": 1
+  },
+  "first_admission": {
+   "supported:inferred": 1,
+   "supported:user_declared": 1
+  }
+ },
+ "tasks": {
+  "boundaries": {
+   "pending": 9
+  },
+  "boundary_note": "boundary gold is not labeled in the synthetic days",
+  "boundary_precision": null,
+  "boundary_recall": null,
+  "confirmed": 0,
+  "created": 9,
+  "gold": 7,
+  "link_reversals": 0,
+  "nonredirected": 9,
+  "placeholders": 0,
+  "provisional": 197
+ }
+}

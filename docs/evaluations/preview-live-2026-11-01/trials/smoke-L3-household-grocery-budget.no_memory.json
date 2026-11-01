@@ -1,0 +1,252 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "The user stated a grocery budget under $600 per month."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "600",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All budget categories are capped at $600."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+    "scope": "this workspace"
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev5-py3-none-any.whl",
+  "wheel_sha256": "71a845fc32ef2219dccb8dce9a93abd176709722d23b0b7419acaac77505d92d"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l3",
+  "checks": {
+   "at_least_three_items": true,
+   "grocery_list_exists": true,
+   "meal_plan_updated": true,
+   "within_600_budget": true
+  },
+  "metrics": {
+   "grocery_total_usd": 409.0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 34.989,
+  "foreground_cost_usd": 0.069911,
+  "foreground_tokens": 128515,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-L3-household-grocery-budget",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "budget.csv",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "budget.csv",
+     "session": "A",
+     "tool": "Edit"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.018584,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 9.3,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 9.283,
+   "foreground_tokens": 52588,
+   "host_session_id": "1c0f0265-72dc-4e76-a028-287b019cb074",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "I added a groceries row to `budget.csv` with a $600 monthly limit. The note on the row says to flag any spend that would exceed it:\n\n```\ngroceries,600,flag if monthly spend would exceed this limit\n```\n\nThe limit is $600. If you want a strict \"under $600\", I can set it to 599 instead.\n\nThe CSV only stores limits, so nothing flags overspending automatically. I'll flag it when you share grocery spending or ask me to check a purchase against the budget.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "for f in README.md budget.csv meal-plan.md; do echo \"== $f\"; cat \"$f\"; echo; done",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat > groceries.csv <<'EOF'\nitem,cost_usd\nRolled oats,4.50\nEggs (3 dozen),13.50\nMilk (2 gal),8.00\nGreek yogurt (4 tubs),18.00\nButter,5.50\nCheddar cheese (3 blocks),13.50\nChicken thighs (8 lb),24.00\nGround turkey (4 lb),20.00\nSalmon fillets (2 lb),22.00\nPork shoulder (4 lb),16.00\nDried black beans (2 lb),4.00\nLentils (2 lb),4.50\nBrown rice (5 lb),7.50\nPasta (4 boxes),6.00\nWhole wheat bread (3 loaves),12.00\nTortillas (2 packs),6.00\nCanned tomatoes (6 cans),9.00\nChicken broth (4 cartons),10.00\nFrozen vegetables (6 bags),12.00\nFrozen berries (3 bags),15.00\nBananas (8 lb),5.00\nApples (6 lb),12.00\nOranges (5 lb),8.00\nOnions (5 lb),6.00\nGarlic (4 heads),3.00\nPotatoes (10 lb),8.00\nSweet potatoes (5 lb),7.00\nCarrots (5 lb),5.00\nBroccoli (4 heads),8.00\nSpinach (4 bags),14.00\nBell peppers (6),15.00\nCabbage (2 heads),6.00\nOlive oil,8.00\nPeanut butter,5.00\nCoffee,14.00\nSpices and seasoning restock,12.00\nSalsa (2 jars),7.00\nBaking staples (flour / sugar / salt),10.00\nHoliday baking extras,25.00\nEOF\ncat > meal-plan.md <<'EOF'\n# Meal plan\n\nPlan for December 2026. Full list with costs is in `groceries.csv`.\n\n## Budget\n\n- Estimated grocery total: **$409.00**\n- Monthly groceries limit (`budget.csv`): $600.00\n- Headroom: $191.00, which covers price swings and a mid-month top-up of fresh produce and dairy.\n\nCosts are my estimates, not store prices. Household size wasn't specified, so I assumed 1\u20132 people. Adjust quantities if that's off.\n\n## Weekly rotation\n\n- **Breakfasts:** oatmeal with bananas or frozen berries, eggs and toast, Greek yogurt with fruit.\n- **Lunches:** burritos or quesadillas (tortillas, beans, cheese, salsa), lentil soup, leftovers.\n- **Dinners:**\n  - Week 1: chicken thighs with roasted potatoes and broccoli; black bean rice bowls.\n  - Week 2: ground turkey pasta with tomato sauce and spinach; sheet-pan salmon with sweet potatoes.\n  - Week 3: pulled pork tacos with cabbage slaw; chicken and vegetable stir-fry over brown rice.\n  - Week 4: lentil and carrot stew; turkey chili with peppers and beans.\n- **Snacks:** apples, oranges, peanut butter on toast.\n- **Holiday baking:** $25 is set aside for extras.\n\n## Notes\n\n- Buy proteins in bulk and freeze portions after week 2.\n- Frozen vegetables and berries are the backup when fresh produce runs out.\nEOF\nawk -F, 'NR>1{s+=$NF}END{print s}' groceries.csv",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.051327,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 25.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 25.706,
+   "foreground_tokens": 75927,
+   "host_session_id": "dd9bead0-e749-4c54-934e-95cff657b3cb",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `groceries.csv` with 39 items (columns `item,cost_usd`) and replaced the placeholder in `meal-plan.md` with a December 2026 plan.\n\n- **Total:** The estimated total is $409.00. I checked that against the CSV. That's under the $600 groceries limit in `budget.csv`, leaving $191 of headroom.\n- **Meal plan:** `meal-plan.md` has the budget summary, a weekly rotation of breakfasts, lunches, dinners and snacks, and a few notes. The notes cover freezing proteins and using frozen vegetables as a backup.\n- **Assumptions:** You didn't give household size, diet or store, so I assumed 1\u20132 people and typical US prices. All costs are my estimates, not real store prices. I also set aside $25 for holiday baking.\n\nTell me your household size or any dietary preferences and I'll adjust the quantities and the plan.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "L3/b/w"
+}

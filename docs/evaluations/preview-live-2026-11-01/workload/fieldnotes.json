@@ -1,0 +1,857 @@
+{
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "budget": {
+  "backlog": {
+   "jobs": 0,
+   "kinds": [],
+   "oldest_age_seconds": 0.0
+  },
+  "exhausted_at": null,
+  "exhausted_at_hours": null,
+  "pools_hit": [],
+  "priority_inversions": 0,
+  "wait_seconds": {
+   "correction_declaration_review": [
+    1.0,
+    1.0
+   ],
+   "ordinary": [
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    2.0,
+    4.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    2.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    1.0,
+    3.0,
+    4.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    0.0,
+    2.0,
+    3.0
+   ],
+   "ordinary_review": [
+    1.0
+   ]
+  }
+ },
+ "budgets": "default (ProjectConfig defaults; UTC day never reset)",
+ "curation": {
+  "admitted_claims": 4,
+  "calls": 43,
+  "calls_by_purpose": {
+   "build_episode": 10,
+   "extract_claims": 19,
+   "revalidate": 2,
+   "review_claims": 3,
+   "update_task": 9
+  },
+  "calls_per_admitted_claim": 10.75,
+  "calls_per_settled_episode": 4.778,
+  "estimated_tokens_by_purpose": {
+   "build_episode": 170617,
+   "extract_claims": 367595,
+   "revalidate": 12907,
+   "review_claims": 13894,
+   "update_task": 136726
+  },
+  "processing": {
+   "note": "real provider call durations; queue wait is on the virtual clock",
+   "real_seconds": {
+    "max": 21.158,
+    "n": 43,
+    "p50": 8.069,
+    "p95": 15.963
+   }
+  },
+  "proposals": [
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "reject",
+      "reason": "invalid_result"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The existing failure_lesson claim already cites the NOTES_HOME KeyError failure and the supporting successful run with NOTES_HOME set. The session adds no new durable fact, decision, or preference beyond what the claim records.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Durable outcomes are already covered: the NOTES_HOME failure lesson and the ISO-8601 date decision exist as active claims. The remaining items (the date-format test failure and the passing run) lack an exact observed proposition or a file-level basis, so proposing them would be weak.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable failure, the NOTES_HOME requirement, is already recorded as an active claim. The export test failure has no numeric exit code, so it cannot be recorded as observed, and the session contains no user statement of a project rule or preference.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "No new durable project knowledge: the session's events show a transient test failure, an edit and a passing check, and the user declarations and NOTES_HOME lesson are already recorded as claims.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable-looking content is a one-off task instruction already captured in the task, and the tool results show an expected TDD red test, a passing run, and no reusable lesson or project-wide decision.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable content is already captured: the ISO-8601 date decision and the NOTES_HOME failure lesson exist. The remaining events are transient TDD steps, and the user's task objective is not citable from allowed_evidence_refs. The session boundary stays pending.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's events show only reads, one Edit of a placeholder body, and a failing Bash run with no stated cause. No user declaration of a rule, decision or preference appears in the events, and the one failed run is transient rather than durable project knowledge.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable-looking material is a test failure from an unparsed Bash command with no exact argv, an Edit whose result is ambiguous, and read-only tool calls. The user's objective cites an event outside allowed_evidence_refs, and the existing claims already cover the ISO date rule and the NOTES_HOME failure. Nothing here meets the bar for a new claim.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "This session only read files, made one Edit, and ran one failing Bash check whose output is a transient test failure. The user's storage-migration objective is not citable from an allowed evidence record, and no explicit user declaration of a rule or preference appears in the request's events.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     },
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim",
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     },
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim",
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Session only re-ran a failing check and read/edited files; the test failure, NOTES_HOME lesson, storage decision and ISO-date rule are already recorded, and the single-run exit code is transient, so nothing new is durable.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The durable outcomes are already recorded as active claims: the notes.jsonl storage decision (claim_e9b30dd5), the ISO-8601 date rule, the NOTES_HOME failure lesson, and the test_roundtrip failure claim. The remaining events are routine reads and edits, and the test runs passed or failed as already captured.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Existing claims already cover the NOTES_HOME failure and the test failure. The session's remaining results are one-off outcomes, and the user's message is a task request, not a durable rule or preference.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session shows only a partial edit and test reruns; no narrative field (title, plan, constraints, open questions, next action) needs changing. The boundary stays pending.",
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The failure lesson for tools/check.py without NOTES_HOME is already recorded as claim_20bf5785. The later successful run with NOTES_HOME set does not clearly contradict the existing test_roundtrip claim, and nothing else in this session is a new durable rule, decision or preference.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only durable-looking content is the user's request to fix long lines, which is a task objective rather than a declared rule or preference. The one failed check run and the successful edit are transient, and the fix is not confirmed, so no claim is durable enough to propose.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "attach_evidence",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "attach_evidence"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_claim",
+      "outcome": "reject",
+      "reason": "retry_conditions_require_failure_lesson"
+     }
+    ],
+    "operations": [
+     "revise_claim"
+    ],
+    "purpose": "revalidate"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's only user statement is the task objective, which is not a declared rule, decision or preference. The recorded tool calls have no exit codes, so no observed claim can be made, and the Bash output is ambiguous and not a durable project fact.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "operations": [],
+    "purpose": "update_task"
+   }
+  ],
+  "provider_outcomes": {
+   "by_purpose": {
+    "build_episode": {
+     "at_output_cap": 0,
+     "calls": 10,
+     "replies_parsed": 10,
+     "reported_input_tokens": 259715,
+     "reported_output_tokens": 22206,
+     "visible_output_estimate": 6232
+    },
+    "extract_claims": {
+     "at_output_cap": 0,
+     "calls": 19,
+     "replies_parsed": 19,
+     "reported_input_tokens": 551771,
+     "reported_output_tokens": 27120,
+     "visible_output_estimate": 3676
+    },
+    "revalidate": {
+     "at_output_cap": 0,
+     "calls": 2,
+     "replies_parsed": 2,
+     "reported_input_tokens": 17540,
+     "reported_output_tokens": 3206,
+     "visible_output_estimate": 817
+    },
+    "review_claims": {
+     "at_output_cap": 0,
+     "calls": 3,
+     "replies_parsed": 3,
+     "reported_input_tokens": 19892,
+     "reported_output_tokens": 3089,
+     "visible_output_estimate": 652
+    },
+    "update_task": {
+     "at_output_cap": 0,
+     "calls": 9,
+     "replies_parsed": 9,
+     "reported_input_tokens": 209085,
+     "reported_output_tokens": 14048,
+     "visible_output_estimate": 4087
+    }
+   },
+   "job_errors": {
+    "update_task:coalesced": 1
+   }
+  },
+  "queue_wait_seconds": {
+   "max": 4.0,
+   "n": 43,
+   "p50": 1.0,
+   "p95": 3.0
+  },
+  "settled_episodes": 9
+ },
+ "deliveries": {
+  "S1": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S2": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ],
+  "S3": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S4": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S5": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "compact_restore:emitted",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none"
+  ],
+  "S6": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S7": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S8": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ]
+ },
+ "episodes": {
+  "settled": 9
+ },
+ "events": 105,
+ "harness_real_seconds": 408.77,
+ "horizon": {
+  "checks": 8,
+  "examples": [],
+  "violations": 0
+ },
+ "kind": "workload_day",
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator": "the installation's certified route (production supervisor, isolation recheck passed); scheduling on the day's virtual clock (ACCEPTANCE_TESTS \u00a75.2)",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host": "recorded timeline replayed in process through the real stdlib hook path (no host session)",
+  "host_version": "2.1.310",
+  "provisioning": {
+   "host": false,
+   "route": "operator_token",
+   "steps": [
+    {
+     "exit": 0,
+     "seconds": 0.6,
+     "step": "init"
+    },
+    {
+     "exit": 0,
+     "seconds": 19.9,
+     "step": "route"
+    }
+   ]
+  },
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev5-py3-none-any.whl",
+  "wheel_sha256": "71a845fc32ef2219dccb8dce9a93abd176709722d23b0b7419acaac77505d92d"
+ },
+ "mode": "live",
+ "project": "fieldnotes",
+ "same_session_learning": {
+  "count": 10,
+  "observations": [
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 16.0,
+    "mentions_failure": true,
+    "session": "S1",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 22.0,
+    "mentions_failure": true,
+    "session": "S3",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 25.0,
+    "mentions_failure": false,
+    "session": "S3",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 43.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 44.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 69.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": false,
+    "interval_s": 138.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "none"
+   },
+   {
+    "degraded": [],
+    "delivered": false,
+    "interval_s": 34.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "none"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 44.0,
+    "mentions_failure": true,
+    "session": "S6",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 46.0,
+    "mentions_failure": false,
+    "session": "S7",
+    "state": "emitted"
+   }
+  ],
+  "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+ },
+ "start": "2026-11-04T08:00:00.000000Z",
+ "strength": {
+  "day_end": {
+   "corroborated:inferred": 1,
+   "supported:inferred": 1,
+   "supported:user_declared": 2
+  },
+  "first_admission": {
+   "corroborated:inferred": 1,
+   "supported:inferred": 1,
+   "supported:user_declared": 2
+  }
+ },
+ "tasks": {
+  "boundaries": {
+   "pending": 8
+  },
+  "boundary_note": "boundary gold is not labeled in the synthetic days",
+  "boundary_precision": null,
+  "boundary_recall": null,
+  "confirmed": 0,
+  "created": 8,
+  "gold": 7,
+  "link_reversals": 0,
+  "nonredirected": 8,
+  "placeholders": 0,
+  "provisional": 195
+ }
+}

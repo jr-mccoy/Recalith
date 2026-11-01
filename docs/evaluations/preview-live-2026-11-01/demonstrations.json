@@ -1,0 +1,317 @@
+{
+ "demonstrations": {
+  "changed_condition_revision": {
+   "demonstrated": true,
+   "scenarios": {
+    "smoke-R1-fieldnotes-check-env-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "With NOTES_HOME set to a temporary directory, the python tools/check.py run reported its one unit test as OK; the exit status of that run was not recorded.",
+       "active",
+       "current",
+       2
+      ],
+      [
+       "Running python tools/check.py without NOTES_HOME set exits with code 1 and a KeyError for NOTES_HOME.",
+       "active",
+       "current",
+       9
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Failure lesson: Running python tools/check.py without NOTES_HOME set exits with code 1 and a KeyError for NOTES_HOME. Observed: The run of python tools/check.py"
+        },
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Fact: With NOTES_HOME set to a temporary directory, the python tools/check.py run reported its one unit test as OK; the exit status of that run was not recorded"
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "NOTES_HOME",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [
+      "revalidate:revise_claim",
+      "revalidate:revise_claim"
+     ],
+     "task_success": true
+    },
+    "smoke-R2-ledgerlite-import-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "In the session, after tests/__init__.py was added, the command `python -m unittest discover -s tests -t .` printed 'Ran 2 tests' and 'OK'.",
+       "active",
+       "current",
+       2
+      ],
+      [
+       "Before tests/__init__.py was added, the output of `python -m unittest discover -s tests -t .` included 'ImportError: Start directory is not importable' for the tests directory.",
+       "active",
+       "current",
+       2
+      ],
+      [
+       "The user prefers that the test command `python -m unittest discover -s tests -t .` stay unchanged when making the ledgerlite tests pass, and would change it only if no other fix works.",
+       "candidate",
+       "current",
+       2
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Fact: In the session, after tests/__init__.py was added, the command `python -m unittest discover -s tests -t .` printed 'Ran 2 tests' and 'OK'."
+        },
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Fact: Before tests/__init__.py was added, the output of `python -m unittest discover -s tests -t .` included 'ImportError: Start directory is not importable' fo"
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "PYTHONPATH",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [],
+     "task_success": true
+    }
+   }
+  },
+  "forgetting_and_restore": {
+   "backup_before": {
+    "external_copy": true,
+    "manifest_digest": "baa87f0067986c7af6b7400d8f4c9d51c2e70b600dc9458b4ac75d21b5b5a79c",
+    "store_hits_before": 15
+   },
+   "delivered_after_forget": false,
+   "delivered_after_restore": false,
+   "demonstrated": true,
+   "forget": {
+    "backup_state": "verified",
+    "purge_state": "completed",
+    "purged_count": 13,
+    "quarantined_count": 0
+   },
+   "restore": {
+    "applied_schema": 12,
+    "deleted_backup_ids": [],
+    "limits": [
+     "external_copy_holds_suppressed_content",
+     "external_exports_not_recallable",
+     "remote_provider_copies_not_recallable",
+     "operator_backup_copies_not_recallable",
+     "filesystem_forensics_outside_guarantee",
+     "ledger_digest_membership_disclosure",
+     "paraphrase_not_detected"
+    ],
+    "preserved_tombstone_epoch": 1,
+    "restored_revision": 120,
+    "source_contains_suppressed": true,
+    "suppressed_record_count": 13
+   },
+   "route": "the guarded CLI with the operator token (live)",
+   "scenario": "smoke-L3-household-grocery-budget",
+   "selector": {
+    "claims": 1,
+    "tasks": 1
+   },
+   "stopped_after": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "stopped_before_backup": {
+    "exit": 0,
+    "state": "not_running"
+   },
+   "stopped_before_restore": {
+    "exit": 0,
+    "state": "stopped"
+   },
+   "store_hits_after_forget": 0,
+   "store_hits_after_restore": 0
+  },
+  "fresh_session_reuse": {
+   "criterion": "a learning scenario whose candidate succeeded with no repeated mistake and whose fresh session B carried the scenario's gold text in a delivered packet; any one of the learning scenarios demonstrates it (decision 0028 items 16 and 20). Whether the clean baseline, in the same session, failed or repeated session A's mistake is reported as made_a_difference, never required: the frozen scenarios leave each answer in the repository, so a capable agent can recover it without memory",
+   "demonstrated": true,
+   "made_a_difference_in": [],
+   "met_by": [
+    "smoke-L1-ledgerlite-test-command",
+    "smoke-L2-fieldnotes-iso-dates",
+    "smoke-L3-household-grocery-budget"
+   ],
+   "not_run": [],
+   "note": "one trial per arm: a demonstration that reuse happened, not an estimate of its benefit (a Cut 2 comparison). The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
+   "remember_instruction": false,
+   "scenarios": {
+    "smoke-L1-ledgerlite-test-command": {
+     "admitted": [
+      "tests/test_ledger.py defines test_close_requires_zero_balance, which checks that closing a non-zero account raises ValueError and leaves the account in place, and that the account is removed after its balance is returned to zero.",
+      "The captured output of running PYTHONPATH=src python -m unittest discover -s tests -v from the project root ends with 'Ran 3 tests' and 'OK', listing test_close_requires_zero_balance, test_rejects_non_positive_amount and test_transfer_preserves_total as ok.",
+      "Running `python -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails on import with ModuleNotFoundError: No module named 'ledgerlite' in the captured output.",
+      "Ledger.close(name) in src/ledgerlite/__init__.py raises ValueError when the account's balance is not zero and otherwise deletes that account from Ledger.accounts."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "PYTHONPATH=src"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "PYTHONPATH=src"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L2-fieldnotes-iso-dates": {
+     "admitted": [
+      "Every date fieldnotes prints must be ISO-8601 (YYYY-MM-DD...); locale formats such as 'Jan 2' or '02/01/2026' must not be used.",
+      "fieldnotes export prints one line per stored note in the form 'DATE: TEXT', where DATE is the first 10 characters of the note's stored 'created' value (the ISO-8601 date part). The formatting is in store.export_lines(), which cli.py calls for the export command.",
+      "To run the fieldnotes project checks, run `python tools/check.py` from the project root with the NOTES_HOME environment variable set to a scratch directory, because tools/check.py reads os.environ['NOTES_HOME']."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "ISO-8601"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "ISO-8601"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L3-household-grocery-budget": {
+     "admitted": [
+      "For the user's household planning, the grocery budget should stay under $600 per month, and anything that would push it over should be flagged."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "600"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "600"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L4-ledgerlite-resume-refactor": {
+     "admitted": [
+      "As read in this session, Ledger.transfer in src/ledgerlite/__init__.py converts the amount with Decimal(amount) and raises ValueError(\"amount must be positive\") when the value is <= 0; the session did not modify this file.",
+      "src/ledgerlite/money.py defines parse(value: str | Decimal) -> Decimal, which raises ValueError for zero or negative amounts. It performs no explicit type check and no finiteness check; it passes the value directly to Decimal(value).",
+      "The ledgerlite refactor has three steps: (1) add src/ledgerlite/money.py with parse(value) -> Decimal accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py. Step 1 only is to be done in a session, followed by a stop and a report of the next step.",
+      "Ledger.transfer in src/ledgerlite/__init__.py does not catch decimal.InvalidOperation from Decimal(amount), so a malformed amount string such as 'abc' propagates as decimal.InvalidOperation."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": false,
+     "carried_in_session_b": [
+      "money.parse"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "money.parse"
+     ],
+     "made_a_difference": false,
+     "met": false
+    }
+   }
+  },
+  "isolation": {
+   "cross_project_leak_commands": 0,
+   "cross_record_ids": [],
+   "cross_text_in_search": [],
+   "demonstrated": true,
+   "fieldnotes_active_claims": [
+    "tools/check.py reads NOTES_HOME with os.environ[\"NOTES_HOME\"], so the check script needs NOTES_HOME set in the environment to run.",
+    "To run the project's tests, set NOTES_HOME to a scratch directory and run `python tools/check.py` from the project root."
+   ],
+   "fieldnotes_session_b_delivered": [],
+   "installations": {
+    "distinct": true,
+    "fieldnotes": "inst_31afc976-ca9b-4dd0-bd2a-702086593fa0",
+    "ledgerlite": "inst_12445a87-48e7-44b2-bb9e-1c13c150cb55"
+   },
+   "ledgerlite_active_claims": [
+    "Piping the unittest command through `tail -20` leaves the recorded tool result with no exit code, so its success status does not confirm the exit status of the unittest run.",
+    "To run the ledgerlite unit tests, run `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root."
+   ],
+   "reverse_session": {
+    "actions": 1,
+    "gap": {
+     "last": {
+      "due_jobs": 0,
+      "due_kinds": [],
+      "leased": 0,
+      "next_due_in_s": null,
+      "pending_triggers": 0,
+      "progress": [
+       35,
+       27,
+       35
+      ],
+      "quiet": true,
+      "spool_ready": 0,
+      "waiting_reasons": []
+     },
+     "polls": 10,
+     "state": "quiet",
+     "suspended_s": 0.0,
+     "waited_s": 315.3,
+     "worker_seen": true
+    }
+   },
+   "scenario": "smoke-C4-cross-project-near-match",
+   "task_success": true,
+   "worker_stop": [
+    {
+     "exit": 0,
+     "state": "stopped"
+    },
+    {
+     "exit": 0,
+     "state": "not_running"
+    }
+   ]
+  },
+  "zero_interventions": {
+   "demonstrated": true,
+   "jobs_awaiting_a_human": 0,
+   "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+   "operator_interventions": 0,
+   "trials": 24,
+   "workload_days": 3
+  }
+ },
+ "label": "live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token",
+ "mode": "live"
+}
