@@ -76,12 +76,20 @@ def repeated_failures(c: Ctx, needle: str) -> int:
     return count
 
 
-def read_csv_total(path: Path, column: str) -> tuple[int, float]:
+def read_csv_total(path: Path, column: str) -> tuple[int, float] | None:
+    """Row count and column total, or None when the file is not the requested two-column CSV.
+
+    A row whose value is not a number (the fourth live gate's candidate wrote an item with an unquoted comma, so its
+    cost column read 'pasta') is the task's defect, judged as a failed check rather than an oracle error.
+    """
     with path.open(newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     total = 0.0
     for row in rows:
-        total += float(str(row[column]).replace("$", "").strip())
+        try:
+            total += float(str(row[column]).replace("$", "").strip())
+        except (KeyError, ValueError):
+            return None
     return len(rows), total
 
 
@@ -111,8 +119,11 @@ def l2(c: Ctx) -> None:
 def l3(c: Ctx) -> None:
     path = c.ws / "groceries.csv"
     c.check("grocery_list_exists", path.exists())
+    parsed = read_csv_total(path, "cost_usd") if path.exists() else None
     if path.exists():
-        rows, total = read_csv_total(path, "cost_usd")
+        c.check("grocery_csv_parses", parsed is not None)
+    if parsed is not None:
+        rows, total = parsed
         c.metrics["grocery_total_usd"] = total
         c.check("at_least_three_items", rows >= 3)
         c.check("within_600_budget", 0 < total <= 600)
@@ -157,10 +168,12 @@ def r2(c: Ctx) -> None:
 def r3(c: Ctx) -> None:
     path = c.ws / "groceries.csv"
     c.check("grocery_list_exists", path.exists())
+    parsed = read_csv_total(path, "cost_usd") if path.exists() else None
     if path.exists():
-        _, total = read_csv_total(path, "cost_usd")
-        c.metrics["grocery_total_usd"] = total
-        c.check("within_corrected_700_budget", 0 < total <= 700)
+        c.check("grocery_csv_parses", parsed is not None)
+    if parsed is not None:
+        c.metrics["grocery_total_usd"] = parsed[1]
+        c.check("within_corrected_700_budget", 0 < parsed[1] <= 700)
     plan = (c.ws / "meal-plan.md").read_text(encoding="utf-8")
     c.check("plan_states_700_limit", "700" in plan)
     # A line may name $600 as the figure the correction replaced (the third live gate's plans said "replacing the earlier

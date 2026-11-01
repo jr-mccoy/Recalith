@@ -200,6 +200,15 @@ def test_r3_accepts_the_old_limit_named_as_replaced(tmp_path, line, passes):
     assert result["checks"]["no_stale_600_limit"] is passes and result["passed"] is passes, result
 
 
+def test_r3_judges_an_unparseable_grocery_list_as_a_failed_check(tmp_path):
+    """The fourth live gate's candidate wrote an item with an unquoted comma: a failed check, not an oracle error."""
+    ws = materialize(tmp_path, "smoke-R3-household-budget-correction")
+    ref_r3(ws)
+    (ws / "groceries.csv").write_text("item,cost_usd\nmilk,4.00\nsalmon, pasta,45.00\n", encoding="utf-8")
+    result = smoke.judge("r3", ws, [], "C")
+    assert result["checks"]["grocery_csv_parses"] is False and "oracle_error" not in result["checks"] and result["passed"] is False, result
+
+
 def test_cross_project_leak_is_detected(tmp_path):
     ws = materialize(tmp_path, "smoke-C4-cross-project-near-match")
     actions = [act("B", "PYTHONPATH=src python -m unittest discover -s tests", 1), act("B", "NOTES_HOME=/tmp/n python tools/check.py")]
