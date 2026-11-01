@@ -141,7 +141,9 @@ def test_concurrent_hooks_preserve_budget(built, monkeypatch):
     assert len(keys) == len(set(keys))  # an unchanged item is emitted at most once in the session
     assert s["reserved_tokens"] <= 450  # context items only: none may exceed the allowance
     reasons = [r[0]["delivery"].get("reason") for r in results]
-    assert all(r in (None, "scratch_lock_timeout", "nothing_to_deliver") for r in reasons), reasons
+    # A hook that cannot establish its read-only snapshot at once skips with an empty packet (SYSTEM_SPEC §5.1.1) and
+    # reserves nothing; racing first readers on Windows hit it. The invariants above hold for the hooks that did run.
+    assert all(r in (None, "scratch_lock_timeout", "nothing_to_deliver", "store_snapshot_unavailable") for r in reasons), reasons
     ds.ingest(p)
     assert ds.accounting(p, sid)["charged"] == s["reserved_tokens"]
     # Real hook processes racing one pre-action caution in another session: emitted once, accounting consistent.
