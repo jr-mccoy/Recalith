@@ -1830,6 +1830,67 @@ Add each later checkpoint with:
 - **Prepared, not run:** `probe-private\run-gate3.ps1` (untracked; it parses cleanly under Windows PowerShell 5.1) runs the third gate with its exit code logged to `probe-private\gate3-run.log`. It refuses to start with host markers, on another host version, without the pilot's live host record, or over an existing results directory.
 - **Acceptance:** statuses unchanged. One scenario's trial is not a gate.
 
+### 2026-10-31 — The third live gate (the owner's run): complete and clean, failed on recall; `extract_claims@3` (engine 0.1.0.dev5)
+
+- **The run.** The owner ran `probe-private\run-gate3.ps1` (untracked) on `C:\Code\rl-pilot5`, with 2 slots, into `C:\Code\rl-gate3`. It started at 14:40Z and exited **8** after 102.3 min. The log is `probe-private\gate3-run.log` (untracked; checked for the key: none).
+  - **Time:** the smoke took 80 min; the three workload days 16 min, one after another; the demonstrations and report about 6 min. The earlier 3-hour estimate was too high.
+- **Complete and clean:**
+  - All 24 trials ran with no error.
+  - **Contamination:** none. R4's session A agent tried to write `CLAUDE.md` and was refused by the deny rules (decision 0028 item 19).
+  - **Waits:** every wait was `quiet`. No session or wait was suspended, and the host stayed at 2.1.310.
+  - **Workload days:** all three ran (33, 39 and 29 calls), and none hit any pool. No call ended at its output cap.
+  - **Demonstrations:** all five shown.
+  - **Cost:** foreground $1.79 over 48 sessions; background 187 model calls and 4,131,924 ledger tokens.
+- **Outcomes, candidate/baseline:**
+  - C2 succeeded/failed, L4 failed/succeeded, R3 failed/failed; every other scenario succeeded in both arms.
+  - Detours mean −0.33 (CI95 −0.58 to −0.08); the other paired differences are inconclusive. No superiority claim.
+- **The measures that need no labels:** all met.
+  - Incorrect confident guidance 0; conflict and uncertainty preservation 1/1; legitimate retries discouraged 0/2; irrelevant caution 0/3; routine human maintenance 0.
+  - **Retrieval points:** 9/12. Unmet: L1 and L4 at session start, both with empty session-start packets, and L2 at the prompt.
+- **The gate failed only with `claims_unadjudicated:20`** (12 claims, 8 lessons).
+- **Adjudication.** The owner delegated it ("Do whatever you think is best"). ACCEPTANCE_TESTS §5 lets a model assist but never solely adjudicate support, so no `adjudication.json` was written.
+  - **Where the suggestions are:** `adjudication.suggested.json`, with every label null and each item's evidence. It is in the results directory and in the sanitized record.
+  - **The suggested totals:** support 12/12, useful recall 5/8, failed-approach recall 1/3. The recall targets (0.85 and 0.90) fail whatever the three judgment calls decide: L4's disputed fact, R2's unscoped preference and R4's superseded lesson.
+- **Why lessons were missed** (decision 0035):
+  - **L1 #1 and R2 #0.** The agent piped the failing command through `tail`, so the host recorded exit 0. Admission refuses a failure lesson that cites no certified failure, and each curator proposed one more claim than the store kept. The second gate shows the same shape in the same two trials.
+  - **L2 #0.** The extraction after the user's explicit decision returned nothing; the second gate admitted the same decision.
+  - The stores went with the run, so the refusal reasons were not recorded. They are now (decision 0028 item 22).
+- **Observed, not investigated** (the store went with the run):
+  - **L4's candidate redid step 1.** The plan claim was delivered at B's prompt, but the session-start packet was empty, and nothing said step 1 was done.
+  - **R1's failure lesson stayed active** after C's plain run succeeded. It was delivered at C's prompt as `current` with `dependency_unknown`, while its sibling procedure was `needs_revalidation`. The retrieval point (no caution) was met.
+  - **R3 and C3:** no curation ran after a session A that used no tools.
+  - **R3, both arms:** failed on the oracle's wording (decision 0028 item 23).
+- **Built after the gate:**
+  - `extract_claims@3` (decision 0035): a user's explicit statement is durable in itself, and a failure seen only in the output of a call that exited 0 is stated as an inferred fact, never as a failure lesson. `@1` and `@2` are unchanged.
+  - Engine `0.1.0.dev5`.
+  - **Harness, decision 0028:**
+    - item 21: `--slots` runs the live workload days at once;
+    - item 22: each curator call's record keeps every operation's admission outcome and reason, and an empty proposal's `no_op_reason`;
+    - item 23: R3 accepts the old limit named as replaced.
+- **Wheel:** `uv build --wheel -o dist` → `recalith-0.1.0.dev5-py3-none-any.whl` (613,527 bytes), SHA-256 `71a845fc32ef2219dccb8dce9a93abd176709722d23b0b7419acaac77505d92d`.
+  - `tools/build_release.py --out <scratch>` → `problems: []`, `signing: unsigned`, the same wheel digest. The wheel ships `extract_v3.md`.
+  - The wheelhouse is unchanged.
+- **The sanitized record** is [`docs/evaluations/preview-live-2026-10-31/`](evaluations/preview-live-2026-10-31/report.md): 34 files, with the results directory as `<run>` and temporary paths as `<temp>`. A scan by count found 0 user names, drive paths, keys, email addresses or model identifiers.
+- **Prepared, not run:** `probe-private\run-pilot6-gate4.ps1` (untracked; it parses cleanly and is ASCII only). It runs a fresh pilot's steps 1–8 on `C:\Code\rl-pilot6`, then the fourth gate with 6 slots into `C:\Code\rl-gate4`, asking for the key once.
+  - **What it checks first:** no host markers, Claude Code 2.1.310, fresh paths, and the wheel's digest.
+  - **R4 alone is left out:** the gate runs R4.
+- **Tests** (native Windows, Python 3.13, `--basetemp C:/Code/t`):
+  - **New:**
+    - `test_live_workload_days_run_at_once_in_their_slots`: a barrier fails it if the days run in sequence;
+    - `test_the_curator_calls_record_what_admission_decided`: a scripted R1 trial through the real engine;
+    - `test_r3_accepts_the_old_limit_named_as_replaced`: three replaced-limit wordings pass and two stale ones fail;
+    - the extended `test_prompt_digests_are_pinned_separately`: `@3`'s digest, `@3` is `@2` plus exactly the two passages, and `@1` and `@2` keep their digests.
+  - **Runs:**
+    - `tests/unit tests/integration/test_claim_admission.py test_capsules.py test_consolidation.py test_forgetting.py test_retention.py test_retrieval.py tests/platform/test_provider_isolation.py` → 569 passed, 41 skipped;
+    - `tests/integration/test_requests.py test_claude_adapter.py` → 93 passed;
+    - `tests/integration/test_evaluation.py` → passed, the scripted smoke trial included.
+  - **A scripted check:** all 12 scripted candidate trials through `curator_calls`. Every proposal was applied, and every operation has an outcome and a reason: `candidate_only`, `apply`, `review_required`, and 57 no-ops with their reason.
+  - `uvx ruff@0.14.0 check --select F,E9,B` on every changed Python file → clean. `tools/generate_schemas.py --check` → exit 0. `tools/release_checklist.py` → no problems, verdict `blocked`.
+  - **Not run:** the whole suite and the crash families. Nothing here touches the store, the worker loop or the crash paths.
+    - `tests/integration/test_worker.py` was started and then stopped by Claude Code for low system memory (about 3 GB of 32 GB free, mostly other applications). It was not restarted.
+    - Its one use of the change is `test_five_candidates_use_one_review_call`, which pins `prompts.CURRENT["extract_claims"]` and asserts nothing about the text. CI's suite on Linux, macOS and Windows covers it.
+- **Acceptance:** statuses unchanged. A failed gate and an unrun prompt change are not passes.
+
 ## Blockers and decisions
 
 **B1 — Task 0/0b live certification (cleared on native Windows on 2026-10-23; Linux and macOS not observed).** Status after the owner's live run: the Anthropic Messages route and all four delivery paths of Claude Code 2.1.309 are live-certified for the pilot, whose health is `ready`; see the B1 live checkpoint. The same holds for engine 0.1.0.dev1 and Claude Code 2.1.310 on the fresh pilot `C:\Code\rl-pilot2` (both certified on 2026-10-28; the 2026-10-28 and 2026-10-29 checkpoints), and for engines 0.1.0.dev2 on `C:\Code\rl-pilot3` and 0.1.0.dev3 on `C:\Code\rl-pilot4` (2026-10-29, the second and third R4 rerun checkpoints), and 0.1.0.dev4 on `C:\Code\rl-pilot5` (2026-10-31). The history below is kept. Evidence: `docs/host-compatibility.json` (`auth_route.kind = not_configured`, live `not_run`). This cloud session has the Claude CLI but no explicitly configured build account route; the session's own host credentials/proxy are not a Recalith route and are not used. Minimal operator action, from an ordinary terminal outside any agent session:
@@ -1904,7 +1965,8 @@ For each further blocker, record the task, observed evidence, minimal missing ac
 Task 18's preview slice, the Task 11 follow-up (decision 0021), the Windows typed-state slice (decision 0022), the direct-API inference backends (decision 0023) and, in Cut 2, Task 5's full slice (decision 0024: the revision chain and integrity scanner) Task 15's capsule slice (decision 0025: exact evidence capsules) and Task 17's preview-to-full transition (decision 0026), all full profile only, are built; see their checkpoints. The transition is reached only through `operations.upgrade.transition` (the tests); the CLI and `init --release-profile full` answer 4 until the owner enables the full profile.
 
 - The preview gate's first live run failed (2026-10-26 checkpoint). The harness gaps it exposed are closed (decision 0028 items 12–16), and so are its engine causes (decision 0029, engine `0.1.0.dev1`).
-- The second live run failed too (2026-10-29 checkpoint): mostly a lid closure overnight and Wi-Fi drops on waking, but also R4's agent-written `CLAUDE.md`, R4's missing freshness label and an oracle false negative (fixed, decision 0028 item 17). Claude Code 2.1.310 delivery is live-certified. The owner's decisions and the next run are in item 2.
+- The second live run failed too (2026-10-29 checkpoint): mostly a lid closure overnight and Wi-Fi drops on waking, but also R4's agent-written `CLAUDE.md`, R4's missing freshness label and an oracle false negative (fixed, decision 0028 item 17). Claude Code 2.1.310 delivery is live-certified.
+- The third live run (2026-10-31 checkpoint) was complete and clean, but the drafted labels put useful recall at 5/8 and failed-approach recall at 1/3. Two failure lessons were refused because a pipe hid the exit status, and one declared decision was not extracted. `extract_claims@3` (decision 0035, engine `0.1.0.dev5`) addresses both. The next run is in item 2.
 - Every healthy §7 target is met on every native platform on b3f1f1f: hook latency and usefulness, typed-state p95 ≤ 5 s and the idle footprint. The checklist item `hook_latency_usefulness_per_platform` is `passed`.
 
 **Native Windows (decision 0027).** The owner's laptop is a native Windows host: integrate installs the `.cmd` hook command there, Claude Code 2.1.309 and 2.1.310 are capture-certified, the harnesses run natively, the §7 gate is met through the installed command, and the pilot `C:\Code\rl-pilot` is set up for the operator (see the native Windows checkpoint). The live gate's trial path is built (decision 0028).
@@ -1913,8 +1975,10 @@ Next actions, in order:
 
 1. **Done (2026-10-23):** the owner certified the curator route and all four delivery paths live on native Windows (B1 live checkpoint). A later Claude Code version needs a capture review (decision 0019) and the delivery probe again. Earlier instruction, kept for reference: **The operator's live certification on native Windows.** Run the PowerShell commands of the native Windows checkpoint (steps 1–7; Anthropic Messages, already configured), then record the live results here: `docs/host-compatibility.json` (check it holds no secret, user name or machine path), the read-only `recalith status`, the coverage manifest for any live variant that actually ran.
    - A later Claude Code version needs a fixture capture and review before it is certified (decision 0019), then `integrate claude` again.
-2. **The `0.1.0.dev4` pilot** (decisions 0030–0034; the 2026-10-29 checkpoints). Done on `0.1.0.dev1`: the pilot `C:\Code\rl-pilot2`, its live route, live delivery on Claude Code 2.1.310, the one-scenario pilot, the second gate (failed), and the R4 rerun with kept workspaces (reproduced). Done on `0.1.0.dev2`: the pilot `C:\Code\rl-pilot3`, its live route and live delivery on 2.1.310, and the second R4 rerun (`C:\Code\rl-p5`; the label still missing, with a different claim shape; decision 0031). Done on `0.1.0.dev3`: the pilot `C:\Code\rl-pilot4`, its live route and live delivery on 2.1.310, and the third R4 rerun (`C:\Code\rl-p6`; the file declared, but changed by the harness before curation; decision 0028 item 18). Done on `0.1.0.dev4` (2026-10-31): the pilot `C:\Code\rl-pilot5`, its live route and live delivery on 2.1.310, and the fourth R4 rerun (`C:\Code\rl-p7`; the retrieval point met, both arms clean). What remains is the owner's, in order:
-   - **Label the second gate** (optional, since it does not change the gate result; it gives the only reviewer-labeled read of live claim quality so far): `evals\run.py adjudicate C:\Code\rl-gate2`, label the template, save it as `adjudication.json`, then `evals\run.py report C:\Code\rl-gate2`.
+2. **The `0.1.0.dev5` pilot and the fourth gate** (decision 0035; the 2026-10-31 checkpoints; earlier, decisions 0030–0034). Done on `0.1.0.dev1`: the pilot `C:\Code\rl-pilot2`, its live route, live delivery on Claude Code 2.1.310, the one-scenario pilot, the second gate (failed), and the R4 rerun with kept workspaces (reproduced). Done on `0.1.0.dev2`: the pilot `C:\Code\rl-pilot3`, its live route and live delivery on 2.1.310, and the second R4 rerun (`C:\Code\rl-p5`; the label still missing, with a different claim shape; decision 0031). Done on `0.1.0.dev3`: the pilot `C:\Code\rl-pilot4`, its live route and live delivery on 2.1.310, and the third R4 rerun (`C:\Code\rl-p6`; the file declared, but changed by the harness before curation; decision 0028 item 18). Done on `0.1.0.dev4` (2026-10-31): the pilot `C:\Code\rl-pilot5`, its live route and live delivery on 2.1.310, the fourth R4 rerun (`C:\Code\rl-p7`; the retrieval point met, both arms clean) and the third gate (`C:\Code\rl-gate3`; complete and clean, recall under target). What remains is the owner's, in order:
+   - **Next: `powershell -ExecutionPolicy Bypass -File probe-private\run-pilot6-gate4.ps1`** (untracked; `-Slots N` to change the default 6). It runs a fresh pilot's steps 1–8 on `C:\Code\rl-pilot6` from the `0.1.0.dev5` wheel, then the fourth gate into `C:\Code\rl-gate4`. It asks for the key once, takes about 60–75 minutes unattended, logs every exit code to `probe-private\pilot6-gate4-run.log`, and stops at the first unexpected one. The gate step exits 8 even when everything ran, because its labels come afterwards.
+   - **Then the labels.** This session drafts suggestions with each item's evidence (`adjudication.suggested.json`, every label null). Only a reviewer's labels count: copy or change each suggestion into `label`, add yourself under `reviewers`, save the file as `adjudication.json`, then run `evals\run.py report C:\Code\rl-gate4`. Labeling matters only when the drafted totals could meet the targets, which the third gate's could not.
+   - **Label the second or third gate** (optional, since it does not change either result): `evals\run.py adjudicate C:\Code\rl-gate2` (the third gate's sheet and suggestions are already written), label the template, save it as `adjudication.json`, then `evals\run.py report` on that directory.
    - **Decided (delegated by the owner, 2026-10-29):**
      - R4's agent-written instruction files: denied in both arms (decision 0028 item 19);
      - fresh-session reuse with a capable agent: required to happen, with its difference reported (item 20);
@@ -1922,17 +1986,17 @@ Next actions, in order:
      - an attached contradiction: a revalidation trigger (decision 0032);
      - a change before curation: the dependency records the bytes the read saw (decision 0033).
    - **Before any run:** keep Claude Code's background updates off (`DISABLE_AUTOUPDATER`, OPERATIONS §6; check `claude --version` prints 2.1.310). Keep the laptop plugged in with the lid open, on a stable network (wired if possible). Keep-awake stops idle sleep, not a lid closure.
-   - **Next: the third gate (9b) on `C:\Code\rl-pilot5`.** Steps 1–8 and 9a are done on it (2026-10-31). `probe-private\run-gate3.ps1` (untracked) runs 9b with its exit code logged to `probe-private\gate3-run.log`: 0 passed, 8 ran and failed, 4 missing input. Keep the lid open and the power connected throughout; a suspension fails the gate.
-   - For a later fresh pilot, `probe-private\run-pilot5.ps1` (untracked) runs steps 1–8 and 9a with every exit code logged, stopping at the first unexpected one; edit its paths, wheel and digest first. The commands are below.
+   - Keep the lid open and the power connected throughout; a suspension fails the gate. To stop early, press Ctrl+C in the run's window rather than sleeping the laptop.
+   - For a later fresh pilot and gate, copy `probe-private\run-pilot6-gate4.ps1` and edit its paths, wheel and digest. The commands it runs are below.
 
    The commands (native PowerShell, an ordinary window, from the repository root; type `$LASTEXITCODE` after each):
    ```powershell
    Get-ChildItem Env: | Where-Object Name -like '*CLAUDE*'   # must print nothing
    claude --version                                         # must print 2.1.310
-   $env:PILOT = 'C:\Code\rl-pilot5'; $py = '.\.venv\Scripts\python.exe'
+   $env:PILOT = 'C:\Code\rl-pilot6'; $py = '.\.venv\Scripts\python.exe'
    New-Item -ItemType Directory $env:PILOT | Out-Null; git -C $env:PILOT init -q                                    # 1. an empty repository
    & $py -m recalith init --project $env:PILOT --profile coding --release-profile claude_preview                     # 2. expect 0
-   py -3.13 bootstrap.py install --project $env:PILOT --wheel dist\recalith-0.1.0.dev4-py3-none-any.whl --expected-digest 7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74 --wheelhouse wheelhouse   # 3. expect 0
+   py -3.13 bootstrap.py install --project $env:PILOT --wheel dist\recalith-0.1.0.dev5-py3-none-any.whl --expected-digest 71a845fc32ef2219dccb8dce9a93abd176709722d23b0b7419acaac77505d92d --wheelhouse wheelhouse   # 3. expect 0
    $k = Read-Host -AsSecureString 'Anthropic API key'
    $env:ANTHROPIC_API_KEY = [System.Net.NetworkCredential]::new('', $k).Password; Remove-Variable k
    [bool]$env:ANTHROPIC_API_KEY                             # must print True (it never prints the key)
@@ -1941,9 +2005,8 @@ Next actions, in order:
    & "$env:PILOT\.recalith\bin\recalith.cmd" integrate claude                                                        # 6. expect 0
    & $py tools\probe_delivery.py --config probe-private\local-config.json --engine-project $env:PILOT --output docs\host-compatibility.json   # 7. expect 0 (live, on 2.1.310)
    & "$env:PILOT\.recalith\bin\recalith.cmd" status                                                                  # 8. 0, or 8 while a worker runs
-   $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', $env:PILOT, '--wheel', 'dist\recalith-0.1.0.dev4-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
-   & $py evals\run.py smoke --mode live --scenario smoke-R4-fieldnotes-storage-conflict @live --out C:\Code\rl-p7 --keep-workspaces   # 9a, expect 0
-   & $py evals\run.py gate --mode live @live --out C:\Code\rl-gate3 --slots 2                                       # 9b, only after 9a shows the label
+   $live = @('--config', 'probe-private\local-config.json', '--operator-token-file', 'C:\Code\rl-secure\eval-token.json', '--source-project', $env:PILOT, '--wheel', 'dist\recalith-0.1.0.dev5-py3-none-any.whl', '--wheelhouse', 'wheelhouse')
+   & $py evals\run.py gate --mode live @live --out C:\Code\rl-gate4 --slots 6                                       # 9. 8 until labeled; 4 missing input
    Remove-Item Env:ANTHROPIC_API_KEY
    ```
    - **Note:** the probes (steps 4, 5 and 7 of a fresh pilot) write `docs\host-compatibility.json`, and a run without the key replaces the committed live delivery record with a not-run entry. Leave it uncommitted; this session reviews it for secrets, user names and machine paths before it is committed. Results directories hold machine paths and private trial content, so keep them out of git until they are sanitized. The kept R4 workspaces (`C:\Code\rl-p4`, `C:\Code\rl-p5`, `C:\Code\rl-p6`) also hold each trial installation's `provider.json`, `host.json` and `local.toml`; once read they can be deleted.

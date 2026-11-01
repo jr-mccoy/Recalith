@@ -1,0 +1,283 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "ledgerlite's test command applies to fieldnotes."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev4-py3-none-any.whl",
+  "wheel_sha256": "7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c4",
+  "checks": {
+   "checks_pass": true,
+   "no_foreign_test_command": true,
+   "project_tests_run_successfully": true
+  },
+  "metrics": {
+   "cross_project_leak_commands": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 1,
+  "elapsed_seconds": 24.259,
+  "foreground_cost_usd": 0.054435,
+  "foreground_tokens": 196890,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C4-cross-project-near-match",
+ "second_project": {
+  "project": "ledgerlite",
+  "workspace": "C4/b/p2/w"
+ },
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md; find src tests -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "head -20 tests/test_ledger.py; python --version; python -m pytest --version",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests -v",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.025696,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 11.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 11.508,
+   "foreground_tokens": 89392,
+   "host_session_id": "7a5a5289-e9c2-46cf-900a-27b85e9b8e7f",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The command that works, run from the project root (`<run>\\work\\C4\\b\\p2\\w`), is:\n\n```\nPYTHONPATH=src python -m unittest discover -s tests -v\n```\n\nBoth tests passed: `test_transfer_preserves_total` and `test_rejects_non_positive_amount`.\n\n- **`PYTHONPATH=src`:** The package lives in `src/ledgerlite`, and the project isn't installed. Without this, the tests can't import `ledgerlite`.\n- **`unittest` instead of `pytest`:** The tests are written with `unittest`, and `pytest` isn't installed in this Python 3.13 environment.",
+   "second_project": true,
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "ls -a; cat package.json 2>/dev/null | head -40; ls *.toml *.py *.cfg Makefile go.mod Cargo.toml pom.xml 2>/dev/null",
+     "exit_code": 2,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md; find . -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "grep -n \"NOTES_HOME\\|rmtree\\|remove\\|unlink\" -r fieldnotes tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py; echo exit=$?",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028739,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 12.8,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 12.751,
+   "foreground_tokens": 107498,
+   "host_session_id": "d20163b6-ef15-4da0-9f3c-ec24703be6fb",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "Yes, the tests pass. I ran `python tools/check.py`, which is the check command from the README, and it exited with code 0.\n\n- **Unit tests:** 1 test ran and passed.\n- **Line-length rule:** no lines over 100 characters in `fieldnotes/`.\n\nThe script needs a `NOTES_HOME` environment variable and fails without one. I set it to a fresh temp directory for the run. The code only writes `notes.json` there, and the test uses its own temp directory anyway.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C4/b/w"
+}

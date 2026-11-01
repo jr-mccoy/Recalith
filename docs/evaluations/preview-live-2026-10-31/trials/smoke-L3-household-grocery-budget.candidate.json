@@ -1,0 +1,555 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 141229,
+  "estimated_output_tokens": 10798,
+  "jobs_by_state": {
+   "completed": 8
+  },
+  "model_calls": 7,
+  "tokens": 152027,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_6a26e652-8a59-427f-9846-7d9c3f2f644d",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "The household grocery budget is kept under $600 per month, and any spending that would push it over is flagged.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "update_task",
+    "update_task"
+   ],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     21,
+     14,
+     18
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 13,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 330.7,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     36,
+     24,
+     31
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 12,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 326.3,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "The user stated a grocery budget under $600 per month."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "600",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All budget categories are capped at $600."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+    "scope": "this workspace"
+   }
+  ]
+ },
+ "hook_replies": 9,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-10-31T15:12:32.708850Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-10-31T15:18:22.760558Z",
+   "events": 12,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev4-py3-none-any.whl",
+  "wheel_sha256": "7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 6.1,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 18.2,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.8,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 2.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_28f0dd68-b8aa-433e-bbf9-71cbd6ceeda1",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_61c335fc-eee0-475a-bab9-26ca4fbbd93a"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l3",
+  "checks": {
+   "at_least_three_items": true,
+   "grocery_list_exists": true,
+   "meal_plan_updated": true,
+   "within_600_budget": true
+  },
+  "metrics": {
+   "grocery_total_usd": 464.0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 152027,
+  "detours": 0,
+  "elapsed_seconds": 41.54,
+  "foreground_cost_usd": 0.06585,
+  "foreground_tokens": 110703,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 42110,
+    "reported_output_tokens": 3971,
+    "visible_output_estimate": 1000
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 52143,
+    "reported_output_tokens": 2359,
+    "visible_output_estimate": 444
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 5014,
+    "reported_output_tokens": 877,
+    "visible_output_estimate": 168
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 41962,
+    "reported_output_tokens": 3591,
+    "visible_output_estimate": 1207
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Decision: The household grocery budget is kept under $600 per month, and any spending that would push it over is flagged."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "600",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-L3-household-grocery-budget",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "cd \"<run>/work/L3/c/w\" && ls && cat budget.csv",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd \"<run>/work/L3/c/w\" && tail -c1 budget.csv | xxd | head -1; printf '\\ngroceries,600,keep under this; flag anything that would push it over' >> budget.csv; cat budget.csv",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd \"<run>/work/L3/c/w\" && sed -i '/^$/d' budget.csv && cat -A budget.csv | tail -3",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.02259,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 18.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b3ce126f810cb1138debf07b830352fd9821cca32110142fc3965c5362b21de4",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_bd792a13fd53bbd4c0b8998dc12313f317e19ba57c8a95997dbf87e0e8281adb",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 18.536,
+   "foreground_tokens": 71200,
+   "host_session_id": "7dc5a16d-3b7f-4285-a623-95aae48463a5",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "I added this row to `budget.csv`:\n\n```\ngroceries,600,keep under this; flag anything that would push it over\n```\n\nThe limit is $600 a month, which is the same units as the other rows. The CSV can only store the limit, so the \"flag anything that would push it over\" part is a note and nothing checks it automatically. When you give me grocery spending or a planned purchase, I'll compare it to the $600 and tell you if it goes over.\n\nThe last line has no trailing newline, so a later append needs to add one first.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "groceries.csv",
+     "session": "B",
+     "tool": "Write"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "meal-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.04326,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 23.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Decision: The household grocery budget is kept under $600 per month, and any spending that would push it over is flagged.\n  why: lexical_match \u2014 matches grocery, month\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_6a26e652-8a59-427f-9846-7d9c3f2f644d r2; evt_18d25a6f9603b92d4e872173fbb0a0051f7ebe4cc9b2e0af0e8636e1a1c1b341",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 23.004,
+   "foreground_tokens": 39503,
+   "host_session_id": "98bdb5b7-e088-40b4-8196-61112b160175",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I created `groceries.csv` and wrote `meal-plan.md`. One caveat: `meal-plan.md` already existed, and I overwrote it without reading it first. Its old contents are gone, and the directory isn't a git repo, so I can't recover them from there. If you needed the old version, check a backup or file history.\n\n- **`groceries.csv`:** 31 items with `item,cost_usd` columns. It includes a turkey and sides for Thanksgiving.\n- **`meal-plan.md`:** a budget summary, a cost breakdown by category, and the meal approach for the month.\n- **Total:** the estimated total is $464.00. That's $136 under your $600 monthly budget, so nothing needs flagging.\n\nThe prices are my rough estimates, not real store prices. Adjust them to your local prices before shopping.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "L3/c/w"
+}

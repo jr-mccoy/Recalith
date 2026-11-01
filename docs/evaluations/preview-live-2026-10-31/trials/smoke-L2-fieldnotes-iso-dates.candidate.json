@@ -1,0 +1,743 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 278133,
+  "estimated_output_tokens": 14930,
+  "jobs_by_state": {
+   "completed": 8
+  },
+  "model_calls": 7,
+  "tokens": 293063,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_f64c5e69-d83d-411d-8a49-c4fe18801538",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "fieldnotes/store.py export_lines() formats each note's DATE as the first 10 characters of its created timestamp, giving YYYY-MM-DD.",
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  }
+ ],
+ "curator_calls": [
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "body_retained": true,
+   "operations": [],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     14,
+     13,
+     17
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 13,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 332.0,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     43,
+     52,
+     60
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 15,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 337.0,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "The user declared ISO-8601 dates for all printed output."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "ISO-8601",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Every project must use ISO-8601 dates."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 22,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-10-31T15:10:31.869061Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-10-31T15:16:17.901127Z",
+   "events": 13,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev4-py3-none-any.whl",
+  "wheel_sha256": "7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 5.1,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 16.8,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.9,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_bffe1730-6472-4b9c-b7c2-f487214de3e3",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_44888033-9ca0-4ec5-adbd-0e1f8e6c3ba1"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l2",
+  "checks": {
+   "checks_pass": true,
+   "export_dates_iso8601": true,
+   "export_exists": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 293063,
+  "detours": 0,
+  "elapsed_seconds": 43.003,
+  "foreground_cost_usd": 0.125697,
+  "foreground_tokens": 244487,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 89501,
+    "reported_output_tokens": 4361,
+    "visible_output_estimate": 1442
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 93791,
+    "reported_output_tokens": 5718,
+    "visible_output_estimate": 1101
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 5080,
+    "reported_output_tokens": 1246,
+    "visible_output_estimate": 257
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 89761,
+    "reported_output_tokens": 3605,
+    "visible_output_estimate": 954
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": false,
+   "spec": {
+    "must_include": "ISO-8601",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-L2-fieldnotes-iso-dates",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Grep"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.04865,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 13.501,
+   "foreground_tokens": 73888,
+   "host_session_id": "dd4b9c94-8d37-45b3-9546-0865e1aa5ea1",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`list` follows the ISO-8601 rule.\n\n- **Where the date comes from:** `fieldnotes/cli.py:21` prints `note['created']` as it is stored. It does no date formatting of its own.\n- **How it's stored:** `fieldnotes/store.py:24` writes `created` using `moment.isoformat()`. The timestamp is timezone-aware UTC, so it looks like `2026-01-02T03:04:05+00:00`.\n- **Other date output:** `add` prints only the note text, so no other date is printed. I found no `strftime` or locale-based formatting in the package.\n\nOne weakness: `list` is ISO only because every stored value is ISO. If `notes.json` held a non-ISO `created` value, `list` would print it unchanged. That could happen from hand edits or a future import path. Nothing enforces the rule today.\n\nI didn't open `tools/check.py` or `README.md`. I can check them, or add a test that `list` output matches ISO-8601, if you want.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "echo \"NOTES_HOME=${NOTES_HOME-unset}\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py; echo exit=$?",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.077047,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 29.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_fe4e0499bda85ca618ca8302e370941e76847c27c7a35a39d02f645b21ed019b",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6049b7b9883b00896b3306afd07ded72581390a8b028f1e00ca2a0cbb4ba698c\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_7ee6a4f339d5621131eb8a91efc687732616b8b49244cb384ea2fdf1349ef0aa\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_975daa5e87a782f2ef0eca2aded6c561bb59f02f27eee6d2ad3947ab279d4e52",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_7bdcff945409566b96496f43aefe8ac5ca74e95fc6b03290efcee2217cd77f7a",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_2ec2ac7b663fba402ea3769fb884786a8145f6ab62a9fe3d85b8e03a0a2a106e\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b1776b91e45d81cfb0455f6d5e5fff99319ff5f1fbf90170ca839efbf2b31b45\n- [context] Recent observation (not a durable lesson): Edit tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_f4cb71cecebbac7cc591aa16ea0b947830f92b6a9b734e8e69af08d904466ab9",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 29.502,
+   "foreground_tokens": 170599,
+   "host_session_id": "4538f99a-60a5-4184-baeb-61fb739808ae",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added `fieldnotes export`, which prints one `DATE: TEXT` line per note. `python tools/check.py` passes: both tests (the existing one and the new one) succeed, and the line-length check is clean.\n\n- **Store:** `fieldnotes/store.py` has a new `export_lines()` that builds the lines, so it can be tested without the CLI.\n- **CLI:** `fieldnotes/cli.py` handles `export` and prints each line. I moved the usage message into a shared `USAGE` constant that now lists `export`.\n- **Test:** `tests/test_store.py` has a new `test_export_lines`, which checks two notes come out as `2026-01-02: first` and `2026-02-03: second`.\n\n- **Date format:** I used just the day from each note's timestamp (`2026-01-02`), not the full ISO timestamp. If you want the full timestamp, change the slice in `export_lines()`.\n- **Test coverage:** The CLI `export` branch itself has no test. The test covers `export_lines()` only.\n- **Check setup:** `tools/check.py` needs `NOTES_HOME` set and it wasn't, so I ran it with `NOTES_HOME` pointing at a fresh temp directory.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "L2/c/w"
+}

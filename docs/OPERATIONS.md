@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev4` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
+Engine `0.1.0.dev5` · release profile `claude_preview` · status: **preview gate blocked (B1)**, not released.
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -113,7 +113,7 @@ Logical forgetting does not reach explicit exports, operator or third-party copi
 
 ## 6. Evaluation status
 
-The preview release gate (ACCEPTANCE_TESTS §6.1, §8) has **not passed**. B1 has cleared on native Windows: the pilot project holds a live-certified route and host record (Claude Code 2.1.309). The first live gate ran on 2026-10-23 to 2026-10-26 and **failed**: the host updated itself to 2.1.310 partway through, the laptop slept over a weekend, and the curator's reasoning filled `update_task`'s output allowance, so most waits never settled ([the run's record](evaluations/preview-live-2026-10-26/report.md); the checkpoint in [BUILD_PROGRESS](BUILD_PROGRESS.md)). Before that, the evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) have run only in recorded/scripted mode, which is mechanics evidence and never a live pass. See the Task 18 checkpoints in [BUILD_PROGRESS](BUILD_PROGRESS.md).
+The preview release gate (ACCEPTANCE_TESTS §6.1, §8) has **not passed**. B1 has cleared on native Windows: the pilot project holds a live-certified route and host record (Claude Code 2.1.309). The first live gate ran on 2026-10-23 to 2026-10-26 and **failed**: the host updated itself to 2.1.310 partway through, the laptop slept over a weekend, and the curator's reasoning filled `update_task`'s output allowance, so most waits never settled ([the run's record](evaluations/preview-live-2026-10-26/report.md); the checkpoint in [BUILD_PROGRESS](BUILD_PROGRESS.md)). The second (2026-10-28 to 2026-10-29) also **failed** ([record](evaluations/preview-live-2026-10-29/report.md)). The third (2026-10-31, engine `0.1.0.dev4`) ran complete and clean but **failed**: its live support and recall await reviewer labels, and the drafted labels put useful recall at 5/8 and failed-approach recall at 1/3, both under target ([record](evaluations/preview-live-2026-10-31/report.md); decision 0035). Before that, the evaluation harness (`evals/run.py`), the workload days, the latency gate (`tools/measure_release_latency.py`) and the release checklist ([docs/release/claude_preview_checklist.json](release/claude_preview_checklist.json)) have run only in recorded/scripted mode, which is mechanics evidence and never a live pass. See the Task 18 checkpoints in [BUILD_PROGRESS](BUILD_PROGRESS.md).
 
 ### Running the live gate (decision 0028)
 
@@ -122,9 +122,11 @@ Run it from an ordinary terminal that you opened yourself, with the selected key
 ```powershell
 & .venv\Scripts\python.exe evals\run.py gate --mode live `
     --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
-    --source-project C:\Code\rl-pilot5 --wheel dist\recalith-0.1.0.dev4-py3-none-any.whl --wheelhouse wheelhouse `
-    --out C:\Code\rl-gate --slots 2
+    --source-project C:\Code\rl-pilot6 --wheel dist\recalith-0.1.0.dev5-py3-none-any.whl --wheelhouse wheelhouse `
+    --out C:\Code\rl-gate --slots 6
 ```
+
+`--slots` is how many smoke trials, and then workload days, run at once, each in its own installation. The time is mostly waiting for curation, not CPU. The third gate took 102 minutes at 2 slots: 80 for the smoke, 16 for the three days run one after another, and 6 for the demonstrations. At 6 slots, with the days run together, expect about 45–60 minutes. More slots raise the tokens per minute the key must serve. If the report's curator call outcomes show rate-limit errors or a wait stalls, use fewer slots.
 
 Exit 0 means the gate passed (`passed_smoke`). Exit 8 means it ran and failed: the report lists every reason, including anything that did not run. Exit 4 means a required input or certification was missing and nothing ran.
 
@@ -144,4 +146,4 @@ After it finishes, the live §5.1 support and recall need a reviewer's labels, b
 & .venv\Scripts\python.exe evals\run.py report C:\Code\rl-gate
 ```
 
-Until every admitted claim and gold lesson is labeled, the report gives those three measures as unestablished and the gate fails with `claims_unadjudicated`.
+Until every admitted claim and gold lesson is labeled, the report gives those three measures as unestablished and the gate fails with `claims_unadjudicated`. A coding agent may draft suggestions with the evidence for each item (as `adjudication.suggested.json`, every label left null), but only a reviewer's labels count.

@@ -1,0 +1,397 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "An intentionally failing test was run before the implementation existed, then passed."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "The delete test fails.",
+   "Do not run the unit tests."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev4-py3-none-any.whl",
+  "wheel_sha256": "7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c2",
+  "checks": {
+   "checks_pass": true,
+   "count_works": true,
+   "delete_works": false
+  },
+  "metrics": {},
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 1,
+  "elapsed_seconds": 57.055,
+  "foreground_cost_usd": 0.135393,
+  "foreground_tokens": 316313,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": false
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C2-fieldnotes-tdd-expected-red",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/C2/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py 2>&1 | tail -40",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/C2/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py 2>&1 | tail -20; echo exit=$?",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.07812,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 33.8,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 33.792,
+   "foreground_tokens": 169952,
+   "host_session_id": "819f1940-adbd-4fe2-8ac3-1cba9a957bcf",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added `fieldnotes delete INDEX`, and `python tools/check.py` now passes.\n\n**Red:** Before any implementation, the run showed 1 failure and 2 errors. `store.delete` didn't exist (`AttributeError`), and the CLI returned 2 for `delete`.\n\n**Green:** With the implementation in, all 5 tests pass and the line-length check reports nothing. The `exit=0` in my last command came from `tail`, not `check.py`, so I'm relying on the \"OK\" output rather than the exit code.\n\n**Changes**\n- `tests/test_store.py` has four new tests:\n  - Deleting by index removes the right note.\n  - Out-of-range indexes (0, 2 and -1 on a one-note store) raise `IndexError` and leave the notes alone.\n  - The CLI deletes the note and prints `deleted: a`.\n  - The CLI returns exit code 2 for a bad, non-numeric or missing index.\n- `fieldnotes/store.py` has a new `delete(index)`. I also pulled the file write into a `_save` helper that `add` now uses too.\n- `fieldnotes/cli.py` handles `delete INDEX`, and the usage text now lists it.\n\nI made `INDEX` 1-based, in the order `list` prints notes. `list` doesn't print numbers today, so users have to count lines to find an index. If you'd like, I can make `list` number its output, or switch to 0-based indexing. I left both alone because you didn't ask for them.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd \"<run>/work/C2/b/w\" && NOTES_HOME=\"$(mktemp -d)\" python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd \"<run>/work/C2/b/w\" && NOTES_HOME=\"$(mktemp -d)\" python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.057273,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 23.3,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 23.263,
+   "foreground_tokens": 146361,
+   "host_session_id": "8635b22f-2c21-43c2-b50a-99a68ffe4e91",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added a `count` command that prints the number of notes, and the project checks now pass: all 7 tests are green and the line-length rule is clean.\n\n- **Command:** `count` in `fieldnotes/cli.py` prints `len(store.load())`. I also added it to the usage string.\n- **Tests:** a new `CliCountTests` class in `tests/test_store.py` checks the output is `0` with no notes and `2` after adding two.\n- **Docstring:** my first edit pushed the module docstring in `cli.py` over the 100-character limit and failed the check. I shortened it to `add|list|count|delete`, which drops the `TEXT` and `INDEX` argument hints from the docstring. The usage string still has them.\n- **Running the checks:** `tools/check.py` needs `NOTES_HOME` set, so I ran it with `NOTES_HOME` pointing at a fresh temp directory: `NOTES_HOME=\"$(mktemp -d)\" python tools/check.py`.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C2/b/w"
+}

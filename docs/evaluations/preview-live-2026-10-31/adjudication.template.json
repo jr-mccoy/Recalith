@@ -1,0 +1,141 @@
+{
+ "adjudication_schema": 1,
+ "claims": {
+  "smoke-C3-household-utilities-speculation:claim_263c0d97-4ced-44b2-8fcb-e89a859682f8": {
+   "label": null,
+   "proposition": "utilities-log.csv records monthly electricity, water and internet costs in USD for 2026-07 through 2026-09 and has no October 2026 row.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-C4-cross-project-near-match:claim_dbf57074-70a9-4fcc-ab2e-eb9da52e3b00": {
+   "label": null,
+   "proposition": "tools/check.py reads NOTES_HOME with os.environ[\"NOTES_HOME\"], so the check requires NOTES_HOME to be set in the environment.",
+   "status": "active",
+   "strength": "corroborated",
+   "term_match": "unsupported"
+  },
+  "smoke-L1-ledgerlite-test-command:claim_f48e3454-7938-494d-8cb2-2d1413c7c883": {
+   "label": null,
+   "proposition": "To run the ledgerlite unit tests, run `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-L3-household-grocery-budget:claim_6a26e652-8a59-427f-9846-7d9c3f2f644d": {
+   "label": null,
+   "proposition": "The household grocery budget is kept under $600 per month, and any spending that would push it over is flagged.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-L4-ledgerlite-resume-refactor:claim_61aed7eb-cab9-4b1f-b029-2fde23a877cf": {
+   "label": null,
+   "proposition": "src/ledgerlite/money.py defines parse(value: str | Decimal) -> Decimal, which raises TypeError for other types, ValueError for unparseable, non-finite, or non-positive values, and otherwise returns the Decimal. No test run or import of the module was recorded.",
+   "status": "disputed",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-L4-ledgerlite-resume-refactor:claim_c2c21604-4c4e-4588-b2a2-02f44050cca7": {
+   "label": null,
+   "proposition": "The ledgerlite refactor is planned in three steps: add src/ledgerlite/money.py with parse, make Ledger.transfer use money.parse, and add tests/test_money.py. Only step 1 was authorized for that session, after which work stops to report the next step.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_4e3e8091-d6c7-41eb-8c57-9acd3d20a632": {
+   "label": null,
+   "proposition": "Running python tools/check.py without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_bcfc5cfb-7062-4df8-8220-fc9477ce9377": {
+   "label": null,
+   "proposition": "Run python tools/check.py with NOTES_HOME set to a temp directory to get it passing.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_77cb102e-9e18-4629-be9d-9a64beb1daf7": {
+   "label": null,
+   "proposition": "After tests/__init__.py was added, `python -m unittest discover -s tests -t .` ran 2 tests and reported OK.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_f82c4fd1-4f9e-4016-9a39-685a09336733": {
+   "label": null,
+   "proposition": "The user prefers that the project's tests pass without changing the test command `python -m unittest discover -s tests -t .`, and asked to be told a working command if that is not possible.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-R3-household-budget-correction:claim_41276714-cde0-46f1-955a-7c51f0ca04c6": {
+   "label": null,
+   "proposition": "The monthly grocery budget is $700, replacing the earlier $600 figure.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_cec1ea64-38e1-44d1-945e-f796fed8068d": {
+   "label": null,
+   "proposition": "Notes are stored in notes.jsonl (JSON lines) under the directory named by the NOTES_HOME environment variable.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  }
+ },
+ "instructions": "Label each claim supported|unsupported against the trial's evidence (scope included: a prohibited generalization is unsupported), and each gold lesson recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as {\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels.",
+ "lessons": {
+  "smoke-L1-ledgerlite-test-command#0": {
+   "kind": "procedure",
+   "label": null,
+   "lesson": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+   "term_match": "recalled"
+  },
+  "smoke-L1-ledgerlite-test-command#1": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+   "term_match": "recalled"
+  },
+  "smoke-L2-fieldnotes-iso-dates#0": {
+   "kind": "decision",
+   "label": null,
+   "lesson": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+   "term_match": "missed"
+  },
+  "smoke-L3-household-grocery-budget#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+   "term_match": "recalled"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+   "term_match": "recalled"
+  },
+  "smoke-R2-ledgerlite-import-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+   "term_match": "missed"
+  },
+  "smoke-R3-household-budget-correction#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery budget is $700 per month.",
+   "term_match": "recalled"
+  },
+  "smoke-R4-fieldnotes-storage-conflict#0": {
+   "kind": "fact",
+   "label": null,
+   "lesson": "Notes are stored in notes.json under NOTES_HOME.",
+   "term_match": "recalled"
+  }
+ },
+ "reviewers": []
+}

@@ -1,0 +1,223 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "revision",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "A: budget under $600.",
+   "C: explicit correction to $700."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "$600 as current",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The $600 preference is superseded/invalidated as current guidance; history retains it.",
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "Grocery budget is $700 per month.",
+    "supersedes": "Grocery budget under $600 per month."
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev4-py3-none-any.whl",
+  "wheel_sha256": "7a5dffd72b082a950d83f5842df27117bc8a81a6f3c4120e011976fd478ecb74"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r3",
+  "checks": {
+   "grocery_list_exists": true,
+   "no_stale_600_limit": false,
+   "plan_states_700_limit": true,
+   "within_corrected_700_budget": true
+  },
+  "metrics": {
+   "grocery_total_usd": 690.0
+  },
+  "passed": false,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 20.253,
+  "foreground_cost_usd": 0.0388,
+  "foreground_tokens": 54035,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": false
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-R3-household-budget-correction",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0.011932,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 5.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 5.731,
+   "foreground_tokens": 17348,
+   "host_session_id": "2450d57d-e993-4396-8f72-e8773cd40a7a",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Got it. I'll keep any grocery or meal planning under $600 per month, which works out to about $20 a day or roughly $138 a week.\n\nI can't carry this between sessions on my own. If you want it to stick, I can save it in a notes file or a CLAUDE.md in this folder.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "cat > groceries.csv <<'EOF'\nitem,cost_usd\nProduce,100.00\nDairy and eggs,55.00\nBread and grains,40.00\nMeat and fish,85.00\nPantry staples and canned goods,50.00\nSnacks and beverages,35.00\nBreakfast items,30.00\nFrozen foods,30.00\nSpices and condiments,20.00\nDinner party - appetizers and cheese,40.00\nDinner party - main course,75.00\nDinner party - sides and produce,35.00\nDinner party - dessert,25.00\nDinner party - wine and drinks,50.00\nContingency buffer,20.00\nEOF\ncat > meal-plan.md <<'EOF'\n# Monthly Meal Plan\n\n**Budget limit used: $700 per month** (updated from the earlier $600 figure).\n\n- Regular groceries for the month: $445.00\n- Dinner party (appetizers, main, sides, dessert, drinks): $225.00\n- Contingency buffer: $20.00\n- **Total: $690.00**, which is $10.00 under the limit.\n\nSee `groceries.csv` for the itemized list.\nEOF\nawk -F, 'NR>1{s+=$2}END{print s}' groceries.csv",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.026868,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 14.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 14.523,
+   "foreground_tokens": 36687,
+   "host_session_id": "982a2765-d14c-4888-bfe0-21ac7b60b9e3",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `groceries.csv` and `meal-plan.md` using the corrected $700 monthly budget. The CSV items add up to $690.00, which is $10 under the limit.\n\n- **Regular groceries:** $445.00. This covers produce, dairy, grains, meat and fish, pantry items, snacks, breakfast, frozen foods and spices.\n- **Dinner party:** $225.00. This is appetizers, main course, sides, dessert and drinks.\n- **Contingency buffer:** $20.00.\n\n`meal-plan.md` states that the limit used is $700 per month, replacing the earlier $600. It also gives this cost breakdown and refers to the CSV for the itemized list.\n\nThe cost figures are my own estimates, not prices from a store.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "R3/b/w"
+}
