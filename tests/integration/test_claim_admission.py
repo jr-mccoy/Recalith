@@ -777,19 +777,35 @@ def test_candidate_only_degradation_without_review(p):
     assert (head["status"], head["strength"], head["review_assessment"]) == ("candidate", "weak", None)
 
 
+V3_DECLARATION = (' A user\'s explicit statement of a rule, decision or preference for this project, such as "Decision for this project: ...", "Remember ..." or '
+                  '"Keep ... for my planning", is durable in itself, even when the session\'s tools only read files or none ran: propose it as a user_declared '
+                  "decision or preference citing those words.")
+V3_MASKED = ("\n\nA failure_lesson must cite a tool result whose recorded outcome is failure; code refuses one that cites none. When a call finished with exit "
+             "code 0 but its output shows a failure, because a pipe such as `| tail` or a later command in the same call hid the failing command's exit status, "
+             "that failure is not recorded as one: state what the output shows as an inferred fact citing that output, such as which command fails with which "
+             "quoted error under which condition, never as a failure_lesson.")
+
+
 def test_prompt_digests_are_pinned_separately():
-    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031)."""
-    assert prompts.CURRENT["extract_claims"] == "extract_claims@2" and prompts.CURRENT["review_claims"] == "review_claims@1"
-    extract_digest, review_digest = prompts.prompt_digest("extract_claims@2"), prompts.prompt_digest("review_claims@1")
+    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035)."""
+    assert prompts.CURRENT["extract_claims"] == "extract_claims@3" and prompts.CURRENT["review_claims"] == "review_claims@1"
+    extract_digest, review_digest = prompts.prompt_digest("extract_claims@3"), prompts.prompt_digest("review_claims@1")
     assert extract_digest != review_digest
     # Golden digests: editing a shipped prompt text requires a new version string.
-    assert prompts.prompt_digest("extract_claims@1") == "72cbd9c3996f467d2aff4aafec9e6b3cf092ca15374dbb523723acabf8e19f21"  # still served to jobs that pinned it
-    assert extract_digest == "a6c44082b67f92e487c5140ecead0bcdc552aee8f757a085d2d6c416ed95b285"
+    assert prompts.prompt_digest("extract_claims@1") == "72cbd9c3996f467d2aff4aafec9e6b3cf092ca15374dbb523723acabf8e19f21"  # still served to jobs that pinned them
+    assert prompts.prompt_digest("extract_claims@2") == "a6c44082b67f92e487c5140ecead0bcdc552aee8f757a085d2d6c416ed95b285"
+    assert extract_digest == "be2234d247292d666a3352fea4b7e842bcc7df09f804e9d1599d360e395c7fa3"
     assert review_digest == "7bafbabe9897d1d173f43f3d43aa60d990e56e59411423faf4c7e39aecf5fbb2"
-    assert "review_capacity" in prompts.INSTRUCTIONS["review_claims@1"] and "exited with code" in prompts.INSTRUCTIONS["extract_claims@2"]
-    v2 = prompts.INSTRUCTIONS["extract_claims@2"]
-    assert '{"kind": "file", "key": "<path>", "fingerprint": null, "record": null}' in v2 and "payload.action.paths" in v2  # decision 0031
+    assert "review_capacity" in prompts.INSTRUCTIONS["review_claims@1"] and "exited with code" in prompts.INSTRUCTIONS["extract_claims@3"]
+    v2, v3 = prompts.INSTRUCTIONS["extract_claims@2"], prompts.INSTRUCTIONS["extract_claims@3"]
+    for text in (v2, v3):
+        assert '{"kind": "file", "key": "<path>", "fingerprint": null, "record": null}' in text and "payload.action.paths" in text  # decision 0031
     assert "dependencies" not in prompts.INSTRUCTIONS["extract_claims@1"]
+    # Decision 0035: a user's explicit statement is durable in itself; a failure only in a call's output is an inferred fact.
+    assert '"Decision for this project: ..."' in v3 and "propose it as a user_declared decision or preference" in v3
+    assert "recorded outcome is failure" in v3 and "`| tail`" in v3 and "never as a failure_lesson" in v3
+    assert "| tail" not in v2 and "Decision for this project" not in v2
+    assert v3.replace(V3_DECLARATION, "").replace(V3_MASKED, "") == v2  # @3 is @2 plus exactly those two passages
 
 
 # ---------------------------------------------------------------------------
