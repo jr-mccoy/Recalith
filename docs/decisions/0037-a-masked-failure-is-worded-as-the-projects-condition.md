@@ -1,6 +1,6 @@
 # Decision 0037: A failure a pipe hid is worded as the project's condition
 
-Status: prepared, not adopted (Task 9 prompt slice, preview; branch `claude/dev7-masked-failure-wording`) · Date: 2026-11-01 · Engine: `0.1.0.dev7` · Observed: the fifth live gate (`0.1.0.dev6`, Claude Code 2.1.310, 6 slots). It is adopted only if the owner's labels fail that gate on failed-approach recall. If they pass it, `0.1.0.dev6` is the version the gate measured, and this change waits for a later gate of its own.
+Status: accepted (Task 9 prompt slice, preview) · Date: 2026-11-01 · Engine: `0.1.0.dev7` · Observed: the fifth live gate (`0.1.0.dev6`, Claude Code 2.1.310, 6 slots). Prepared on the branch `claude/dev7-masked-failure-wording` and merged when the owner accepted the recommendation that L1 #1 was missed, so the fifth gate failed on failed-approach recall.
 
 ## Context
 
@@ -46,4 +46,4 @@ The fifth live gate ran complete and clean. It met every measure that needs no l
 
 ## Consequences
 
-If the owner's labels fail the fifth gate on failed-approach recall, this branch merges, and the owner provisions an eighth pilot from `dist\recalith-0.1.0.dev7-py3-none-any.whl`, certifies its route, runs the engine-mode delivery probe and runs the sixth gate with 6 slots. If the labels pass the fifth gate, `0.1.0.dev6` is the version measured, and this decision stays prepared.
+The owner provisions an eighth pilot from `dist\recalith-0.1.0.dev7-py3-none-any.whl`, certifies its route, runs the engine-mode delivery probe and runs the sixth gate with 6 slots, in one command (`probe-private\run-pilot8-gate6.ps1`, BUILD_PROGRESS handoff). That gate's records keep each claim's review verdict and objections (decision 0028 item 25). It passes only with a reviewer's labels.
