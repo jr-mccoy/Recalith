@@ -496,7 +496,9 @@ def test_abandoned_scratch_is_settled_before_pruning(tmp_path):
     killed = ds.killed_process(p, pre, tmp_path, failpoints.DELIVERY_AFTER_EMIT)
     assert killed.returncode == failpoints.KILL_STATUS
     scratch = ds.scratch(p, sid)
-    assert scratch and [e["state"] for e in scratch["entries"]] == ["reserved"]
+    # The start may already have delivered the workspace's one active task (decision 0036); the killed hook's entry is last.
+    assert scratch and [e["state"] for e in scratch["entries"]][-1] == "reserved" and {e["state"] for e in scratch["entries"][:-1]} <= {"emitted"}
+    killed_attempt = scratch["entries"][-1]["attempt_id"]
     path = Path(session.scratch_path(p.root, sid))
     old = time.time() - 25 * 3600
     os.utime(path, (old, old))
@@ -509,7 +511,7 @@ def test_abandoned_scratch_is_settled_before_pruning(tmp_path):
         retention.prune_scratch(store, p.ctx)
     assert not path.exists()
     ds.ingest(p)
-    assert [r["state"] for r in ds.deliveries(p, sid)] == ["uncertain"]
+    assert [r["state"] for r in ds.deliveries(p, sid) if r["attempt_id"] == killed_attempt] == ["uncertain"]
 
 
 # ---------------------------------------------------------------------------

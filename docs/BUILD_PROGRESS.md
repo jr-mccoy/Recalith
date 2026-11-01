@@ -1948,7 +1948,10 @@ Add each later checkpoint with:
     - `tests/integration/test_retrieval.py test_episodes.py test_delivery.py tests/unit/test_smoke_scenarios.py` → 107 passed, 1 skipped;
     - `tests/integration/test_claim_admission.py::test_prompt_digests_are_pinned_separately` → passed.
   - `uvx ruff@0.14.0 check --select F,E9,B` on every changed Python file → clean. `tools/generate_schemas.py --check` → exit 0. `tools/release_checklist.py` → no problems, verdict `blocked`.
-  - **Still running when this was committed:** the whole suite (`tests`) and, separately, the files the change is likeliest to touch (working memory, the Claude adapter, requests, claim admission, capture recovery, health, runtime provenance, the capture-only and smoke platform tests, evaluation and live evaluation). Their results follow in the next note. CI runs the suite on Linux, macOS and Windows.
+  - **The whole suite** (`tests`) → 1 failed, 1,346 passed, 61 skipped (40.8 min).
+    - **The failure:** `test_abandoned_scratch_is_settled_before_pruning` (retention). It assumed a new session's start delivers nothing, but the start now carries the one active task, so the scratch held an `emitted` entry before the killed hook's reservation. The behavior under test is unchanged: the dead hook's reservation is still settled `uncertain` before the scratch is pruned. The test now checks that attempt by its ID, and `tests/integration/test_retention.py` → 24 passed, 1 skipped.
+    - **A rule slip:** that test edit was made while the whole suite was still running. The suite had already run that file, so its other results stand.
+    - **The likeliest-touched files, in a separate run:** working memory, the Claude adapter, requests, claim admission, capture recovery, health, runtime provenance, the capture-only and smoke platform tests, evaluation and live evaluation → 351 passed, 7 skipped.
 - **Acceptance:** statuses unchanged. A failed gate and an unrun engine change are not passes.
 
 ## Blockers and decisions
