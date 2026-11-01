@@ -18,8 +18,10 @@ claim describes; ``revalidate_v2.md``, decision 0032, which names an attached
 contradiction as a cause; ``extract_v3.md``, decision 0035, which keeps a user's
 explicit statement and states a failure seen only in a call's output as an
 inferred fact; ``extract_v4.md``, decision 0036, which records a user's
-statement of how the project is as a fact with its file dependencies; a job
-that pinned an older version is still served
+statement of how the project is as a fact with its file dependencies;
+``extract_v5.md``, decision 0037, which words a failure seen only in a
+call's output as the project's condition; a job that pinned an older
+version is still served
 its text), loaded here and digested separately: a claim's
 ``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
 ``ReviewBatch`` its review prompt digest, and the golden-digest tests in
@@ -74,6 +76,7 @@ INSTRUCTIONS: dict[str, str] = {
     "extract_claims@2": _file("extract_v2.md") + " " + _COMMON,
     "extract_claims@3": _file("extract_v3.md") + " " + _COMMON,
     "extract_claims@4": _file("extract_v4.md") + " " + _COMMON,
+    "extract_claims@5": _file("extract_v5.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
     "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
     "revalidate@2": _file("revalidate_v2.md") + " " + _COMMON,
@@ -82,7 +85,7 @@ INSTRUCTIONS: dict[str, str] = {
 CURRENT: dict[str, str] = {
     "update_task": "update_task@1",
     "build_episode": "build_episode@1",
-    "extract_claims": "extract_claims@4",
+    "extract_claims": "extract_claims@5",
     "review_claims": "review_claims@1",
     "revalidate": "revalidate@2",
 }

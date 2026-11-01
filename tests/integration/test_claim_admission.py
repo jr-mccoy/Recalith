@@ -789,18 +789,25 @@ V3_MASKED = ("\n\nA failure_lesson must cite a tool result whose recorded outcom
              "code 0 but its output shows a failure, because a pipe such as `| tail` or a later command in the same call hid the failing command's exit status, "
              "that failure is not recorded as one: state what the output shows as an inferred fact citing that output, such as which command fails with which "
              "quoted error under which condition, never as a failure_lesson.")
+V4_MASKED_WORDING = ("state what the output shows as an inferred fact citing that output, such as which command fails with which quoted error under which "
+                     "condition, never as a failure_lesson.")
+V5_MASKED_WORDING = ("state what the output shows as an inferred fact citing that output, never as a failure_lesson. Word that fact as the project's "
+                     "condition that a later session can act on, such as \"Running `<command>` from <where>, without <setting>, fails with <quoted error>.\", "
+                     "not as an account of one call, its recorded exit status or the pipe. Claim no more than the runs showed: one failing form and one "
+                     "passing form do not show that the passing form is the only one that works.")
 
 
 def test_prompt_digests_are_pinned_separately():
-    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035, 0036)."""
-    assert prompts.CURRENT["extract_claims"] == "extract_claims@4" and prompts.CURRENT["review_claims"] == "review_claims@1"
-    extract_digest, review_digest = prompts.prompt_digest("extract_claims@4"), prompts.prompt_digest("review_claims@1")
+    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035, 0036, 0037)."""
+    assert prompts.CURRENT["extract_claims"] == "extract_claims@5" and prompts.CURRENT["review_claims"] == "review_claims@1"
+    extract_digest, review_digest = prompts.prompt_digest("extract_claims@5"), prompts.prompt_digest("review_claims@1")
     assert extract_digest != review_digest
     # Golden digests: editing a shipped prompt text requires a new version string.
     assert prompts.prompt_digest("extract_claims@1") == "72cbd9c3996f467d2aff4aafec9e6b3cf092ca15374dbb523723acabf8e19f21"  # still served to jobs that pinned them
     assert prompts.prompt_digest("extract_claims@2") == "a6c44082b67f92e487c5140ecead0bcdc552aee8f757a085d2d6c416ed95b285"
     assert prompts.prompt_digest("extract_claims@3") == "be2234d247292d666a3352fea4b7e842bcc7df09f804e9d1599d360e395c7fa3"
-    assert extract_digest == "8d722ee3e44b233eb94c105f00504ae118c895b6d0539fea424a087697d7e5a3"
+    assert prompts.prompt_digest("extract_claims@4") == "8d722ee3e44b233eb94c105f00504ae118c895b6d0539fea424a087697d7e5a3"
+    assert extract_digest == "d7a37dbfdf0638513bd18f8ccb3b7652afaf2de8726cf2035ec5518db60e2a96"
     assert review_digest == "7bafbabe9897d1d173f43f3d43aa60d990e56e59411423faf4c7e39aecf5fbb2"
     assert "review_capacity" in prompts.INSTRUCTIONS["review_claims@1"] and "exited with code" in prompts.INSTRUCTIONS["extract_claims@3"]
     v2, v3 = prompts.INSTRUCTIONS["extract_claims@2"], prompts.INSTRUCTIONS["extract_claims@3"]
@@ -816,6 +823,10 @@ def test_prompt_digests_are_pinned_separately():
     v4 = prompts.INSTRUCTIONS["extract_claims@4"]
     assert "as a user_declared fact citing those words, with the file dependencies described below" in v4 and "where it stores its data" in v4
     assert v4.replace(V4_DECLARATION, V3_DECLARATION) == v3  # @4 is @3 with exactly that passage replaced
+    # Decision 0037: a failure seen only in a call's output is worded as the project's condition, claiming no more than the runs showed.
+    v5 = prompts.INSTRUCTIONS["extract_claims@5"]
+    assert "not as an account of one call, its recorded exit status or the pipe" in v5 and "the only one that works" in v5 and "never as a failure_lesson" in v5
+    assert v5.replace(V5_MASKED_WORDING, V4_MASKED_WORDING) == v4  # @5 is @4 with exactly that wording replaced
 
 
 # ---------------------------------------------------------------------------
