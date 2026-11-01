@@ -1,0 +1,259 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "revision",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A plain discovery failed with ModuleNotFoundError.",
+   "Before C, tests/__init__.py was added."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tests/__init__.py (absent in A)",
+    "kind": "failure_lesson",
+    "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+    "retry_condition": "Retry if the test package changes import setup."
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r2",
+  "checks": {
+   "plain_discovery_passes": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 21.595,
+  "foreground_cost_usd": 0.046529,
+  "foreground_tokens": 146828,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-R2-ledgerlite-import-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests -t . 2>&1 | tail -40",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "ls -la . tests; ",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md tests/test_ledger.py; ls -R src",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat src/ledgerlite/__init__.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat > tests/__init__.py <<'EOF'\nimport sys\nfrom pathlib import Path\n\nsys.path.insert(0, str(Path(__file__).resolve().parent.parent / \"src\"))\nEOF\npython -m unittest discover -s tests -t . 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.032089,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 13.471,
+   "foreground_tokens": 112063,
+   "host_session_id": "ea397626-d0cc-44ee-aee1-0ba3828d6b9c",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The tests now pass with your original command, `python -m unittest discover -s tests -t .`. Both tests ran and passed.\n\nThere were two problems:\n- **Not a package:** `tests/` had no `__init__.py`, so discovery with `-t .` refused to use it as a start directory.\n- **Import path:** `ledgerlite` lives under `src/`, which wasn't on the import path.\n\nI added `tests/__init__.py`, which puts `src/` on `sys.path`. I didn't change any library or test code.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "cd <run>/work/R2/b/w && env | grep -i '^PYTHONPATH' ; python -m unittest discover -s tests -t . 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.01444,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 8.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 8.124,
+   "foreground_tokens": 34765,
+   "host_session_id": "e7d73175-a93a-4dfd-8aea-9b19c65cd9be",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "tests/__init__.py"
+   ],
+   "project": "ledgerlite",
+   "reply": "Yes, it passes. I ran `python -m unittest discover -s tests -t .` from `<run>\\work\\R2\\b\\w`. It ran 2 tests and reported OK. `PYTHONPATH` wasn't set in the shell, so the run didn't depend on it.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "R2/b/w"
+}

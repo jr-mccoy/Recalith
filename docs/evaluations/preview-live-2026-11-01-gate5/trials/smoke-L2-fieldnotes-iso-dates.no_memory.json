@@ -1,0 +1,305 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "The user declared ISO-8601 dates for all printed output."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "ISO-8601",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Every project must use ISO-8601 dates."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l2",
+  "checks": {
+   "checks_pass": true,
+   "export_dates_iso8601": true,
+   "export_exists": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 33.295,
+  "foreground_cost_usd": 0.071959,
+  "foreground_tokens": 169907,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-L2-fieldnotes-iso-dates",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Grep"
+    },
+    {
+     "command": "cd <run>/work/L2/b/w && ls -R . | head -50 && cat fieldnotes/store.py && cat fieldnotes/*.py | grep -n \"list\" ",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd <run>/work/L2/b/w && cat fieldnotes/cli.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.025563,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 12.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 12.939,
+   "foreground_tokens": 72304,
+   "host_session_id": "d9b8d7df-7187-4be2-856a-6e76ddf8bd6c",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`list` follows the ISO-8601 rule.\n\n- **What it prints:** `fieldnotes/cli.py:21` prints `note['created']` as it is stored, with no reformatting.\n- **How it's stored:** `fieldnotes/store.py:24` writes `created` with `moment.isoformat()`. The timestamp is UTC and looks like `2026-01-02T03:04:05+00:00`.\n- **Other date output:** I found no `strftime` or locale-based formatting anywhere. `add` prints only the note text, with no date. The only other date use is in `tests/test_store.py`, which builds a datetime for a test.\n\nI didn't open `tools/check.py` or the README. The grep for date-related code didn't match either file.\n\nOne thing to watch: `list` prints whatever string is in `notes.json`. If a note was written by hand or by an older version in a non-ISO format, `list` would print it unchanged. Say if you want `list` to validate or normalize the value.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_cli.py",
+     "session": "B",
+     "tool": "Write"
+    },
+    {
+     "command": "cd <run>/work/L2/b/w && NOTES_HOME=\"$(mktemp -d)\" python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.046396,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 20.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 20.356,
+   "foreground_tokens": 97603,
+   "host_session_id": "61d18e9d-abc7-441f-910a-11042f0fe0b9",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added `python -m fieldnotes.cli export`, which prints one `DATE: TEXT` line per note. The project checks pass: both unit tests ran OK, and the line-length rule found nothing.\n\n- **Date format:** The date is the `YYYY-MM-DD` part of each note's stored timestamp, for example `2026-01-02: first`. If you want the full ISO timestamp instead, it's a one-line change.\n- **Code change:** The command is in `fieldnotes/cli.py`, and I updated the usage message to list it.\n- **Test:** The new test is `tests/test_cli.py`. It adds two notes and checks the exported output.\n- **Check setup:** `tools/check.py` needs `NOTES_HOME` set, so I ran it with a fresh temp directory. The command was `NOTES_HOME=\"$(mktemp -d)\" python tools/check.py`.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "L2/b/w"
+}

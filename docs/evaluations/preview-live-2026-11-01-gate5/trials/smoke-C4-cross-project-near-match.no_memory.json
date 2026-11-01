@@ -1,0 +1,304 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "ledgerlite's test command applies to fieldnotes."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c4",
+  "checks": {
+   "checks_pass": true,
+   "no_foreign_test_command": true,
+   "project_tests_run_successfully": true
+  },
+  "metrics": {
+   "cross_project_leak_commands": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 27.441,
+  "foreground_cost_usd": 0.05635,
+  "foreground_tokens": 164941,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C4-cross-project-near-match",
+ "second_project": {
+  "project": "ledgerlite",
+  "workspace": "C4/b/p2/w"
+ },
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.023928,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 13.485,
+   "foreground_tokens": 71821,
+   "host_session_id": "86c1da80-0a5f-4b48-be66-7de3c0f2caca",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "This command works. Run it from the project root:\n\n```\nPYTHONPATH=src python -m unittest discover -s tests -v\n```\n\nBoth tests pass:\n- `test_transfer_preserves_total`\n- `test_rejects_non_positive_amount`\n\nThe `PYTHONPATH=src` part is needed because the package is in `src/ledgerlite` and isn't installed. Without it, `from ledgerlite import Ledger` would fail with an import error. I didn't run it without that prefix to confirm.\n\nThe README doesn't give a test command, and the project has no packaging config.",
+   "second_project": true,
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": "echo \"NOTES_HOME=${NOTES_HOME-<unset>}\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "d=$(mktemp -d) && NOTES_HOME=\"$d\" python tools/check.py; echo \"exit=$?\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.032422,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 14.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 13.955,
+   "foreground_tokens": 93120,
+   "host_session_id": "f63f12b6-35f7-4bbc-8ca1-a200e39f08c5",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "Yes, the tests pass. I ran `python tools/check.py`, which runs the unit tests and then checks that no line is over 100 characters. It exited 0.\n\n- **Unit tests:** 1 test ran (`StoreTests.test_add_then_load`) and it passed.\n- **Line-length check:** no lines over 100 characters.\n\nThe script requires `NOTES_HOME` to be set, and it wasn't in this shell. I pointed it at a fresh temp directory for the run. If you run it yourself, set `NOTES_HOME` to a scratch directory first.\n\nThe suite is very small. Only the store module has a test, and `cli.py` has none.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C4/b/w"
+}

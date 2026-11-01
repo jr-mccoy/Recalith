@@ -1,0 +1,707 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 3,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 281735,
+  "estimated_output_tokens": 19061,
+  "jobs_by_state": {
+   "completed": 8
+  },
+  "model_calls": 8,
+  "tokens": 300796,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_5898ab15-03a8-4099-8c24-2387356d50da",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Running pytest with PYTHONPATH=src printed 'No module named pytest' in the workspace's Python 3.13 environment, so pytest was not available there; running PYTHONPATH=src python -m unittest discover -s tests reported 2 tests passing.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_c38d175f-17a5-4e62-80d0-12ec345ae7ee",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Ledger.transfer in src/ledgerlite/__init__.py validates its amount by calling money.parse(amount) instead of an inline Decimal conversion and positivity check.",
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_ce23a114-3e78-47e7-8c22-ef119ab2a69e",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "src/ledgerlite/money.py defines parse(value: str | Decimal) -> Decimal, which raises TypeError for values that are neither str nor Decimal, raises ValueError for strings that are not valid decimals, and raises ValueError for non-finite or non-positive amounts.",
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "Session only started a task-scoped refactor step (money.py written, untested) and the user's stop-after-step-1 instruction is task state, not durable project knowledge.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_revise"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "operations": [],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     18,
+     12,
+     16
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 12,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 325.9,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     52,
+     37,
+     45
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 22,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 364.5,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "Step 1 (money.parse) was completed in session A; steps 2 and 3 were pending."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "supported_lessons": [],
+  "task_state": {
+   "next_action": "Step 2: make Ledger.transfer use money.parse",
+   "objective": "Three-step money refactor"
+  }
+ },
+ "hook_replies": 14,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-01T20:06:01.613043Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-01T20:11:45.009868Z",
+   "events": 11,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.3,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.2,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.9,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.9,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_18333c2c-a513-44f6-93cc-edab269872f7",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_2f496073-ebf3-4462-8bd4-9045d9b97fd4"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l4",
+  "checks": {
+   "step1_present": true,
+   "step2_transfer_uses_money_parse": true,
+   "step3_not_started": true,
+   "suite_passes": true,
+   "transfer_accepts_decimal": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 300796,
+  "detours": 0,
+  "elapsed_seconds": 39.667,
+  "foreground_cost_usd": 0.084786,
+  "foreground_tokens": 235057,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 3,
+    "replies_parsed": 3,
+    "reported_input_tokens": 120440,
+    "reported_output_tokens": 6529,
+    "visible_output_estimate": 2210
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 77408,
+    "reported_output_tokens": 4720,
+    "visible_output_estimate": 1177
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 12680,
+    "reported_output_tokens": 3084,
+    "visible_output_estimate": 575
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 71207,
+    "reported_output_tokens": 4728,
+    "visible_output_estimate": 1308
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Current task: We will refactor ledgerlite in three steps: (1) add src/ledgerlite/money.py wit\u2026. Objective: We will refactor ledgerlite in three steps: (1) add s"
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Episode (settled): Add money.parse module (step 1 of ledgerlite refactor). Outcome: Wrote src/ledgerlite/money.py with parse(value) -> Decimal; the write succee"
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-L4-ledgerlite-resume-refactor",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/money.py",
+     "session": "A",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028066,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 16.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_233039f5f2df054617894c2ebace757012130da5c039ad70ab9da5a208ded4e4\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_29da2e67f28769215b5b954900ea6c3621a38d6100dc7df82fd270f4123e7056",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 16.893,
+   "foreground_tokens": 72152,
+   "host_session_id": "05ae9d02-58a7-4959-9e96-eedbefdc9238",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Step 1 is done. I added `src/ledgerlite/money.py` with `parse(value: str | Decimal) -> Decimal`. I haven't run or tested it.\n\n- **Allowed input:** `str` or `Decimal`. Any other type, including `float`, raises `TypeError`.\n- **Rejected values:**\n  - Zero and negative amounts raise `ValueError(\"amount must be positive\")`.\n  - `NaN` and `Infinity` raise the same error.\n  - Unparseable strings raise `ValueError(\"invalid amount: ...\")`. I wrapped `InvalidOperation` so callers only need to catch `ValueError`, which `Ledger.transfer` already raises.\n\n**Next step (step 2):** change `Ledger.transfer` in `src/ledgerlite/__init__.py` to call `money.parse(amount)`. It would replace the current `Decimal(amount)` call and the `value <= 0` check. One behavior change to expect: a malformed string like `\"abc\"` will raise `ValueError` instead of `decimal.InvalidOperation`.\n\nI've stopped here. Tell me when you want step 2.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls src/ledgerlite tests; cat src/ledgerlite/__init__.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/money.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "PYTHONPATH=src python -I -m pytest -q 2>&1 | tail -20 || true; PYTHONPATH=src python -m pytest -q tests 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "head -20 tests/test_ledger.py; PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.05672,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 22.8,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: We will refactor ledgerlite in three steps: (1) add src/ledgerlite/money.py wit\u2026. Objective: We will refactor ledgerlite in three steps: (1) add src/ledgerlite/money.py with `parse(value) -> Decimal` accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py. Do step 1 only, then stop and tell me what the next step is..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_b4af4570-23f1-4111-9e95-a5dc9427c9e3 r5\n- [context] Episode (settled): Add money.parse module (step 1 of ledgerlite refactor). Outcome: Wrote src/ledgerlite/money.py with parse(value) -> Decimal; the write succeeded. The parse function was not run or tested in this episode.. Unresolved: Step 2 (make Ledger.transfer use money.parse) and step 3 (add tests/test_money.py) have not started; the user asked t [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_72c92926-064b-4c2c-acef-4cb03c864bd6 r2",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e00d25f5749afa96ee2b216896382723d76d5e1cf385e177831b16f6e7db9ab2",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_1feb19d20f1d59f97abd6a3dffb3204dbee8bdb1e449d1db3da6ade8df3e23a6\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/money.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_86d839560ab235060cc2bffa99bfece1e8763b4550c9fea5f48b2ef7e8cb53d1",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_15ef4e4a029914566f7486a396e371382e71daa082af25b74e70b42569b93a78\n- [context] Recent observation (not a durable lesson): Edit src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_791286057857f9b0448dba89f447a159fa22872ce0469fc503c6808e2c528c28",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 22.774,
+   "foreground_tokens": 162905,
+   "host_session_id": "2d3ef916-0298-42f7-a627-83164d88d713",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Step 2 is done: `Ledger.transfer` in `src/ledgerlite/__init__.py` now calls `money.parse(amount)`. That replaces the inline `Decimal(amount)` and the `<= 0` check. I added `from ledgerlite import money` to the imports.\n\npytest isn't installed here, so I ran the suite with `python -m unittest discover -s tests`. Both tests in `tests/test_ledger.py` pass.\n\nThe existing tests don't exercise `money.parse` directly, so it is only covered indirectly through `transfer`.\n\n**Next step:** step 3, adding `tests/test_money.py`. It would cover valid `str` and `Decimal` input, and rejection of zero, negative, non-numeric, non-finite and wrong-type values.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "L4/c/w"
+}

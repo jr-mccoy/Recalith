@@ -1,0 +1,472 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 84100,
+  "estimated_output_tokens": 4138,
+  "jobs_by_state": {
+   "completed": 6
+  },
+  "model_calls": 5,
+  "tokens": 88238,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The user asked for a brainstorm and said nothing was checked. The only durable-looking content is an unverified observation and the assistant's generic guesses, so no project knowledge should be stored.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "reject",
+     "reason": "invalid_result"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The session only asked for a one-off utilities budget estimate. The user made no declared rule, decision, preference, or statement of how the project stores its data, and no failures occurred. The log's figures and the generated estimate are transient session output, not durable project knowledge.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "Narrative fields (title, plan, constraints, open_questions, next_action) already reflect the objective; the events add no new constraints, open questions, or next action, and status and completion are not changed here.",
+   "operations": [],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     10,
+     5,
+     8
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 10,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 317.8,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     23,
+     16,
+     22
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 10,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 317.9,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "The cause of the September increase is unknown."
+  ],
+  "exact_observations": [
+   "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any admitted causal explanation for the September increase."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 6,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-01T19:53:08.535216Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-01T19:58:39.756190Z",
+   "events": 5,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 6.4,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.9,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.9,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.5,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_813a252a-6db4-4f65-b204-d4770848c9a4",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_ded7655b-caa9-41df-bb82-6feccbf76a19"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c3",
+  "checks": {
+   "plan_exists": true,
+   "plan_has_estimate": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 88238,
+  "detours": 0,
+  "elapsed_seconds": 28.11,
+  "foreground_cost_usd": 0.04457,
+  "foreground_tokens": 72841,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 18040,
+    "reported_output_tokens": 1505,
+    "visible_output_estimate": 374
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 37757,
+    "reported_output_tokens": 541,
+    "visible_output_estimate": 192
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 28303,
+    "reported_output_tokens": 2092,
+    "visible_output_estimate": 496
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": true,
+   "spec": {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-C3-household-utilities-speculation",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0.016545,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 12.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 12.884,
+   "foreground_tokens": 17904,
+   "host_session_id": "5c8f4191-09e4-42d7-beb3-6b1e33e1af78",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Here are some likely reasons, roughly from most to least common. I haven't looked at your data, so these are guesses.\n\n**Usage changes**\n- **Cooling load:** A hot September, or a late-summer heat wave, means more air conditioning. This is the most common cause.\n- **Back to routine:** Kids return to school, people go back to working from home, or there are more people home during the day.\n- **Guests or a new occupant:** More people at home use more power.\n- **New appliances or devices:** A new fridge, freezer, space heater, dehumidifier, EV charger, or pool pump.\n- **Appliance faults:** A failing HVAC compressor, a stuck fridge defrost heater, or a water heater with a bad thermostat or leak can draw a lot of power without being obvious.\n- **Heating started early:** A cold snap in late September can bring on electric heat, especially heat pumps or resistance heaters.\n\n**Billing and rate changes**\n- **Rate changes:** Many utilities change rates in the fall. Summer tiers and time-of-use windows also shift. If the log tracks cost rather than kWh, this could explain everything.\n- **Billing period length:** A cycle with more days, such as 33 days instead of 29, makes usage look higher.\n- **Estimated reads:** A prior underestimate gets corrected in a later bill.\n- **New fees or surcharges:** Fuel adjustments, delivery charges, or a changed base fee.\n- **Lost discount or plan change:** A promo rate, budget billing, or solar credit may have ended or reset.\n\n**Data issues**\n- **Units or columns:** The log may mix kWh and dollars, or have duplicate rows or entry errors.\n- **Comparison baseline:** September may look high only against a mild August, or against a month that was unusually low.\n\n**Where I'd start if you check:**\n1. See whether the increase is in kWh, dollars, or both. Usage up with a flat rate points to behavior or weather. Cost up with flat usage points to rates or fees.\n2. Compare the number of days in each billing period.\n3. Compare against September of last year, which controls for seasonality.\n\nIf you'd like, I can open `utilities-log.csv` and check these.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-log.csv",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028025,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 15.2,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Electricity went up in September according to utilities-log.csv. Why might that\u2026. Objective: Electricity went up in September according to utilities-log.csv. Why might that be? Just brainstorm; I haven't checked anything..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_f334982c-e191-4c38-bdd9-14c0e4f9ec65 r3\n- [context] Episode (settled): Electricity went up in September according to utilities-log.csv. Why might that\u2026. Outcome: 0 actions (no tool calls); causes not assessed.\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_5abc4fa8-c014-438b-883c-12dc0b9535ff r1",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read utilities-log.csv: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e956bbae3165816d649957862954071fe19a5603c30254731b72bd32e41eaf1c",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 15.226,
+   "foreground_tokens": 54937,
+   "host_session_id": "470bdc1e-539b-4968-bf28-3cc54a9af74e",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `utilities-plan.md` with a November 2026 estimate of **$223**, and I suggest budgeting **$225**. The likely range is $206 to $233.\n\n| Item | Estimate | Basis |\n|---|---|---|\n| Electricity | $120 | Between the Jul\u2013Sep average ($104) and September's $131 |\n| Water | $43 | Steady at $41\u2013$44 |\n| Internet | $60 | Flat every month |\n\n- **October is missing:** the log stops at September, so I treated November as next month and couldn't see the latest trend.\n- **Electricity is a guess:** September jumped to $131 and I don't know why. I assumed part of that increase continues.\n- **Short history:** three months can't show seasonal effects, such as higher heating use in colder months.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "C3/c/w"
+}

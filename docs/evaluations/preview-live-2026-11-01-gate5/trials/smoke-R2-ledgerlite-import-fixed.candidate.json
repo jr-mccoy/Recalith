@@ -1,0 +1,578 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 138227,
+  "estimated_output_tokens": 9618,
+  "jobs_by_state": {
+   "completed": 7
+  },
+  "model_calls": 6,
+  "tokens": 147845,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "revision",
+ "claims": [],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The session produced no observed exit codes or assertion results, and its durable outcome depends on a workspace file whose path is not listed in any event's payload.action.paths, so no claim meets the evidence and dependency rules.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "reject",
+     "reason": "completion_requires_evidence"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The user request was a one-time test run, not a stated rule, decision or preference. The Bash call's pipe hid the exit status (exit_code null, no assertions), so no observed claim is supported. The tests-package sys.path detail was relayed from notes the assistant did not verify, so it is too weak to propose.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "reject",
+     "reason": "group_rejected"
+    },
+    {
+     "kind": "update_task",
+     "outcome": "reject",
+     "reason": "completion_requires_evidence"
+    }
+   ],
+   "operations": [
+    "update_task",
+    "update_task"
+   ],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "C",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     20,
+     17,
+     21
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 13,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 329.7,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     32,
+     25,
+     32
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 11,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 315.9,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A plain discovery failed with ModuleNotFoundError.",
+   "Before C, tests/__init__.py was added."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "The changed dependency suppresses the caution; the legitimate retry succeeds and the lesson is narrowed or retired after review.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tests/__init__.py (absent in A)",
+    "kind": "failure_lesson",
+    "proposition": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+    "retry_condition": "Retry if the test package changes import setup."
+   }
+  ]
+ },
+ "hook_replies": 10,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-01T20:07:12.183291Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-11-01T20:12:56.414913Z",
+   "events": 16,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev6-py3-none-any.whl",
+  "wheel_sha256": "6cbf968dd5609f56ba5f42cf6ba210858a1a20a17b3bba49ad6453a484946243"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.3,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.4,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.9,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.9,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 1.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_6b397644-39b1-4fc8-94e6-1733f26e8736",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_a2bf6377-7c07-4628-afcf-d87065f34d1c"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r2",
+  "checks": {
+   "plain_discovery_passes": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 147845,
+  "detours": 0,
+  "elapsed_seconds": 23.714,
+  "foreground_cost_usd": 0.046472,
+  "foreground_tokens": 129150,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 42886,
+    "reported_output_tokens": 3897,
+    "visible_output_estimate": 1159
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 52401,
+    "reported_output_tokens": 2153,
+    "visible_output_estimate": 206
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 42940,
+    "reported_output_tokens": 3568,
+    "visible_output_estimate": 937
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": true,
+   "spec": {
+    "must_not_include_caution": "PYTHONPATH",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-R2-ledgerlite-import-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python -m unittest discover -s tests -t . 2>&1 | tail -30; ls",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "ls -R tests src | head -30; cat README.md",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat tests/test_ledger.py; cat src/ledgerlite/__init__.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "touch tests/__init__.py; python -m unittest discover -s tests -t . 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat > tests/__init__.py <<'EOF'\nimport sys\nfrom pathlib import Path\n\nsys.path.insert(0, str(Path(__file__).resolve().parent.parent / \"src\"))\nEOF\npython -m unittest discover -s tests -t . 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.030183,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 14.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_693b8927ceb131cff685447302e7d1bddbb905a3a5309e4bfcfaafe888e426af\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_ca63dcf7a5b02d2495d156b306f7b531f82aab91d2c04ada4bcb5863a87bcbbc\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e414238aa621d04487e38db7c13788adb7310ab53a6fdebe92cb5ac6f3a57871",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 14.022,
+   "foreground_tokens": 93421,
+   "host_session_id": "4561de65-7209-48f1-8126-0d3b564e0db8",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The tests now pass with your original command, `python -m unittest discover -s tests -t .`. It runs 2 tests and both pass.\n\nThere were two problems:\n1. `tests/` had no `__init__.py`, so unittest refused it as a start directory.\n2. `ledgerlite` lives under `src/` and wasn't importable.\n\nI added `tests/__init__.py`, which puts `src/` on `sys.path`. That fixes both problems, and I changed nothing else.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "env | grep -i '^PYTHONPATH' ; python -m unittest discover -s tests -t . 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.016289,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 9.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Run the tests with `python -m unittest discover -s tests -t .` and make them pa\u2026. Objective: Run the tests with `python -m unittest discover -s tests -t .` and make them pass without changing the test command if possible; otherwise tell me what command works..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_f16d8bec-08bb-4bd5-b156-7cde3f8f8012 r7\n- [context] Episode (settled): Make the ledgerlite unittest run pass with the original test command. Outcome: The original command `python -m unittest discover -s tests -t .` ran 2 tests and both passed (OK) after tests/__init__.py was added to put src/ on sys.path. Earlier runs failed: unittest rejected tests/ as a start directory (ImportError), and ledgerlite was not importable (ModuleNotFoundError). T [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_7531360a-ef83-41e4-93c0-52af2138b194 r2",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 9.692,
+   "foreground_tokens": 35729,
+   "host_session_id": "84aef80f-10ff-46a4-9ae7-f501dada61ad",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "tests/__init__.py"
+   ],
+   "project": "ledgerlite",
+   "reply": "Yes, it passes. I ran `python -m unittest discover -s tests -t .` with no `PYTHONPATH` set (I checked that the variable is empty). It ran 2 tests and both passed (`OK`).\n\nThe project notes say `tests/__init__.py` now puts `src/` on `sys.path`. That is presumably why `ledgerlite` imports without `PYTHONPATH`. I didn't open that file myself, so I'm relying on the notes for that part.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "R2/c/w"
+}
