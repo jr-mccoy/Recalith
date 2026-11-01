@@ -179,3 +179,21 @@ def test_replay_cannot_see_future_evidence(tmp_path):
     assert day.get("error") is None, day
     sessions = set(workload.load_day("household")["gold"]["task_of_session"])
     assert day["horizon"] == {"checks": len(sessions), "violations": 0, "examples": []}
+
+
+def test_the_curator_calls_record_what_admission_decided(tmp_path):
+    """The third live gate (2026-10-31): L1's and R2's curators each proposed one claim more than the store kept, and the
+    store went with the run, so the record could not say why. Each call now keeps every operation's admission outcome
+    and reason from its application record, and an empty proposal's stated reason."""
+    from evals import trial
+
+    sid = "smoke-R1-fieldnotes-check-env-fixed"
+    record = trial.run_trial(sid, "candidate", tmp_path / "trials")
+    assert record.get("error") is None, record
+    calls = trial.curator_calls(tmp_path / "trials" / sid / "candidate" / "ws")
+    assert calls and all(c["applied"] for c in calls)
+    decisions = [d for c in calls for d in c["decisions"]]
+    assert decisions and all(d["outcome"] in ("apply", "review_required", "candidate_only", "reject", "requeue") and d["reason"] for d in decisions)
+    assert ("propose_claim", "candidate_only", "candidate_pending_review") in {(d["kind"], d["outcome"], d["reason"]) for d in decisions}
+    assert [len(c["decisions"]) for c in calls] == [len(c["operations"]) for c in calls]
+    assert all(c["no_op_reason"] for c in calls if not c["operations"]) and any(not c["operations"] for c in calls)

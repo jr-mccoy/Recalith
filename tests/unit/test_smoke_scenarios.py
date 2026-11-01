@@ -182,6 +182,24 @@ def test_a_retry_that_sets_the_variable_is_not_plain(tmp_path, check, sid, comma
     assert result["checks"]["plain_retry_attempted"] is False and result["passed"] is False, result
 
 
+R3_PLANS = [
+    ("Limit used: $700 per month, replacing the earlier $600.", True),  # the third live gate's wording, in both arms
+    ("Budget: $700/month (up from $600).", True),
+    ("The $600 limit no longer applies; this plan uses $700.", True),
+    ("Limit: $700. Keep each week near $150 so the month stays under $600.", False),
+    ("Monthly limit: $600 (and the party fits within $700).", False),
+]
+
+
+@pytest.mark.parametrize("line, passes", R3_PLANS)
+def test_r3_accepts_the_old_limit_named_as_replaced(tmp_path, line, passes):
+    ws = materialize(tmp_path, "smoke-R3-household-budget-correction")
+    ref_r3(ws)
+    (ws / "meal-plan.md").write_text(f"# Meal plan\n\n{line}\nTotal: $680.\n", encoding="utf-8")
+    result = smoke.judge("r3", ws, [], "C")
+    assert result["checks"]["no_stale_600_limit"] is passes and result["passed"] is passes, result
+
+
 def test_cross_project_leak_is_detected(tmp_path):
     ws = materialize(tmp_path, "smoke-C4-cross-project-near-match")
     actions = [act("B", "PYTHONPATH=src python -m unittest discover -s tests", 1), act("B", "NOTES_HOME=/tmp/n python tools/check.py")]

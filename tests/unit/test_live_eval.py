@@ -560,6 +560,31 @@ def test_the_report_reads_live_records(tmp_path, monkeypatch):
     assert any(r.startswith("smoke_trials_missing:22") for r in reasons) and any(r.startswith("workload_days_short:0/3") for r in reasons) and any(r.startswith("demonstrations_unmet:") for r in reasons)
 
 
+def test_live_workload_days_run_at_once_in_their_slots(tmp_path, monkeypatch):
+    """The third live gate ran its three days one after another (16 min). Each day has its own installation, budget and
+    virtual clock, so ``--slots`` runs them at once; the barrier fails the test if the days run in sequence."""
+    import argparse
+    import threading
+
+    from evals import run, workload
+
+    barrier = threading.Barrier(3, timeout=10)
+    seen: list[str] = []
+
+    def run_day(project, work, *, mode, live_setup):
+        assert mode == "live" and live_setup == "setup"
+        barrier.wait()
+        seen.append(project)
+        return {"kind": "workload_day", "project": project, "events": 1, "curation": {"calls": 2}, "budget": {"exhausted_at_hours": None}}
+
+    monkeypatch.setattr(run, "live_setup", lambda ns: ("setup", None))
+    monkeypatch.setattr(workload, "run_day", run_day)
+    ns = argparse.Namespace(mode="live", out=tmp_path / "results", project=None, keep_workspaces=False, slots=6)
+    assert run.cmd_workload(ns) == run.EXIT_OK
+    assert sorted(seen) == sorted(workload.PROJECTS)
+    assert sorted(p.stem for p in (tmp_path / "results" / "workload").glob("*.json")) == sorted(workload.PROJECTS)
+
+
 def test_completeness_names_errors_and_contamination():
     from evals import report
 

@@ -163,7 +163,9 @@ def r3(c: Ctx) -> None:
         c.check("within_corrected_700_budget", 0 < total <= 700)
     plan = (c.ws / "meal-plan.md").read_text(encoding="utf-8")
     c.check("plan_states_700_limit", "700" in plan)
-    stale = [ln for ln in plan.splitlines() if re.search(r"\b600\b", ln) and not re.search(r"previous|old|was|former|correct", ln, re.I)]
+    # A line may name $600 as the figure the correction replaced (the third live gate's plans said "replacing the earlier
+    # $600" in both arms); only $600 stated as the limit in force is stale.
+    stale = [ln for ln in plan.splitlines() if re.search(r"\b600\b", ln) and not re.search(r"previous|old|was|former|correct|earlier|replac|supersed|instead of|no longer|(?:up|raised|increased|changed) from", ln, re.I)]
     c.check("no_stale_600_limit", not stale)
 
 

@@ -5,7 +5,7 @@
     python evals/run.py prepare SCENARIO_ID --out DIR
     python evals/run.py smoke --out DIR [--mode scripted|live] [--init-route test_fixture|operator_token]
                               [--operator-token-file FILE] [--scenario ID ...] [--slots N]
-    python evals/run.py workload --out DIR [--mode scripted|live] [--project NAME ...]
+    python evals/run.py workload --out DIR [--mode scripted|live] [--project NAME ...] [--slots N]
     python evals/run.py demonstrate --out DIR [--mode scripted|live]
     python evals/run.py report DIR
     python evals/run.py adjudicate DIR
@@ -50,7 +50,8 @@ with the pre-init token, the release bootstrap with ``--wheel`` (its digest
 must equal the source project's ``engine.lock``) and ``--wheelhouse``, a live
 route certification of its own, ``integrate claude``, and its host record
 bound from the source project's live engine-mode record. ``--slots`` runs that
-many trials at once, each in its own installation (ACCEPTANCE_TESTS §6.2).
+many trials at once, each in its own installation (ACCEPTANCE_TESTS §6.2), and
+the workload days likewise, each with its own installation and budget.
 Every live session checks the installed host against the certified version
 first; on a change the run schedules no further trial and the gate reports
 what ran (exit 8). A live run asks the platform not to idle-sleep.
@@ -348,6 +349,8 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
 
 
 def cmd_workload(ns: argparse.Namespace) -> int:
+    from concurrent.futures import ThreadPoolExecutor
+
     from evals import workload
 
     setup = None
@@ -358,11 +361,16 @@ def cmd_workload(ns: argparse.Namespace) -> int:
             return EXIT_UNAVAILABLE
     out = ns.out / "workload"
     out.mkdir(parents=True, exist_ok=True)
-    results = []
-    for project in ns.project or workload.PROJECTS:
+
+    def one(project: str) -> dict:
         record = workload.run_day(project, ns.out / "work-days", mode=ns.mode, live_setup=setup)
         (out / f"{project}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
-        results.append({"project": project, "events": record.get("events"), "calls": record.get("curation", {}).get("calls"), "exhausted_at_hours": record.get("budget", {}).get("exhausted_at_hours"), "error": record.get("error")})
+        return {"project": project, "events": record.get("events"), "calls": record.get("curation", {}).get("calls"), "exhausted_at_hours": record.get("budget", {}).get("exhausted_at_hours"), "error": record.get("error")}
+
+    projects = list(ns.project or workload.PROJECTS)
+    slots = min(len(projects), max(1, int(getattr(ns, "slots", 1) or 1))) if ns.mode == "live" else 1
+    with ThreadPoolExecutor(max_workers=max(1, slots)) as pool:  # each day has its own workspace, installation, budget and virtual clock
+        results = list(pool.map(one, projects))
     if not ns.keep_workspaces:
         shutil.rmtree(ns.out / "work-days", ignore_errors=True)
     print(json.dumps({"mode": ns.mode, "days": results}, sort_keys=True))
@@ -427,7 +435,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--evidence", type=Path, default=None, help="live: the report holding the source project's delivery_engine section (default docs/host-compatibility.json)")
         p.add_argument("--wheel", type=Path, default=None, help="live: the verified release wheel the trial installations are provisioned with")
         p.add_argument("--wheelhouse", type=Path, default=None, help="live: the hash-locked wheelhouse for the release bootstrap")
-        p.add_argument("--slots", type=int, default=1, help="live: trials run at once, each in its own installation")
+        p.add_argument("--slots", type=int, default=1, help="live: smoke trials and workload days run at once, each in its own installation")
     rep = sub.add_parser("report")
     rep.add_argument("results", type=Path)
     adj = sub.add_parser("adjudicate", help="write the claim adjudication sheet and label template for a live run")

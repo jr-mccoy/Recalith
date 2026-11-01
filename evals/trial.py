@@ -472,17 +472,30 @@ def _second_project_session(spec: dict[str, Any], session: dict[str, Any], arm: 
 
 
 def curator_calls(ws: Path) -> list[dict[str, Any]]:
-    """The worker's model calls as the store recorded them: each persisted proposal's purpose and operation kinds."""
+    """The worker's model calls as the store recorded them: each persisted proposal's purpose and operation kinds, what
+    admission decided for each operation (its application record), and an empty proposal's stated reason. The store goes
+    with the run, so a lesson the curator proposed and code refused is explained here (the third live gate could not say)."""
+    from recalith.controller.apply import APPLY_REF
     from recalith.storage import db
 
     out = []
     with db.open_store(context(ws), readonly=True) as store, store.read() as view:
-        for kind, body in view.execute("SELECT j.kind, p.body FROM proposals p JOIN jobs j ON j.job_id = p.job_id ORDER BY p.rowid").fetchall():
+        applied = {pid: inputs for pid, inputs in view.execute("SELECT proposal_id, inputs FROM operations WHERE local_ref = ? AND proposal_id IS NOT NULL", (APPLY_REF,)).fetchall()}
+        for kind, proposal_id, body in view.execute("SELECT j.kind, p.proposal_id, p.body FROM proposals p JOIN jobs j ON j.job_id = p.job_id ORDER BY p.rowid").fetchall():
             try:
-                ops = [o.get("kind") for o in (json.loads(body) or {}).get("operations", [])] if body else []
+                parsed = (json.loads(body) or {}) if body else {}
+                ops = [(o.get("local_ref"), o.get("kind")) for o in parsed.get("operations", [])]
             except (ValueError, AttributeError):
-                ops = []
-            out.append({"purpose": kind, "operations": ops, "body_retained": body is not None})
+                parsed, ops = {}, []
+            try:
+                decided = {d.get("local_ref"): d for d in (json.loads(applied[proposal_id]).get("result") or {}).get("decisions", [])} if proposal_id in applied else {}
+            except (ValueError, AttributeError):
+                decided = {}
+            call: dict[str, Any] = {"purpose": kind, "operations": [k for _, k in ops], "body_retained": body is not None, "applied": proposal_id in applied,
+                                    "decisions": [{"kind": k, "outcome": (decided.get(ref) or {}).get("outcome"), "reason": (decided.get(ref) or {}).get("reason_code")} for ref, k in ops]}
+            if not ops and isinstance(parsed.get("no_op_reason"), str):
+                call["no_op_reason"] = parsed["no_op_reason"][:400]
+            out.append(call)
     return out
 
 
