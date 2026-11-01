@@ -484,6 +484,26 @@ def test_provider_outcomes_count_capped_replies_and_job_errors(tmp_path):
     assert out["job_errors"] == {"update_task:output_cap_reached": 1}
 
 
+def test_a_trial_record_keeps_each_claims_review_verdict(tmp_path):
+    """The fifth gate's L1 failure facts stayed candidates after review returned them, and the objections went with the
+    store. The trial record now keeps the head's verdict and objections (decision 0028 item 25)."""
+    from evals import trial
+
+    ws = installation(tmp_path)
+    returned = {"kind": "fact", "basis": "inferred", "strength": "weak", "freshness": "current", "proposition": "Plain discovery fails without PYTHONPATH=src.",
+                "review_assessment": {"verdict": "revise", "objections": ["narrates one call, not the condition"]}}
+    unreviewed = {"kind": "fact", "basis": "inferred", "strength": "weak", "freshness": "current", "proposition": "The tests use unittest."}
+    conn = sqlite3.connect(ws / ".recalith" / "state" / "memory.sqlite")
+    with conn:
+        for claim_id, body in (("clm_a", returned), ("clm_b", unreviewed)):
+            conn.execute("INSERT INTO claim_revisions (claim_id, revision, kind, status, body, created_store_revision) VALUES (?, 2, 'fact', 'candidate', ?, 1)", (claim_id, json.dumps(body)))
+            conn.execute("INSERT INTO claim_heads (claim_id, revision, kind, status, freshness, strength, basis) VALUES (?, 2, 'fact', 'candidate', 'current', 'weak', 'inferred')", (claim_id,))
+    conn.close()
+    heads = {c["claim_id"]: c for c in trial.claim_heads(ws)}
+    assert heads["clm_a"]["review"] == {"verdict": "revise", "objections": ["narrates one call, not the condition"]} and heads["clm_a"]["status"] == "candidate"
+    assert heads["clm_b"]["review"] is None
+
+
 def test_live_quality_comes_from_reviewer_labels(tmp_path):
     """A live curator's claims are free text: the frozen term match is provisional, and support and recall are the
     reviewers' labels (ACCEPTANCE_TESTS §5). Unlabeled items leave the measures unestablished and fail the gate."""
@@ -507,11 +527,17 @@ def test_live_quality_comes_from_reviewer_labels(tmp_path):
     assert report.quality([dict(trials[0], mode="scripted")])["measures"]["supported_precision"]["numerator"] == 1  # scripted runs keep the frozen term match
     out = tmp_path / "run"
     (out / "trials").mkdir(parents=True)
-    (out / "trials" / "smoke-L1-ledgerlite-test-command.candidate.json").write_text(json.dumps({**trials[0], "sessions": [{"name": "A", "actions": [{"tool": "Bash", "command": "python -m pytest", "exit_code": 1}]}]}), encoding="utf-8")
+    returned = {"claim_id": "clm_3", "status": "candidate", "kind": "fact", "strength": "weak", "proposition": "Plain discovery fails without PYTHONPATH=src.",
+                "review": {"verdict": "revise", "objections": ["narrates one call, not the condition"]}}
+    record = {**trials[0], "claims": [*claims, returned], "sessions": [{"name": "A", "actions": [{"tool": "Bash", "command": "python -m pytest", "exit_code": 1}]}]}
+    (out / "trials" / "smoke-L1-ledgerlite-test-command.candidate.json").write_text(json.dumps(record), encoding="utf-8")
     sheet = report.adjudication_sheet(out)
     template = json.loads((out / "adjudication.template.json").read_text(encoding="utf-8"))
+    text = (out / "adjudication-sheet.md").read_text(encoding="utf-8")
     assert sheet["claims"] == 2 and sheet["lessons"] == 2 and all(v["label"] is None for v in template["claims"].values())
-    assert template["claims"]["smoke-L1-ledgerlite-test-command:clm_2"]["term_match"] == "unsupported" and "python -m pytest (exit 1)" in (out / "adjudication-sheet.md").read_text(encoding="utf-8")
+    assert template["claims"]["smoke-L1-ledgerlite-test-command:clm_2"]["term_match"] == "unsupported" and "python -m pytest (exit 1)" in text
+    # a candidate the review returned is shown with its objection, for the recall labels, and is never itself labeled
+    assert "- not labeled, candidate `clm_3` [fact, weak; review revise: narrates one call, not the condition]" in text and "smoke-L1-ledgerlite-test-command:clm_3" not in template["claims"]
 
 
 def test_completeness_requires_the_certified_host_and_no_suspension():

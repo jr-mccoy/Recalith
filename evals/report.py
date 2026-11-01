@@ -529,6 +529,10 @@ def adjudication_sheet(directory: Path) -> dict[str, Any]:
             ok = any(_matches(c, ts) for ts in terms)
             template["claims"][claim_key(sid, c)] = {"label": None, "proposition": c.get("proposition"), "status": c["status"], "strength": c.get("strength"), "term_match": "supported" if ok else "unsupported"}
             lines.append(f"- claim `{claim_key(sid, c)}` [{c['status']}, {c.get('strength')}]: {c.get('proposition')}")
+        for c in (c for c in t.get("claims", []) if c["status"] not in ("active", "disputed")):  # context for recall labels, never labeled
+            review = c.get("review") or {}
+            said = f"; review {review['verdict']}: " + " / ".join(review.get("objections") or []) if review.get("verdict") else ""
+            lines.append(f"- not labeled, {c['status']} `{c.get('claim_id')}` [{c.get('kind')}, {c.get('strength')}{said}]: {c.get('proposition')}")
         for s in t.get("sessions", []):
             lines.append(f"- session {s['name']}: " + "; ".join(f"{a.get('tool')} {(a.get('command') or a.get('path') or '')[:140]}" + ("" if a.get("exit_code") is None else f" (exit {a['exit_code']})")
                                                               for a in s.get("actions", [])))

@@ -271,6 +271,8 @@ def retrieval_points(spec: dict[str, Any], sessions: dict[str, Any], *, terms: l
 
 
 def claim_heads(ws: Path) -> list[dict[str, Any]]:
+    """Every claim's head. ``review`` is the head's review verdict and objections, so a candidate the review returned
+    keeps its reason after the store goes with the run (decision 0028 item 25)."""
     from recalith.storage import db, records
 
     with db.open_store(context(ws), readonly=True) as store, store.read() as view:
@@ -278,8 +280,10 @@ def claim_heads(ws: Path) -> list[dict[str, Any]]:
         out = []
         for claim_id, revision, status in rows:
             body = records.body(view, "claim", claim_id, revision) or {}
+            assessment = body.get("review_assessment") or {}
+            review = {"verdict": assessment["verdict"], "objections": list(assessment.get("objections") or [])} if assessment.get("verdict") else None
             out.append({"claim_id": claim_id, "status": status, "kind": body.get("kind"), "basis": body.get("basis"), "strength": body.get("strength"),
-                        "freshness": body.get("freshness"), "proposition": body.get("proposition"), "revision": revision})
+                        "freshness": body.get("freshness"), "proposition": body.get("proposition"), "revision": revision, "review": review})
     return out
 
 

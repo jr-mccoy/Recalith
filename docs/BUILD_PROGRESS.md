@@ -1990,6 +1990,9 @@ Add each later checkpoint with:
   - `update_task` returned no operation in 28 of 45 calls, as in the fourth gate (the logged follow-up).
   - Pre-action packets carry recent observations of successful reads and edits as context: no caution, but most of each packet.
 - **The sanitized record** is [`docs/evaluations/preview-live-2026-11-01-gate5/`](evaluations/preview-live-2026-11-01-gate5/report.md): 34 files, with the results directory as `<run>` and temporary paths as `<temp>`. A scan by count found 0 user names, drive paths, keys, email addresses or model identifiers.
+- **Built after the gate** (harness only; the wheel is unchanged): each claim in a trial record keeps its head's review verdict and objections, and the adjudication sheet lists the claims a reviewer does not label, with their review, as context for the recall labels (decision 0028 item 25). The fifth gate's own record predates it.
+  - **Tests:** new `test_a_trial_record_keeps_each_claims_review_verdict`, and the extended `test_live_quality_comes_from_reviewer_labels`. `tests/unit/test_live_eval.py tests/integration/test_evaluation.py tests/unit/test_smoke_scenarios.py` → 75 passed. `uvx ruff@0.14.0 check --select F,E9,B` on the changed files → clean.
+- **For the labels:** `C:\Code\rl-gate5\labels-to-review.md` lists the 26 items with their suggestions and reasons. `probe-private\label-gate.py` (untracked) writes a reviewer's `adjudication.json` from the suggestions and the reviewer's changes, and never overwrites one. It was tried only on a scratch copy.
 - **Acceptance:** statuses unchanged. The gate is not passed until a reviewer's labels pass it.
 
 ## Blockers and decisions
