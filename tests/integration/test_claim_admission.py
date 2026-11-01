@@ -780,6 +780,11 @@ def test_candidate_only_degradation_without_review(p):
 V3_DECLARATION = (' A user\'s explicit statement of a rule, decision or preference for this project, such as "Decision for this project: ...", "Remember ..." or '
                   '"Keep ... for my planning", is durable in itself, even when the session\'s tools only read files or none ran: propose it as a user_declared '
                   "decision or preference citing those words.")
+V4_DECLARATION = (' A user\'s explicit statement for this project, such as "Decision for this project: ...", "Remember ..." or "Keep ... for my planning", is '
+                  "durable in itself, even when the session's tools only read files or none ran. Propose a stated rule, decision or preference as a user_declared "
+                  "decision or preference citing those words. Propose a statement of how the project is, such as where it stores its data or which file, format "
+                  "or command it uses, as a user_declared fact citing those words, with the file dependencies described below, so a later change to that file is "
+                  "labeled instead of delivered as current.")
 V3_MASKED = ("\n\nA failure_lesson must cite a tool result whose recorded outcome is failure; code refuses one that cites none. When a call finished with exit "
              "code 0 but its output shows a failure, because a pipe such as `| tail` or a later command in the same call hid the failing command's exit status, "
              "that failure is not recorded as one: state what the output shows as an inferred fact citing that output, such as which command fails with which "
@@ -787,14 +792,15 @@ V3_MASKED = ("\n\nA failure_lesson must cite a tool result whose recorded outcom
 
 
 def test_prompt_digests_are_pinned_separately():
-    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035)."""
-    assert prompts.CURRENT["extract_claims"] == "extract_claims@3" and prompts.CURRENT["review_claims"] == "review_claims@1"
-    extract_digest, review_digest = prompts.prompt_digest("extract_claims@3"), prompts.prompt_digest("review_claims@1")
+    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035, 0036)."""
+    assert prompts.CURRENT["extract_claims"] == "extract_claims@4" and prompts.CURRENT["review_claims"] == "review_claims@1"
+    extract_digest, review_digest = prompts.prompt_digest("extract_claims@4"), prompts.prompt_digest("review_claims@1")
     assert extract_digest != review_digest
     # Golden digests: editing a shipped prompt text requires a new version string.
     assert prompts.prompt_digest("extract_claims@1") == "72cbd9c3996f467d2aff4aafec9e6b3cf092ca15374dbb523723acabf8e19f21"  # still served to jobs that pinned them
     assert prompts.prompt_digest("extract_claims@2") == "a6c44082b67f92e487c5140ecead0bcdc552aee8f757a085d2d6c416ed95b285"
-    assert extract_digest == "be2234d247292d666a3352fea4b7e842bcc7df09f804e9d1599d360e395c7fa3"
+    assert prompts.prompt_digest("extract_claims@3") == "be2234d247292d666a3352fea4b7e842bcc7df09f804e9d1599d360e395c7fa3"
+    assert extract_digest == "8d722ee3e44b233eb94c105f00504ae118c895b6d0539fea424a087697d7e5a3"
     assert review_digest == "7bafbabe9897d1d173f43f3d43aa60d990e56e59411423faf4c7e39aecf5fbb2"
     assert "review_capacity" in prompts.INSTRUCTIONS["review_claims@1"] and "exited with code" in prompts.INSTRUCTIONS["extract_claims@3"]
     v2, v3 = prompts.INSTRUCTIONS["extract_claims@2"], prompts.INSTRUCTIONS["extract_claims@3"]
@@ -806,6 +812,10 @@ def test_prompt_digests_are_pinned_separately():
     assert "recorded outcome is failure" in v3 and "`| tail`" in v3 and "never as a failure_lesson" in v3
     assert "| tail" not in v2 and "Decision for this project" not in v2
     assert v3.replace(V3_DECLARATION, "").replace(V3_MASKED, "") == v2  # @3 is @2 plus exactly those two passages
+    # Decision 0036: a statement of how the project is becomes a user_declared fact with its file dependencies.
+    v4 = prompts.INSTRUCTIONS["extract_claims@4"]
+    assert "as a user_declared fact citing those words, with the file dependencies described below" in v4 and "where it stores its data" in v4
+    assert v4.replace(V4_DECLARATION, V3_DECLARATION) == v3  # @4 is @3 with exactly that passage replaced
 
 
 # ---------------------------------------------------------------------------

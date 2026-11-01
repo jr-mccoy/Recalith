@@ -844,3 +844,41 @@ def test_a_declared_fact_with_its_declared_file_is_labeled_when_the_file_changes
     (p.root / cs.NOTES).write_bytes(b"other notes, rewritten outside the host\n")
     for item in items():
         assert item["advice"] == "context" and item["freshness"] == "needs_revalidation" and "dependency_false" in item["why"], item
+
+
+def test_a_fresh_session_start_carries_the_one_active_task(p):
+    """Before any binding, a session's start carries the workspace's one active task's state as context (decision 0036).
+
+    Its claims are not resumed (they keep their own relevance rules), and a second active task makes the resumed one unknown,
+    so neither task is carried.
+    """
+    task = _task(p)
+    lesson = cs.lesson(p)
+    fresh = rs.query(p, "session_start", session=new_id("sess"))
+    rs.publish(p)
+    for packet in (rs.service(p, fresh), rs.hook(p, fresh)["packet"]):
+        items = rs.by_id(packet)
+        assert task in items and items[task]["why"][0] == "task_continuity" and items[task]["advice"] == "context", items.keys()
+        assert lesson not in items
+        assert {i["advice"] for i in items.values()} <= {"context", "conflict"}
+    other = wks.session_id(9)
+    p.send(wks.variant(wks.record("lifecycle", "SessionStart"), session=other))
+    p.send(wks.variant(wks.record("lifecycle", "UserPromptSubmit"), session=other, prompt="FIXTURE other: an unrelated objective."))
+    p.drain()
+    rs.publish(p)
+    for packet in (rs.service(p, fresh), rs.hook(p, fresh)["packet"]):
+        assert task not in rs.ids(packet)
+
+
+def test_a_fresh_session_start_carries_the_one_active_tasks_episodes(tmp_path):
+    """The real denied session settles one episode at its end; a fresh session's start carries it with the task (decision 0036)."""
+    p = wks.Project(tmp_path, "resume")
+    p.scenario("denied")
+    p.drain()
+    [episode] = p.episodes()
+    fresh = rs.query(p, "session_start", session=new_id("sess"))
+    rs.publish(p)
+    for packet in (rs.service(p, fresh), rs.hook(p, fresh)["packet"]):
+        items = rs.by_id(packet)
+        assert {episode["episode_id"], episode["task_id"]} <= set(items), items.keys()
+        assert items[episode["episode_id"]]["why"][0] == "task_continuity" and items[episode["episode_id"]]["advice"] == "context"

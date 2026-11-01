@@ -97,7 +97,7 @@ Host event names are mapped by the exact-version adapter fixture to the normaliz
 
 | Normalized role | Capture branch | Delivery branch when installed/certified |
 |---|---|---|
-| Session start | `session_started`; register source/session | `session_start`, workspace-only until a binding exists |
+| Session start | `session_started`; register source/session | `session_start`, workspace-only until a binding exists, plus the one active task's state and episodes (decision 0036) |
 | User prompt submission | `user_message` | `prompt`, with compaction-restoration purpose if a captured restoration is pending |
 | Before tool/action | `tool_started` | Optional `pre_action` |
 | After tool/action, including failure | `tool_finished`; optional typed-outcome overlay | None |

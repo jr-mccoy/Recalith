@@ -13,6 +13,11 @@ episode, unless that would sever an attempt from its later result or fix:
   session end, where an unanswered call (a denied tool, for example) is
   recorded as unresolved instead of holding the episode forever.
 
+A range with no tool calls stays open until session end, where it settles
+when it holds a user request: a session that only talked still has an
+attempt boundary, and a user's declaration in it is extracted then
+(decision 0036).
+
 A range that reaches :data:`MAX_STEPS` steps becomes an episode regardless,
 ``open`` when something is still unresolved; the next episode names it in
 ``related_episode_ids`` and carries its unresolved items as context, never
@@ -73,7 +78,8 @@ def range_state(events: Sequence[Ev], *, finished_calls: set[str] = frozenset())
 def decide(state: RangeState, *, checkpoint: bool, session_end: bool) -> str | None:
     """``settled``, ``open`` (flushed at the step cap while unresolved) or None (keep the range open)."""
     if state.tool_steps == 0:
-        return None
+        # A conversation without tool calls settles at session end, so a declaration in it is extracted (decision 0036).
+        return "settled" if session_end and state.steps else None
     resolved = not state.unresolved and (session_end or not state.pending)
     if state.tool_steps >= MAX_STEPS:
         return "settled" if resolved else "open"

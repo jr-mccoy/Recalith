@@ -206,3 +206,25 @@ def test_step_cap_flushes_an_open_episode_and_carries_what_is_unresolved(tmp_pat
     assert second["state"] == "settled" and second["related_episode_ids"] == [first["episode_id"]]
     assert [c["text"] for c in second["preconditions"]] == ["Bash `pytest -q test_mid.py` still fails (exit 1)"]
     assert {link["relation"] for c in second["preconditions"] for link in c["evidence"]} == {"context"}
+
+
+def test_a_session_without_tool_calls_settles_at_session_end(tmp_path):
+    """A conversation-only session is an episode at its end and is extracted then; before the end it stays open (decision 0036).
+
+    Synthetic variants: the real tool-less session's records under one session ID, with the live gates' R3 declaration as the prompt.
+    """
+    p = wks.Project(tmp_path)
+    sid = wks.session_id(3)
+    p.send(variant(record("secret_and_resume", "SessionStart"), session=sid))
+    p.send(variant(record("secret_and_resume", "UserPromptSubmit"), session=sid, prompt="Keep the grocery budget under $600 per month for my planning."))
+    p.send(variant(record("secret_and_resume", "Stop"), session=sid))
+    p.drain()
+    assert p.episodes() == []  # a turn without tools is not an attempt boundary
+    p.send(variant(record("secret_and_resume", "SessionEnd"), session=sid))
+    p.drain()
+    [episode] = p.episodes()
+    assert episode["state"] == "settled" and episode["steps"] == [] and episode["outcome"]["text"].startswith("0 actions (no tool calls)")
+    assert "grocery budget under $600" in episode["objective"]["text"]
+    with p.view() as v:
+        kinds = sorted(r[0] for r in v.execute("SELECT kind FROM jobs WHERE kind IN ('extract_claims', 'build_episode', 'update_task')").fetchall())
+    assert kinds == ["extract_claims", "update_task"]  # no narrative of zero steps; the declaration is extracted

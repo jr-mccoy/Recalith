@@ -164,6 +164,10 @@ def _view_candidates(q: Any, ctx: InstallationContext, cands: _Cands, workspace_
         if purpose in ("session_start", "compact_restore"):
             out += search.episode_candidates(q, task_id)
         out += search.observation_candidates(q, task_id)
+    # A fresh session's start, before any binding, carries the workspace's one active task (decision 0036).
+    resume = search.resume_task(q, workspace_id) if task_id is None and purpose == "session_start" else None
+    if resume is not None:
+        out += search.resume_candidates(q, resume)
     if purpose != "pre_action":
         out += questions
     return (out + claims)[: limit + len(out)]

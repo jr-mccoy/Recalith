@@ -474,6 +474,31 @@ def _prefilter(hit_ws: list[str], hit_tasks: list[str], query: ContextQuery) -> 
     return True
 
 
+RESUME_REASONS = {"task_continuity": "the project's one active task; not yet linked to this session"}
+
+
+def resume_task(q: Any, workspace_id: str) -> str | None:
+    """The workspace's one active task, which a fresh session's start carries before any binding (decision 0036).
+
+    Two or more active tasks, or none, carry nothing: which one the session
+    resumes is unknown until typed reduction links it (SYSTEM_SPEC §3.2). A
+    paused task is left out because a view carries no wall-clock time to
+    apply the 24-hour window with.
+    """
+    rows = q.execute("SELECT task_id FROM task_heads WHERE workspace_id = ? AND status = 'active' ORDER BY task_id LIMIT 2", (workspace_id,)).fetchall()
+    return rows[0][0] if len(rows) == 1 else None
+
+
+def resume_candidates(q: Any, task_id: str) -> list[dict[str, Any]]:
+    """A resumed task's state and episodes with the continuity reason.
+
+    Its claims are not resumed: they keep their own relevance rules, and the
+    delivery probe's nonces live in claims of its setup task (decision 0036).
+    """
+    cands = [c for c in [task_candidate(q, task_id)] if c] + episode_candidates(q, task_id)
+    return [{**c, "member_reasons": dict(RESUME_REASONS)} for c in cands]
+
+
 def task_claim_ids(q: Any, task_id: str) -> list[str]:
     rows = q.execute(
         "SELECT DISTINCT el.owner_id FROM evidence_links el JOIN task_binding_heads b ON b.event_id = el.target_id "
@@ -600,6 +625,12 @@ def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int 
             entry = decide(q, ctx, cand, eq, family=family, query_terms=query_terms, budget=budget, idf=idf)
             if entry is not None:
                 entries.append(entry)
+    # A fresh session's start, before any binding, carries the workspace's one active task (decision 0036).
+    resume = resume_task(q, eq.workspace_id) if task_id is None and eq.purpose == "session_start" else None
+    for cand in resume_candidates(q, resume) if resume is not None else []:
+        entry = decide(q, ctx, cand, eq, family=family, query_terms=query_terms, budget=budget, idf=idf)
+        if entry is not None:
+            entries.append(entry)
     if budget.skipped:
         degraded.append("deadline_dependency_unknown")
     if budget.exceeded:
