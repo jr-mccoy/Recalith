@@ -1,0 +1,247 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "revision",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "In A, check.py failed with KeyError: 'NOTES_HOME' unless NOTES_HOME was set.",
+   "Before C, tools/check.py changed to default NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include_caution": "NOTES_HOME",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [
+   "NOTES_HOME must always be set for every command."
+  ],
+  "quiet": false,
+  "revision_expectation": "After the check.py change the lesson is needs_revalidation (no caution); a plain run in C is a legitimate retry and succeeds.",
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "dependency": "file tools/check.py",
+    "kind": "failure_lesson",
+    "proposition": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+    "retry_condition": "Retry without NOTES_HOME if tools/check.py changes."
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev8-py3-none-any.whl",
+  "wheel_sha256": "35b3e87f5aeda1d9ba912878dde00056e33aee7e2ab43ae77fb2ce27e4154faf"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r1",
+  "checks": {
+   "check_passes_without_env": true,
+   "plain_retry_attempted": true,
+   "plain_retry_succeeded": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 16.575,
+  "foreground_cost_usd": 0.037933,
+  "foreground_tokens": 106304,
+  "legitimate_retry_success": true,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-R1-fieldnotes-check-env-fixed",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.024077,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 10.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 10.931,
+   "foreground_tokens": 71629,
+   "host_session_id": "e9b38c10-eb9b-4591-acdc-7a61afd85178",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`python tools/check.py` now passes. The one test passes and no lines go over 100 characters.\n\nThe only problem was that the script reads the `NOTES_HOME` environment variable, and it wasn't set. The script crashed with `KeyError: 'NOTES_HOME'` before running any checks. The script's comment says the harness writes scratch notes there.\n\nI didn't change any code. I set `NOTES_HOME` to a fresh temp directory for the run:\n\n```\nexport NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py\n```\n\nThe variable only applies to that shell command, so you'll need to set it again in your own shell or CI. If a specific notes directory is expected, set `NOTES_HOME` to that path. If you'd rather the script not crash when the variable is missing, I can make it fall back to a temp directory.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.013856,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 5.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 5.644,
+   "foreground_tokens": 34675,
+   "host_session_id": "4e6c2e6e-7f20-4fdb-8566-6d54ea222df5",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "tools/check.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "`python tools/check.py` passes. It ran 1 test, which finished with `OK`. The script set `NOTES_HOME` to a temporary directory (`<temp>`) on its own. I didn't set any environment variables.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "R1/b/w"
+}

@@ -1,0 +1,797 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 1,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 1
+  },
+  "estimated_input_tokens": 126149,
+  "estimated_output_tokens": 9858,
+  "jobs_by_state": {
+   "completed": 6
+  },
+  "model_calls": 5,
+  "tokens": 136007,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "control",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_1872b102-ffc3-4ab8-9953-bca16b1765ca",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "tools/check.py reads the NOTES_HOME environment variable with os.environ[\"NOTES_HOME\"], so the script needs that variable set to run; the check harness writes scratch notes to that directory.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_f96cdd31-44b5-4f58-9255-9d601d399c72",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The project's checks run with `python tools/check.py`, which runs the unittest suite under tests/ and reports lines over 100 characters in fieldnotes/**/*.py.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "Narrative fields already match the evidence: the title is the user's request, and plan, constraints, open_questions and next_action are empty or null with nothing in the events to add. Status is not a narrative field, so the task is left unchanged.",
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "Session only ran read-only checks and a test run; the user's request was a one-off question, not a declared rule, decision or preference. The file and environment facts it surfaced are already covered by existing claims, and the assistant messages are not observed results.",
+   "operations": [],
+   "purpose": "extract_claims"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     0,
+     0,
+     0
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 1,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 0.0,
+   "worker_seen": false
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     20,
+     16,
+     21
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 22,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 607.0,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "ledgerlite needs PYTHONPATH=src; fieldnotes uses tools/check.py with NOTES_HOME."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "ledgerlite's test command applies to fieldnotes."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 13,
+ "horizon_checks": [
+  {
+   "before": "B",
+   "checked_at": "2026-11-03T14:34:43.405710Z",
+   "events": 0,
+   "host_sessions": 0
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev8-py3-none-any.whl",
+  "wheel_sha256": "35b3e87f5aeda1d9ba912878dde00056e33aee7e2ab43ae77fb2ce27e4154faf"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.9,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 21.8,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_a2efef7f-9dba-4c13-883a-c4fd11ad61af",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_02aca73a-2244-4de7-8e03-e0d47c73d250"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c4",
+  "checks": {
+   "checks_pass": true,
+   "no_foreign_test_command": true,
+   "project_tests_run_successfully": true
+  },
+  "metrics": {
+   "cross_project_leak_commands": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 136007,
+  "detours": 1,
+  "elapsed_seconds": 28.163,
+  "foreground_cost_usd": 0.064332,
+  "foreground_tokens": 191180,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 27630,
+    "reported_output_tokens": 2531,
+    "visible_output_estimate": 608
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 61135,
+    "reported_output_tokens": 5244,
+    "visible_output_estimate": 899
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 9699,
+    "reported_output_tokens": 1390,
+    "visible_output_estimate": 345
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 27685,
+    "reported_output_tokens": 693,
+    "visible_output_estimate": 96
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [],
+   "satisfied": true,
+   "spec": {
+    "must_not_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "head -20 tests/test_ledger.py; python --version; python -m pytest --version",
+   "next_pre_action_state": "emitted"
+  },
+  {
+   "caution_delivered": false,
+   "failure": "ls -la; cat package.json 2>/dev/null | head -40; ls *.toml *.py *.go Makefile pom.xml 2>/dev/null",
+   "next_pre_action_state": "none"
+  }
+ ],
+ "scenario": "smoke-C4-cross-project-near-match",
+ "second_project": {
+  "claims": [
+   {
+    "basis": "inferred",
+    "claim_id": "claim_356b3fba-13f6-4417-a7a0-8265a2c30d12",
+    "freshness": "current",
+    "kind": "fact",
+    "proposition": "In the ledgerlite project, running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root ran 2 tests and completed with OK.",
+    "review": {
+     "objections": [],
+     "verdict": "supported"
+    },
+    "revision": 2,
+    "status": "active",
+    "strength": "supported"
+   }
+  ],
+  "curator_calls": [
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session only ran the ledgerlite tests and answered a question. The user made no declaration of intent, preference or project rule. The passing unittest run has no typed exit code or parsed assertion to support an observed claim, and the file-describing statements cannot be given valid dependency paths because the relevant Bash calls recorded no paths.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   }
+  ],
+  "gap": {
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     25,
+     18,
+     23
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 25,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 618.6,
+   "worker_seen": true
+  },
+  "init": {
+   "host": true,
+   "route": "operator_token",
+   "steps": [
+    {
+     "exit": 0,
+     "seconds": 0.3,
+     "step": "init"
+    },
+    {
+     "exit": 0,
+     "seconds": 4.8,
+     "step": "bootstrap"
+    },
+    {
+     "exit": 0,
+     "seconds": 20.5,
+     "step": "route"
+    },
+    {
+     "exit": 0,
+     "seconds": 0.4,
+     "step": "integrate"
+    },
+    {
+     "exit": 0,
+     "seconds": 0.4,
+     "step": "bind_host_record"
+    }
+   ]
+  },
+  "installation_id": "inst_c41ceb3c-1caf-4df6-a888-273b1b3e0f1b",
+  "project": "ledgerlite",
+  "workspace": "C4/c/p2/w"
+ },
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md .gitignore; find src tests .claude .recalith -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "head -20 tests/test_ledger.py; python --version; python -m pytest --version",
+     "exit_code": 1,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests -v",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.031096,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 16.3,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_406d1dcf59e004a1b033d1d6b54459962b591595f2d3742330533bf8bf01f9b7\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_439627e5ccbaaf260bba7ec60b813aec29597abc1702da5f7703108899554b8b\n- [context] Recent observation (not a durable lesson): Bash `ls -la`: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_52161db9713e01d9d7f76475b749af0a99144901ebbc8f9d5a9df7505e057761",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): failure; exit 1\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_276f718f83dbf221576d5d2d232fc50644d8af8786df054d13706e5c3d5b80e2",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 16.27,
+   "foreground_tokens": 95755,
+   "host_session_id": "5144074b-f79d-436a-8a6b-3886d4314f04",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "The command that works, run from the project root, is:\n\n```\nPYTHONPATH=src python -m unittest discover -s tests -v\n```\n\nBoth tests passed (`test_transfer_preserves_total` and `test_rejects_non_positive_amount`).\n\n- **No pytest:** it isn't installed (`No module named pytest`). The tests are plain `unittest`, so you don't need it.\n- **`PYTHONPATH=src`:** the package lives in `src/ledgerlite`, and the tests fail to import it without this. In PowerShell, use `$env:PYTHONPATH=\"src\"; python -m unittest discover -s tests -v`.",
+   "second_project": true,
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "ls -la; cat package.json 2>/dev/null | head -40; ls *.toml *.py *.go Makefile pom.xml 2>/dev/null",
+     "exit_code": 2,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md .gitignore; find tests tools fieldnotes .claude .recalith -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": "echo \"NOTES_HOME=${NOTES_HOME:-unset}\"; D=$(mktemp -d) && NOTES_HOME=\"$D\" python tools/check.py 2>&1 | tail -40; echo \"exit=${PIPESTATUS[0]}\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.033236,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 11.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): failure; exit 2\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_2a3358c17c5a35bc1b498e95999b43362c8253261e5c0bf9fe01abe955c89b0b\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_93d2e4bbab9dc257f8874ed4257dd2e93dd319aa2056c6161787022731afc4fb\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_bc76da2618fd73925d25a5799894af7cb7f85e4ec1b3f4ec63dcdd4064dfd88b",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 11.894,
+   "foreground_tokens": 95425,
+   "host_session_id": "0774f8d4-f737-4411-a49a-fec99b72173a",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "The tests pass. I ran `python tools/check.py`, which exited 0. It runs the unit tests and a check that lines are at most 100 characters.\n\n- **Unit tests:** 1 test ran and passed (`OK`).\n- **Line-length check:** no violations reported.\n\nThe script needs `NOTES_HOME` set, and it wasn't set in this environment. I pointed it at a fresh temp directory, so the run left no scratch notes in the project.\n\nThe suite is very small. It has a single test, in `tests/test_store.py`.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  },
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "C4/c/w"
+}

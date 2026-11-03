@@ -1,0 +1,887 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "revalidate": 2,
+   "review_claims": 3,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 311035,
+  "estimated_output_tokens": 23474,
+  "jobs_by_state": {
+   "cancelled": 1,
+   "completed": 12
+  },
+  "model_calls": 11,
+  "tokens": 334509,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_561ac9e0-181d-4530-b479-7af5352f3202",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Ledger.close(name) in src/ledgerlite/__init__.py raises ValueError when the account balance is non-zero and otherwise removes the account.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_80771391-38f9-4ba3-ab00-405d44502022",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root passes all ledgerlite tests: 2 tests before test_close_requires_zero_balance was added, 3 tests after.",
+   "review": {
+    "objections": [
+     "Only the 2-test run is supported. The 3-test count rests on evt_272f, which is linked as contradicts, not supports.",
+     "Cited evidence does not show the before/after order relative to adding test_close_requires_zero_balance."
+    ],
+    "verdict": "revise"
+   },
+   "revision": 9,
+   "status": "candidate",
+   "strength": "weak"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_82e908e0-fd52-447d-9573-20a3d4b8aa75",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Running `python -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails with a ModuleNotFoundError for the ledgerlite package.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 5,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "reject",
+     "reason": "group_rejected"
+    }
+   ],
+   "malformed": [
+    {
+     "detail": "patches.0:value_error(append adds one item to a list field)",
+     "index": 1,
+     "local_ref": "append-plan-1",
+     "reason": "malformed_operation"
+    },
+    {
+     "detail": "patches.0:value_error(append adds one item to a list field)",
+     "index": 2,
+     "local_ref": "append-plan-2",
+     "reason": "malformed_operation"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "malformed": [
+    {
+     "detail": "body:value_error(file/dependency requests name an allowed path)",
+     "index": 0,
+     "local_ref": "rerun-test-claim-8077",
+     "reason": "malformed_operation"
+    }
+   ],
+   "operations": [],
+   "purpose": "revalidate"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "reject",
+     "reason": "invalid_result"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "attach_evidence",
+     "outcome": "apply",
+     "reason": "admitted"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "attach_evidence",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_claim",
+     "outcome": "candidate_only",
+     "reason": "revision_pending_review"
+    }
+   ],
+   "operations": [
+    "revise_claim"
+   ],
+   "purpose": "revalidate"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_revise"
+    }
+   ],
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     23,
+     22,
+     27
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 15,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 340.0,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     57,
+     43,
+     56
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 21,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 364.1,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether installing the package in editable mode would also work was not tested."
+  ],
+  "exact_observations": [
+   "`python -m unittest` from the project root ran 0 tests (exit 5).",
+   "`python -m unittest discover -s tests` failed with ModuleNotFoundError: No module named 'ledgerlite'.",
+   "`PYTHONPATH=src python -m unittest discover -s tests` ran the suite successfully."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All Python projects need PYTHONPATH=src.",
+   "unittest discovery is broken."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "observed",
+    "kind": "procedure",
+    "proposition": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+    "scope": "this project"
+   },
+   {
+    "basis": "inferred",
+    "kind": "failure_lesson",
+    "proposition": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+    "retry_condition": "Retry plain discovery if the package becomes installed or tests add src to sys.path."
+   }
+  ]
+ },
+ "hook_replies": 17,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-03T14:24:17.038421Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-03T14:30:12.529316Z",
+   "events": 20,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev8-py3-none-any.whl",
+  "wheel_sha256": "35b3e87f5aeda1d9ba912878dde00056e33aee7e2ab43ae77fb2ce27e4154faf"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.8,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 21.1,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_80f2c362-2dde-4993-8a11-022a2dffd4ad",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_09248308-5237-4b2e-8e57-d4049171d171"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l1",
+  "checks": {
+   "close_refuses_nonzero": true,
+   "close_removes_zero_account": true,
+   "close_tested": true,
+   "suite_passes": true
+  },
+  "metrics": {
+   "repeated_test_command_failures": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 334509,
+  "detours": 0,
+  "elapsed_seconds": 27.448,
+  "foreground_cost_usd": 0.091902,
+  "foreground_tokens": 204320,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 82828,
+    "reported_output_tokens": 4767,
+    "visible_output_estimate": 1077
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 95868,
+    "reported_output_tokens": 6365,
+    "visible_output_estimate": 1175
+   },
+   "revalidate": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 28715,
+    "reported_output_tokens": 4033,
+    "visible_output_estimate": 764
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 3,
+    "replies_parsed": 3,
+    "reported_input_tokens": 20707,
+    "reported_output_tokens": 3763,
+    "visible_output_estimate": 760
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 82917,
+    "reported_output_tokens": 4546,
+    "visible_output_estimate": 1269
+   }
+  },
+  "job_errors": {
+   "revalidate:coalesced": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Current task: Run the ledgerlite unit tests and get them running correctly. Tell me the exact\u2026. Objective: Run the ledgerlite unit tests and get them running co"
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Episode (settled): Run ledgerlite unit tests: working command needs PYTHONPATH=src. Outcome: Command PYTHONPATH=src python -m unittest discover -s tests -v ran "
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "PYTHONPATH=src",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-L1-ledgerlite-test-command",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": "pwd; ls -la",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": ".recalith/project.toml",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "python -m unittest discover -s tests -v 2>&1 | tail -15; echo ---; PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.042431,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 15.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_4c3d3faa455f83f7cc1ebe1e809a6042921522dbad094163dc9f11daa23cf20f\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_8542739a07e7043295b2149d58b66d2878eb86be9aa1f236436d68cf6b6eb496\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_be9a0d678038ce1c066acba7c9f4df5680be6e14d0a16a5291b7080081e50b1a",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read .recalith/project.toml: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6f7586429691ab0478d26483c71f01e49dcd31f36c755941ef16184ac4e5c48f\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_9b07cc584c688c6cc518398f0129ff088c048b9464efec223d800dea6ba9a60d",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 15.478,
+   "foreground_tokens": 88196,
+   "host_session_id": "bf60a423-957d-4444-a608-80caee1c57b3",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "This command works (run from `<run>\\work\\L1\\c\\w`):\n\n```\nPYTHONPATH=src python -m unittest discover -s tests -v\n```\n\nBoth tests pass (`test_transfer_preserves_total` and `test_rejects_non_positive_amount`).\n\nWithout `PYTHONPATH=src`, the run fails with `ModuleNotFoundError: No module named 'ledgerlite'`. The package sits under `src/` and isn't installed, so Python can't find it. I didn't change any files.\n\nThat syntax is for the Bash shell. In PowerShell, use `$env:PYTHONPATH=\"src\"; python -m unittest discover -s tests -v`. In cmd, use `set PYTHONPATH=src && python -m unittest discover -s tests -v`.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.049471,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 12.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Run the ledgerlite unit tests and get them running correctly. Tell me the exact\u2026. Objective: Run the ledgerlite unit tests and get them running correctly. Tell me the exact command that works..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_c20ed35e-bfc0-4b72-a76a-814703b1447a r6\n- [context] Episode (settled): Run ledgerlite unit tests: working command needs PYTHONPATH=src. Outcome: Command PYTHONPATH=src python -m unittest discover -s tests -v ran 2 tests, both ok (observed). The chained first run without PYTHONPATH failed with ModuleNotFoundError: No module named 'ledgerlite' (observed). Cause (inferred): src/ledgerlite is not installed or on the import path. The Bash tool [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_8a456df2-fd1e-4d8d-826c-de2f05f6da49 r2",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: Running `python -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails with a ModuleNotFoundError for the ledgerlite package.\n  why: lexical_match \u2014 matches unit\n  applies: true \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: depends on file tests/test_ledger.py, file src/ledgerlite/__init__.py\n  sources: claim_82e908e0-fd52-447d-9573-20a3d4b8aa75 r2; evt_c1ecac2d884ad5f7be11efa2aa631c909b08ee6aafb3fa59c6a92619807dbfb7\n- [context] Fact: Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root runs the 2 ledgerlite tests and both pass.\n  why: lexical_match \u2014 matches unit\n  applies: true \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: depends on file tests/test_ledger.py, file src/ledgerlite/__init__.py\n  sources: claim_80771391-38f9-4ba3-ab00-405d44502022 r2; evt_c1ecac2d884ad5f7be11efa2aa631c909b08ee6aafb3fa59c6a92619807dbfb7",
+     "degradations": [],
+     "items": 2,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6f3338bb238aefb1c7f4b3249d882e3c626d78c519d526f057b01091e424c102",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_4fe68d2082e01f88bdbaf2ebc20cf73c15f12523807e2866515be800c5b992ed\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_5ac1724896107115df5cd5c4f94046906008b7af3436cb29f4c04375e6d0f46c",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 11.969,
+   "foreground_tokens": 116124,
+   "host_session_id": "b80158cc-06d8-48b0-a6a8-fd81c196a3d3",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I added `Ledger.close(name)` in `src/ledgerlite/__init__.py`. It raises `ValueError` if the account's balance isn't zero, and otherwise removes the account. Closing a name that doesn't exist raises `KeyError`, the same as `balance()` does.\n\nI also added `test_close_requires_zero_balance` in `tests/test_ledger.py`. It checks that closing a non-zero account raises and leaves the account in place. It then checks that the same account closes once its balance is back to zero.\n\nThe full suite passes, 3 tests including the new one. It only runs with `src` on the import path:\n\n```\nPYTHONPATH=src python -m unittest discover -s tests -v\n```",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "L1/c/w"
+}
