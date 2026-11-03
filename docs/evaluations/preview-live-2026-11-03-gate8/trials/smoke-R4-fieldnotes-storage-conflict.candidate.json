@@ -1,0 +1,773 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 262626,
+  "estimated_output_tokens": 14647,
+  "jobs_by_state": {
+   "completed": 9
+  },
+  "model_calls": 8,
+  "tokens": 277273,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "revision",
+ "claims": [
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_43358e93-31f7-4fca-8281-930de08751b1",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Notes for this project are stored in notes.json under NOTES_HOME.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 3,
+   "status": "disputed",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_631b797b-41b6-4fb7-9e19-c1270b613d17",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "Notes for this project are stored in notes.jsonl under NOTES_HOME, one JSON object per line.",
+   "review": {
+    "objections": [
+     "Read shows a NOTES_HOME env path, not per-project scoping; 'for this project' is unsupported.",
+     "Scope and conditions are empty; NOTES_HOME must be set at runtime."
+    ],
+    "verdict": "revise"
+   },
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "malformed": [
+    {
+     "detail": "payload.patches.1.item_id:value_error(invalid identifier: expected a registered lowercase prefix plus UUIDv4 or SHA-25)",
+     "index": 0,
+     "local_ref": "update-task-1",
+     "reason": "malformed_operation"
+    }
+   ],
+   "operations": [],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "change_claim_status",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "change_claim_status"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_revise"
+    }
+   ],
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "C",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     25,
+     20,
+     25
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 15,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 335.8,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     48,
+     43,
+     52
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 14,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 335.5,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Which storage format the user intends going forward."
+  ],
+  "exact_observations": [
+   "A: user stated notes.json storage.",
+   "C: store.py now writes notes.jsonl."
+  ],
+  "expected_retrieval_points": [
+   {
+    "advice": "conflict_or_freshness_label",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "revision_expectation": "Current code contradicts the stored fact; the conflict is surfaced (dispute/needs_revalidation) rather than silently resolved, and the agent's script follows the current code.",
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "fact",
+    "proposition": "Notes are stored in notes.json under NOTES_HOME."
+   }
+  ]
+ },
+ "hook_replies": 17,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-03T22:08:12.384405Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "C",
+   "checked_at": "2026-11-03T22:14:04.000330Z",
+   "events": 18,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev9-py3-none-any.whl",
+  "wheel_sha256": "37ba76f1fe17ebc0e2f5b503165e5f83ce7f4d4883d80b760e09cb9d4a34c2ca"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 4.6,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.7,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.3,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_304ff4d3-1e6d-48bd-b325-cc785a7a5a6e",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_047bc3f6-7d02-42b2-bc2f-5b04fd2b822f"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "r4",
+  "checks": {
+   "counts_current_storage": true,
+   "script_exists": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "C"
+ },
+ "outcomes": {
+  "background_tokens": 277273,
+  "detours": 0,
+  "elapsed_seconds": 32.116,
+  "foreground_cost_usd": 0.09203,
+  "foreground_tokens": 202143,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 80199,
+    "reported_output_tokens": 3692,
+    "visible_output_estimate": 1121
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 91340,
+    "reported_output_tokens": 5019,
+    "visible_output_estimate": 1028
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 10705,
+    "reported_output_tokens": 1861,
+    "visible_output_estimate": 388
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 80382,
+    "reported_output_tokens": 4075,
+    "visible_output_estimate": 1146
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "needs_revalidation",
+     "text": "Fact: Notes for this project are stored in notes.json under NOTES_HOME."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "advice": "conflict_or_freshness_label",
+    "purpose": "prompt",
+    "session": "C"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-R4-fieldnotes-storage-conflict",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Grep"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "d=$(mktemp -d) && NOTES_HOME=\"$d\" python -m fieldnotes.cli list; echo \"exit=$?\"; ls -A \"$d\" | wc -l",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.042018,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 15.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Grep: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_22f8315d6f5d39ed0458a7a3c65283605eb5d4911916536da9d8f10f080e6be0\n- [context] Recent observation (not a durable lesson): Read fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6962782f1d157edfd4606d6217856d0e913aa19f2e13806a00eaf1d078a984b7\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_783e3878ae433eb78e88b2754d60c6e858ea95b06ecab51f70d0222f4a65bcdc",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_037f3f84b9fb3d2b7d8203368509ebbb35477ad4e2b00e85fbb2b7f8b798a5da\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_abbc666ccc68d40d7e5c5e717123e0becf89988d0fd10c2b35e6f81e0afe630f",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 15.742,
+   "foreground_tokens": 87190,
+   "host_session_id": "4f6affde-cb28-444b-81ec-c1b1243804b6",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "For an empty store, `list` prints nothing and exits with code 0.\n\nI ran `python -m fieldnotes.cli list` with `NOTES_HOME` pointing at a new, empty temp directory:\n\n```\n$ NOTES_HOME=<empty tmp dir> python -m fieldnotes.cli list\n$ echo $?\n0\n```\n\n`store.load()` returns `[]` when `notes.json` doesn't exist, so the loop in `fieldnotes/cli.py:20-21` has nothing to print. The command also doesn't create `notes.json`. Only `add` does that.\n\nI also noted that notes live in `notes.json` under `NOTES_HOME`, which `fieldnotes/store.py:12` confirms. I didn't write that to a memory file, so it only lasts for this session. If you want it kept, I can add it to the README or a `CLAUDE.md`.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "C",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "C",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "C",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "C",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "C",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/count_notes.py",
+     "session": "C",
+     "tool": "Write"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\" && python tools/count_notes.py && python -m fieldnotes.cli add \"first\" && python -m fieldnotes.cli add \"second\" && python tools/count_notes.py && ls \"$NOTES_HOME\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "C",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.050012,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 16.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Remember for this project: notes are stored in notes.json under NOTES_HOME. Sho\u2026. Objective: Remember for this project: notes are stored in notes.json under NOTES_HOME. Show me the list command output for an empty store..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_f61a0819-9eab-4a13-88fd-5a40b914b160 r7\n- [context] Episode (settled): Ran list against an empty notes store: exit 0, no output. Outcome: All 6 actions succeeded. The list command, run with NOTES_HOME set to a new empty directory, exited 0 with no output, and the directory held 0 entries afterward. store.load() returns an empty list when notes.json is absent, so list prints nothing. No note was written to project memory in the obse [\u2026]. Unresolved: Whether the notes.json-under-NOTES_HOME fact should be saved to project memory is unresolved; no memory write is obse [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_616745e1-efc9-4f0f-ad3a-9de445049b89 r2",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: Notes for this project are stored in notes.json under NOTES_HOME.\n  why: lexical_match \u2014 matches notes, stored; dependency_false; freshness_needs_revalidation\n  applies: true \u00b7 freshness: needs_revalidation \u00b7 basis: user_declared\n  conditions: depends on file fieldnotes/store.py\n  sources: claim_43358e93-31f7-4fca-8281-930de08751b1 r2; evt_2d6d7f597fc5688affccb22ae853f8a646404e0b4bb35e88a9c61fccab05d8f5",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_289671a256b74a605324687be704647f9895b86ac1a3463b4d357c5cc1f37443",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_3c6064f8ca3ff10e80c8da9d01acffc8a54dfab7629916a64542ad8e11a35920\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_5816f6b135626991c240177111e2000793da8fdcda6623dc28eee1f7e92a5f68\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b0f651db543efde094444749b6bc1d3f271e8c7cc492c063f05b269009eaa7df",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 16.374,
+   "foreground_tokens": 114953,
+   "host_session_id": "da2bfd82-d336-45da-b2aa-c83ec3ee0635",
+   "host_version": "2.1.310",
+   "name": "C",
+   "overlays": [
+    "fieldnotes/store.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "I wrote `tools/count_notes.py`. It prints the number of notes in the store, and I tested it against a fresh temporary `NOTES_HOME`.\n\n- **Empty store:** it printed `0`.\n- **After two notes:** I added \"first\" and \"second\" with `python -m fieldnotes.cli add`, and it printed `2`.\n\nThe script uses `store.load()`, so it counts the same notes that `list` shows. It needs `NOTES_HOME` set, like the rest of the project.\n\nThe project memory says notes live in `notes.json`, but `fieldnotes/store.py` writes `notes.jsonl`, one JSON object per line, and that is the file I saw in the test directory. That memory entry looks out of date.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "R4/c/w"
+}

@@ -1,0 +1,155 @@
+{
+ "adjudication_schema": 1,
+ "claims": {
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_108ad249-a92f-4b74-9d8f-75ef660e923d": {
+   "label": null,
+   "proposition": "The fieldnotes store keeps notes in a `notes.json` file inside the directory named by the NOTES_HOME environment variable.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_cee2aa76-2164-41d1-829a-e379e23a0958": {
+   "label": null,
+   "proposition": "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-C4-cross-project-near-match:claim_00473fa8-048b-4f5a-b2a8-afd650747da7": {
+   "label": null,
+   "proposition": "Based on tools/check.py line 24, the script reads NOTES_HOME with os.environ[\"NOTES_HOME\"], so running it with NOTES_HOME unset would fail with a KeyError.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-L1-ledgerlite-test-command:claim_38630009-234e-4ec1-9972-73de2e14eedf": {
+   "label": null,
+   "proposition": "Running `python -m unittest discover -s tests -v` from the ledgerlite project root, without PYTHONPATH=src, fails with ModuleNotFoundError: No module named 'ledgerlite'.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-L1-ledgerlite-test-command:claim_ff46b3e4-2ecb-42de-a366-5671cf2c5427": {
+   "label": null,
+   "proposition": "Ledger.close(name) in src/ledgerlite/__init__.py raises ValueError when the account's balance is not zero and otherwise deletes the account from the ledger.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_3be97d48-392c-4a35-8fcf-720930716345": {
+   "label": null,
+   "proposition": "fieldnotes export prints one line per stored note in the form `<created>: <text>`, where <created> is the stored created value unchanged, and it is implemented by an export_lines helper in fieldnotes/cli.py.",
+   "status": "active",
+   "strength": "corroborated",
+   "term_match": "unsupported"
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_8f710a1e-dd80-4396-8692-4169b49353cb": {
+   "label": null,
+   "proposition": "tools/check.py reads NOTES_HOME with os.environ[\"NOTES_HOME\"] and has no default, so it needs NOTES_HOME set in the environment to run.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_c4af8938-5dd1-4305-ae11-6bfa09cbdbc2": {
+   "label": null,
+   "proposition": "Every date fieldnotes prints must be ISO-8601 (YYYY-MM-DD...). Locale formats such as 'Jan 2' or '02/01/2026' are not allowed.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-L3-household-grocery-budget:claim_c4947bcb-fbe3-4dc8-882e-bc1a3bf1a6b3": {
+   "label": null,
+   "proposition": "The household grocery budget is kept under $600 per month, and anything that would push it over is flagged.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_03baf7b7-df4a-4a01-8bb2-debc2a403ceb": {
+   "label": null,
+   "proposition": "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_39dca2e2-01a9-4851-af42-b2317386d9fc": {
+   "label": null,
+   "proposition": "tools/check.py reads the NOTES_HOME environment variable and requires it to be set.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_eb316864-525d-4516-9e0f-9a7e34275259": {
+   "label": null,
+   "proposition": "Running `python -m unittest discover -s tests -t .` from the project root, with tests/__init__.py present, reports Ran 2 tests, OK.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "unsupported"
+  },
+  "smoke-R3-household-budget-correction:claim_d5a13651-54cb-474a-b1c2-f09d8a99f955": {
+   "label": null,
+   "proposition": "The user's grocery budget is $700 per month, replacing the earlier $600 monthly cap.",
+   "status": "active",
+   "strength": "supported",
+   "term_match": "supported"
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_43358e93-31f7-4fca-8281-930de08751b1": {
+   "label": null,
+   "proposition": "Notes for this project are stored in notes.json under NOTES_HOME.",
+   "status": "disputed",
+   "strength": "supported",
+   "term_match": "supported"
+  }
+ },
+ "instructions": "Label each claim supported|unsupported against the trial's evidence (scope included: a prohibited generalization is unsupported), and each gold lesson recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as {\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels.",
+ "lessons": {
+  "smoke-L1-ledgerlite-test-command#0": {
+   "kind": "procedure",
+   "label": null,
+   "lesson": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+   "term_match": "recalled"
+  },
+  "smoke-L1-ledgerlite-test-command#1": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+   "term_match": "recalled"
+  },
+  "smoke-L2-fieldnotes-iso-dates#0": {
+   "kind": "decision",
+   "label": null,
+   "lesson": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+   "term_match": "recalled"
+  },
+  "smoke-L3-household-grocery-budget#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+   "term_match": "recalled"
+  },
+  "smoke-R1-fieldnotes-check-env-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+   "term_match": "recalled"
+  },
+  "smoke-R2-ledgerlite-import-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+   "term_match": "missed"
+  },
+  "smoke-R3-household-budget-correction#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery budget is $700 per month.",
+   "term_match": "recalled"
+  },
+  "smoke-R4-fieldnotes-storage-conflict#0": {
+   "kind": "fact",
+   "label": null,
+   "lesson": "Notes are stored in notes.json under NOTES_HOME.",
+   "term_match": "recalled"
+  }
+ },
+ "reviewers": []
+}

@@ -1,0 +1,260 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "Step 1 (money.parse) was completed in session A; steps 2 and 3 were pending."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "money.parse",
+    "purpose": "session_start",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [],
+  "quiet": false,
+  "supported_lessons": [],
+  "task_state": {
+   "next_action": "Step 2: make Ledger.transfer use money.parse",
+   "objective": "Three-step money refactor"
+  }
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev9-py3-none-any.whl",
+  "wheel_sha256": "37ba76f1fe17ebc0e2f5b503165e5f83ce7f4d4883d80b760e09cb9d4a34c2ca"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "l4",
+  "checks": {
+   "step1_present": true,
+   "step2_transfer_uses_money_parse": true,
+   "step3_not_started": true,
+   "suite_passes": true,
+   "transfer_accepts_decimal": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 1,
+  "elapsed_seconds": 30.689,
+  "foreground_cost_usd": 0.061222,
+  "foreground_tokens": 163435,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-L4-ledgerlite-resume-refactor",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/money.py",
+     "session": "A",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.028788,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 12.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 12.645,
+   "foreground_tokens": 71923,
+   "host_session_id": "33bf28a4-5e43-4986-b735-4ca68f18c64c",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "Step 1 is done. I created `src/ledgerlite/money.py` with `parse(value) -> Decimal`. I haven't run it, and I didn't touch `Ledger.transfer` or add any tests.\n\n- **Accepted input:** `str` or `Decimal`. Any other type, including `float`, raises `TypeError`.\n- **Rejected input:** Unparseable strings, non-finite values (`NaN`, `Infinity`) and values `<= 0` raise `ValueError`. The non-positive message is \"amount must be positive\", the same as `transfer` uses now.\n- **Beyond your spec:** The non-finite check is mine. Without it, `Infinity` would pass the positivity check, and `NaN` would raise `InvalidOperation` instead of `ValueError`.\n\n**Next step (2):** Make `Ledger.transfer` in `src/ledgerlite/__init__.py` call `money.parse`. It would replace the `Decimal(amount)` call and the `value <= 0` check with `value = money.parse(amount)`. Behavior stays the same for valid input. Invalid strings would now raise `ValueError` instead of `decimal.InvalidOperation`.\n\nTell me when you want me to continue.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": "cd \"<run>/work/L4/b/w\" && ls -la && ls *.md *.txt 2>/dev/null",
+     "exit_code": 2,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd \"<run>/work/L4/b/w\" && cat README.md && find src tests -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd \"<run>/work/L4/b/w\" && cat src/ledgerlite/money.py src/ledgerlite/__init__.py tests/test_ledger.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd \"<run>/work/L4/b/w\" && python - <<'EOF'\np='src/ledgerlite/__init__.py'\ns=open(p).read()\ns=s.replace(\"from decimal import Decimal\\n\",\"from decimal import Decimal\\n\\nfrom ledgerlite import money\\n\",1)\ns=s.replace('''        value = Decimal(amount)\n        if value <= 0:\n            raise ValueError(\"amount must be positive\")\n''','''        value = money.parse(amount)\n''')\nopen(p,'w').write(s)\nEOF\nPYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.032434,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 18.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 18.044,
+   "foreground_tokens": 91512,
+   "host_session_id": "9c78e7f1-a244-4e13-bb26-a69422ae3378",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I did one step: `Ledger.transfer` in `src/ledgerlite/__init__.py` now calls `money.parse(amount)` instead of doing its own `Decimal` conversion and positivity check. Both tests pass.\n\nI couldn't see our earlier conversation, and the directory has no notes or git history. I inferred the step from the code. `money.parse` existed but nothing used it. If you had a different next step in mind, tell me and I'll redo it.\n\n`transfer` now also rejects non-finite amounts such as `NaN`. It raises `ValueError` for those, where before it would have raised `InvalidOperation`.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "L4/b/w"
+}
