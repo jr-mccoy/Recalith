@@ -186,6 +186,8 @@ R3_PLANS = [
     ("Limit used: $700 per month, replacing the earlier $600.", True),  # the third live gate's wording, in both arms
     ("Budget: $700/month (up from $600).", True),
     ("The $600 limit no longer applies; this plan uses $700.", True),
+    ("**Grocery budget limit: $700 per month** (updated from $600).", True),  # the eighth live gate's candidate (decision 0028 item 30)
+    ("Budget revised from $600 to $700 for the party month.", True),
     ("Limit: $700. Keep each week near $150 so the month stays under $600.", False),
     ("Monthly limit: $600 (and the party fits within $700).", False),
 ]

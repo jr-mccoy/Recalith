@@ -178,7 +178,8 @@ def r3(c: Ctx) -> None:
     c.check("plan_states_700_limit", "700" in plan)
     # A line may name $600 as the figure the correction replaced (the third live gate's plans said "replacing the earlier
     # $600" in both arms); only $600 stated as the limit in force is stale.
-    stale = [ln for ln in plan.splitlines() if re.search(r"\b600\b", ln) and not re.search(r"previous|old|was|former|correct|earlier|replac|supersed|instead of|no longer|(?:up|raised|increased|changed) from", ln, re.I)]
+    # The eighth gate's candidate wrote "$700 per month (updated from $600)" (decision 0028 item 30).
+    stale = [ln for ln in plan.splitlines() if re.search(r"\b600\b", ln) and not re.search(r"previous|old|was|former|correct|earlier|replac|supersed|instead of|no longer|(?:up|raised|increased|changed|updated|revised|adjusted|moved|bumped) from", ln, re.I)]
     c.check("no_stale_600_limit", not stale)
 
 
