@@ -1,0 +1,221 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "The cause of the September increase is unknown."
+  ],
+  "exact_observations": [
+   "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any admitted causal explanation for the September increase."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.310",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev7-py3-none-any.whl",
+  "wheel_sha256": "e40487f23490305cb20da7f5fff0c46a80b702620e89b2dd66b35dee426e7f34"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.310 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c3",
+  "checks": {
+   "plan_exists": true,
+   "plan_has_estimate": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 20.529,
+  "foreground_cost_usd": 0.07683,
+  "foreground_tokens": 71619,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C3-household-utilities-speculation",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0.050556,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 9.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 9.427,
+   "foreground_tokens": 17943,
+   "host_session_id": "fabff3b3-a77e-4cb7-afcb-ee6d7f3b5c1f",
+   "host_version": "2.1.310",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Here are some possible reasons, roughly from most to least likely. I haven't looked at the file.\n\n**Weather and seasonal use**\n- **Late-summer heat:** September can stay hot, so air conditioning may have run more than in August, or run later into the evening.\n- **Early cold snap:** If you have electric heat, a cool September could have triggered it.\n- **Fewer mild days:** Even a small shift in the weather can change how much heating or cooling you use.\n\n**Household changes**\n- **Back to school or work:** Kids at home more, or someone working from home again, means more use during the day.\n- **Guests or a new household member.**\n- **New appliances or devices:** A space heater, dehumidifier, second fridge, EV charger, or a new computer setup.\n- **Pool or hot tub:** Pumps and heaters can use a lot, especially if you changed their schedules.\n\n**Billing and rates**\n- **Rate change:** Many utilities adjust rates in the fall, or move from summer to winter pricing.\n- **Billing period length:** A cycle with 33 days instead of 29 will show higher use even if daily use is the same.\n- **Estimated reads:** A low estimate followed by a true-up can make one month look inflated.\n- **New fees or riders:** Fuel adjustments or delivery charges can raise the bill without any change in kWh.\n- **Time-of-use plan:** A plan change, or more use in peak hours, can raise the cost.\n\n**Equipment problems**\n- **Failing HVAC, water heater, or fridge:** A part that is wearing out can run constantly.\n- **Something left running:** A forgotten appliance, a failing thermostat, or a stuck pump.\n- **Meter or data error:** A wrong reading or a duplicate entry in the log.\n\n**Data quirks in the CSV**\n- **Units:** The log may mix kWh and dollars, or the columns may have shifted.\n- **Missing months:** If August is missing or partial, September would look like a jump.\n- **Combined bills:** Gas or water charges may have been added to the electricity line.\n\n**First checks:** Compare kWh with cost, since that separates real usage from rate changes. Then compare the billing-period lengths, and compare against September of last year to separate seasonal patterns from something new.\n\nI can look at the file and test these ideas if you'd like.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-log.csv",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.026274,
+    "hook_failures": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 11.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 11.102,
+   "foreground_tokens": 53676,
+   "host_session_id": "b23882d2-9657-4b73-83a2-58f61acbbae8",
+   "host_version": "2.1.310",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `utilities-plan.md` with a budget of about **$228** for December, and a suggested range of $205\u2013$245.\n\n| Category | Estimate | Basis |\n|---|---|---|\n| Electricity | $125 | The Jul\u2013Sep average is $104, but September jumped to $131, so I weighted toward the recent level. |\n| Water | $43 | It stayed between $41 and $44. |\n| Internet | $60 | It was $60 every month. |\n\n- **Missing months:** The log only runs through September, so the estimate extrapolates from there. October and November aren't in it.\n- **Small sample:** Three months is thin, and the September electricity jump is unexplained. Winter use could push electricity higher.\n- **Safe amount:** The plan suggests setting aside about $245 to cover the high end.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C3/b/w"
+}

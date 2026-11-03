@@ -1,0 +1,195 @@
+{
+ "adjudication_schema": 1,
+ "claims": {
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_c5aae018-2b9d-4ace-bc0b-59f649082ecf": {
+   "label": null,
+   "proposition": "The fieldnotes project checks are run with `python tools/check.py`, as stated in README.md.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "fixture README.md: 'Run the project checks with `python tools/check.py`.'"
+  },
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_ca1ebca0-e0fe-49e4-a024-98e1206dba1e": {
+   "label": null,
+   "proposition": "The fieldnotes CLI `delete INDEX` command removes the note at a 1-based index and exits with status 2 when the index is out of range or not an integer.",
+   "status": "active",
+   "strength": "corroborated",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "session A's delete as A's reply describes it: 1-based, exit 2 for an out-of-range or non-integer index. B left delete as it was (revalidation kept it)."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_35caa250-c9e3-4d47-a91b-509f7f077af7": {
+   "label": null,
+   "proposition": "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root with PYTHONPATH=src ran 2 tests and reported OK in the run recorded at 2026-11-02T22:50:42Z, before tests/test_ledger.py was edited to add a third test.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "session A ran discovery with PYTHONPATH=src through the installation's runtime interpreter: 'Ran 2 tests ... OK' (A's reply). Dated to that run, before B added a test."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_dab6b222-d1bd-48cf-856f-add35b0e267a": {
+   "label": null,
+   "proposition": "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails with \"ModuleNotFoundError: No module named 'ledgerlite'\".",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "session A's run without PYTHONPATH=src, through the same interpreter: ModuleNotFoundError: No module named 'ledgerlite' (A's reply). Worded as a condition (decision 0037); reviewed supported."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_f1eceaa8-7151-4955-973e-b076a5c656b5": {
+   "label": null,
+   "proposition": "Ledger.close(name) in src/ledgerlite/__init__.py deletes the named account when its balance is zero and raises ValueError when the balance is not zero.",
+   "status": "active",
+   "strength": "corroborated",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "session B's close (B's reply); the oracle confirms it refuses a non-zero balance and removes a zero one."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_19d9f62e-1aa2-448a-b88f-0d1f27ef0a15": {
+   "label": null,
+   "proposition": "fieldnotes stores its notes as a JSON array in notes.json inside the directory named by the NOTES_HOME environment variable.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "fixture store.py: json.dumps of a list into Path(os.environ[\"NOTES_HOME\"]) / \"notes.json\"."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_bf501222-c77c-4c65-a9b9-6ce64b28328f": {
+   "label": null,
+   "proposition": "The project check script tools/check.py reads the NOTES_HOME environment variable with os.environ, so NOTES_HOME must be set when it runs; it also runs the unittest suite under tests/ and enforces a 100-character line limit on fieldnotes/**/*.py.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "fixture tools/check.py: os.environ[\"NOTES_HOME\"], unittest discover -s tests, and the 100-character rule over fieldnotes/**/*.py."
+  },
+  "smoke-L4-ledgerlite-resume-refactor:claim_034e8436-cbbc-4709-94c6-7b4bdf8ac1b0": {
+   "label": null,
+   "proposition": "src/ledgerlite/money.py defines parse(value), which raises TypeError for values that are neither str nor Decimal and raises ValueError for amounts that are not finite or are not positive.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "session A's money.py as A's reply describes it: TypeError for anything but str or Decimal; ValueError for zero, negative, NaN and infinite amounts. The file is not retained; the oracle confirms step 1 is present."
+  },
+  "smoke-L4-ledgerlite-resume-refactor:claim_9d868b82-a390-4b47-bf1a-fe2277cb41cf": {
+   "label": null,
+   "proposition": "The ledgerlite refactor is planned in three steps: (1) add src/ledgerlite/money.py with parse(value) -> Decimal accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "the user's three-step plan in session A, without the fourth gate's overreach ('step 1 only' as a rule)."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_7a6db9db-aa82-415e-9914-d43726fe8f66": {
+   "label": null,
+   "proposition": "tools/check.py reads the NOTES_HOME environment variable at line 24 and raises KeyError when it is unset.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "fixture tools/check.py line 24 reads os.environ[\"NOTES_HOME\"]. C's overlay makes it stale; it was delivered as needs_revalidation at C's prompt."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_b748b134-2a2d-4119-bb9d-aeb67e2aa644": {
+   "label": null,
+   "proposition": "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "session A's first run exited 1 with KeyError: 'NOTES_HOME' (A's reply). Stale after C's overlay: a revision matter, not support (delivered with applies unknown, no caution)."
+  },
+  "smoke-R3-household-budget-correction:claim_afbb07ab-425d-4512-ac61-dc74b63d2765": {
+   "label": null,
+   "proposition": "The user wants the grocery budget kept at $700 per month, replacing the earlier $600 limit.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "the user's correction in session C."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_3f6d4bf7-71da-44ed-90e7-7c1d3723db98": {
+   "label": null,
+   "proposition": "Notes for this project are stored in notes.json under NOTES_HOME.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "the user's words in session A, matching the fixture store.py then. C's overlay changed the storage; it was delivered as needs_revalidation at C's prompt."
+  }
+ },
+ "instructions": "Label each claim supported|unsupported against the trial's evidence (scope included: a prohibited generalization is unsupported), and each gold lesson recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as {\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels.",
+ "lessons": {
+  "smoke-L1-ledgerlite-test-command#0": {
+   "kind": "procedure",
+   "label": null,
+   "lesson": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_35caa250 holds that discovery with PYTHONPATH=src passes. It is a dated fact about one run through the installation's runtime interpreter, not a procedure. Judgment call; missed is defensible."
+  },
+  "smoke-L1-ledgerlite-test-command#1": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_dab6b222, the pipe-hidden failure worded as a condition and reviewed supported (decision 0037)."
+  },
+  "smoke-L2-fieldnotes-iso-dates#0": {
+   "kind": "decision",
+   "label": null,
+   "lesson": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+   "suggested": "missed",
+   "term_match": "missed",
+   "why": "no claim holds the user's ISO-8601 decision. The extraction after session A returned no operations and no stated reason; session B's extraction could not see A's prompt."
+  },
+  "smoke-L3-household-grocery-budget#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+   "suggested": "missed",
+   "term_match": "missed",
+   "why": "the extraction after session A proposed one claim, and admission refused it (declaration_requires_user_evidence): what it cited is not retained. No claim holds the $600 preference, so the forgetting demonstration had nothing to forget."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_b748b134, the failure lesson."
+  },
+  "smoke-R2-ledgerlite-import-fixed#0": {
+   "kind": "failure_lesson",
+   "label": null,
+   "lesson": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+   "suggested": "evidence_absent",
+   "term_match": "missed",
+   "why": "as in the fourth and fifth gates, session A fixed the condition itself by writing tests/__init__.py, so the lesson was no longer true when A ended. Judgment call: missed is defensible."
+  },
+  "smoke-R3-household-budget-correction#0": {
+   "kind": "preference",
+   "label": null,
+   "lesson": "Grocery budget is $700 per month.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_afbb07ab, the $700 preference; it supersedes the $600 claim_285514bf."
+  },
+  "smoke-R4-fieldnotes-storage-conflict#0": {
+   "kind": "fact",
+   "label": null,
+   "lesson": "Notes are stored in notes.json under NOTES_HOME.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_3f6d4bf7, the user_declared fact with its file dependency."
+  }
+ },
+ "note": "Suggestions only: every label is null, so the report counts none. A reviewer copies a suggestion into label to adopt it, adds themselves under reviewers, and saves the file as adjudication.json.",
+ "reviewers": [],
+ "suggested_by": {
+  "independent_of_system_spec_7": false,
+  "route": "coding agent (model), drafted for a reviewer; not a reviewer label"
+ }
+}

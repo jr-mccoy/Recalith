@@ -1,0 +1,237 @@
+{
+ "demonstrations": {
+  "changed_condition_revision": {
+   "demonstrated": true,
+   "scenarios": {
+    "smoke-R1-fieldnotes-check-env-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [
+      [
+       "tools/check.py reads the NOTES_HOME environment variable at line 24 and raises KeyError when it is unset.",
+       "active",
+       "current",
+       5
+      ],
+      [
+       "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+       "active",
+       "current",
+       9
+      ]
+     ],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [
+        {
+         "advice": "context",
+         "freshness": "needs_revalidation",
+         "text": "Fact: tools/check.py reads the NOTES_HOME environment variable at line 24 and raises KeyError when it is unset."
+        },
+        {
+         "advice": "context",
+         "freshness": "current",
+         "text": "Failure lesson: Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'. Observed: Running `python tools/check.py` without NOTE"
+        }
+       ],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "NOTES_HOME",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [
+      "revalidate:revise_claim",
+      "revalidate:revise_claim"
+     ],
+     "task_success": true
+    },
+    "smoke-R2-ledgerlite-import-fixed": {
+     "legitimate_retry_success": true,
+     "lesson": [],
+     "retry_point": [
+      {
+       "delivered": true,
+       "items": [],
+       "satisfied": true,
+       "spec": {
+        "must_not_include_caution": "PYTHONPATH",
+        "purpose": "prompt",
+        "session": "C"
+       }
+      }
+     ],
+     "revalidation": [],
+     "task_success": true
+    }
+   }
+  },
+  "forgetting_and_restore": {
+   "demonstrated": false,
+   "reason": "the live curator admitted no claim naming the $600 limit",
+   "route": "the guarded CLI with the operator token (live)",
+   "scenario": "smoke-L3-household-grocery-budget",
+   "trial_error": null
+  },
+  "fresh_session_reuse": {
+   "criterion": "a learning scenario whose candidate succeeded with no repeated mistake and whose fresh session B carried the scenario's gold text in a delivered packet; any one of the learning scenarios demonstrates it (decision 0028 items 16 and 20). Whether the clean baseline, in the same session, failed or repeated session A's mistake is reported as made_a_difference, never required: the frozen scenarios leave each answer in the repository, so a capable agent can recover it without memory",
+   "demonstrated": true,
+   "made_a_difference_in": [],
+   "met_by": [
+    "smoke-L1-ledgerlite-test-command",
+    "smoke-L2-fieldnotes-iso-dates",
+    "smoke-L3-household-grocery-budget",
+    "smoke-L4-ledgerlite-resume-refactor"
+   ],
+   "not_run": [],
+   "note": "one trial per arm: a demonstration that reuse happened, not an estimate of its benefit (a Cut 2 comparison). The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
+   "remember_instruction": false,
+   "scenarios": {
+    "smoke-L1-ledgerlite-test-command": {
+     "admitted": [
+      "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root with PYTHONPATH=src ran 2 tests and reported OK in the run recorded at 2026-11-02T22:50:42Z, before tests/test_ledger.py was edited to add a third test.",
+      "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails with \"ModuleNotFoundError: No module named 'ledgerlite'\".",
+      "Ledger.close(name) in src/ledgerlite/__init__.py deletes the named account when its balance is zero and raises ValueError when the balance is not zero."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "PYTHONPATH=src"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "PYTHONPATH=src"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L2-fieldnotes-iso-dates": {
+     "admitted": [
+      "fieldnotes stores its notes as a JSON array in notes.json inside the directory named by the NOTES_HOME environment variable.",
+      "The project check script tools/check.py reads the NOTES_HOME environment variable with os.environ, so NOTES_HOME must be set when it runs; it also runs the unittest suite under tests/ and enforces a 100-character line limit on fieldnotes/**/*.py."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "ISO-8601"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "ISO-8601"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L3-household-grocery-budget": {
+     "admitted": [],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "600"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "600"
+     ],
+     "made_a_difference": false,
+     "met": true
+    },
+    "smoke-L4-ledgerlite-resume-refactor": {
+     "admitted": [
+      "src/ledgerlite/money.py defines parse(value), which raises TypeError for values that are neither str nor Decimal and raises ValueError for amounts that are not finite or are not positive.",
+      "The ledgerlite refactor is planned in three steps: (1) add src/ledgerlite/money.py with parse(value) -> Decimal accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py."
+     ],
+     "baseline_repeated_mistakes": 0,
+     "baseline_task_success": true,
+     "candidate_repeated_mistakes": 0,
+     "candidate_task_success": true,
+     "carried_in_session_b": [
+      "money.parse"
+     ],
+     "errors": [],
+     "gold_in_session_b": [
+      "money.parse"
+     ],
+     "made_a_difference": false,
+     "met": true
+    }
+   }
+  },
+  "isolation": {
+   "cross_project_leak_commands": 0,
+   "cross_record_ids": [],
+   "cross_text_in_search": [],
+   "demonstrated": true,
+   "fieldnotes_active_claims": [
+    "Running `python tools/check.py` from the project root, without NOTES_HOME set, fails with KeyError: 'NOTES_HOME'.",
+    "Running `python tools/check.py` with NOTES_HOME set to a temporary directory ran 1 unit test (OK) and exited 0.",
+    "tools/check.py reads the NOTES_HOME environment variable with os.environ[\"NOTES_HOME\"] and has no default, so it raises KeyError when NOTES_HOME is unset."
+   ],
+   "fieldnotes_session_b_delivered": [],
+   "installations": {
+    "distinct": true,
+    "fieldnotes": "inst_504321c7-e748-49ba-99e9-f9eb71cec39d",
+    "ledgerlite": "inst_04569b68-8f06-4765-8e5a-bef42397a2ae"
+   },
+   "ledgerlite_active_claims": [
+    "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root runs the two ledgerlite unit tests and reports both passing.",
+    "Running `PYTHONPATH=src python -m pytest tests -q` from the project root fails in the Windows Python 3.13 environment because the pytest module is not installed."
+   ],
+   "reverse_session": {
+    "actions": 3,
+    "gap": {
+     "last": {
+      "due_jobs": 0,
+      "due_kinds": [],
+      "leased": 0,
+      "next_due_in_s": null,
+      "pending_triggers": 0,
+      "progress": [
+       44,
+       32,
+       40
+      ],
+      "quiet": true,
+      "spool_ready": 0,
+      "waiting_reasons": []
+     },
+     "polls": 21,
+     "state": "quiet",
+     "suspended_s": 0.0,
+     "waited_s": 422.0,
+     "worker_seen": true
+    }
+   },
+   "scenario": "smoke-C4-cross-project-near-match",
+   "task_success": true,
+   "worker_stop": [
+    {
+     "exit": 0,
+     "state": "stopped"
+    },
+    {
+     "exit": 0,
+     "state": "not_running"
+    }
+   ]
+  },
+  "zero_interventions": {
+   "demonstrated": true,
+   "jobs_awaiting_a_human": 0,
+   "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+   "operator_interventions": 0,
+   "trials": 24,
+   "workload_days": 3
+  }
+ },
+ "label": "live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token",
+ "mode": "live"
+}

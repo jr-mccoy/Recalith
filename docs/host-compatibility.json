@@ -585,7 +585,7 @@
       "anthropic_api": {
         "probe": "tools/probe_provider.py",
         "probe_schema": 1,
-        "tested_at": "2026-11-01T19:43:48.333211Z",
+        "tested_at": "2026-11-02T22:43:00.464865Z",
         "platform": {
           "os": "windows",
           "arch": "x86_64",
@@ -594,7 +594,7 @@
         },
         "provider_id": "anthropic_api",
         "backend": "anthropic_messages",
-        "engine_build": "0.1.0.dev6",
+        "engine_build": "0.1.0.dev7",
         "configured_model": "<curator-model>",
         "expected_resolved_model": null,
         "endpoint": {
@@ -722,7 +722,7 @@
                 "stdout_overflow": false,
                 "tree_bound": "contained",
                 "tree_cleaned": true,
-                "duration_ms": 89
+                "duration_ms": 123
               },
               "verdict": "pass"
             },
@@ -812,7 +812,7 @@
                 "stdout_overflow": false,
                 "tree_bound": "contained",
                 "tree_cleaned": true,
-                "duration_ms": 100
+                "duration_ms": 137
               },
               "verdict": "pass"
             }
@@ -822,35 +822,35 @@
               "pass": true,
               "code": "provider_timeout",
               "expected": "provider_timeout",
-              "duration_ms": 10004,
+              "duration_ms": 10014,
               "tree_cleaned": true
             },
             "flood": {
               "pass": true,
               "code": "wire_stdout_oversized",
               "expected": "wire_stdout_oversized",
-              "duration_ms": 80,
+              "duration_ms": 156,
               "tree_cleaned": true
             },
             "oversize": {
               "pass": true,
               "code": "response_body_oversized",
               "expected": "response_body_oversized",
-              "duration_ms": 101,
+              "duration_ms": 127,
               "tree_cleaned": true
             },
             "large": {
               "pass": true,
               "code": null,
               "expected": null,
-              "duration_ms": 99,
+              "duration_ms": 125,
               "tree_cleaned": true
             },
             "malformed": {
               "pass": true,
               "code": "envelope_invalid",
               "expected": "envelope_invalid",
-              "duration_ms": 99,
+              "duration_ms": 131,
               "tree_cleaned": true
             }
           }
@@ -867,7 +867,7 @@
                 "output_tokens": 22,
                 "provider_request_id_present": true
               },
-              "duration_ms": 1471,
+              "duration_ms": 1327,
               "timed_out": false,
               "tree_cleaned": true,
               "environment_failures": [],
@@ -927,7 +927,7 @@
                 "output_tokens": 22,
                 "provider_request_id_present": true
               },
-              "duration_ms": 995,
+              "duration_ms": 930,
               "timed_out": false,
               "tree_cleaned": true,
               "environment_failures": [],
@@ -988,7 +988,7 @@
               "output_tokens": 32,
               "provider_request_id_present": true
             },
-            "duration_ms": 1100,
+            "duration_ms": 1369,
             "timed_out": false,
             "tree_cleaned": true,
             "environment_failures": [],
@@ -3418,14 +3418,14 @@
       },
       "anthropic_api": {
         "tool": "tools/check_provider_runtime.py",
-        "tested_at": "2026-11-01T19:44:07.226522Z",
+        "tested_at": "2026-11-02T22:43:20.072202Z",
         "platform": {
           "os": "windows",
           "arch": "x86_64",
           "platform": "Windows-11-10.0.26200-SP0",
           "python": "3.13.15"
         },
-        "engine_build": "0.1.0.dev6",
+        "engine_build": "0.1.0.dev7",
         "backend": "anthropic_messages",
         "route_source": "project_record",
         "adapter": "recalith.providers.api",
@@ -3545,7 +3545,7 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 88
+              "duration_ms": 111
             }
           },
           "host_marked": {
@@ -3631,7 +3631,7 @@
               "stdout_overflow": false,
               "tree_bound": "contained",
               "tree_cleaned": true,
-              "duration_ms": 100
+              "duration_ms": 123
             }
           }
         },
@@ -3647,7 +3647,7 @@
           "auth_key_names": [
             "ANTHROPIC_API_KEY"
           ],
-          "checked_at": "2026-11-01T19:44:07.225281Z",
+          "checked_at": "2026-11-02T22:43:20.071557Z",
           "recertification_required": false
         },
         "certifies": false,
@@ -4124,7 +4124,7 @@
             "subagent_sessions": 1,
             "subagent_transcripts_registered": 2,
             "transcript_sources": 6,
-            "assistant_messages_recovered": 4,
+            "assistant_messages_recovered": 1,
             "worker": {
               "started": true,
               "spawned_by": "hook",
@@ -4134,7 +4134,7 @@
             "deliveries": {
               "session_start": 2,
               "prompt": 3,
-              "pre_action": 4,
+              "pre_action": 3,
               "compact_restore": 1
             },
             "unrelated_settings_preserved": "byte_identical"
@@ -4190,7 +4190,7 @@
               "trial_id": "request_capture-session_start-positive-1",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "c0de7790b9191d41818b74a21108a373bc0d5634d86d8c7af1de6742a591a543",
+              "nonce_sha256": "9a68eb1d74a5f8bb6c63841a0586cbdf88f357ec421c4a78c9d190567e6567ac",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -4203,7 +4203,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3592,
+                "duration_ms": 2433,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4231,7 +4231,7 @@
               "trial_id": "request_capture-session_start-positive-2",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "c72b92f2a4110089c7f1375a930356df86891aadbf775a07c454d08ea9ae077a",
+              "nonce_sha256": "4dd98027326b8da94cc5878917a7afc52fe99bd571fe96ca5d24cd842e32ea51",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -4244,7 +4244,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3926,
+                "duration_ms": 2216,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4272,7 +4272,7 @@
               "trial_id": "request_capture-session_start-positive-3",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "10e881df5d371745a0ccd0774308200a15aa64e2354b83dad5d106018a17aec4",
+              "nonce_sha256": "2304ef8de5b9e4b1c866d142e0338ea4e75a32f2c773fc28a7dc5604c91bf847",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
@@ -4285,7 +4285,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3475,
+                "duration_ms": 2074,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4313,7 +4313,7 @@
               "trial_id": "request_capture-session_start-negative-1",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "9e336fc04fd9d799a416dc652a484accd825033fd35404db6cff46640b9df69b",
+              "nonce_sha256": "de67885a85cf6fe98d34042921bbdd98b357e98933cacfddb7a168b878156f62",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -4326,7 +4326,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3642,
+                "duration_ms": 1915,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4352,7 +4352,7 @@
               "trial_id": "request_capture-session_start-negative-2",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "67bb7db28b791d705d0347e51db1a5476672f25bc5ee4dcb53f2774a7d81c4fd",
+              "nonce_sha256": "f0957df23f27a2b465dc0da73986f52ffc25793a51985f4da975edc07cc5f58c",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -4365,7 +4365,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3811,
+                "duration_ms": 2005,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4391,7 +4391,7 @@
               "trial_id": "request_capture-session_start-negative-3",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "2dff69f7983001794206809abc5613a74f811f0e421d2b1767a4b313048e4e52",
+              "nonce_sha256": "0fbb8aeae6f89afc2fd1b8dd5d871b441c9c62d9c61b3bf83243579acc4f2954",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -4404,7 +4404,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4149,
+                "duration_ms": 2281,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4430,7 +4430,7 @@
               "trial_id": "request_capture-prompt-positive-1",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "982740700031eff96e4e7864fbdb1a0888756b70a881648a8b3d382a406091cc",
+              "nonce_sha256": "f24fda0b4bc9afba0be90837c80c456dcc569a97b2177dad71fb96eb0f837ef1",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -4443,7 +4443,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4196,
+                "duration_ms": 1833,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4471,7 +4471,7 @@
               "trial_id": "request_capture-prompt-positive-2",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "6badc0a4cf120c267fa027aab3345252a47cda958d2bdc44af01facc66e6a5e9",
+              "nonce_sha256": "de66707358282bd0e49ddb68e20a539775823c1dc45f79f3be1a2652e4c5092b",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -4484,7 +4484,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4126,
+                "duration_ms": 1759,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4512,7 +4512,7 @@
               "trial_id": "request_capture-prompt-positive-3",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "05cf76738ee88d3841636d1daf2536e1c6bc2e8ffa6963e302dee1b2677d8612",
+              "nonce_sha256": "edf83e16f775facb23b5a2dafd1571d2f38442995ebb999c9190d35d2e931026",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -4525,7 +4525,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3731,
+                "duration_ms": 1737,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4553,7 +4553,7 @@
               "trial_id": "request_capture-prompt-negative-1",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "ddafa46ef6a2fc0941eaff30223faf4d669fc43d146552cd17253df3109d706a",
+              "nonce_sha256": "d18c69d61d9e2ca80b0a2c0cba05b97c4f7a88fcbf8f0c3c11ef44f4cb143724",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4566,7 +4566,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3862,
+                "duration_ms": 1771,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4590,7 +4590,7 @@
               "trial_id": "request_capture-prompt-negative-2",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "9dc8e3ede7d12ea23a8fce22c34f755ad0d1f914ea33f1199f4c974186af020f",
+              "nonce_sha256": "cbdbe3ee5c13a57fca41d86889f6e879da6daf4b8f39ed5e687e11bee06d2890",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4603,7 +4603,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3705,
+                "duration_ms": 1908,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4627,7 +4627,7 @@
               "trial_id": "request_capture-prompt-negative-3",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "aee50aea4b3ca67ede9c25a62714ffae627984f5f8928da46020356551adb4ef",
+              "nonce_sha256": "8c2bb89b4ff358393aa17f2294a0af92d7f4a84ce0561562a5b523c300163b4f",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4640,7 +4640,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 3910,
+                "duration_ms": 1772,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4664,7 +4664,7 @@
               "trial_id": "request_capture-pre_action-positive-1",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "73289263c82562a85995322141ae0ae5c811d9f241a9a2fa6800164afc190c30",
+              "nonce_sha256": "cd4d91653879d8da352e56d8e0ca4499f925acf230ec853fd932a08a4163fa3b",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -4677,7 +4677,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4113,
+                "duration_ms": 2052,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4707,7 +4707,7 @@
               "trial_id": "request_capture-pre_action-positive-2",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "27f6a90f744e8c5157b5dd3f8a586f37a6ff6e7933ce24704a51a7bfb74423d2",
+              "nonce_sha256": "5cde5ecc7ff8a5e160033134d1c76a3bf9c87e7d474e8130d256c0fc5531eaa0",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -4720,7 +4720,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4260,
+                "duration_ms": 2230,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4750,7 +4750,7 @@
               "trial_id": "request_capture-pre_action-positive-3",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "b91fd7a4cfe9652e0be4a0e871885a834665aeb9f4a45c27fe2bcecd910e14cc",
+              "nonce_sha256": "efe82ce4c9a26a4e8bd0006c2b3c0bc12119051b562fffdae2676600c4b054f0",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -4763,7 +4763,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4322,
+                "duration_ms": 2204,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4793,7 +4793,7 @@
               "trial_id": "request_capture-pre_action-negative-1",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "63f5a28c669a2c0c2992b57be366bf25500f9681de2e664be03e8f0d5a78fe9a",
+              "nonce_sha256": "6ce5ce6d1d7d6bc62909858006ac529b6d69cf3f134fef1e373a8fcd7583019c",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4806,7 +4806,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4185,
+                "duration_ms": 2028,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4832,7 +4832,7 @@
               "trial_id": "request_capture-pre_action-negative-2",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "5931f7f31b6e11e79f34836403f69d1b280b6fa66617237a9d54b9670ef787e0",
+              "nonce_sha256": "6b904c462a02eae2f26b35de5c4287bb9a93e088e07b1ac471d83fa3263c4213",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4845,7 +4845,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4116,
+                "duration_ms": 2144,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4871,7 +4871,7 @@
               "trial_id": "request_capture-pre_action-negative-3",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "d55d2b40c434b7aefb3426682a5f6ff2d7d5f95184ed74577f70a1d959acc193",
+              "nonce_sha256": "815c3925da0595964fb0d98ed6ae5af428a83d20a06db92b945a7a71d37df3fe",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -4884,7 +4884,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4009,
+                "duration_ms": 2183,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4910,20 +4910,20 @@
               "trial_id": "request_capture-compact-positive-1",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "ced35a47ecb11959987672f537248855e56cb4d6585aeb37a32aff2e0065a0c0",
+              "nonce_sha256": "b88b70e1679a598d9fc1b06e6ea8d09a810c2ab5c59f51f99603eea9a04ac297",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23703,
+                "stdout_bytes": 23695,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 5208,
+                "duration_ms": 3154,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4951,20 +4951,20 @@
               "trial_id": "request_capture-compact-positive-2",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "4f1a5c60cdbf48cc787dca0e0aca5cc531547424fa069e3947c7c950f0d66ff4",
+              "nonce_sha256": "b9c9f07b210c4deaf8f3534690ed5247d1908f3fbd3eebc33365c96f5d445a62",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23703,
+                "stdout_bytes": 23695,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 5117,
+                "duration_ms": 3849,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -4992,20 +4992,20 @@
               "trial_id": "request_capture-compact-positive-3",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "fa107fa771c599e958d849634953690cbdef32445280a0361ebb15878f9a27e9",
+              "nonce_sha256": "45b4f072f451a1089be59414cfa0f5b6b7c62d99ac8f25f2a5ed1076559f9c77",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23703,
+                "stdout_bytes": 23695,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4803,
+                "duration_ms": 2913,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5033,20 +5033,20 @@
               "trial_id": "request_capture-compact-negative-1",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "d0e3297a122f8733b5edd9d35bf5145b042069bde9640bc2217d5e32b2d429db",
+              "nonce_sha256": "7dde75471ceb19fe27599d6e8951ed9b67ed5b218a3dc6168f4773471438f461",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23584,
+                "stdout_bytes": 23575,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4912,
+                "duration_ms": 2942,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5072,20 +5072,20 @@
               "trial_id": "request_capture-compact-negative-2",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "b9c334a6c754c11b99afa2935525892abb228a539c9c9dd6e0bd227ef48dcff2",
+              "nonce_sha256": "57c98901580b26c367e75e4071da0b26d9dc8fc404decd765df84b7aec6c0e78",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23584,
+                "stdout_bytes": 23575,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4646,
+                "duration_ms": 3040,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5111,20 +5111,20 @@
               "trial_id": "request_capture-compact-negative-3",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "a0f34e3e9b64c9a1206eff4663eff72427ecb5b3cc23fbbbf10d0c42b20dfd88",
+              "nonce_sha256": "9fa59d4b541d30341eb55bafb9d754b191e86c380966ca2c3fe527633f03f61d",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 23583,
+                "stdout_bytes": 23575,
                 "stderr_bytes_retained": 98,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 4590,
+                "duration_ms": 2958,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5231,7 +5231,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/runtime/0.1.0.dev6/venv/bin/python -I -m recalith",
+                "spelling": ".recalith/runtime/0.1.0.dev7/venv/bin/python -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5239,7 +5239,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev6/venv/bin/python -I -m recalith",
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev7/venv/bin/python -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5303,7 +5303,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith/runtime/0.1.0.dev6/venv/Scripts/python.exe -I -m recalith",
+                "spelling": ".recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5311,7 +5311,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev6/venv/Scripts/python.exe -I -m recalith",
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5319,7 +5319,7 @@
                 "audit": null
               },
               {
-                "spelling": ".recalith\\runtime\\0.1.0.dev6\\venv\\Scripts\\python.exe -I -m recalith",
+                "spelling": ".recalith\\runtime\\0.1.0.dev7\\venv\\Scripts\\python.exe -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5327,7 +5327,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>\\rc\\f26\\ws\\.recalith\\runtime\\0.1.0.dev6\\venv\\Scripts\\python.exe -I -m recalith",
+                "spelling": "<harness-root>\\rc\\f26\\ws\\.recalith\\runtime\\0.1.0.dev7\\venv\\Scripts\\python.exe -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5343,7 +5343,7 @@
                 "audit": null
               },
               {
-                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev6/venv/Scripts/python.exe -I -m recalith",
+                "spelling": "<harness-root>/rc/f26/ws/.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -I -m recalith",
                 "form": "declare",
                 "covered": true,
                 "gap": null,
@@ -5721,20 +5721,20 @@
               "trial_id": "live-session_start-positive-1",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "1ab1760667715e40b72a450306c2e7e251fbee99dd9149f8a26959e718e3662d",
+              "nonce_sha256": "0cc2efefb8fec29d8b820f06324d9c6fd9187930bb867ede186dbac4dde80ed5",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 11921,
+                "stdout_bytes": 12328,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 8421,
+                "duration_ms": 5964,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5757,26 +5757,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY b7136be1d8a5b8ab53aa7a8457d845e8"
+              "eligible_response_excerpt": "CANARY 3d62a71446325519210d167a198b64c5"
             },
             {
               "trial_id": "live-session_start-positive-2",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "146ddabbef3f6f356c8273d5cb00e0d22517bdd9bd5c0f973877996f000c5cad",
+              "nonce_sha256": "4927ad6ad4ba25dd5662044451424047f97fb58ab6b52f653086fe274d5abef3",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 12357,
+                "stdout_bytes": 11833,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 8796,
+                "duration_ms": 5197,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5799,26 +5799,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY cd7c295dbb9e23261cc235a90d097da0"
+              "eligible_response_excerpt": "CANARY fc1128ab34fe8ce0430e378de3a053ad"
             },
             {
               "trial_id": "live-session_start-positive-3",
               "path": "session_start",
               "kind": "positive",
-              "nonce_sha256": "1233683d84d39568b12102d7211bf4ec416e32e78cf7d7014d6b9a203f029ddc",
+              "nonce_sha256": "fbff83d07392426a3dabf8971db4ba65a1d678b907f5688255468edc141b19bd",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 12557,
+                "stdout_bytes": 11897,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 7829,
+                "duration_ms": 5184,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5841,13 +5841,13 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY c9e21d54fb1a7b53b4029e2dcbb95619"
+              "eligible_response_excerpt": "CANARY ea1b607b5cc67079de0b646f55230c0e"
             },
             {
               "trial_id": "live-session_start-negative-1",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "31143b4601e59dfaa88918978713cbae857d2f9522284753392ab7972ccd6f55",
+              "nonce_sha256": "464a1cdb85a690afb9d7b2ec236c694fa01250e8b7c185fc5da50ad7644e01d9",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -5860,7 +5860,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6627,
+                "duration_ms": 3646,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5889,7 +5889,7 @@
               "trial_id": "live-session_start-negative-2",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "f3ed85401553a9df6ced15f3294e6f786d6da152c500a58765fed3868ae0f53a",
+              "nonce_sha256": "87d9a496e7add7059486583b2bf8c1f2c36dec4c5f625c9f116877d406c26f19",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -5902,7 +5902,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6586,
+                "duration_ms": 3946,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5931,7 +5931,7 @@
               "trial_id": "live-session_start-negative-3",
               "path": "session_start",
               "kind": "negative",
-              "nonce_sha256": "2fef73dd525a0002f51820a40dc185d22f05da38de7d8f561cea56175129b61a",
+              "nonce_sha256": "889ca9acee40c4c7b35371fe9ddac0bc56074245c724de2dacd8897a8c6f957f",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
@@ -5944,7 +5944,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6130,
+                "duration_ms": 5118,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -5973,49 +5973,7 @@
               "trial_id": "live-prompt-positive-1",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "52a35da08767a9357effde3285144fe7ee53716463468c433c67245f9928e955",
-              "seeded": {
-                "kind": "fact",
-                "synthetic": "recorded proposals"
-              },
-              "process": {
-                "returncode": 0,
-                "stdout_bytes": 11169,
-                "stderr_bytes_retained": 0,
-                "stdout_overflow": false,
-                "stderr_truncated": false,
-                "timed_out": false,
-                "killed": false,
-                "duration_ms": 6858,
-                "process_tree_cleaned": null,
-                "descendants_outlived_exit": false
-              },
-              "tool_uses": [],
-              "compact_boundary_seen": false,
-              "engine": {
-                "emitted_deliveries": 1,
-                "estimated_tokens": [
-                  132
-                ],
-                "within_packet_cap": true
-              },
-              "hook_exit_codes": [
-                0
-              ],
-              "transcript_contains_nonce": true,
-              "workspace_files_with_nonce": [],
-              "verdict": {
-                "valid": true,
-                "passed": true,
-                "reasons": []
-              },
-              "eligible_response_excerpt": "CANARY 8c280c3be5ce501dd862c053fabd8de7"
-            },
-            {
-              "trial_id": "live-prompt-positive-2",
-              "path": "prompt",
-              "kind": "positive",
-              "nonce_sha256": "b39694c7218382a92e1be096bb5ff3d78371993627f181411390ec1def98d909",
+              "nonce_sha256": "f70074f85271596cf816b478df05482b095f692900290bfae6ceb5bb17435762",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
@@ -6028,7 +5986,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6579,
+                "duration_ms": 3960,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6051,26 +6009,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 0130e764644ea884b91b0496668c24ca"
+              "eligible_response_excerpt": "CANARY a0bdbfd0f34002920065797e12ef7750"
             },
             {
-              "trial_id": "live-prompt-positive-3",
+              "trial_id": "live-prompt-positive-2",
               "path": "prompt",
               "kind": "positive",
-              "nonce_sha256": "ed48a1690dd282acb97519005052f59c540d8acf437a767589a2ea7f7a806d5a",
+              "nonce_sha256": "31f18e96bc3cf73b81f06211da306a1bce8b3ee68466b947444aeb9044e3164f",
               "seeded": {
                 "kind": "fact",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 11197,
+                "stdout_bytes": 11182,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 8011,
+                "duration_ms": 4917,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6093,13 +6051,55 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 3336a31f51157c85a5a5b73ccf6b9ff2"
+              "eligible_response_excerpt": "CANARY 4345060da226c5d1a23bbc9add217d5e"
+            },
+            {
+              "trial_id": "live-prompt-positive-3",
+              "path": "prompt",
+              "kind": "positive",
+              "nonce_sha256": "52fd1fa4e8ec4ea09ff851e77bd2bb07857b2b90c3710f716e1f3a3fab57cd55",
+              "seeded": {
+                "kind": "fact",
+                "synthetic": "recorded proposals"
+              },
+              "process": {
+                "returncode": 0,
+                "stdout_bytes": 11109,
+                "stderr_bytes_retained": 0,
+                "stdout_overflow": false,
+                "stderr_truncated": false,
+                "timed_out": false,
+                "killed": false,
+                "duration_ms": 5386,
+                "process_tree_cleaned": null,
+                "descendants_outlived_exit": false
+              },
+              "tool_uses": [],
+              "compact_boundary_seen": false,
+              "engine": {
+                "emitted_deliveries": 1,
+                "estimated_tokens": [
+                  132
+                ],
+                "within_packet_cap": true
+              },
+              "hook_exit_codes": [
+                0
+              ],
+              "transcript_contains_nonce": true,
+              "workspace_files_with_nonce": [],
+              "verdict": {
+                "valid": true,
+                "passed": true,
+                "reasons": []
+              },
+              "eligible_response_excerpt": "CANARY 9657d8f71887be72fec41145bfbd142b"
             },
             {
               "trial_id": "live-prompt-negative-1",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "3e1a23c6c9d11f2cb59584700bd0147795009d1a8b04bf1372b4c2541e86251b",
+              "nonce_sha256": "8a64b9501a7a9bdccf5df0b35e6bc211047f8c71ad2d50bdfe699f19b565b428",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -6112,7 +6112,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6629,
+                "duration_ms": 3931,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6139,7 +6139,7 @@
               "trial_id": "live-prompt-negative-2",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "7c7e4bb73ce88102b87a96b4154d4a59eddd3964c24c466fbd9885375f521bb6",
+              "nonce_sha256": "6e913c29642d4307c3a5c5689508b773eef6c1f614d3b839584bbfc647529626",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -6152,7 +6152,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6846,
+                "duration_ms": 4474,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6179,7 +6179,7 @@
               "trial_id": "live-prompt-negative-3",
               "path": "prompt",
               "kind": "negative",
-              "nonce_sha256": "bad983375659abddc415935cd19bdd386c33cde3c8fa1e83bec96040b0d50127",
+              "nonce_sha256": "978343d155529cc9468704ddb2b5612b3a5f64c83a081d9d36939a7ef5b357ae",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -6192,7 +6192,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 6682,
+                "duration_ms": 3869,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6219,20 +6219,20 @@
               "trial_id": "live-pre_action-positive-1",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "91f4589ab294909bc1f5d8785810ab7a7f97c4d005521bab8b5c2b7efa0f77aa",
+              "nonce_sha256": "dda7a9bdae9777f65b97bebb1234c01dd0cc61bbb61a6585b20b87e6155b1c3c",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 14917,
+                "stdout_bytes": 14876,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 9807,
+                "duration_ms": 6983,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6257,26 +6257,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 12542e38d6b09435a515bc2815a7bbf0"
+              "eligible_response_excerpt": "CANARY 1f122d6711125fd7a5552f9209c47eec"
             },
             {
               "trial_id": "live-pre_action-positive-2",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "0eebdc4b936e616e7eb3ae3b8b5fb5105d4941d0bc0903df98b1c960462e0ea9",
+              "nonce_sha256": "f9875dd5d657f02458c88557a6b3dee58404355b5bb7776004b6f12d60652c74",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 14893,
+                "stdout_bytes": 14895,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 8728,
+                "duration_ms": 7983,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6301,13 +6301,13 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 619da3fcf57ec6827394ab8e5414b305"
+              "eligible_response_excerpt": "CANARY 477884a94df2d408068b248a0d937d24"
             },
             {
               "trial_id": "live-pre_action-positive-3",
               "path": "pre_action",
               "kind": "positive",
-              "nonce_sha256": "2c150423905d23624e9200754e4cf97795c65761f14e39af7ffa54a1f0f1fe76",
+              "nonce_sha256": "0268406b4d6d7dc96caabc94e0883deda47ccbd3ff9a4596aaa9d19daf6b8725",
               "seeded": {
                 "kind": "failure_lesson",
                 "synthetic": "recorded proposals"
@@ -6320,7 +6320,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 9912,
+                "duration_ms": 6755,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6345,13 +6345,13 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY b8dcf910640ded9160d30ed1f2f76d54"
+              "eligible_response_excerpt": "CANARY e3bd6934459c675a326249802db5438e"
             },
             {
               "trial_id": "live-pre_action-negative-1",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "d932fdcf92ff0fc907584ba7483c72969280265ca5c188b44b710bad0463e482",
+              "nonce_sha256": "0f3d75a281cbb1e617013c2db633dec3d86fb34e53b30499f5c529a58511837b",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
@@ -6364,7 +6364,7 @@
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 7670,
+                "duration_ms": 6243,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6393,20 +6393,20 @@
               "trial_id": "live-pre_action-negative-2",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "deecca2048edf20577ce47d838102209cbf5e8a9408ded27cfdd3f5c28c34fb1",
+              "nonce_sha256": "45ff0b2e49ebcc0c5cc27fe6ba699a483083bf53df37a8bafcd2e61f3c84f18d",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 10958,
+                "stdout_bytes": 10949,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 8543,
+                "duration_ms": 5920,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6435,20 +6435,20 @@
               "trial_id": "live-pre_action-negative-3",
               "path": "pre_action",
               "kind": "negative",
-              "nonce_sha256": "17325412d2382ae6037c0aad84a5093d575c92c42e306042ce30b8b10db7e7cc",
+              "nonce_sha256": "b4a5eac4f2f20abfc5801daa05d01801be9225a9e414aef19e704a76800794da",
               "seeded": {
                 "kind": null,
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 10949,
+                "stdout_bytes": 10925,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 7937,
+                "duration_ms": 5767,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6477,20 +6477,20 @@
               "trial_id": "live-compact-positive-1",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "9dbac52352a14abc2e33e09686ddd84a734fd7880b18ee01e2ae2d2c2fc45b87",
+              "nonce_sha256": "5ab1aa898cf2f5eada89b485fa2f1583d448fbb6918326862946e3d1e8170aa8",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 29298,
+                "stdout_bytes": 28811,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 17073,
+                "duration_ms": 15653,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6513,26 +6513,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY fa7caa23ececebcf31198d80efcfc325"
+              "eligible_response_excerpt": "CANARY 6d294033b61651653b2d1209c6fc98a7"
             },
             {
               "trial_id": "live-compact-positive-2",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "661fa4ed4c574cf69e424258ccfc5b3e3091c57eaa3c8377af1c47b9690ce091",
+              "nonce_sha256": "eccafd390ff58e168867a175456883877b6c93f8e61585cf5e715405e2dfa733",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 29115,
+                "stdout_bytes": 29288,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 16408,
+                "duration_ms": 15351,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6555,26 +6555,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 74de0e10f5eeedd6142e3ad79afddace"
+              "eligible_response_excerpt": "CANARY d26aede112183f2dbe15814e44dfb2ea"
             },
             {
               "trial_id": "live-compact-positive-3",
               "path": "compact",
               "kind": "positive",
-              "nonce_sha256": "43185920e517a154f48014b0067d8b9f4e7f5599c3364f2839bf2b07fddfe979",
+              "nonce_sha256": "29ed69ee5a2892f6a86f17d90dc3e80da2a71be1a3cdd0e83945cea62102f670",
               "seeded": {
                 "kind": "intent_question",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 28834,
+                "stdout_bytes": 29122,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 15593,
+                "duration_ms": 15262,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6597,26 +6597,26 @@
                 "passed": true,
                 "reasons": []
               },
-              "eligible_response_excerpt": "CANARY 7bfeb1c4c0c23fee2bb61ee9f2681a48"
+              "eligible_response_excerpt": "CANARY 19cb4a008a852176fd0e47532c78fc15"
             },
             {
               "trial_id": "live-compact-negative-1",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "6e9948b218e7544e6bd06b855dcb738d5048c68005068c515873b35268fb2ada",
+              "nonce_sha256": "3dd1551f6a64679354c45e29d37fbd1f88c27c0d8682dd9769d98c5d531ed3ee",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 26253,
+                "stdout_bytes": 26280,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 15655,
+                "duration_ms": 15077,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6645,20 +6645,20 @@
               "trial_id": "live-compact-negative-2",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "a90fd01f8ef4369bf38e37d3faaeb9ea4479c29b7ce9e5da5f418a36a742d251",
+              "nonce_sha256": "db4c0034f0152dfc14c19fe513c58e220ebf3f060f588b274c79834b570a6662",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 27973,
+                "stdout_bytes": 26251,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 15048,
+                "duration_ms": 13284,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6687,20 +6687,20 @@
               "trial_id": "live-compact-negative-3",
               "path": "compact",
               "kind": "negative",
-              "nonce_sha256": "654fc4338f14a9681009f7d20575519b86d16eb07ecc10a5ff3804115a6d772c",
+              "nonce_sha256": "7974dfa33bad4167210e0b9d7b03c8ddb71637dd88e8f2c4d246b6558b1d620c",
               "seeded": {
                 "kind": "intent_question_without_nonce",
                 "synthetic": "recorded proposals"
               },
               "process": {
                 "returncode": 0,
-                "stdout_bytes": 28803,
+                "stdout_bytes": 26370,
                 "stderr_bytes_retained": 0,
                 "stdout_overflow": false,
                 "stderr_truncated": false,
                 "timed_out": false,
                 "killed": false,
-                "duration_ms": 15810,
+                "duration_ms": 12455,
                 "process_tree_cleaned": null,
                 "descendants_outlived_exit": false
               },
@@ -6728,15 +6728,15 @@
           ],
           "status": "run"
         },
-        "report_digest": "f79160fd57d1890a5905962c9fe3968cb78693cff93f9df14e7aae0a04f6487e",
+        "report_digest": "b94cacf59e0e699a054e6d688e0e28e612d75c23bb16b704ad7826bb0753b3d2",
         "host_record": {
           "certification_schema": 1,
-          "installation_id": "inst_305ba637-b506-4a70-be3c-e5bea20eea73",
+          "installation_id": "inst_58fb27cf-298a-4709-af33-a078016b5031",
           "host_id": "claude_code",
           "host_version": "2.1.310",
           "mode": "live",
-          "certified_at": "2026-11-01T19:52:30.082172Z",
-          "report_digest": "f79160fd57d1890a5905962c9fe3968cb78693cff93f9df14e7aae0a04f6487e",
+          "certified_at": "2026-11-02T22:49:08.121927Z",
+          "report_digest": "b94cacf59e0e699a054e6d688e0e28e612d75c23bb16b704ad7826bb0753b3d2",
           "delivery": {
             "session_start": "certified",
             "prompt": "certified",
@@ -6748,7 +6748,7 @@
         },
         "probe": "tools/probe_delivery.py --engine-project",
         "probe_schema": 1,
-        "tested_at": "2026-11-01T19:52:31.813652Z",
+        "tested_at": "2026-11-02T22:49:09.190294Z",
         "platform": {
           "os": "windows",
           "arch": "x86_64",
@@ -6810,5 +6810,5 @@
       }
     }
   },
-  "updated_at": "2026-11-01T19:52:32.086339Z"
+  "updated_at": "2026-11-02T22:49:09.565511Z"
 }

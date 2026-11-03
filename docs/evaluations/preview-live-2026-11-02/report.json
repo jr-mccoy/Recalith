@@ -1,0 +1,3061 @@
+{
+ "baselines": {
+  "not_run": {
+   "breadcrumbs": "full release only",
+   "notes": "full release only"
+  },
+  "run": [
+   "candidate",
+   "no_memory"
+  ]
+ },
+ "completeness": {
+  "complete": false,
+  "contaminated_arms": [],
+  "demonstrations_unmet": [
+   "forgetting_and_restore"
+  ],
+  "host_version_mismatches": [],
+  "missing": [],
+  "smoke_trials_missing": 0,
+  "suspended": [],
+  "trial_errors": [],
+  "unadjudicated": 21,
+  "unsettled_gaps": [],
+  "workload_days_not_run": [],
+  "workload_days_run": 3
+ },
+ "cost_and_time": {
+  "actual": {
+   "background_model_calls": 193,
+   "background_tokens": 4239913,
+   "elapsed_seconds": 674.8,
+   "foreground_cost_usd": 1.7327,
+   "foreground_sessions": 48,
+   "mode": "live",
+   "provider_cost_note": "foreground: the host's reported session cost; background: tokens from the budget ledger (provider-reported where available), not priced here",
+   "provider_cost_usd": null
+  },
+  "illustrative_estimate": {
+   "comparative_smoke_cost_usd": 28.12,
+   "comparative_smoke_sessions": 60.0,
+   "inputs": {
+    "background_share": 0.25,
+    "foreground_cost_per_session_usd": 0.3,
+    "minutes_per_session": 4,
+    "overhead": 0.25,
+    "sessions_per_scenario": 2.5
+   },
+   "label": "ACCEPTANCE_TESTS \u00a76.2 arithmetic, not measured costs or current prices",
+   "serial_hours": 4.0
+  },
+  "pilot": {
+   "reason": null,
+   "state": "see actual"
+  }
+ },
+ "counts_toward_gate": true,
+ "curator_call_outcomes": {
+  "smoke": {
+   "by_purpose": {
+    "build_episode": {
+     "at_output_cap": 0,
+     "calls": 21,
+     "replies_parsed": 21,
+     "reported_input_tokens": 675145,
+     "reported_output_tokens": 40324,
+     "visible_output_estimate": 11096
+    },
+    "extract_claims": {
+     "at_output_cap": 0,
+     "calls": 26,
+     "replies_parsed": 26,
+     "reported_input_tokens": 855299,
+     "reported_output_tokens": 50019,
+     "visible_output_estimate": 9821
+    },
+    "revalidate": {
+     "at_output_cap": 0,
+     "calls": 5,
+     "replies_parsed": 5,
+     "reported_input_tokens": 82267,
+     "reported_output_tokens": 6981,
+     "visible_output_estimate": 1661
+    },
+    "review_claims": {
+     "at_output_cap": 0,
+     "calls": 14,
+     "replies_parsed": 14,
+     "reported_input_tokens": 103849,
+     "reported_output_tokens": 15889,
+     "visible_output_estimate": 3131
+    },
+    "update_task": {
+     "at_output_cap": 0,
+     "calls": 24,
+     "replies_parsed": 24,
+     "reported_input_tokens": 713425,
+     "reported_output_tokens": 45391,
+     "visible_output_estimate": 12738
+    }
+   },
+   "job_errors": {
+    "revalidate:coalesced": 3,
+    "revalidate:reevaluation_requeued": 1
+   }
+  },
+  "workload": {
+   "by_purpose": {
+    "build_episode": {
+     "at_output_cap": 0,
+     "calls": 24,
+     "replies_parsed": 24,
+     "reported_input_tokens": 620748,
+     "reported_output_tokens": 49855,
+     "visible_output_estimate": 13354
+    },
+    "extract_claims": {
+     "at_output_cap": 0,
+     "calls": 46,
+     "replies_parsed": 46,
+     "reported_input_tokens": 1277198,
+     "reported_output_tokens": 54387,
+     "visible_output_estimate": 8381
+    },
+    "review_claims": {
+     "at_output_cap": 0,
+     "calls": 10,
+     "replies_parsed": 10,
+     "reported_input_tokens": 59706,
+     "reported_output_tokens": 10197,
+     "visible_output_estimate": 2106
+    },
+    "update_task": {
+     "at_output_cap": 0,
+     "calls": 23,
+     "replies_parsed": 23,
+     "reported_input_tokens": 541922,
+     "reported_output_tokens": 34891,
+     "visible_output_estimate": 9123
+    }
+   },
+   "job_errors": {
+    "update_task:coalesced": 2
+   }
+  }
+ },
+ "demonstrations_6_1": {
+  "demonstrations": {
+   "changed_condition_revision": {
+    "demonstrated": true,
+    "scenarios": {
+     "smoke-R1-fieldnotes-check-env-fixed": {
+      "legitimate_retry_success": true,
+      "lesson": [
+       [
+        "tools/check.py reads the NOTES_HOME environment variable at line 24 and raises KeyError when it is unset.",
+        "active",
+        "current",
+        5
+       ],
+       [
+        "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+        "active",
+        "current",
+        9
+       ]
+      ],
+      "retry_point": [
+       {
+        "delivered": true,
+        "items": [
+         {
+          "advice": "context",
+          "freshness": "needs_revalidation",
+          "text": "Fact: tools/check.py reads the NOTES_HOME environment variable at line 24 and raises KeyError when it is unset."
+         },
+         {
+          "advice": "context",
+          "freshness": "current",
+          "text": "Failure lesson: Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'. Observed: Running `python tools/check.py` without NOTE"
+         }
+        ],
+        "satisfied": true,
+        "spec": {
+         "must_not_include_caution": "NOTES_HOME",
+         "purpose": "prompt",
+         "session": "C"
+        }
+       }
+      ],
+      "revalidation": [
+       "revalidate:revise_claim",
+       "revalidate:revise_claim"
+      ],
+      "task_success": true
+     },
+     "smoke-R2-ledgerlite-import-fixed": {
+      "legitimate_retry_success": true,
+      "lesson": [],
+      "retry_point": [
+       {
+        "delivered": true,
+        "items": [],
+        "satisfied": true,
+        "spec": {
+         "must_not_include_caution": "PYTHONPATH",
+         "purpose": "prompt",
+         "session": "C"
+        }
+       }
+      ],
+      "revalidation": [],
+      "task_success": true
+     }
+    }
+   },
+   "forgetting_and_restore": {
+    "demonstrated": false,
+    "reason": "the live curator admitted no claim naming the $600 limit",
+    "route": "the guarded CLI with the operator token (live)",
+    "scenario": "smoke-L3-household-grocery-budget",
+    "trial_error": null
+   },
+   "fresh_session_reuse": {
+    "criterion": "a learning scenario whose candidate succeeded with no repeated mistake and whose fresh session B carried the scenario's gold text in a delivered packet; any one of the learning scenarios demonstrates it (decision 0028 items 16 and 20). Whether the clean baseline, in the same session, failed or repeated session A's mistake is reported as made_a_difference, never required: the frozen scenarios leave each answer in the repository, so a capable agent can recover it without memory",
+    "demonstrated": true,
+    "made_a_difference_in": [],
+    "met_by": [
+     "smoke-L1-ledgerlite-test-command",
+     "smoke-L2-fieldnotes-iso-dates",
+     "smoke-L3-household-grocery-budget",
+     "smoke-L4-ledgerlite-resume-refactor"
+    ],
+    "not_run": [],
+    "note": "one trial per arm: a demonstration that reuse happened, not an estimate of its benefit (a Cut 2 comparison). The gold text may arrive in any packet of session B (L1's session-start point is unmet by design, decision 0013, and its prompt packet carries the lesson)",
+    "remember_instruction": false,
+    "scenarios": {
+     "smoke-L1-ledgerlite-test-command": {
+      "admitted": [
+       "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root with PYTHONPATH=src ran 2 tests and reported OK in the run recorded at 2026-11-02T22:50:42Z, before tests/test_ledger.py was edited to add a third test.",
+       "Running `.recalith/runtime/0.1.0.dev7/venv/Scripts/python.exe -m unittest discover -s tests -v` from the project root, without PYTHONPATH=src, fails with \"ModuleNotFoundError: No module named 'ledgerlite'\".",
+       "Ledger.close(name) in src/ledgerlite/__init__.py deletes the named account when its balance is zero and raises ValueError when the balance is not zero."
+      ],
+      "baseline_repeated_mistakes": 0,
+      "baseline_task_success": true,
+      "candidate_repeated_mistakes": 0,
+      "candidate_task_success": true,
+      "carried_in_session_b": [
+       "PYTHONPATH=src"
+      ],
+      "errors": [],
+      "gold_in_session_b": [
+       "PYTHONPATH=src"
+      ],
+      "made_a_difference": false,
+      "met": true
+     },
+     "smoke-L2-fieldnotes-iso-dates": {
+      "admitted": [
+       "fieldnotes stores its notes as a JSON array in notes.json inside the directory named by the NOTES_HOME environment variable.",
+       "The project check script tools/check.py reads the NOTES_HOME environment variable with os.environ, so NOTES_HOME must be set when it runs; it also runs the unittest suite under tests/ and enforces a 100-character line limit on fieldnotes/**/*.py."
+      ],
+      "baseline_repeated_mistakes": 0,
+      "baseline_task_success": true,
+      "candidate_repeated_mistakes": 0,
+      "candidate_task_success": true,
+      "carried_in_session_b": [
+       "ISO-8601"
+      ],
+      "errors": [],
+      "gold_in_session_b": [
+       "ISO-8601"
+      ],
+      "made_a_difference": false,
+      "met": true
+     },
+     "smoke-L3-household-grocery-budget": {
+      "admitted": [],
+      "baseline_repeated_mistakes": 0,
+      "baseline_task_success": true,
+      "candidate_repeated_mistakes": 0,
+      "candidate_task_success": true,
+      "carried_in_session_b": [
+       "600"
+      ],
+      "errors": [],
+      "gold_in_session_b": [
+       "600"
+      ],
+      "made_a_difference": false,
+      "met": true
+     },
+     "smoke-L4-ledgerlite-resume-refactor": {
+      "admitted": [
+       "src/ledgerlite/money.py defines parse(value), which raises TypeError for values that are neither str nor Decimal and raises ValueError for amounts that are not finite or are not positive.",
+       "The ledgerlite refactor is planned in three steps: (1) add src/ledgerlite/money.py with parse(value) -> Decimal accepting str or Decimal and rejecting non-positive values; (2) make Ledger.transfer use money.parse; (3) add tests/test_money.py."
+      ],
+      "baseline_repeated_mistakes": 0,
+      "baseline_task_success": true,
+      "candidate_repeated_mistakes": 0,
+      "candidate_task_success": true,
+      "carried_in_session_b": [
+       "money.parse"
+      ],
+      "errors": [],
+      "gold_in_session_b": [
+       "money.parse"
+      ],
+      "made_a_difference": false,
+      "met": true
+     }
+    }
+   },
+   "isolation": {
+    "cross_project_leak_commands": 0,
+    "cross_record_ids": [],
+    "cross_text_in_search": [],
+    "demonstrated": true,
+    "fieldnotes_active_claims": [
+     "Running `python tools/check.py` from the project root, without NOTES_HOME set, fails with KeyError: 'NOTES_HOME'.",
+     "Running `python tools/check.py` with NOTES_HOME set to a temporary directory ran 1 unit test (OK) and exited 0.",
+     "tools/check.py reads the NOTES_HOME environment variable with os.environ[\"NOTES_HOME\"] and has no default, so it raises KeyError when NOTES_HOME is unset."
+    ],
+    "fieldnotes_session_b_delivered": [],
+    "installations": {
+     "distinct": true,
+     "fieldnotes": "inst_504321c7-e748-49ba-99e9-f9eb71cec39d",
+     "ledgerlite": "inst_04569b68-8f06-4765-8e5a-bef42397a2ae"
+    },
+    "ledgerlite_active_claims": [
+     "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root runs the two ledgerlite unit tests and reports both passing.",
+     "Running `PYTHONPATH=src python -m pytest tests -q` from the project root fails in the Windows Python 3.13 environment because the pytest module is not installed."
+    ],
+    "reverse_session": {
+     "actions": 3,
+     "gap": {
+      "last": {
+       "due_jobs": 0,
+       "due_kinds": [],
+       "leased": 0,
+       "next_due_in_s": null,
+       "pending_triggers": 0,
+       "progress": [
+        44,
+        32,
+        40
+       ],
+       "quiet": true,
+       "spool_ready": 0,
+       "waiting_reasons": []
+      },
+      "polls": 21,
+      "state": "quiet",
+      "suspended_s": 0.0,
+      "waited_s": 422.0,
+      "worker_seen": true
+     }
+    },
+    "scenario": "smoke-C4-cross-project-near-match",
+    "task_success": true,
+    "worker_stop": [
+     {
+      "exit": 0,
+      "state": "stopped"
+     },
+     {
+      "exit": 0,
+      "state": "not_running"
+     }
+    ]
+   },
+   "zero_interventions": {
+    "demonstrated": true,
+    "jobs_awaiting_a_human": 0,
+    "note": "memory formation, review, revision and delivery ran without any operator command; the forgetting demonstration's backup/forget/restore are intentional privacy operations, not routine maintenance",
+    "operator_interventions": 0,
+    "trials": 24,
+    "workload_days": 3
+   }
+  },
+  "label": "live working agent, real installed hooks, the installations' certified routes; privacy operations through the guarded CLI with the operator token",
+  "mode": "live"
+ },
+ "gate": {
+  "reasons": [
+   "demonstrations_unmet:forgetting_and_restore",
+   "claims_unadjudicated:21 (evals/run.py adjudicate)"
+  ],
+  "state": "failed",
+  "superiority_claim": false
+ },
+ "limitations": [
+  "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC \u00a77; no held-out or independent corpus exists.",
+  "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+  "Each candidate installation's route is certified live for that installation; its host record is bound from the source project's live engine-mode certification for the same host version, model and configuration (decision 0028), not re-observed per installation.",
+  "Sessions run on real time. Between sessions the harness waits until the hook-started worker owes nothing due within 20 minutes (or 45 minutes pass, or progress stalls for 5); the scenarios' two-hour gaps are not reproduced.",
+  "Delivered context is read from the host's hook_response records (the hook's exact stdout as the host received it); that the model saw it is the separate canary certification, not re-checked per trial.",
+  "Workload days replay synthetic recorded timelines in process through the real stdlib hook path (no host session); scheduling runs on the day's virtual clock while every curator call is real.",
+  "Background tokens come from the budget ledger (provider-reported where the call reported usage); foreground cost is the host's own reported session cost.",
+  "On native Windows a hook-started worker runs inside the venv redirector's job (decision 0027 item 8): recovery is degraded while it runs."
+ ],
+ "mode": "live",
+ "mode_note": "live working agent and certified inference route",
+ "native_memory": {
+  "configuration": "the live trials' own session flags, disposable HOME and environment",
+  "installed_host_observation": {
+   "configuration": {
+    "env": [
+     "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+    ],
+    "session_args": "the live trials' session flags",
+    "settings": {
+     "autoMemoryEnabled": false
+    }
+   },
+   "control": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": true
+   },
+   "disabled": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": false
+   },
+   "host_version": "2.1.310 (Claude Code)",
+   "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+   "state": "disabled"
+  }
+ },
+ "operational_5_2": {
+  "budget_exhaustion": {
+   "backlog_at_day_end": {
+    "fieldnotes": {
+     "jobs": 0,
+     "kinds": [],
+     "oldest_age_seconds": 0.0
+    },
+    "household": {
+     "jobs": 0,
+     "kinds": [],
+     "oldest_age_seconds": 0.0
+    },
+    "ledgerlite": {
+     "jobs": 0,
+     "kinds": [],
+     "oldest_age_seconds": 0.0
+    }
+   },
+   "days_hitting_any_pool": {
+    "denominator": 3,
+    "numerator": 0,
+    "value": 0.0,
+    "wilson_95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "days_not_run": [],
+   "median_hours_to_exhaustion": null,
+   "nonexhausted_censored_days": 3,
+   "pools_hit": [],
+   "priority_inversions": 0,
+   "scenario_days": 3,
+   "waiting_seconds": {
+    "correction_declaration_review": {
+     "max": 1.0,
+     "n": 5,
+     "p50": 1.0,
+     "p95": 1.0
+    },
+    "ordinary": {
+     "max": 4.0,
+     "n": 93,
+     "p50": 0.0,
+     "p95": 3.0
+    },
+    "ordinary_review": {
+     "max": 1.0,
+     "n": 5,
+     "p50": 1.0,
+     "p95": 1.0
+    }
+   }
+  },
+  "curation_throughput": {
+   "fieldnotes": {
+    "admitted_claims": 2,
+    "calls": 40,
+    "calls_by_purpose": {
+     "build_episode": 9,
+     "extract_claims": 19,
+     "review_claims": 4,
+     "update_task": 8
+    },
+    "calls_per_admitted_claim": 20.0,
+    "calls_per_settled_episode": 4.444,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 158461,
+     "extract_claims": 361710,
+     "review_claims": 20154,
+     "update_task": 123268
+    },
+    "processing": {
+     "note": "real provider call durations; queue wait is on the virtual clock",
+     "real_seconds": {
+      "max": 23.551,
+      "n": 40,
+      "p50": 6.601,
+      "p95": 20.73
+     }
+    },
+    "proposals": [
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       },
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim",
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       },
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_revise"
+       }
+      ],
+      "operations": [
+       "assess_claim",
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's failure and passing run are already captured by existing claims, and the passing run's output is not a typed observed result, so no new durable claim is warranted.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Durable items are already recorded: the NOTES_HOME failure lesson, the ISO-8601 date decision, and a candidate passing-run fact. The date-format failure and the 3-test versus 1-test run difference are not shown clearly enough to state as a project fact.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "No new durable knowledge beyond existing claims. The NOTES_HOME failure and the passing NOTES_HOME run are already covered by active or candidate claims. The export test failure is in-progress task work, and the user's text is a task objective, not a stated rule or decision.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's events show an in-progress export task and test runs. The user made no explicit durable statement, and the claims already in the read set cover the project's date format and the check.py behavior. Nothing new is durable enough to propose.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Session only contains a task-level TDD request and tool runs with no new durable project statement; existing claims already cover the printed-date rule and the NOTES_HOME check results.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Title already matches the user objective; the recorded actions do not establish a clear plan, constraints, open questions, or next action, and completion is not supported by the evidence.",
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable content is already captured by existing claims (ISO date format, the NOTES_HOME failure lesson and passing-form fact). The user's TDD objective is task-scoped and not a standing project rule, and the edit and test-run events add no new durable project knowledge.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "No new durable project knowledge: the session's only user statement is the task objective, which is not in allowed_evidence_refs, and the tool results are a transient test failure and unrelated reads and edits. The existing claims already cover the ISO date rule and the NOTES_HOME failure.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "attach_evidence",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "attach_evidence"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "attach_evidence",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "attach_evidence"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_rejected"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable-looking items are a task objective (moving storage to notes.jsonl, not yet confirmed complete) and repeated test_roundtrip failures whose cause is unassessed. Neither is a settled project fact, decision or preference, and the existing NOTES_HOME failure lesson already covers the one established failure condition.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's events show only a failing check run with a test failure, file reads, and one edit to fieldnotes/store.py. No user declaration of a durable project rule, decision, or preference appears in the events, and the failure does not add a lesson beyond existing claims.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable candidates are already recorded (ISO-8601 date decision, NOTES_HOME failure lesson). The user's storage objective is an unfinished task goal rather than a stated project fact, and the single test_roundtrip failure has no established cause, so no new claim is warranted. The new-session boundary stays pending.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Narrative fields are already consistent with the evidence; the title matches the user objective, and the events do not establish a next action, plan, constraints, or open questions. The boundary binding stays pending.",
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable failure lesson about tools/check.py and NOTES_HOME is already recorded as an active supported claim, and the request contains no new user declaration of a rule, decision, or preference. The later passing run has no assertion-level tool result, so it does not support a new observed or durable claim.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The failure lesson about running tools/check.py without NOTES_HOME and the decision about printed dates already exist as active claims. The new events add no further durable user statement or new failure.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "reject",
+        "reason": "invalid_result"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Narrative fields already reflect the task; the later check run passed with no open plan items, questions, or next action evidenced, and the boundary binding is left pending.",
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session only fixed a long-line style complaint and ran the check. The check failed once on line length and passed later, which is a task result, not a durable project fact. The user's message is a task request, not a stated rule, decision or preference for the project.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "No durable user statement or new tool-backed project fact in this session. The style-check failure with NOTES_HOME set does not bear on the existing NOTES_HOME failure claim, and the passing runs have no numeric exit code.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "No durable project knowledge: the session's user message is a task objective, the edit and check run do not show that count prints 0 for an empty store, and the NOTES_HOME failure is already recorded as a claim.",
+      "operations": [],
+      "purpose": "extract_claims"
+     }
+    ],
+    "provider_outcomes": {
+     "by_purpose": {
+      "build_episode": {
+       "at_output_cap": 0,
+       "calls": 9,
+       "replies_parsed": 9,
+       "reported_input_tokens": 243317,
+       "reported_output_tokens": 19636,
+       "visible_output_estimate": 5499
+      },
+      "extract_claims": {
+       "at_output_cap": 0,
+       "calls": 19,
+       "replies_parsed": 19,
+       "reported_input_tokens": 544291,
+       "reported_output_tokens": 22858,
+       "visible_output_estimate": 3297
+      },
+      "review_claims": {
+       "at_output_cap": 0,
+       "calls": 4,
+       "replies_parsed": 4,
+       "reported_input_tokens": 28740,
+       "reported_output_tokens": 5346,
+       "visible_output_estimate": 1052
+      },
+      "update_task": {
+       "at_output_cap": 0,
+       "calls": 8,
+       "replies_parsed": 8,
+       "reported_input_tokens": 192152,
+       "reported_output_tokens": 10406,
+       "visible_output_estimate": 2199
+      }
+     },
+     "job_errors": {
+      "update_task:coalesced": 1
+     }
+    },
+    "queue_wait_seconds": {
+     "max": 4.0,
+     "n": 40,
+     "p50": 1.0,
+     "p95": 3.0
+    },
+    "settled_episodes": 9
+   },
+   "household": {
+    "admitted_claims": 2,
+    "calls": 30,
+    "calls_by_purpose": {
+     "build_episode": 8,
+     "extract_claims": 9,
+     "review_claims": 4,
+     "update_task": 9
+    },
+    "calls_per_admitted_claim": 15.0,
+    "calls_per_settled_episode": 3.75,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 109177,
+     "extract_claims": 152438,
+     "review_claims": 13971,
+     "update_task": 124405
+    },
+    "processing": {
+     "note": "real provider call durations; queue wait is on the virtual clock",
+     "real_seconds": {
+      "max": 14.494,
+      "n": 30,
+      "p50": 7.821,
+      "p95": 14.272
+     }
+    },
+    "proposals": [
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "reject",
+        "reason": "invalid_result"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       },
+       {
+        "kind": "no_op",
+        "outcome": "apply",
+        "reason": "no_op"
+       }
+      ],
+      "operations": [
+       "propose_claim",
+       "no_op"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_revise"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session only read utilities-log.csv, which showed a single 2026-09 row, and the user asked for brainstorming without checking anything. No durable project decision, preference, or user-stated project fact was made, and the claimed September rise is unverified.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "update_task",
+        "outcome": "reject",
+        "reason": "group_rejected"
+       }
+      ],
+      "operations": [
+       "update_task"
+      ],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session only read a heading-only trip-ideas.md, had a script call fail, and wrote trip-plan.md. The user's request is a one-time task, not a stated rule, decision or preference, and the failed script call does not establish a durable project fact or lesson.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "This session's events are a failed command (tools/cost.py not found), a file write, and session start and end. No user statement of a rule, decision, preference or project fact appears in the cited events, and the missing-script failure is too weak to justify a durable lesson.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "update_task",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "update_task"
+      ],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       },
+       {
+        "kind": "change_claim_status",
+        "outcome": "review_required",
+        "reason": "replacement_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim",
+       "change_claim_status"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "No new user-stated decision, preference, or project fact in this session. The $700 budget is already claimed. The file-location fact came from agent reads, not a user statement. The meal-plan.md read mismatch has no failed tool result, so it cannot support a failure lesson.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "update_task",
+        "outcome": "reject",
+        "reason": "invalid_result"
+       }
+      ],
+      "operations": [
+       "update_task"
+      ],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session only read a header-only utilities-log.csv and wrote an unexplained $235 estimate. It contains no user-stated durable rule, decision, preference or verified project fact.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "update_task",
+        "outcome": "reject",
+        "reason": "group_rejected"
+       }
+      ],
+      "operations": [
+       "update_task"
+      ],
+      "purpose": "update_task"
+     }
+    ],
+    "provider_outcomes": {
+     "by_purpose": {
+      "build_episode": {
+       "at_output_cap": 0,
+       "calls": 8,
+       "replies_parsed": 8,
+       "reported_input_tokens": 166308,
+       "reported_output_tokens": 14977,
+       "visible_output_estimate": 4495
+      },
+      "extract_claims": {
+       "at_output_cap": 0,
+       "calls": 9,
+       "replies_parsed": 9,
+       "reported_input_tokens": 227458,
+       "reported_output_tokens": 10990,
+       "visible_output_estimate": 2110
+      },
+      "review_claims": {
+       "at_output_cap": 0,
+       "calls": 4,
+       "replies_parsed": 4,
+       "reported_input_tokens": 19678,
+       "reported_output_tokens": 3253,
+       "visible_output_estimate": 724
+      },
+      "update_task": {
+       "at_output_cap": 0,
+       "calls": 9,
+       "replies_parsed": 9,
+       "reported_input_tokens": 190517,
+       "reported_output_tokens": 15303,
+       "visible_output_estimate": 4615
+      }
+     },
+     "job_errors": {}
+    },
+    "queue_wait_seconds": {
+     "max": 4.0,
+     "n": 30,
+     "p50": 1.0,
+     "p95": 4.0
+    },
+    "settled_episodes": 8
+   },
+   "ledgerlite": {
+    "admitted_claims": 2,
+    "calls": 33,
+    "calls_by_purpose": {
+     "build_episode": 7,
+     "extract_claims": 18,
+     "review_claims": 2,
+     "update_task": 6
+    },
+    "calls_per_admitted_claim": 16.5,
+    "calls_per_settled_episode": 4.714,
+    "estimated_tokens_by_purpose": {
+     "build_episode": 136755,
+     "extract_claims": 339796,
+     "review_claims": 8024,
+     "update_task": 103165
+    },
+    "processing": {
+     "note": "real provider call durations; queue wait is on the virtual clock",
+     "real_seconds": {
+      "max": 23.671,
+      "n": 33,
+      "p50": 6.446,
+      "p95": 17.387
+     }
+    },
+    "proposals": [
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable failure lesson is already recorded as claim_bf4b6911 rev 2. The passing PYTHONPATH=src run has no numeric exit code, so it cannot be stated as an observed fact. The task objective is task progress, not a project-wide rule or decision.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Session shows a failing and a passing PYTHONPATH=src test run plus an Edit to a source file; no user-declared rule, decision, preference or stable project fact, and the existing ModuleNotFoundError claim cites evidence not in allowed_evidence_refs.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "update_task",
+        "outcome": "reject",
+        "reason": "invalid_result"
+       }
+      ],
+      "operations": [
+       "update_task"
+      ],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "This session's durable content is the existing failure lesson about running the tests without PYTHONPATH=src, which is already recorded. The new run with PYTHONPATH=src has no numeric exit code, and the __init__.py edit is transient task work. No user-declared project rule, decision or preference was stated.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's runs are contradictory and incomplete: the test failures are part of an in-progress task, the final OK run has no parsed assertions, and no user declaration of a project rule, decision, or preference appears in the events.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "reject",
+        "reason": "invalid_result"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "This session's only test runs used PYTHONPATH=src, and the recorded failure was a test assertion, not an import error. The session produced no durable project knowledge beyond the existing active ModuleNotFoundError claim, and the task objective is a one-off request rather than a stated rule or preference. Boundary left pending.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session only shows an in-progress edit to src/ledgerlite/money.py and test runs, one of which failed on a test assertion and one of which passed. The events contain no durable project fact, decision, preference, or failure lesson, and no run without PYTHONPATH=src. The existing claim's evidence is not in allowed_evidence_refs, so it cannot be attached or revised.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's events show an in-progress task: a failing test run, an edit, and a later passing run. The only user statement is the task objective, which is not a project decision, preference or fact. Nothing here is durable project knowledge yet.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session shows only an in-progress refactor: a failing test run with a test assertion, a few file reads, and one edit. No user-stated durable rule, decision, or project fact is in the allowed events, and the failure is not a reusable lesson.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "This session only read files and made one unverified edit with no recorded result. The only failing run was a test assertion failure, not the import error, and nothing durable was declared. The existing claim cites evidence outside allowed_evidence_refs, so it cannot be revised here.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable-looking content is a task objective and an existing supported failure lesson already covers the PYTHONPATH finding; no new durable project claim is warranted.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's only durable-looking result is a failed Bash run with exit code 1 and no exact argv, which supports no observed claim beyond its exit status. The existing PYTHONPATH claim cites records outside allowed_evidence_refs, so it cannot be revised or attached. The boundary binding stays pending.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session shows one failing test run (test_transfer AssertionError) with unassessed cause and no subsequent verified fix, and the file reads return no content. No durable project fact, decision, preference, or procedure is established.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "propose_claim",
+        "outcome": "candidate_only",
+        "reason": "candidate_pending_review"
+       }
+      ],
+      "operations": [
+       "propose_claim"
+      ],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "assess_claim",
+        "outcome": "apply",
+        "reason": "review_supported"
+       }
+      ],
+      "operations": [
+       "assess_claim"
+      ],
+      "purpose": "review_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The failing unittest run without PYTHONPATH=src is already recorded by active claim_bf4b6911 (revision 2). The later PYTHONPATH=src run has unparsed argv and no numeric exit code, so it cannot support an observed claim, and the session holds no new user declaration about the project.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's events record a task request and one test-first run with a failing then passing result, but they state no durable project rule, decision, preference or file fact. The failure's cause is not established, and the one observed exit-code fact would only restate a call with no exact argv.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "Narrative fields already fit the evidence: the objective is recorded, and the episode shows a failing run followed by a passing rerun. Completion is not supported because the events do not establish that the edit caused the pass. The new-session boundary is left pending.",
+      "operations": [],
+      "purpose": "update_task"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's durable content is a task objective already tracked in task state, a mid-task red test run, a one-line edit, and a passing run. None of it is a stable project fact, decision, preference, or failure lesson. Boundary left pending.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [
+       {
+        "kind": "revise_episode",
+        "outcome": "apply",
+        "reason": "admitted"
+       }
+      ],
+      "operations": [
+       "revise_episode"
+      ],
+      "purpose": "build_episode"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "no_op_reason": "The session's only user statement is a task objective to polish report() and rerun tests, which is not a rule, decision or preference. The Edit and Bash calls have no exit codes, so no observed claim is supported. The existing PYTHONPATH failure lesson and Decimal decision are not contradicted or extended by durable new evidence.",
+      "operations": [],
+      "purpose": "extract_claims"
+     },
+     {
+      "applied": true,
+      "body_retained": true,
+      "decisions": [],
+      "operations": [],
+      "purpose": "update_task"
+     }
+    ],
+    "provider_outcomes": {
+     "by_purpose": {
+      "build_episode": {
+       "at_output_cap": 0,
+       "calls": 7,
+       "replies_parsed": 7,
+       "reported_input_tokens": 211123,
+       "reported_output_tokens": 15242,
+       "visible_output_estimate": 3360
+      },
+      "extract_claims": {
+       "at_output_cap": 0,
+       "calls": 18,
+       "replies_parsed": 18,
+       "reported_input_tokens": 505449,
+       "reported_output_tokens": 20539,
+       "visible_output_estimate": 2974
+      },
+      "review_claims": {
+       "at_output_cap": 0,
+       "calls": 2,
+       "replies_parsed": 2,
+       "reported_input_tokens": 11288,
+       "reported_output_tokens": 1598,
+       "visible_output_estimate": 330
+      },
+      "update_task": {
+       "at_output_cap": 0,
+       "calls": 6,
+       "replies_parsed": 6,
+       "reported_input_tokens": 159253,
+       "reported_output_tokens": 9182,
+       "visible_output_estimate": 2309
+      }
+     },
+     "job_errors": {
+      "update_task:coalesced": 1
+     }
+    },
+    "queue_wait_seconds": {
+     "max": 4.0,
+     "n": 33,
+     "p50": 0.0,
+     "p95": 3.0
+    },
+    "settled_episodes": 7
+   }
+  },
+  "delivery_visibility": {
+   "paths": {
+    "claude_code": {
+     "contaminated_runs": "none recorded",
+     "host_version": "2.1.310",
+     "live": "run",
+     "paths": {
+      "compact": {
+       "live": {
+        "negatives_passed": 3,
+        "negatives_run": 3,
+        "positives_passed": 3,
+        "positives_run": 3,
+        "reasons": [],
+        "required": false,
+        "state": "healthy"
+       },
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "pre_action": {
+       "live": {
+        "negatives_passed": 3,
+        "negatives_run": 3,
+        "positives_passed": 3,
+        "positives_run": 3,
+        "reasons": [],
+        "required": false,
+        "state": "healthy"
+       },
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "prompt": {
+       "live": {
+        "negatives_passed": 3,
+        "negatives_run": 3,
+        "positives_passed": 3,
+        "positives_run": 3,
+        "reasons": [],
+        "required": true,
+        "state": "healthy"
+       },
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      },
+      "session_start": {
+       "live": {
+        "negatives_passed": 3,
+        "negatives_run": 3,
+        "positives_passed": 3,
+        "positives_run": 3,
+        "reasons": [],
+        "required": true,
+        "state": "healthy"
+       },
+       "request_capture": {
+        "negatives_clean": 3,
+        "positives_hook_emitted": 3,
+        "positives_visible_in_request": 3,
+        "state": "request_visible"
+       }
+      }
+     }
+    }
+   },
+   "source": "docs/host-compatibility.json (sections.delivery_engine)"
+  },
+  "evidence_strength_distribution": {
+   "fieldnotes": {
+    "day_end": {
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    },
+    "first_admission": {
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    }
+   },
+   "household": {
+    "day_end": {
+     "supported:user_declared": 2
+    },
+    "first_admission": {
+     "supported:user_declared": 3
+    }
+   },
+   "ledgerlite": {
+    "day_end": {
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    },
+    "first_admission": {
+     "supported:inferred": 1,
+     "supported:user_declared": 1
+    }
+   },
+   "smoke": {
+    "active:corroborated:inferred": 2,
+    "active:supported:inferred": 8,
+    "active:supported:user_declared": 3,
+    "candidate:weak:inferred": 1,
+    "superseded:supported:user_declared": 1
+   }
+  },
+  "false_suppression": {
+   "denominator": 1,
+   "examples": [],
+   "numerator": 0,
+   "value": 0.0,
+   "wilson_95": [
+    0.0,
+    0.7935
+   ]
+  },
+  "same_session_learning_latency": {
+   "smoke": {
+    "count": 2,
+    "observations": [
+     {
+      "caution_delivered": false,
+      "failure": "ls -la; cat package.json 2>/dev/null | head -40; ls pyproject.toml setup.py Cargo.toml go.mod Makefile pom.xml 2>/dev/null",
+      "next_pre_action_state": "none"
+     },
+     {
+      "caution_delivered": false,
+      "failure": "python tools/check.py",
+      "next_pre_action_state": "none"
+     }
+    ]
+   },
+   "workload": {
+    "fieldnotes": {
+     "count": 10,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 16.0,
+       "mentions_failure": true,
+       "session": "S1",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 22.0,
+       "mentions_failure": true,
+       "session": "S3",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 25.0,
+       "mentions_failure": false,
+       "session": "S3",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 43.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 44.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 69.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 138.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 34.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 44.0,
+       "mentions_failure": true,
+       "session": "S6",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 46.0,
+       "mentions_failure": false,
+       "session": "S7",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    },
+    "household": {
+     "count": 1,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 68.0,
+       "mentions_failure": true,
+       "session": "S4",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    },
+    "ledgerlite": {
+     "count": 11,
+     "observations": [
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 43.0,
+       "mentions_failure": true,
+       "session": "S1",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 38.0,
+       "mentions_failure": true,
+       "session": "S2",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 48.0,
+       "mentions_failure": false,
+       "session": "S2",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 55.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 49.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 47.0,
+       "mentions_failure": false,
+       "session": "S4",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 9.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 34.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": false,
+       "interval_s": 26.0,
+       "mentions_failure": false,
+       "session": "S5",
+       "state": "none"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 12.0,
+       "mentions_failure": true,
+       "session": "S7",
+       "state": "emitted"
+      },
+      {
+       "degraded": [],
+       "delivered": true,
+       "interval_s": 27.0,
+       "mentions_failure": false,
+       "session": "S8",
+       "state": "emitted"
+      }
+     ],
+     "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+    }
+   }
+  },
+  "task_over_fragmentation": {
+   "fieldnotes": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 8,
+    "current_nonredirected_heads": 8,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 7,
+    "linked_placeholders": 0,
+    "provisional": 195,
+    "ratio": 1.143
+   },
+   "household": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 8,
+    "current_nonredirected_heads": 7,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 4,
+    "linked_placeholders": 1,
+    "provisional": 95,
+    "ratio": 2.0
+   },
+   "ledgerlite": {
+    "attempt_result_severed": 0,
+    "boundary_precision": null,
+    "boundary_recall": null,
+    "confirmed": 0,
+    "created_tasks": 9,
+    "current_nonredirected_heads": 9,
+    "deterministic_link_reversals": 0,
+    "gold_tasks": 7,
+    "linked_placeholders": 0,
+    "provisional": 197,
+    "ratio": 1.286
+   }
+  }
+ },
+ "paired_outcomes": {
+  "claim": "No superiority claim: a 12-scenario smoke run with one trial per arm cannot establish one (ACCEPTANCE_TESTS \u00a76.1).",
+  "scenarios": [
+   {
+    "background_tokens": {
+     "candidate": 149652,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 20.961,
+     "no_memory": 17.703
+    },
+    "foreground_tokens": {
+     "candidate": 126932,
+     "no_memory": 123594
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C1-ledgerlite-routine-typo",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 383616,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 61.261,
+     "no_memory": 50.681
+    },
+    "foreground_tokens": {
+     "candidate": 391628,
+     "no_memory": 253069
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C2-fieldnotes-tdd-expected-red",
+    "task_success": {
+     "candidate": false,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 91784,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 23.25,
+     "no_memory": 20.529
+    },
+    "foreground_tokens": {
+     "candidate": 72974,
+     "no_memory": 71619
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C3-household-utilities-speculation",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 133083,
+     "no_memory": 0
+    },
+    "category": "control",
+    "detours": {
+     "candidate": 1,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 32.607,
+     "no_memory": 20.346
+    },
+    "foreground_tokens": {
+     "candidate": 212149,
+     "no_memory": 178497
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-C4-cross-project-near-match",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 315994,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 32.715,
+     "no_memory": 22.953
+    },
+    "foreground_tokens": {
+     "candidate": 204489,
+     "no_memory": 166112
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L1-ledgerlite-test-command",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 307165,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 31.362,
+     "no_memory": 28.154
+    },
+    "foreground_tokens": {
+     "candidate": 195252,
+     "no_memory": 151264
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L2-fieldnotes-iso-dates",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 170372,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 1
+    },
+    "elapsed_seconds": {
+     "candidate": 42.733,
+     "no_memory": 30.539
+    },
+    "foreground_tokens": {
+     "candidate": 148098,
+     "no_memory": 126474
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L3-household-grocery-budget",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 266267,
+     "no_memory": 0
+    },
+    "category": "learning",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 33.251,
+     "no_memory": 34.521
+    },
+    "foreground_tokens": {
+     "candidate": 227517,
+     "no_memory": 183210
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-L4-ledgerlite-resume-refactor",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 235002,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 20.57,
+     "no_memory": 17.962
+    },
+    "foreground_tokens": {
+     "candidate": 128265,
+     "no_memory": 125027
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": true,
+     "no_memory": true
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R1-fieldnotes-check-env-fixed",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 150610,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 23.818,
+     "no_memory": 19.862
+    },
+    "foreground_tokens": {
+     "candidate": 130036,
+     "no_memory": 147276
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": true,
+     "no_memory": true
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R2-ledgerlite-import-fixed",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 120934,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 18.22,
+     "no_memory": 16.883
+    },
+    "foreground_tokens": {
+     "candidate": 55594,
+     "no_memory": 53965
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R3-household-budget-correction",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   },
+   {
+    "background_tokens": {
+     "candidate": 264110,
+     "no_memory": 0
+    },
+    "category": "revision",
+    "detours": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "elapsed_seconds": {
+     "candidate": 29.549,
+     "no_memory": 24.339
+    },
+    "foreground_tokens": {
+     "candidate": 177939,
+     "no_memory": 148908
+    },
+    "labels": {
+     "candidate": "candidate",
+     "no_memory": "no_memory"
+    },
+    "legitimate_retry_success": {
+     "candidate": null,
+     "no_memory": null
+    },
+    "operator_interventions": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "repeated_mistakes": {
+     "candidate": 0,
+     "no_memory": 0
+    },
+    "scenario": "smoke-R4-fieldnotes-storage-conflict",
+    "task_success": {
+     "candidate": true,
+     "no_memory": true
+    }
+   }
+  ],
+  "summary": {
+   "background_tokens": {
+    "ci_95": [
+     166383.0,
+     265175.3333
+    ],
+    "inconclusive": false,
+    "mean": 215715.75,
+    "n": 12
+   },
+   "detours": {
+    "ci_95": [
+     -0.25,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": -0.0833,
+    "n": 12
+   },
+   "elapsed_seconds": {
+    "ci_95": [
+     3.047,
+     7.9261
+    ],
+    "inconclusive": false,
+    "mean": 5.4854,
+    "n": 12
+   },
+   "foreground_tokens": {
+    "ci_95": [
+     10277.5833,
+     52313.9167
+    ],
+    "inconclusive": false,
+    "mean": 28488.1667,
+    "n": 12
+   },
+   "legitimate_retry_success": {
+    "ci_95": [
+     0.0,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": 0.0,
+    "n": 2
+   },
+   "operator_interventions": {
+    "ci_95": [
+     0.0,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": 0.0,
+    "n": 12
+   },
+   "repeated_failure_relative_reduction": {
+    "candidate": 0,
+    "full_release_target": ">= 0.25 (Cut 2 gate; not a preview gate)",
+    "no_memory": 0,
+    "relative_reduction": null
+   },
+   "repeated_mistakes": {
+    "ci_95": [
+     0.0,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": 0.0,
+    "n": 12
+   },
+   "task_success": {
+    "candidate_successes": 11,
+    "ci_95": [
+     -0.25,
+     0.0
+    ],
+    "inconclusive": true,
+    "mean": -0.0833,
+    "n": 12,
+    "no_memory_successes": 12,
+    "pairs": 12
+   }
+  }
+ },
+ "profile": "claude_preview",
+ "quality_5_1": {
+  "adjudication": {
+   "evidence_absent": [],
+   "examples": {
+    "missed_lessons": [],
+    "unsupported_admitted": []
+   },
+   "limitation": "fewer than two independent reviewers (ACCEPTANCE_TESTS \u00a75: report the limitation)",
+   "reviewers": [],
+   "unadjudicated": {
+    "claims": [
+     "smoke-C2-fieldnotes-tdd-expected-red:claim_c5aae018-2b9d-4ace-bc0b-59f649082ecf",
+     "smoke-C2-fieldnotes-tdd-expected-red:claim_ca1ebca0-e0fe-49e4-a024-98e1206dba1e",
+     "smoke-L1-ledgerlite-test-command:claim_35caa250-c9e3-4d47-a91b-509f7f077af7",
+     "smoke-L1-ledgerlite-test-command:claim_dab6b222-d1bd-48cf-856f-add35b0e267a",
+     "smoke-L1-ledgerlite-test-command:claim_f1eceaa8-7151-4955-973e-b076a5c656b5",
+     "smoke-L2-fieldnotes-iso-dates:claim_19d9f62e-1aa2-448a-b88f-0d1f27ef0a15",
+     "smoke-L2-fieldnotes-iso-dates:claim_bf501222-c77c-4c65-a9b9-6ce64b28328f",
+     "smoke-L4-ledgerlite-resume-refactor:claim_034e8436-cbbc-4709-94c6-7b4bdf8ac1b0",
+     "smoke-L4-ledgerlite-resume-refactor:claim_9d868b82-a390-4b47-bf1a-fe2277cb41cf",
+     "smoke-R1-fieldnotes-check-env-fixed:claim_7a6db9db-aa82-415e-9914-d43726fe8f66",
+     "smoke-R1-fieldnotes-check-env-fixed:claim_b748b134-2a2d-4119-bb9d-aeb67e2aa644",
+     "smoke-R3-household-budget-correction:claim_afbb07ab-425d-4512-ac61-dc74b63d2765",
+     "smoke-R4-fieldnotes-storage-conflict:claim_3f6d4bf7-71da-44ed-90e7-7c1d3723db98"
+    ],
+    "count": 21,
+    "lessons": [
+     "smoke-L1-ledgerlite-test-command#0",
+     "smoke-L1-ledgerlite-test-command#1",
+     "smoke-L2-fieldnotes-iso-dates#0",
+     "smoke-L3-household-grocery-budget#0",
+     "smoke-R1-fieldnotes-check-env-fixed#0",
+     "smoke-R2-ledgerlite-import-fixed#0",
+     "smoke-R3-household-budget-correction#0",
+     "smoke-R4-fieldnotes-storage-conflict#0"
+    ]
+   }
+  },
+  "examples": {
+   "discouraged_retries": [],
+   "incorrect_guidance": [],
+   "irrelevant_cautions": [],
+   "missed_lessons": [],
+   "unsupported_admitted": []
+  },
+  "measures": {
+   "conflict_uncertainty_preservation": {
+    "denominator": 1,
+    "met": true,
+    "numerator": 1,
+    "target": ">= 0.95",
+    "value": 1.0,
+    "wilson_95": [
+     0.2065,
+     1.0
+    ]
+   },
+   "failed_approach_recall": {
+    "basis": "reviewer labels (adjudication.json)",
+    "denominator": 0,
+    "met": null,
+    "numerator": 0,
+    "target": ">= 0.9",
+    "unadjudicated": 8,
+    "value": null,
+    "wilson_95": null
+   },
+   "incorrect_confident_guidance": {
+    "count": 0,
+    "met": true,
+    "population": 12,
+    "target": "== 0"
+   },
+   "irrelevant_caution_quiet": {
+    "denominator": 3,
+    "met": true,
+    "numerator": 0,
+    "target": "<= 0.05",
+    "value": 0.0,
+    "wilson_95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "legitimate_retry_discouraged": {
+    "denominator": 2,
+    "met": true,
+    "numerator": 0,
+    "target": "<= 0.05",
+    "value": 0.0,
+    "wilson_95": [
+     0.0,
+     0.6576
+    ]
+   },
+   "routine_human_maintenance": {
+    "count": 0,
+    "met": true,
+    "population": 12,
+    "target": "== 0"
+   },
+   "supported_precision": {
+    "basis": "reviewer labels (adjudication.json)",
+    "denominator": 0,
+    "met": null,
+    "numerator": 0,
+    "target": ">= 0.95",
+    "unadjudicated": 13,
+    "value": null,
+    "wilson_95": null
+   },
+   "useful_recall": {
+    "basis": "reviewer labels (adjudication.json)",
+    "denominator": 0,
+    "met": null,
+    "numerator": 0,
+    "target": ">= 0.85",
+    "unadjudicated": 8,
+    "value": null,
+    "wilson_95": null
+   }
+  },
+  "population": "12 candidate smoke trials (one per scenario)",
+  "term_match_provisional": {
+   "failed_approach_recall": {
+    "denominator": 3,
+    "met": false,
+    "numerator": 2,
+    "target": ">= 0.9",
+    "value": 0.6667,
+    "wilson_95": [
+     0.2077,
+     0.9385
+    ]
+   },
+   "supported_precision": {
+    "denominator": 13,
+    "met": false,
+    "numerator": 6,
+    "target": ">= 0.95",
+    "value": 0.4615,
+    "wilson_95": [
+     0.2321,
+     0.7086
+    ]
+   },
+   "useful_recall": {
+    "denominator": 8,
+    "met": false,
+    "numerator": 5,
+    "target": ">= 0.85",
+    "value": 0.625,
+    "wilson_95": [
+     0.3057,
+     0.8632
+    ]
+   }
+  }
+ },
+ "report_schema": 1,
+ "retrieval_points": {
+  "denominator": 12,
+  "numerator": 9,
+  "unmet": [
+   {
+    "delivered_items": 0,
+    "satisfied": false,
+    "scenario": "smoke-L2-fieldnotes-iso-dates",
+    "spec": {
+     "must_include": "ISO-8601",
+     "purpose": "prompt",
+     "session": "B"
+    }
+   },
+   {
+    "delivered_items": 0,
+    "satisfied": false,
+    "scenario": "smoke-L3-household-grocery-budget",
+    "spec": {
+     "must_include": "600",
+     "purpose": "prompt",
+     "session": "B"
+    }
+   },
+   {
+    "delivered_items": 1,
+    "satisfied": false,
+    "scenario": "smoke-R3-household-budget-correction",
+    "spec": {
+     "must_not_include": "$600 as current",
+     "purpose": "prompt",
+     "session": "C"
+    }
+   }
+  ],
+  "value": 0.75,
+  "wilson_95": [
+   0.4677,
+   0.9111
+  ]
+ },
+ "scenario_authorship": {
+  "held_out": "none (full release; intentionally empty)",
+  "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
+  "smoke": {
+   "independent_of_system_spec_7": false,
+   "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC \u00a77; development fixtures, not held out",
+   "route": [
+    "repository author (coding agent)"
+   ]
+  },
+  "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions"
+ },
+ "unsuccessful_runs": [
+  {
+   "arm": "candidate",
+   "reason": "task_failed",
+   "scenario": "smoke-C2-fieldnotes-tdd-expected-red"
+  }
+ ],
+ "versions": {
+  "certified_capture_versions": [
+   "2.1.301",
+   "2.1.305",
+   "2.1.306",
+   "2.1.309",
+   "2.1.310"
+  ],
+  "commit": "3a0fc06590963ae0ae28a6072c2a9ce96739e82f",
+  "engine": "0.1.0.dev7",
+  "installed_host": "2.1.310 (Claude Code)",
+  "platform": "Windows 11 AMD64",
+  "prompts": {
+   "build_episode": "build_episode@1",
+   "extract_claims": "extract_claims@5",
+   "revalidate": "revalidate@2",
+   "review_claims": "review_claims@1",
+   "update_task": "update_task@1"
+  },
+  "python": "3.13.15",
+  "schema": 12,
+  "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)",
+  "sqlite": "3.50.4",
+  "tree_clean": false
+ }
+}
