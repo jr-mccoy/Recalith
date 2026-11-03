@@ -328,14 +328,16 @@ def test_a_malformed_operation_says_what_failed_without_quoting_the_model():
     ops = [{k: v for k, v in op.items() if k != "reason"},
            {**op, "local_ref": "a2", "payload": {**op["payload"], "patches": [{"op": "append", "field": "plan", "value": "Step 2 of the secret plan"}]}},
            {**op, "local_ref": "a3", "payload": {**op["payload"], "patches": [patch]}},
-           {"local_ref": "a4", "kind": "revise_episode", "payload": {"episode_id": "ep_" + "a" * 8 + "-aaaa-4aaa-8aaa-" + "a" * 12, "expected_revision": 1, "patches": [{"op": "set", "field": "title", "value": "x"}]}, "reason": "r"}]
+           {"local_ref": "a4", "kind": "revise_episode", "payload": {"episode_id": "ep_" + "a" * 8 + "-aaaa-4aaa-8aaa-" + "a" * 12, "expected_revision": 1, "patches": [{"op": "set", "field": "title", "value": "x"}]}, "reason": "r"},
+           {"local_ref": "a5", "kind": "propose_claim", "payload": {"kind": "fact", "proposition": "p", "proposition_key": {"subject": "s", "predicate": "p"}, "basis": "inferred", "evidence": []}, "reason": "r"}]
     body = json.dumps({"operations": ops})
     result = base.evaluate_outcome(base.LaunchOutcome(stdout=fake_envelope(body)), Spy(), purpose="update_task", body_cap=body_cap_for("update_task"), estimate=1)
     details = {m.local_ref: m.detail for m in result.response.malformed}
     assert details["set-title"] == "reason:missing"
-    assert details["a2"] == "patches.0:value_error(append adds one item to a list field)"
-    assert details["a3"] == "patches.0.?:extra_forbidden"  # a key the model invented is not quoted
+    assert details["a2"] == "payload.patches.0:value_error(append adds one item to a list field)"  # a payload field is named under payload (decision 0039)
+    assert details["a3"] == "payload.patches.0.?:extra_forbidden"  # a key the model invented is not quoted
     assert details["a4"] == "kind:revise_episode"  # a valid operation of a kind this purpose may not return
+    assert details["a5"] == "payload.evidence:extra_forbidden"  # evidence inside the payload, not the operation's own evidence
     assert all("secret" not in (d or "") and "Step 2" not in (d or "") for d in details.values())
 
 

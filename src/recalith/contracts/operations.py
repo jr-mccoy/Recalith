@@ -327,6 +327,14 @@ PURPOSE_KINDS: dict[str, frozenset[str]] = {
 }
 
 
+def _under_payload(error: dict) -> dict:
+    """One payload validation error re-rooted at the operation's ``payload`` key."""
+    line = {"type": error["type"], "loc": ("payload", *error["loc"]), "input": error["input"]}
+    if error.get("ctx"):
+        line["ctx"] = error["ctx"]
+    return line
+
+
 class ProposedOperation(StrictModel):
     local_ref: LocalRef
     kind: OperationKind
@@ -338,7 +346,10 @@ class ProposedOperation(StrictModel):
 
     @model_validator(mode="after")
     def _payload(self) -> "ProposedOperation":
-        typed = PAYLOAD_MODELS[self.kind].model_validate(self.payload)
+        try:
+            typed = PAYLOAD_MODELS[self.kind].model_validate(self.payload)
+        except ValidationError as exc:  # report the payload's failures under ``payload``, not as the operation's own fields (decision 0039)
+            raise ValidationError.from_exception_data(exc.title, [_under_payload(e) for e in exc.errors()]) from None
         if self.kind == "assess_claim":
             assert isinstance(typed, AssessClaimPayload)
             if self.reason or self.evidence or self.depends_on:
@@ -594,7 +605,8 @@ _PATH_PART = re.compile(r"^[A-Za-z0-9_\-]{1,40}$")
 def malformed_detail(exc: Exception) -> str:
     """What failed, without the model's text: up to three failing fields' paths and validation error types, plus the
     code-authored message of a validator's ``value_error`` (decision 0038). A path part that is not a short identifier
-    or index (a union branch label, or a key the model invented) is shown as ``?``."""
+    or index (a union branch label, or a key the model invented) is shown as ``?``; a payload field's path starts with
+    ``payload`` (decision 0039)."""
     if not isinstance(exc, ValidationError):
         return "value_error"
     parts = []

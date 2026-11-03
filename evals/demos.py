@@ -11,7 +11,10 @@
 3. **Forgetting plus suppression-aware restore** — L3: a backup is taken, the
    preference is forgotten, the next prompt no longer delivers it, the old
    backup is restored, and the forgotten text is still absent from the store
-   and from delivery.
+   and from delivery. A delivered item that rests only on what the fresh
+   session itself recorded after the forget (its own reading of a project
+   file that still holds the value) is relearned, not delivered again
+   (decision 0028 item 29); every matching item is recorded.
 4. **Isolation from a conflicting second project** — C4: two independent
    installations hold opposite test commands; neither installation's store,
    search or delivery returns the other's record, in either direction.
@@ -155,6 +158,53 @@ def _store_text(ws: Path, needle: str) -> int:
     return hits
 
 
+NEW_ID_PREFIXES = ("evt_", "claim_", "task_", "ep_")  # the record kinds a pre-forget snapshot lists (any other id counts as old)
+
+
+def _record_ids(ws: Path) -> set[str]:
+    """Every event, claim, task and episode id in the store now (taken just before a forget)."""
+    from evals import trial
+    from recalith.storage import db, records
+
+    with db.open_store(trial.context(ws), readonly=True) as store, store.read() as view:
+        ids = {r[0] for r in view.execute("SELECT event_id FROM events").fetchall()}
+        for table, key in records.HEAD_TABLES.values():
+            ids |= {r[0] for r in view.execute(f"SELECT {key} FROM {table}").fetchall()}  # noqa: S608 - fixed names
+    return ids
+
+
+def _packet_items(text: str) -> list[list[str]]:
+    """A rendered packet's lines grouped per item (an item starts ``- [``); lines before the first item form their own group."""
+    groups: list[list[str]] = [[]]
+    for line in text.splitlines():
+        if line.startswith("- ["):
+            groups.append([])
+        groups[-1].append(line)
+    return [g for g in groups if g]
+
+
+def resurfaced(deliveries: list[Any], needle: str, before: set[str]) -> dict[str, list[dict[str, Any]]]:
+    """Delivered items holding ``needle`` after a forget, split by what they rest on (decision 0028 item 29).
+
+    An item citing any record or event that existed before the forget (``before``), or citing nothing, is forgotten content
+    delivered again. An item resting only on what the fresh session itself recorded afterwards, such as its own reading of a
+    project file the forget never touches, is new independent evidence (ACCEPTANCE_TESTS §5, "new independent statements
+    after deletion"): reported as relearned, not a failure."""
+    out: dict[str, list[dict[str, Any]]] = {"resurfaced": [], "relearned": []}
+    for d in deliveries:
+        for group in [g for text in (d.context, d.notice) if text for g in _packet_items(text)]:
+            if not any(needle in line for line in group):
+                continue
+            refs = [part.strip().split()[0] for line in group if line.strip().startswith("sources:") for part in line.strip()[len("sources:"):].split(";") if part.strip()]
+            new = bool(refs) and all(r.startswith(NEW_ID_PREFIXES) and r not in before for r in refs)
+            out["relearned" if new else "resurfaced"].append({"purpose": d.purpose, "text": group[0][:300], "sources": refs})
+    return out
+
+
+def _actions(session: Any) -> list[dict[str, Any]]:
+    return [{"tool": a.tool, "command": (a.command or "")[:200] or None, "path": a.path, "exit_code": a.exit_code} for a in session.actions]
+
+
 def forgetting_and_restore(work: Path) -> dict[str, Any]:
     from evals import agent, trial
     from recalith import service
@@ -181,6 +231,7 @@ def forgetting_and_restore(work: Path) -> dict[str, Any]:
     external = base / "operator-external-copy"
     shutil.copytree(made.location, external)  # an operator's copy outside the installation (forgetting cannot reach it)
     out["backup_before"] = {"manifest_digest": digest, "store_hits_before": _store_text(ws, needle), "external_copy": True}
+    before = _record_ids(ws)
     # Forget the whole learning session's task: its prompt, events, task state, episode and the derived preference (A36).
     with db.open_store(trial.context(ws), readonly=True) as store, store.read() as view:
         task_ids = sorted({r[0] for r in view.execute("SELECT DISTINCT h.task_id FROM task_binding_heads h JOIN events e ON e.event_id = h.event_id JOIN sessions s ON s.session_id = e.session_id WHERE s.host_session_id = ?", (rec["sessions"][0]["host_session_id"],)).fetchall()})
@@ -199,7 +250,8 @@ def forgetting_and_restore(work: Path) -> dict[str, Any]:
     s.start()
     s.prompt("Plan next month's groceries within the grocery budget.")
     s.stop()
-    out["delivered_after_forget"] = any("600" in (d.context or "") for d in s.delivered)
+    out["after_forget"] = resurfaced(s.delivered, "600", before)
+    out["delivered_after_forget"] = bool(out["after_forget"]["resurfaced"])
     restored = service.restore(op, external, expected_digest=digest)  # the pre-forget snapshot, restored suppression-aware
     out["restore"] = restored.model_dump(mode="json")
     out["store_hits_after_restore"] = _store_text(ws, needle)
@@ -207,7 +259,8 @@ def forgetting_and_restore(work: Path) -> dict[str, Any]:
     s2.start()
     s2.prompt("What is the grocery budget? Plan groceries.")
     s2.stop()
-    out["delivered_after_restore"] = any("600" in (d.context or "") for d in s2.delivered)
+    out["after_restore"] = resurfaced(s2.delivered, "600", before)
+    out["delivered_after_restore"] = bool(out["after_restore"]["resurfaced"])
     out["demonstrated"] = (out["backup_before"]["store_hits_before"] > 0 and out["store_hits_after_forget"] == 0 and not out["delivered_after_forget"]
                            and out["restore"].get("source_contains_suppressed") and out["store_hits_after_restore"] == 0 and not out["delivered_after_restore"])
     return out
@@ -311,6 +364,7 @@ def forgetting_and_restore_live(trials_dir: Path, work: Path, setup: Any, *, age
     external = work / "forget-external-copy"
     shutil.copytree(backup["location"], external)  # an operator's copy outside the installation (forgetting cannot reach it)
     out["backup_before"] = {"manifest_digest": backup["manifest_digest"], "store_hits_before": sum(_store_text(ws, n) for n in needles), "external_copy": True}
+    before = _record_ids(ws)
     with db.open_store(trial.context(ws), readonly=True) as store, store.read() as view:
         task_ids = sorted({r[0] for r in view.execute("SELECT DISTINCT h.task_id FROM task_binding_heads h JOIN events e ON e.event_id = h.event_id JOIN sessions s ON s.session_id = e.session_id WHERE s.host_session_id = ?", (rec["sessions"][0]["host_session_id"],)).fetchall()})
     selector = work / "forget-selector.json"
@@ -321,13 +375,15 @@ def forgetting_and_restore_live(trials_dir: Path, work: Path, setup: Any, *, age
     out["forget"] = {k: forgot.get(k) for k in ("purge_state", "purged_count", "quarantined_count", "backup_state")}
     out["store_hits_after_forget"] = sum(_store_text(ws, n) for n in needles)
     after = _live_session(ws, work / "forget-home-d", setup, "D", "Plan next month's groceries within the grocery budget.", agent_factory)
-    out["delivered_after_forget"] = any("600" in (d.context or "") for d in after.deliveries)
+    out["after_forget"] = {**resurfaced(after.deliveries, "600", before), "actions": _actions(after)}
+    out["delivered_after_forget"] = bool(out["after_forget"]["resurfaced"])
     out["stopped_before_restore"] = live.stop_worker(ws, setup)
     restored = _cli(ws, setup, "restore", str(external), "--expected-digest", backup["manifest_digest"])
     out["restore"] = restored
     out["store_hits_after_restore"] = sum(_store_text(ws, n) for n in needles)
     again = _live_session(ws, work / "forget-home-e", setup, "E", "What is the grocery budget? Plan groceries.", agent_factory)
-    out["delivered_after_restore"] = any("600" in (d.context or "") for d in again.deliveries)
+    out["after_restore"] = {**resurfaced(again.deliveries, "600", before), "actions": _actions(again)}
+    out["delivered_after_restore"] = bool(out["after_restore"]["resurfaced"])
     out["stopped_after"] = live.stop_worker(ws, setup)
     out["demonstrated"] = (out["backup_before"]["store_hits_before"] > 0 and out["store_hits_after_forget"] == 0 and not out["delivered_after_forget"]
                            and bool(restored.get("source_contains_suppressed")) and out["store_hits_after_restore"] == 0 and not out["delivered_after_restore"])

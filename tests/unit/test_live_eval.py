@@ -747,6 +747,36 @@ def test_live_demonstrations_never_fall_back_to_scripted_trials(tmp_path):
         assert out["demonstrations"][name]["demonstrated"] is False and "LookupError" in out["demonstrations"][name]["error"], name
 
 
+def test_forgetting_counts_only_content_resting_on_what_existed_before_the_forget():
+    """Decision 0028 item 29: the seventh gate's session after the forget was delivered "600" and nothing recorded which
+    item carried it. L3's session A writes the limit into budget.csv, which forgetting never touches, so a fresh session
+    can read it again. An item citing any pre-forget record or event, or citing nothing, is forgotten content delivered
+    again; one resting only on the fresh session's own new records is relearned. Every matching item is kept."""
+    from evals import agent, demos
+
+    before = {"claim_old", "task_old", "evt_old"}
+
+    def packet(*items):
+        return agent.Delivery(purpose="pre_action", hook_event="PreToolUse", context="Recalith project memory (pre_action; advisory):\n" + "\n".join(items), notice=None, state="delivered", degradations=[], at="")
+
+    def item(text, sources):
+        return f"- [context] {text}\n  why: lexical_match\n  applies: true · freshness: current · basis: inferred" + (f"\n  sources: {sources}" if sources else "")
+
+    found = demos.resurfaced([
+        packet(item("Decision: groceries stay under $600 per month.", "claim_old r2; evt_old"),  # the forgotten claim itself
+               item("Recent observation (not a durable lesson): Bash `grep 600 budget.csv`: success", "evt_new"),  # the fresh session's own reading
+               item("Fact: budget.csv caps groceries at 600.", "claim_new r1; evt_new"),  # learned again from that reading
+               item("Episode (settled): 600 in an old outcome", "ep_new; task_old"),  # anything old under it counts
+               item("Current task: no needle here", "task_old r3")),
+        packet(item("Fact: the limit is 600", ""), item("Fact: 600 under an unknown kind", "src_9 r1")),  # nothing cited; an id of no listed kind
+    ], "600", before)
+    assert [r["text"] for r in found["relearned"]] == ["- [context] Recent observation (not a durable lesson): Bash `grep 600 budget.csv`: success",
+                                                       "- [context] Fact: budget.csv caps groceries at 600."]
+    assert [r["sources"] for r in found["resurfaced"]] == [["claim_old", "evt_old"], ["ep_new", "task_old"], [], ["src_9"]]
+    assert all(r["purpose"] == "pre_action" for r in found["resurfaced"] + found["relearned"])
+    assert demos.resurfaced([packet(item("Current task: groceries", "task_old r3"))], "600", before) == {"resurfaced": [], "relearned": []}
+
+
 def test_fresh_session_reuse_counts_any_learning_scenario_that_meets_the_criterion(tmp_path):
     """Decision 0028 items 16 and 20: L1 alone is not required. A scenario counts when the candidate succeeded without a
     repeat and a session-B packet carried the gold text; whether the baseline failed or repeated the mistake is reported as

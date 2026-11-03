@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "fixtures" / "provi
 import fake_backend  # noqa: E402
 
 PROMPT_VERSION = {purpose: f"{purpose}@1" for purpose in PURPOSE_KINDS}  # jobs these tests pin themselves
-SCHEDULED_VERSION = {**PROMPT_VERSION, "extract_claims": "extract_claims@5", "revalidate": "revalidate@2"}  # what the engine pins for a new job (decisions 0031, 0032, 0035, 0036, 0037)
+SCHEDULED_VERSION = {**PROMPT_VERSION, "update_task": "update_task@2", "build_episode": "build_episode@2", "extract_claims": "extract_claims@6", "revalidate": "revalidate@3"}  # what the engine pins for a new job (decisions 0031, 0032, 0035–0037, 0039)
 
 
 @pytest.fixture(autouse=True)
@@ -383,6 +383,82 @@ def test_consulted_task_change_requeues_episode_narrative(tmp_path):
     [job] = [j for j in model_jobs(p) if j["kind"] == "build_episode" and j["state"] != "pending"]
     assert job["state"] == "cancelled" and job["last_error_code"] == "reevaluation_requeued"
     assert all(not e["title"].startswith("Narrative: ") for e in p.episodes())  # nothing of the stale proposal applied
+
+
+def shaped_body(request: dict, *, bare: bool = False) -> str:
+    """A narrative reply in exactly the shapes update_task@2 and build_episode@2 describe; ``bare`` sends the bare
+    strings most live replies sent before decision 0039."""
+    refs = [r for r in request["allowed_evidence_refs"] if r["kind"] == "event"][:1]
+
+    def text(value: str):
+        return value if bare else {"text": value, "evidence": [{"ref": r, "relation": "supports"} for r in refs], "basis": "inferred"}
+
+    if request["purpose"] == "update_task":
+        task = request["task_state"]
+        kind, ref, payload = "update_task", {"kind": "task", "id": task["task_id"], "revision": task["revision"]}, {"task_id": task["task_id"], "expected_revision": task["revision"], "patches": [
+            {"op": "set", "field": "title", "value": "Make the scripted tests pass"},
+            {"op": "set", "field": "next_action", "value": text("Rerun both test files.")},
+            {"op": "append", "field": "plan", "value": text("Fix test_long.py, then test_mid.py.")},
+            {"op": "append", "field": "constraints", "value": text("Keep the fixture output.")}]}
+    elif request["purpose"] == "build_episode":
+        episode = request["episodes"][0]
+        kind, ref, payload = "revise_episode", {"kind": "episode", "id": episode["episode_id"], "revision": episode["revision"]}, {"episode_id": episode["episode_id"], "expected_revision": episode["revision"], "patches": [
+            {"op": "set", "field": "title", "value": "Scripted tests made to pass"},
+            {"op": "set", "field": "outcome", "value": text("Both reruns passed after the failures.")},
+            {"op": "append", "field": "unresolved", "value": text("Whether test_pass.py still passes was not rerun.")}]}
+    else:
+        return json.dumps({"operations": [], "no_op_reason": "nothing new"})
+    return json.dumps({"operations": [{"local_ref": "narrative", "kind": kind, "depends_on": [], "target": ref, "payload": payload, "evidence": [], "reason": "narrative"}]})
+
+
+@pytest.mark.parametrize("bare", [False, True])
+def test_task_and_episode_narratives_apply_in_the_shapes_their_prompts_name(tmp_path, bare):
+    """Decision 0039: most live update_task replies, and some build_episode ones, set or appended bare strings where a
+    field holds a supported text, so every such operation was malformed or failed to apply. The @2 prompts name each
+    field's shape; a reply in those shapes applies through the ordinary path, and a bare string is still refused, with
+    the failing payload path recorded."""
+    from recalith import prompts
+
+    for version in ("update_task@2", "build_episode@2"):
+        text = prompts.INSTRUCTIONS[version]
+        assert '{"text": "...", "evidence": [...], "basis": "..."}' in text and "plain string of at most 256 characters" in text
+    assert "never a bare string or a list" in prompts.INSTRUCTIONS["update_task@2"] and "cannot be edited" in prompts.INSTRUCTIONS["build_episode@2"]
+    assert prompts.prompt_digest("update_task@2") == "d1bb7ad0de6f27103cf80d1e149072b1218a72b9c2affe84dfcf74483c6c671f"
+    assert prompts.prompt_digest("build_episode@2") == "b7084f6e666177bd0607e44ef5b3a5091c7a25aa8471ec533f3c28788b5e6afe"
+    assert "update_task@1" in prompts.INSTRUCTIONS and "build_episode@1" in prompts.INSTRUCTIONS  # still served to jobs that pinned them
+    p = lifecycle(tmp_path)
+    task_id = p.tasks()[0]["task_id"]
+    now = quiet_now(p)
+    sent: list[dict] = []
+
+    def script(purpose, i):
+        return worker.LaunchOutcome(stdout=ws.envelope(shaped_body(sent[-1], bare=bare).encode("utf-8"), usage={"input_tokens": 50, "output_tokens": 10}))
+
+    backend = ws.FakeBackend(script, on_launch=lambda request, purpose: sent.append(json.loads(request)))
+    clock = ws.FakeClock(now)
+    w = worker.Worker(osc.context(p.root), clock=clock, model=worker.ModelRuntime(backend, requests.runtime_preparer(p.ctx, now=clock.now)))
+    try:
+        for _ in range(20):
+            if not w.lane.step():
+                break
+    finally:
+        w.close()
+    assert {r["purpose"] for r in sent} >= {"update_task", "build_episode"} and all(r["prompt_version"] == SCHEDULED_VERSION[r["purpose"]] for r in sent)
+    task = p.task(task_id)
+    episodes = [e for e in p.episodes() if e["title"] == "Scripted tests made to pass"]
+    with p.view() as v:
+        proposals = [json.loads(r[0]) for r in v.execute("SELECT body FROM proposals ORDER BY rowid").fetchall() if r[0]]
+    malformed = [m for body in proposals for m in body.get("malformed", [])]
+    if bare:
+        assert task["title"] != "Make the scripted tests pass" and task["plan"] == [] and not episodes
+        assert [m["detail"] for m in malformed] == ["payload.patches.2:value_error(append adds one item to a list field); payload.patches.3:value_error(append adds one item to a list field)"]
+        return
+    assert malformed == []
+    assert task["title"] == "Make the scripted tests pass" and task["next_action"]["text"] == "Rerun both test files."
+    assert [i["text"] for i in task["plan"]] == ["Fix test_long.py, then test_mid.py."] and [i["text"] for i in task["constraints"]] == ["Keep the fixture output."]
+    assert task["plan"][0]["evidence"] and task["plan"][0]["basis"] == "inferred"
+    assert episodes and episodes[0]["outcome"]["text"] == "Both reruns passed after the failures."
+    assert [u["text"] for u in episodes[0]["unresolved"]] == ["Whether test_pass.py still passes was not rerun."]
 
 
 def test_review_batch_is_persisted_before_launch_and_reused_while_unchanged(tmp_path):

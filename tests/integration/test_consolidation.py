@@ -777,15 +777,20 @@ def test_source_conflict_suspends_dependent_guidance(p):
 
 
 def test_revalidate_prompt_is_versioned_package_data():
-    """Decisions 0012 and 0032: revalidate@1 and @2 are the shipped revalidate_v1.md and _v2.md, pinned by golden digests."""
+    """Decisions 0012, 0032 and 0039: revalidate@1, @2 and @3 are the shipped revalidate_v1.md, _v2.md and _v3.md, pinned by
+    golden digests."""
     from importlib import resources
 
     text = (resources.files("recalith.prompts") / "revalidate_v1.md").read_text(encoding="utf-8")
     assert prompts.INSTRUCTIONS["revalidate@1"].startswith(text.strip().splitlines()[0])
     assert prompts.prompt_digest("revalidate@1") == GOLDEN_REVALIDATE  # still served to jobs that pinned it
-    assert prompts.CURRENT["revalidate"] == "revalidate@2" and prompts.prompt_digest("revalidate@2") == GOLDEN_REVALIDATE_2
+    assert prompts.prompt_digest("revalidate@2") == GOLDEN_REVALIDATE_2
+    assert prompts.CURRENT["revalidate"] == "revalidate@3" and prompts.prompt_digest("revalidate@3") == GOLDEN_REVALIDATE_3
     assert "its contradicts links" in prompts.INSTRUCTIONS["revalidate@2"] and "contradicts links" not in prompts.INSTRUCTIONS["revalidate@1"]
+    v2, v3 = prompts.INSTRUCTIONS["revalidate@2"], prompts.INSTRUCTIONS["revalidate@3"]
+    assert v3.startswith(v2.removesuffix(" " + prompts._COMMON)) and "a revise_claim payload has no evidence or supersedes" in v3 and "payload.path" in v3
 
 
 GOLDEN_REVALIDATE = "46204936095a76e2179f33ad934d929132305d05777f904a4955cbb33457a525"
 GOLDEN_REVALIDATE_2 = "73da3f915be8ddd7cd0c309a12421b2efae951ced93baecdce8976bfb188a815"
+GOLDEN_REVALIDATE_3 = "72e6c6bda1986edd9e5a183c8c965693578c49c6f3b90d2d8ddfc0802e36a5fe"

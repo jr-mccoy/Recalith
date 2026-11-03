@@ -20,8 +20,9 @@ explicit statement and states a failure seen only in a call's output as an
 inferred fact; ``extract_v4.md``, decision 0036, which records a user's
 statement of how the project is as a fact with its file dependencies;
 ``extract_v5.md``, decision 0037, which words a failure seen only in a
-call's output as the project's condition; a job that pinned an older
-version is still served
+call's output as the project's condition; ``extract_v6.md`` and
+``revalidate_v3.md``, decision 0039, which keep an operation's evidence out
+of its payload; a job that pinned an older version is still served
 its text), loaded here and digested separately: a claim's
 ``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
 ``ReviewBatch`` its review prompt digest, and the golden-digest tests in
@@ -55,6 +56,11 @@ _COMMON = (
     "with their exact ids and revisions. Never invent ids, revisions, quotes or tool results. When nothing should change, "
     'return {"operations": [], "no_op_reason": "<short reason>"}.'
 )
+_SHAPES = (
+    "Each patch value has the shape of its field, as the request shows that field: a supported text is an object "
+    '{"text": "...", "evidence": [...], "basis": "..."} whose evidence entries are shaped like an operation\'s evidence and '
+    "whose basis is observed, user_declared or inferred; "
+)
 
 INSTRUCTIONS: dict[str, str] = {
     "update_task@1": (
@@ -72,22 +78,46 @@ INSTRUCTIONS: dict[str, str] = {
         "revise_episode operations naming the episode id and its current revision. Keep successful, failed and uncertain "
         "outcomes; never restate carried context as new evidence. " + _COMMON
     ),
+    # Decision 0039: each patch value in the shape of its field (most live replies set or appended bare strings).
+    "update_task@2": (
+        "Maintain the narrative fields of task_state (title, plan, constraints, open_questions, next_action) from the events and "
+        "episodes. Return update_task operations whose payload names task_state.task_id and expected_revision equal to "
+        "task_state.revision, with explicit patches; never clear a field merely because the events do not mention it. "
+        + _SHAPES + "title takes set with a plain string of at most 256 characters; next_action and completion_basis take set with "
+        "one supported text; plan, constraints and open_questions are lists that change only by append, one patch per new item, "
+        "whose value is one supported text, never a bare string or a list. "
+        "Typed results, blockers and pending actions are maintained by code: change them only with evidence. "
+        "For a listed boundary you may return resolve_task_binding with the boundary's binding_revisions as "
+        "expected_binding_revisions, or leave it pending. Mark a task completed only with a status patch and, in the same "
+        "operation, a set patch on completion_basis whose evidence cites the record that shows the work done. " + _COMMON
+    ),
+    "build_episode@2": (
+        "Improve the narrative of the episode in episodes[0] from its source events: a concise title, an outcome statement, and "
+        "for failed or interrupted steps the likely cause, labeled inferred unless an event shows it. Return revise_episode "
+        "operations naming the episode id and its current revision. " + _SHAPES + "title takes set with a plain string of at "
+        "most 256 characters; objective and outcome take set with one supported text, never a bare string; preconditions and "
+        "unresolved change only by append, one supported text per patch. The steps already in episodes[0] cannot be edited, so "
+        "state a failed step's cause in the outcome text. Keep successful, failed and uncertain outcomes; never restate "
+        "carried context as new evidence. " + _COMMON
+    ),
     "extract_claims@1": _file("extract_v1.md") + " " + _COMMON,
     "extract_claims@2": _file("extract_v2.md") + " " + _COMMON,
     "extract_claims@3": _file("extract_v3.md") + " " + _COMMON,
     "extract_claims@4": _file("extract_v4.md") + " " + _COMMON,
     "extract_claims@5": _file("extract_v5.md") + " " + _COMMON,
+    "extract_claims@6": _file("extract_v6.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
     "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
     "revalidate@2": _file("revalidate_v2.md") + " " + _COMMON,
+    "revalidate@3": _file("revalidate_v3.md") + " " + _COMMON,
 }
 
 CURRENT: dict[str, str] = {
-    "update_task": "update_task@1",
-    "build_episode": "build_episode@1",
-    "extract_claims": "extract_claims@5",
+    "update_task": "update_task@2",
+    "build_episode": "build_episode@2",
+    "extract_claims": "extract_claims@6",
     "review_claims": "review_claims@1",
-    "revalidate": "revalidate@2",
+    "revalidate": "revalidate@3",
 }
 
 
