@@ -168,7 +168,7 @@ def test_replay_cannot_see_future_evidence(tmp_path):
     trial.copy_seed("fieldnotes", root)
     trial.init_installation(root, "fieldnotes", route="test_fixture", token_file=None, mode="scripted")
     trial.controlled_manifest(root)
-    later = agent.Clock("2026-11-02T15:00:00.000000Z")  # a session from later in the day, captured ahead of the trial clock
+    later = agent.Clock(trial.START.replace("T09:", "T15:"))  # a session from later in the day, captured ahead of the trial clock
     (tmp_path / "home").mkdir()
     agent.run_scripted("r1", "A", ["Run the checks."], root, agent.HookBridge(root, tmp_path / "home", later), seed="later")
     with pytest.raises(trial.TrialError) as refused:

@@ -283,6 +283,14 @@ def load_day(project: str) -> dict[str, Any]:
     return json.loads((DAYS / f"{project}.json").read_text(encoding="utf-8"))
 
 
+def replay_start(project: str) -> str:
+    """Where a replay of the day begins: its template's 08:00 UTC, on a day ahead of real time and in the templates'
+    order (decision 0028 item 28). The templates keep their recorded ``start``; only the replay moves."""
+    from evals import trial
+
+    return trial.clock_anchor(2 + sorted(DAY_START, key=DAY_START.get).index(project), 8)
+
+
 # --------------------------------------------------------------------------
 # Replay
 
@@ -358,7 +366,7 @@ def run_day(project: str, work: Path, *, mode: str = "scripted", live_setup: Any
         return {"kind": "workload_day", "project": project, "mode": mode, "error": "unknown_mode"}
     if mode == "live" and live_setup is None:
         return {"kind": "workload_day", "project": project, "mode": mode, "error": "live_setup_missing"}
-    day = load_day(project)
+    day = {**load_day(project), "start": replay_start(project)}  # the template's offsets, from a start ahead of real time
     base = work / project
     if base.exists():
         shutil.rmtree(base)

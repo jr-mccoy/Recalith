@@ -78,6 +78,7 @@ OperationKind = Literal[
 ]
 REDUCTION_KINDS = frozenset({"create_task", "bind_events", "record_boundary"})
 LocalRef = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_\-]{0,63}$")]
+MALFORMED_DETAIL_MAX = 240
 
 
 # --------------------------------------------------------------------------
@@ -430,12 +431,15 @@ class MalformedOperation(StrictModel):
     It fails exactly its atomic dependency group (DATA_CONTRACTS §7.1); its
     raw text is not retained. ``local_ref``/``depends_on`` are kept only when
     they were themselves valid, so dependents can be grouped with it.
+    ``detail`` says what failed without quoting it: the failing fields' paths
+    and validation error types, or the refused kind (decision 0038).
     """
 
     index: NonNegative
     local_ref: LocalRef | None
     depends_on: list[LocalRef] = Field(default_factory=list)
     reason_code: ReasonCode
+    detail: Annotated[str, Field(max_length=MALFORMED_DETAIL_MAX)] | None = None
 
 
 class ModelResponse(StrictModel):
@@ -584,6 +588,26 @@ def _reject_constant(name: str) -> None:
     raise ValueError(f"non-finite JSON number {name}")
 
 
+_PATH_PART = re.compile(r"^[A-Za-z0-9_\-]{1,40}$")
+
+
+def malformed_detail(exc: Exception) -> str:
+    """What failed, without the model's text: up to three failing fields' paths and validation error types, plus the
+    code-authored message of a validator's ``value_error`` (decision 0038). A path part that is not a short identifier
+    or index (a union branch label, or a key the model invented) is shown as ``?``."""
+    if not isinstance(exc, ValidationError):
+        return "value_error"
+    parts = []
+    for err in exc.errors(include_url=False, include_context=False, include_input=False)[:3]:
+        path = ".".join(str(p) if _PATH_PART.match(str(p)) else "?" for p in err.get("loc", ())) or "body"
+        item = f"{path}:{err.get('type')}"
+        if err.get("type") == "value_error":
+            msg = str(err.get("msg", "")).removeprefix("Value error, ")
+            item += f"({''.join(c for c in msg if c.isprintable())[:80]})"
+        parts.append(item)
+    return "; ".join(parts)[:MALFORMED_DETAIL_MAX]
+
+
 def parse_model_body_partitioned(raw: bytes, *, purpose: ModelPurpose, body_cap: int) -> tuple[list[ProposedOperation], str | None, list[MalformedOperation]]:
     """Validate a decoded body per operation (DATA_CONTRACTS §7.1).
 
@@ -620,11 +644,11 @@ def parse_model_body_partitioned(raw: bytes, *, purpose: ModelPurpose, body_cap:
     for index, item in enumerate(items):
         try:
             op = ProposedOperation.model_validate_json(json.dumps(item))
-        except (ValidationError, ValueError):
-            malformed.append(MalformedOperation(index=index, local_ref=_ref(item), depends_on=_deps(item), reason_code="malformed_operation"))
+        except (ValidationError, ValueError) as exc:
+            malformed.append(MalformedOperation(index=index, local_ref=_ref(item), depends_on=_deps(item), reason_code="malformed_operation", detail=malformed_detail(exc)))
             continue
         if op.kind not in allowed:
-            malformed.append(MalformedOperation(index=index, local_ref=op.local_ref, depends_on=list(op.depends_on), reason_code="kind_not_permitted"))
+            malformed.append(MalformedOperation(index=index, local_ref=op.local_ref, depends_on=list(op.depends_on), reason_code="kind_not_permitted", detail=f"kind:{op.kind}"))
             continue
         valid.append(op)
     if purpose == "review_claims" and len({op.kind for op in valid}) > 1:

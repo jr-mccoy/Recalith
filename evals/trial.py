@@ -48,7 +48,19 @@ EVAL_PROJECT_IDS = {
     "fieldnotes": "proj_70707070-7070-4070-8070-707070707072",
     "household": "proj_70707070-7070-4070-8070-707070707073",
 }
-START = "2026-11-02T09:00:00.000000Z"
+def clock_anchor(days_ahead: int, hour: int) -> str:
+    """A virtual-clock start ``days_ahead`` UTC days after today, at ``hour``:00Z.
+
+    The hook path stamps captured events and their ingest jobs with real time, so a virtual clock behind real time
+    never reaches them. The fixed start this replaced (2026-11-02T09:00Z) stalled every scripted trial once that date
+    passed (decision 0028 item 28)."""
+    import datetime as _dt
+
+    day = _dt.datetime.now(_dt.timezone.utc).date() + _dt.timedelta(days=days_ahead)
+    return f"{day:%Y-%m-%d}T{hour:02d}:00:00.000000Z"
+
+
+START = clock_anchor(1, 9)
 SESSION_GAP_SECONDS = 2 * 3600
 IDLE_STEP_SECONDS = 30
 IDLE_HORIZON_SECONDS = 3 * 3600
@@ -475,10 +487,31 @@ def _second_project_session(spec: dict[str, Any], session: dict[str, Any], arm: 
 # The live trial (decisions 0020, 0028)
 
 
+CLAIM_OPERATIONS = ("propose_claim", "revise_claim", "attach_evidence")
+
+
+def _cited(view: Any, links: Any) -> list[dict[str, Any]]:
+    """What a refused claim operation cited: each link's record kind and relation, the cited event's kind and channel,
+    and its locator's field. No text."""
+    out = []
+    for link in (links if isinstance(links, list) else [])[:8]:
+        ref = (link.get("ref") or {}) if isinstance(link, dict) else {}
+        locator = link.get("locator") if isinstance(link, dict) else None
+        item: dict[str, Any] = {"ref_kind": ref.get("kind"), "relation": link.get("relation") if isinstance(link, dict) else None,
+                                "locator_field": locator.get("field") if isinstance(locator, dict) else None}
+        if ref.get("kind") == "event":
+            row = view.execute("SELECT kind, channel FROM events WHERE event_id = ?", (ref.get("id"),)).fetchone()
+            item["event_kind"], item["channel"] = (row[0], row[1]) if row else (None, None)
+        out.append(item)
+    return out
+
+
 def curator_calls(ws: Path) -> list[dict[str, Any]]:
     """The worker's model calls as the store recorded them: each persisted proposal's purpose and operation kinds, what
     admission decided for each operation (its application record), and an empty proposal's stated reason. The store goes
-    with the run, so a lesson the curator proposed and code refused is explained here (the third live gate could not say)."""
+    with the run, so a lesson the curator proposed and code refused is explained here (the third live gate could not say).
+    A refused claim operation also keeps what it proposed and what it cited, and an empty proposal without a stated reason
+    keeps its body's keys (decision 0028 item 27): the sixth gate could not say why L3's declaration was refused."""
     from recalith.controller.apply import APPLY_REF
     from recalith.storage import db
 
@@ -488,17 +521,30 @@ def curator_calls(ws: Path) -> list[dict[str, Any]]:
         for kind, proposal_id, body in view.execute("SELECT j.kind, p.proposal_id, p.body FROM proposals p JOIN jobs j ON j.job_id = p.job_id ORDER BY p.rowid").fetchall():
             try:
                 parsed = (json.loads(body) or {}) if body else {}
-                ops = [(o.get("local_ref"), o.get("kind")) for o in parsed.get("operations", [])]
+                items = [o for o in parsed.get("operations", []) if isinstance(o, dict)]
             except (ValueError, AttributeError):
-                parsed, ops = {}, []
+                parsed, items = {}, []
             try:
                 decided = {d.get("local_ref"): d for d in (json.loads(applied[proposal_id]).get("result") or {}).get("decisions", [])} if proposal_id in applied else {}
             except (ValueError, AttributeError):
                 decided = {}
-            call: dict[str, Any] = {"purpose": kind, "operations": [k for _, k in ops], "body_retained": body is not None, "applied": proposal_id in applied,
-                                    "decisions": [{"kind": k, "outcome": (decided.get(ref) or {}).get("outcome"), "reason": (decided.get(ref) or {}).get("reason_code")} for ref, k in ops]}
-            if not ops and isinstance(parsed.get("no_op_reason"), str):
+            decisions = []
+            for o in items:
+                d = decided.get(o.get("local_ref")) or {}
+                entry: dict[str, Any] = {"kind": o.get("kind"), "outcome": d.get("outcome"), "reason": d.get("reason_code")}
+                if o.get("kind") in CLAIM_OPERATIONS and d.get("outcome") == "reject":
+                    payload = o.get("payload") if isinstance(o.get("payload"), dict) else {}
+                    entry["proposed"] = {"claim_kind": payload.get("kind"), "basis": payload.get("basis"), "proposition": (payload.get("proposition") or "")[:200] or None,
+                                         "cited": _cited(view, o.get("evidence"))}
+                decisions.append(entry)
+            call: dict[str, Any] = {"purpose": kind, "operations": [o.get("kind") for o in items], "body_retained": body is not None, "applied": proposal_id in applied, "decisions": decisions}
+            malformed = parsed.get("malformed") if isinstance(parsed, dict) else None
+            if isinstance(malformed, list) and malformed:  # operations that failed strict validation, with what failed (decision 0038)
+                call["malformed"] = [{"index": m.get("index"), "local_ref": m.get("local_ref"), "reason": m.get("reason_code"), "detail": m.get("detail")} for m in malformed if isinstance(m, dict)]
+            if not items and isinstance(parsed.get("no_op_reason"), str):
                 call["no_op_reason"] = parsed["no_op_reason"][:400]
+            elif not items and body is not None and not call.get("malformed"):
+                call["body_keys"] = sorted(parsed) if isinstance(parsed, dict) else type(parsed).__name__
             out.append(call)
     return out
 

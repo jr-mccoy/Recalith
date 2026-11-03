@@ -319,6 +319,26 @@ def test_model_text_cannot_supply_usage_or_provenance():
     assert result.code is None and result.response.operations == [] and [m.reason_code for m in result.response.malformed] == ["malformed_operation"]
 
 
+def test_a_malformed_operation_says_what_failed_without_quoting_the_model():
+    """Most live update_task replies were stored with every operation malformed and no way to tell why (decision 0038).
+    The detail names the failing field paths and error types, a validator's own message, and nothing the model wrote."""
+    task = "task_" + "a" * 8 + "-aaaa-4aaa-8aaa-" + "a" * 12
+    op = {"local_ref": "set-title", "kind": "update_task", "payload": {"task_id": task, "expected_revision": 3, "patches": [{"op": "set", "field": "title", "value": "t"}]}, "reason": "r"}
+    patch = {"op": "set", "field": "title", "value": "t", "the user's secret plan": 1}
+    ops = [{k: v for k, v in op.items() if k != "reason"},
+           {**op, "local_ref": "a2", "payload": {**op["payload"], "patches": [{"op": "append", "field": "plan", "value": "Step 2 of the secret plan"}]}},
+           {**op, "local_ref": "a3", "payload": {**op["payload"], "patches": [patch]}},
+           {"local_ref": "a4", "kind": "revise_episode", "payload": {"episode_id": "ep_" + "a" * 8 + "-aaaa-4aaa-8aaa-" + "a" * 12, "expected_revision": 1, "patches": [{"op": "set", "field": "title", "value": "x"}]}, "reason": "r"}]
+    body = json.dumps({"operations": ops})
+    result = base.evaluate_outcome(base.LaunchOutcome(stdout=fake_envelope(body)), Spy(), purpose="update_task", body_cap=body_cap_for("update_task"), estimate=1)
+    details = {m.local_ref: m.detail for m in result.response.malformed}
+    assert details["set-title"] == "reason:missing"
+    assert details["a2"] == "patches.0:value_error(append adds one item to a list field)"
+    assert details["a3"] == "patches.0.?:extra_forbidden"  # a key the model invented is not quoted
+    assert details["a4"] == "kind:revise_episode"  # a valid operation of a kind this purpose may not return
+    assert all("secret" not in (d or "") and "Step 2" not in (d or "") for d in details.values())
+
+
 @pytest.mark.parametrize(
     ("change", "code"),
     [({"tools": ["Bash"]}, "isolation_tools_exposed"), ({"mcp": ["server"]}, "isolation_mcp_present"), ({"plugins": [{"name": "third-party", "path": "/x"}]}, "isolation_plugins_present"), ({"version": "9.9.10"}, "host_version_changed")],

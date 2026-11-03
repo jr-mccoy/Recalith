@@ -192,7 +192,7 @@ def forgetting_and_restore(work: Path) -> dict[str, Any]:
                      "deleted_backups": len(result.deleted_backup_ids), "recorded_pre_forget_backup_deleted": not Path(made.location).exists(), "limits": list(getattr(preview, "limits", []) or [])}
     out["store_hits_after_forget"] = _store_text(ws, needle)
     # Delivery after the forget: a fresh session's prompt about groceries.
-    clock = agent.Clock("2026-11-09T09:00:00.000000Z")
+    clock = agent.Clock(trial.clock_anchor(8, 9))  # a week after the trial's start (decision 0028 item 28)
     (base / "home-after").mkdir(exist_ok=True)
     host = agent.HookBridge(ws, base / "home-after", clock)
     s = agent.Session("D", ws, host, seed="forget-demo")
@@ -225,7 +225,7 @@ def isolation(trials_dir: Path, work: Path) -> dict[str, Any]:
     fieldnotes = base / sid / "candidate" / "ws"
     ledger = base / sid / "candidate" / "second-project" / "ws"
     # The reverse direction: fieldnotes learns its own command (R1's recorded proposals) in a later session.
-    clock = agent.Clock("2026-11-03T09:00:00.000000Z")
+    clock = agent.Clock(trial.clock_anchor(2, 9))  # the day after the trial's start (decision 0028 item 28)
     drainer = trial.Drainer(fieldnotes, clock, curator.RecordedCurator(curator.SmokePlan("smoke-R1-fieldnotes-check-env-fixed")))
     try:
         (base / "home-r").mkdir(exist_ok=True)

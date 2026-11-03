@@ -504,6 +504,39 @@ def test_a_trial_record_keeps_each_claims_review_verdict(tmp_path):
     assert heads["clm_b"]["review"] is None
 
 
+def test_a_refused_claim_operation_keeps_what_it_proposed_and_cited(tmp_path):
+    """The sixth gate's L3 declaration was refused (declaration_requires_user_evidence) and its proposal went with the
+    store; L2's extraction left an empty proposal with no stated reason. The record now keeps a refused claim
+    operation's kind, basis, wording and citations, and an unexplained empty body's keys (decision 0028 item 27)."""
+    from evals import trial
+    from recalith.controller.apply import APPLY_REF
+
+    ws = installation(tmp_path)
+    conn = sqlite3.connect(ws / ".recalith" / "state" / "memory.sqlite")
+    with conn:
+        (workspace_id,) = conn.execute("SELECT workspace_id FROM workspaces LIMIT 1").fetchone()
+        conn.execute("INSERT INTO events (event_id, adapter_id, source_event_key, payload_digest, commit_sequence, kind, channel, authority, session_id, workspace_id, recorded_at, envelope) "
+                     "VALUES ('evt_tool', 'a', 'k1', 'd', 9001, 'tool_started', 'agent', 'agent_observed', 'ses_1', ?, '2026-11-02T22:50:00Z', '{}')", (workspace_id,))
+        conn.execute("INSERT INTO jobs (job_id, kind, state, idempotency_key, priority, due_at, budget_pool, body) VALUES ('job_x', 'extract_claims', 'completed', 'kx', 4, '2026-11-02T22:50:00Z', 'ordinary', '{}')")
+        refused = {"local_ref": "op1", "kind": "propose_claim", "reason": "r", "evidence": [{"ref": {"kind": "event", "id": "evt_tool", "revision": 1}, "relation": "supports", "locator": {"field": "command"}}],
+                   "payload": {"kind": "preference", "basis": "user_declared", "proposition": "Keep the grocery budget under $600 per month."}}
+        conn.execute("INSERT INTO proposals (proposal_id, job_id, input_digest, read_set_digest, body) VALUES ('prp_1', 'job_x', 'i', 'r', ?)", (json.dumps({"operations": [refused]}),))
+        conn.execute("INSERT INTO proposals (proposal_id, job_id, input_digest, read_set_digest, body) VALUES ('prp_2', 'job_x', 'i', 'r', ?)", (json.dumps({"operations": []}),))
+        failed = {"operations": [], "no_op_reason": None, "malformed": [{"index": 0, "local_ref": "set-title", "depends_on": [], "reason_code": "malformed_operation", "detail": "reason:missing"}]}
+        conn.execute("INSERT INTO proposals (proposal_id, job_id, input_digest, read_set_digest, body) VALUES ('prp_3', 'job_x', 'i', 'r', ?)", (json.dumps(failed),))
+        result = {"result": {"decisions": [{"local_ref": "op1", "outcome": "reject", "reason_code": "declaration_requires_user_evidence"}]}}
+        conn.execute("INSERT INTO operations (operation_id, job_id, proposal_id, actor, kind, inputs, store_revision, created_at, local_ref) VALUES ('opr_1', 'job_x', 'prp_1', 'worker', 'apply', ?, 1, '2026-11-02T22:50:01Z', ?)",
+                     (json.dumps(result), APPLY_REF))
+    conn.close()
+    calls = trial.curator_calls(ws)
+    assert calls[0]["decisions"] == [{"kind": "propose_claim", "outcome": "reject", "reason": "declaration_requires_user_evidence",
+                                      "proposed": {"claim_kind": "preference", "basis": "user_declared", "proposition": "Keep the grocery budget under $600 per month.",
+                                                   "cited": [{"ref_kind": "event", "relation": "supports", "locator_field": "command", "event_kind": "tool_started", "channel": "agent"}]}}]
+    assert calls[1]["operations"] == [] and calls[1]["body_keys"] == ["operations"] and "no_op_reason" not in calls[1]
+    # an empty proposal whose every operation failed strict validation says what failed (decision 0038)
+    assert calls[2]["malformed"] == [{"index": 0, "local_ref": "set-title", "reason": "malformed_operation", "detail": "reason:missing"}] and "body_keys" not in calls[2]
+
+
 def test_live_quality_comes_from_reviewer_labels(tmp_path):
     """A live curator's claims are free text: the frozen term match is provisional, and support and recall are the
     reviewers' labels (ACCEPTANCE_TESTS §5). Unlabeled items leave the measures unestablished and fail the gate."""

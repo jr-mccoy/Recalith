@@ -208,6 +208,8 @@ def c2(c: Ctx) -> None:
     count = c.run([sys.executable, "-m", "fieldnotes.cli", "count"], env=env)
     c.check("count_works", count.returncode == 0 and count.stdout.strip().endswith("3"))
     deleted = c.run([sys.executable, "-m", "fieldnotes.cli", "delete", "0"], env=env)
+    if deleted.returncode != 0:  # the prompt names no index base: a 1-based delete refuses 0 (decision 0028 item 26)
+        deleted = c.run([sys.executable, "-m", "fieldnotes.cli", "delete", "1"], env=env)
     after = c.run([sys.executable, "-m", "fieldnotes.cli", "count"], env=env)
     c.check("delete_works", deleted.returncode == 0 and after.stdout.strip().endswith("2"))
 

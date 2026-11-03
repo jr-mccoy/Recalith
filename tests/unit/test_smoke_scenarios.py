@@ -209,6 +209,16 @@ def test_r3_judges_an_unparseable_grocery_list_as_a_failed_check(tmp_path):
     assert result["checks"]["grocery_csv_parses"] is False and "oracle_error" not in result["checks"] and result["passed"] is False, result
 
 
+def test_c2_accepts_a_one_based_delete_and_still_fails_one_that_removes_nothing(tmp_path):
+    """The sixth live gate's candidate chose a 1-based `delete INDEX`, which the prompt allows: it refuses 0 and removes 1."""
+    ws = materialize(tmp_path / "one", "smoke-C2-fieldnotes-tdd-expected-red")
+    edit(ws / "fieldnotes/cli.py", '    if args[0] == "list":', '    if args[0] == "count":\n        print(len(store.load()))\n        return 0\n    if args[0] == "delete" and len(args) == 2:\n        index = int(args[1])\n        notes = store.load()\n        if not 1 <= index <= len(notes):\n            return 2\n        del notes[index - 1]\n        store.notes_path().write_text(__import__("json").dumps(notes), encoding="utf-8")\n        return 0\n    if args[0] == "list":')
+    assert smoke.judge("c2", ws, [], "B")["checks"]["delete_works"] is True
+    ws = materialize(tmp_path / "none", "smoke-C2-fieldnotes-tdd-expected-red")
+    edit(ws / "fieldnotes/cli.py", '    if args[0] == "list":', '    if args[0] == "count":\n        print(len(store.load()))\n        return 0\n    if args[0] == "delete" and len(args) == 2:\n        return 0\n    if args[0] == "list":')
+    assert smoke.judge("c2", ws, [], "B")["checks"]["delete_works"] is False
+
+
 def test_cross_project_leak_is_detected(tmp_path):
     ws = materialize(tmp_path, "smoke-C4-cross-project-near-match")
     actions = [act("B", "PYTHONPATH=src python -m unittest discover -s tests", 1), act("B", "NOTES_HOME=/tmp/n python tools/check.py")]
