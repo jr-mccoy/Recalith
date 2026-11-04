@@ -800,12 +800,19 @@ V5_MASKED_WORDING = ("state what the output shows as an inferred fact citing tha
 V6_PAYLOAD = (" Each operation's evidence is its own evidence array, beside payload, never a key inside payload: a payload holds only the "
               "keys output_schema gives its kind, so a propose_claim payload has no evidence, claim_ref or supersedes, and an existing claim "
               "changes only through attach_evidence or revise_claim naming its claim_ref.")
+V7_EXACT = (" Say no more than the cited evidence shows: add no requirement, type, unit, time zone, default, consequence or limit it does "
+            "not state (such as \"to a directory\", \"in UTC\", or only, always, every and never), and never present a parameter's default as "
+            "what always happens. Word a user's declaration or correction from the user's own words: a claim replacing an existing one states "
+            "the new value as the user stated it, not in the replaced claim's framing.")
+R2_CLAUSES = (" Test every clause of the proposition against that evidence, including qualifiers such as only, always, every and never, "
+              "stated types, units and time zones, a default presented as what always happens, and a consequence introduced by so or because: "
+              "a clause the evidence does not show is an objection.")
 
 
 def test_prompt_digests_are_pinned_separately():
-    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035–0037, 0039)."""
-    assert prompts.CURRENT["extract_claims"] == "extract_claims@6" and prompts.CURRENT["review_claims"] == "review_claims@1"
-    extract_digest, review_digest = prompts.prompt_digest("extract_claims@6"), prompts.prompt_digest("review_claims@1")
+    """The extraction and review prompts are versioned package data, digested separately (decisions 0011, 0031, 0035–0037, 0039, 0040)."""
+    assert prompts.CURRENT["extract_claims"] == "extract_claims@7" and prompts.CURRENT["review_claims"] == "review_claims@2"
+    extract_digest, review_digest = prompts.prompt_digest("extract_claims@7"), prompts.prompt_digest("review_claims@2")
     assert extract_digest != review_digest
     # Golden digests: editing a shipped prompt text requires a new version string.
     assert prompts.prompt_digest("extract_claims@1") == "72cbd9c3996f467d2aff4aafec9e6b3cf092ca15374dbb523723acabf8e19f21"  # still served to jobs that pinned them
@@ -813,8 +820,10 @@ def test_prompt_digests_are_pinned_separately():
     assert prompts.prompt_digest("extract_claims@3") == "be2234d247292d666a3352fea4b7e842bcc7df09f804e9d1599d360e395c7fa3"
     assert prompts.prompt_digest("extract_claims@4") == "8d722ee3e44b233eb94c105f00504ae118c895b6d0539fea424a087697d7e5a3"
     assert prompts.prompt_digest("extract_claims@5") == "d7a37dbfdf0638513bd18f8ccb3b7652afaf2de8726cf2035ec5518db60e2a96"
-    assert extract_digest == "b2bd4968096438068fff217e38871d4926c4642385c365f286eca86e54c842cd"
-    assert review_digest == "7bafbabe9897d1d173f43f3d43aa60d990e56e59411423faf4c7e39aecf5fbb2"
+    assert prompts.prompt_digest("extract_claims@6") == "b2bd4968096438068fff217e38871d4926c4642385c365f286eca86e54c842cd"
+    assert prompts.prompt_digest("review_claims@1") == "7bafbabe9897d1d173f43f3d43aa60d990e56e59411423faf4c7e39aecf5fbb2"
+    assert extract_digest == "badc02dae63a1e47279c431f97e8373fc574d9435672db082ab0854833d45932"
+    assert review_digest == "288f77d601ebc1c0f73bc17a1c49c185c07322aaea73f77d7b221ca37b400753"
     assert "review_capacity" in prompts.INSTRUCTIONS["review_claims@1"] and "exited with code" in prompts.INSTRUCTIONS["extract_claims@3"]
     v2, v3 = prompts.INSTRUCTIONS["extract_claims@2"], prompts.INSTRUCTIONS["extract_claims@3"]
     for text in (v2, v3):
@@ -836,6 +845,10 @@ def test_prompt_digests_are_pinned_separately():
     # Decision 0039: an operation's evidence is never a key inside its payload (a live L2 decision was lost that way).
     v6 = prompts.INSTRUCTIONS["extract_claims@6"]
     assert v6.replace(V6_PAYLOAD, "") == v5  # @6 is @5 plus exactly that sentence
+    # Decision 0040: a claim says no more than its evidence, and the review tests every clause (the ninth gate's two
+    # unsupported claims added "to a directory" and "in UTC"; R3's correction carried the old claim's framing).
+    assert prompts.INSTRUCTIONS["extract_claims@7"].replace(V7_EXACT, "") == v6  # @7 is @6 plus exactly those sentences
+    assert prompts.INSTRUCTIONS["review_claims@2"].replace(R2_CLAUSES, "") == prompts.INSTRUCTIONS["review_claims@1"]  # @2 is @1 plus that sentence
 
 
 # ---------------------------------------------------------------------------

@@ -22,7 +22,8 @@ statement of how the project is as a fact with its file dependencies;
 ``extract_v5.md``, decision 0037, which words a failure seen only in a
 call's output as the project's condition; ``extract_v6.md`` and
 ``revalidate_v3.md``, decision 0039, which keep an operation's evidence out
-of its payload; a job that pinned an older version is still served
+of its payload; ``extract_v7.md`` and ``review_v2.md``, decision 0040, which
+say no more than the evidence shows and test every clause; a job that pinned an older version is still served
 its text), loaded here and digested separately: a claim's
 ``ModelProvenance`` pins its extraction (or revalidation) prompt digest, a
 ``ReviewBatch`` its review prompt digest, and the golden-digest tests in
@@ -106,7 +107,9 @@ INSTRUCTIONS: dict[str, str] = {
     "extract_claims@4": _file("extract_v4.md") + " " + _COMMON,
     "extract_claims@5": _file("extract_v5.md") + " " + _COMMON,
     "extract_claims@6": _file("extract_v6.md") + " " + _COMMON,
+    "extract_claims@7": _file("extract_v7.md") + " " + _COMMON,
     "review_claims@1": _file("review_v1.md") + " " + _COMMON,
+    "review_claims@2": _file("review_v2.md") + " " + _COMMON,
     "revalidate@1": _file("revalidate_v1.md") + " " + _COMMON,
     "revalidate@2": _file("revalidate_v2.md") + " " + _COMMON,
     "revalidate@3": _file("revalidate_v3.md") + " " + _COMMON,
@@ -115,8 +118,8 @@ INSTRUCTIONS: dict[str, str] = {
 CURRENT: dict[str, str] = {
     "update_task": "update_task@2",
     "build_episode": "build_episode@2",
-    "extract_claims": "extract_claims@6",
-    "review_claims": "review_claims@1",
+    "extract_claims": "extract_claims@7",
+    "review_claims": "review_claims@2",
     "revalidate": "revalidate@3",
 }
 
