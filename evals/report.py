@@ -510,7 +510,9 @@ def adjudication_sheet(directory: Path) -> dict[str, Any]:
     fills the labels and saves the file as ``adjudication.json``; the report counts only labeled entries."""
     trials = [t for t in load(directory)["trials"] if t["arm"] == "candidate"]
     template: dict[str, Any] = {"adjudication_schema": 1, "reviewers": [], "claims": {}, "lessons": {},
-                                "instructions": "Label each claim supported|unsupported against the trial's evidence (scope included: a prohibited generalization is unsupported), and each gold lesson "
+                                "instructions": "Label each claim supported|unsupported against the trial's evidence when it was admitted (scope included: a prohibited generalization is unsupported; "
+                                                "a later change in the trial that made it out of date is scored by the freshness, conflict, recall and guidance measures, not here: "
+                                                "decision 0028 item 31), and each gold lesson "
                                                 "recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as "
                                                 "{\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels."}
     lines = ["# Claim adjudication sheet", "", "Labels go in `adjudication.json` (start from `adjudication.template.json`). A model judge may assist but does not solely adjudicate support (ACCEPTANCE_TESTS §5).", ""]

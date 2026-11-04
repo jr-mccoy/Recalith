@@ -143,6 +143,18 @@ The first live gate (2026-10-23 to 2026-10-26, BUILD_PROGRESS) failed, and four 
 
     Each session's actions are kept too. The scripted demonstration uses the same split. The seventh gate's record keeps its failure, because nothing in it shows which kind of item carried the value.
 30. **R3 accepts "updated from" and the like.** In the eighth gate the R3 candidate used the corrected $700 and said so. Its plan's limit line read "$700 per month (updated from $600)", but item 23's exceptions had no "updated from", so the oracle read it as the stale limit and failed the task. The $600 preference had been delivered at C's prompt, decision 0036's stated limit, so `incorrect_confident_guidance` counted it, and that was the gate's only failing measure. The `… from` exception now also takes `updated`, `revised`, `adjusted`, `moved` and `bumped`. A line stating $600 as the limit in force still fails. The eighth gate's record keeps its score, and the rule applies to both arms alike from the next run.
+31. **A claim's support is judged when it was admitted** (the owner's rule, 2026-11-04). In the ninth gate, two model reviews disagreed on three claims that were true when admitted but made stale later in the same trial:
+    - R1's `check.py` fact, after the overlay added a fallback; the system marked it needs-revalidation.
+    - R4's storage fact, after the overlay moved storage to `notes.jsonl`; the system marked it disputed.
+    - R3's $600 preference, after the user's correction; the system kept it active and current.
+
+    R1 and R4 are built to produce such a claim on every run, and their gold expects exactly those labels. A claim is now labeled `supported` when the trial's evidence supported it when it was admitted. Its scope is included, and a prohibited generalization is still unsupported. Going stale later is scored elsewhere:
+    - conflict and uncertainty preservation;
+    - recall: R3's correction not taken in is R3 #0 missed;
+    - the retrieval points;
+    - incorrect confident guidance.
+
+    The adjudication template's instructions state the rule. The rule decides none of the ninth gate's result, because its two overstated claims fail support either way.
 
 ## Consequences
 
