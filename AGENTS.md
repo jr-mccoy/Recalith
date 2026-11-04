@@ -46,3 +46,25 @@ Create `tests/coverage_manifest.json` during Task 1 with all A01–A73 and their
 Update `docs/BUILD_PROGRESS.md` after each meaningful checkpoint. Record completed slices, deferred work, tests actually run, blockers, and the next concrete action. Continue unblocked implementation rather than ending at a proposal. Report empirical failures without weakening a gate merely to obtain a pass.
 
 Use the execution tools available in the environment. This repository does not require a particular assistant plugin or delegation workflow. Repository publication, external messaging, credential/account changes, and deployment follow the user's session authorization.
+
+## Working with the owner
+
+The owner set these standing rules during the live certification work (2026-10 to 2026-11). They apply in every session, local or web.
+
+- **The owner runs every guarded or credential-bearing command** (live gates, provider and delivery probes, label recording) in an ordinary terminal outside any agent session. Never run them, never ask for or handle key values, and never work around the operator guard. Give the owner the exact commands; the owner pastes the output back.
+- **Decisions that stay the owner's:** do not change `FULL_RELEASE_AVAILABLE` or enable the full profile. Do not start other Cut 2 slices.
+- **Certification:** certify a version only if the review supports it, never on the strength of its number. Never skip, disable or quarantine a test.
+- **Labels:** only reviewer labels in `adjudication.json` count. A model may assist, never solely adjudicate (ACCEPTANCE_TESTS §5). The owner's workflow:
+  - draft suggestions;
+  - send `tools/live_gate/review_prompt.md` and a packet built without them to an outside model;
+  - compare its reply with the suggestions, and present only the disagreements, in plain language, for the owner to decide;
+  - the owner records the labels with `tools/live_gate/label_gate.py`.
+- **While a suite or measurement runs,** do not edit `src/`, `tests/` or `evals/`. Kill stray processes by PID only.
+- **Files:** open them with `encoding="utf-8"`, and create private files with mode 0600.
+- **Never commit:**
+  - `probe-private/`, any `.recalith/provider.json`, `host.json` or `local.toml`;
+  - token files, raw transcripts, measurement output with machine paths;
+  - `dist/` or `wheelhouse/`.
+- **No model identifiers** in commits or docs, outside model reviewers included: say "an outside model".
+- **Commits** carry no Co-Authored-By trailer. Publish by pushing the working branch, then `git push origin HEAD:main`, so `main` always holds the latest work.
+- **Communication:** the owner's time is the scarcest resource. Explain results and choices in plain terms, recommend one option, and keep the owner's steps to the commands they must run. For a live gate, more slots and parallel work are preferred over a lighter machine load.
