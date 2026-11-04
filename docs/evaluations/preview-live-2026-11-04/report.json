@@ -10,7 +10,7 @@
   ]
  },
  "completeness": {
-  "complete": false,
+  "complete": true,
   "contaminated_arms": [],
   "demonstrations_unmet": [],
   "host_version_mismatches": [],
@@ -18,7 +18,7 @@
   "smoke_trials_missing": 0,
   "suspended": [],
   "trial_errors": [],
-  "unadjudicated": 32,
+  "unadjudicated": 0,
   "unsettled_gaps": [],
   "workload_days_not_run": [],
   "workload_days_run": 3
@@ -581,7 +581,7 @@
  },
  "gate": {
   "reasons": [
-   "claims_unadjudicated:32 (evals/run.py adjudicate)"
+   "quality_targets_unmet:supported_precision"
   ],
   "state": "failed",
   "superiority_claim": false
@@ -3120,59 +3120,42 @@
  "profile": "claude_preview",
  "quality_5_1": {
   "adjudication": {
-   "evidence_absent": [],
+   "evidence_absent": [
+    "smoke-L1-ledgerlite-test-command#1: Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing."
+   ],
    "examples": {
-    "missed_lessons": [],
-    "unsupported_admitted": []
+    "missed_lessons": [
+     "smoke-R3-household-budget-correction: Grocery budget is $700 per month."
+    ],
+    "unsupported_admitted": [
+     "smoke-C2-fieldnotes-tdd-expected-red: The fieldnotes project's `tools/check.py` reads `NOTES_HOME` from the environment with `os.environ[\"NOTES_HOME\"]`, so th",
+     "smoke-L2-fieldnotes-iso-dates: fieldnotes list prints each stored note's 'created' value unchanged; store.add writes that value with datetime.isoformat"
+    ]
    },
    "limitation": "fewer than two independent reviewers (ACCEPTANCE_TESTS \u00a75: report the limitation)",
-   "reviewers": [],
+   "reviewers": [
+    {
+     "independent_of_system_spec_7": false,
+     "route": "the owner: two model reviews (the coding agent, an outside model), adopted where they agreed; three out-of-date claims by the owner's rule (decision 0028 item 31)"
+    }
+   ],
    "unadjudicated": {
-    "claims": [
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_2e3175b9-f8f7-427d-aab1-ac7466f2ea9e",
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_a72bb89c-ad3e-4b03-8b1b-43df0f49dc3a",
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_b746922b-d270-4a4f-aebd-a6e074dfe1e9",
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_be461e57-0e85-4ba0-8e87-b2e49f00af68",
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_df107062-5863-4f7e-a4bd-ad95efe11b8a",
-     "smoke-C4-cross-project-near-match:claim_99f35600-bb7b-4732-8962-1c3be225c217",
-     "smoke-C4-cross-project-near-match:claim_e6a8544b-fc65-4181-b796-426a1f246a28",
-     "smoke-L1-ledgerlite-test-command:claim_408d5fed-213a-48d5-8d28-5839c3177d38",
-     "smoke-L1-ledgerlite-test-command:claim_9ace3a78-e24e-416a-9d6d-c642bda9a03a",
-     "smoke-L2-fieldnotes-iso-dates:claim_70ed40d0-0fce-468c-a1d8-bac217ba8633",
-     "smoke-L2-fieldnotes-iso-dates:claim_77a29005-4705-4418-8f54-f05558cb13f2",
-     "smoke-L2-fieldnotes-iso-dates:claim_7928f95d-abc7-4a48-b7ae-8b67cc557370",
-     "smoke-L2-fieldnotes-iso-dates:claim_8e9ece5b-58a4-4de3-a6e9-3aee338a6a54",
-     "smoke-L3-household-grocery-budget:claim_d2018588-9df2-4566-89c5-b1e8ac04e80b",
-     "smoke-L4-ledgerlite-resume-refactor:claim_7b7e67b8-4e09-4da2-a0ea-9677dbcc8d25",
-     "smoke-L4-ledgerlite-resume-refactor:claim_b5066e08-c6d6-4662-9f89-4bf06599540f",
-     "smoke-R1-fieldnotes-check-env-fixed:claim_d8533bc1-4231-40d0-aac2-686a90e02bed",
-     "smoke-R2-ledgerlite-import-fixed:claim_1ca57a18-1fad-4f3a-9516-127faa1da7a4",
-     "smoke-R2-ledgerlite-import-fixed:claim_1de7fd3b-6413-4cdc-97f6-60072665ff01",
-     "smoke-R2-ledgerlite-import-fixed:claim_6d7cd3ef-e266-452b-8d7f-19f2a61c1ae5",
-     "smoke-R2-ledgerlite-import-fixed:claim_f9c623ef-f2c3-406e-86da-35b283a593ea",
-     "smoke-R3-household-budget-correction:claim_4ae057b3-f17c-4284-aae0-e00ccb6af047",
-     "smoke-R4-fieldnotes-storage-conflict:claim_77bb7621-0f79-441e-89eb-67149b62d9d5",
-     "smoke-R4-fieldnotes-storage-conflict:claim_991ce53d-16b6-416b-9aed-b102f324e6d6"
-    ],
-    "count": 32,
-    "lessons": [
-     "smoke-L1-ledgerlite-test-command#0",
-     "smoke-L1-ledgerlite-test-command#1",
-     "smoke-L2-fieldnotes-iso-dates#0",
-     "smoke-L3-household-grocery-budget#0",
-     "smoke-R1-fieldnotes-check-env-fixed#0",
-     "smoke-R2-ledgerlite-import-fixed#0",
-     "smoke-R3-household-budget-correction#0",
-     "smoke-R4-fieldnotes-storage-conflict#0"
-    ]
+    "claims": [],
+    "count": 0,
+    "lessons": []
    }
   },
   "examples": {
    "discouraged_retries": [],
    "incorrect_guidance": [],
    "irrelevant_cautions": [],
-   "missed_lessons": [],
-   "unsupported_admitted": []
+   "missed_lessons": [
+    "smoke-R3-household-budget-correction: Grocery budget is $700 per month."
+   ],
+   "unsupported_admitted": [
+    "smoke-C2-fieldnotes-tdd-expected-red: The fieldnotes project's `tools/check.py` reads `NOTES_HOME` from the environment with `os.environ[\"NOTES_HOME\"]`, so th",
+    "smoke-L2-fieldnotes-iso-dates: fieldnotes list prints each stored note's 'created' value unchanged; store.add writes that value with datetime.isoformat"
+   ]
   },
   "measures": {
    "conflict_uncertainty_preservation": {
@@ -3188,13 +3171,16 @@
    },
    "failed_approach_recall": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 2,
+    "met": true,
+    "numerator": 2,
     "target": ">= 0.9",
-    "unadjudicated": 8,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 1.0,
+    "wilson_95": [
+     0.3424,
+     1.0
+    ]
    },
    "incorrect_confident_guidance": {
     "count": 0,
@@ -3232,23 +3218,29 @@
    },
    "supported_precision": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 24,
+    "met": false,
+    "numerator": 22,
     "target": ">= 0.95",
-    "unadjudicated": 24,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 0.9167,
+    "wilson_95": [
+     0.7415,
+     0.9768
+    ]
    },
    "useful_recall": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 7,
+    "met": true,
+    "numerator": 6,
     "target": ">= 0.85",
-    "unadjudicated": 8,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 0.8571,
+    "wilson_95": [
+     0.4869,
+     0.9743
+    ]
    }
   },
   "population": "12 candidate smoke trials (one per scenario)",
