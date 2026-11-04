@@ -1,8 +1,7 @@
 # Preview evaluation report (live)
 
-**live working agent and certified inference route.** Counts toward the preview gate: **True**. Gate: **failed**.
+**live working agent and certified inference route.** Counts toward the preview gate: **True**. Gate: **passed_smoke**.
 
-- claims_unadjudicated:30 (evals/run.py adjudicate)
 
 ## Paired outcomes (candidate vs clean no-memory baseline)
 
@@ -39,16 +38,16 @@ No superiority claim: a 12-scenario smoke run with one trial per arm cannot esta
 
 | Measure | Value | Numerator/denominator | Wilson 95 % | Target | Met |
 |---|---|---|---|---|---|
-| supported_precision | – | 0/0 | None | >= 0.95 | None |
-| useful_recall | – | 0/0 | None | >= 0.85 | None |
-| failed_approach_recall | – | 0/0 | None | >= 0.9 | None |
+| supported_precision | 0.9545 | 21/22 | (0.782, 0.9919) | >= 0.95 | True |
+| useful_recall | 1 | 7/7 | (0.6457, 1.0) | >= 0.85 | True |
+| failed_approach_recall | 1 | 2/2 | (0.3424, 1.0) | >= 0.9 | True |
 | incorrect_confident_guidance | 0 | count over 12 | None | == 0 | True |
 | conflict_uncertainty_preservation | 1 | 1/1 | (0.2065, 1.0) | >= 0.95 | True |
 | legitimate_retry_discouraged | 0 | 0/2 | (0.0, 0.6576) | <= 0.05 | True |
 | irrelevant_caution_quiet | 0 | 0/3 | (0.0, 0.5615) | <= 0.05 | True |
 | routine_human_maintenance | 0 | count over 12 | None | == 0 | True |
 
-Support and recall come from reviewer labels (`adjudication.json`); 30 item(s) unlabeled (`evals/run.py adjudicate`). Lessons whose evidence never occurred: 0. fewer than two independent reviewers (ACCEPTANCE_TESTS §5: report the limitation)
+Support and recall come from reviewer labels (`adjudication.json`); 0 item(s) unlabeled (`evals/run.py adjudicate`). Lessons whose evidence never occurred: 1. fewer than two independent reviewers (ACCEPTANCE_TESTS §5: report the limitation)
 Term match (provisional, frozen against the recorded curator's wording): supported_precision 9/22, useful_recall 7/8, failed_approach_recall 2/3
 
 ## Curator call outcomes

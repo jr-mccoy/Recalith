@@ -10,7 +10,7 @@
   ]
  },
  "completeness": {
-  "complete": false,
+  "complete": true,
   "contaminated_arms": [],
   "demonstrations_unmet": [],
   "host_version_mismatches": [],
@@ -18,7 +18,7 @@
   "smoke_trials_missing": 0,
   "suspended": [],
   "trial_errors": [],
-  "unadjudicated": 30,
+  "unadjudicated": 0,
   "unsettled_gaps": [],
   "workload_days_not_run": [],
   "workload_days_run": 3
@@ -566,10 +566,8 @@
   "mode": "live"
  },
  "gate": {
-  "reasons": [
-   "claims_unadjudicated:30 (evals/run.py adjudicate)"
-  ],
-  "state": "failed",
+  "reasons": [],
+  "state": "passed_smoke",
   "superiority_claim": false
  },
  "limitations": [
@@ -3109,49 +3107,26 @@
  "profile": "claude_preview",
  "quality_5_1": {
   "adjudication": {
-   "evidence_absent": [],
+   "evidence_absent": [
+    "smoke-R2-ledgerlite-import-fixed#0: Plain discovery fails to import ledgerlite without PYTHONPATH=src."
+   ],
    "examples": {
     "missed_lessons": [],
-    "unsupported_admitted": []
+    "unsupported_admitted": [
+     "smoke-L4-ledgerlite-resume-refactor: Running `ls && PYTHONPATH=src python -m pytest -q 2>&1 | tail -20` from the project root, with the Python 3.13 installed"
+    ]
    },
    "limitation": "fewer than two independent reviewers (ACCEPTANCE_TESTS \u00a75: report the limitation)",
-   "reviewers": [],
+   "reviewers": [
+    {
+     "independent_of_system_spec_7": false,
+     "route": "the owner: two model reviews (the coding agent, an outside model), adopted where they agreed; R2 #0 and claim_893d18a9 decided by the owner"
+    }
+   ],
    "unadjudicated": {
-    "claims": [
-     "smoke-C2-fieldnotes-tdd-expected-red:claim_db278424-4523-4f99-9475-7565ecc2392c",
-     "smoke-C4-cross-project-near-match:claim_38f942e2-c2d3-45b1-8dc0-7cb56bcb3a99",
-     "smoke-C4-cross-project-near-match:claim_4dfcb38e-ca7c-4b1b-bdbd-fdd0d3294a15",
-     "smoke-L1-ledgerlite-test-command:claim_3133a05c-5955-4ed5-bb95-76ff3a5ecd4f",
-     "smoke-L1-ledgerlite-test-command:claim_f08e22cb-125e-41dd-b007-b8b86bd60f4e",
-     "smoke-L2-fieldnotes-iso-dates:claim_4ae9d90e-11de-4894-b65b-969326873d33",
-     "smoke-L2-fieldnotes-iso-dates:claim_a45fd9e9-f747-4d21-a0e1-797e46fadc35",
-     "smoke-L2-fieldnotes-iso-dates:claim_da35dc73-4f88-40e9-bb84-833d34b69bf5",
-     "smoke-L2-fieldnotes-iso-dates:claim_da7245ea-f6a5-4531-a81d-f06a4ab11bb1",
-     "smoke-L3-household-grocery-budget:claim_c7c29fdd-481d-4419-83e4-0fdd643793c8",
-     "smoke-L4-ledgerlite-resume-refactor:claim_5265e684-e3e9-4807-9834-25ac4369697d",
-     "smoke-L4-ledgerlite-resume-refactor:claim_893d18a9-9d9c-4b14-b1c5-a34aa521d5c7",
-     "smoke-L4-ledgerlite-resume-refactor:claim_accb1ca9-fc9a-4355-9604-77b709bb5d52",
-     "smoke-L4-ledgerlite-resume-refactor:claim_f65b6694-6bb1-43ff-a0a1-efe0c4171167",
-     "smoke-R1-fieldnotes-check-env-fixed:claim_33af0d62-bc73-4299-8f31-9b627337933b",
-     "smoke-R1-fieldnotes-check-env-fixed:claim_87692ab3-93bf-4a48-b99a-d3ca7fd50b43",
-     "smoke-R2-ledgerlite-import-fixed:claim_9dd474d2-7292-4219-b8de-cf46cb30c283",
-     "smoke-R2-ledgerlite-import-fixed:claim_a671e336-1827-4857-87ff-c8a0fc8232cb",
-     "smoke-R2-ledgerlite-import-fixed:claim_ee8d34ea-2a40-4206-8992-86497e198377",
-     "smoke-R3-household-budget-correction:claim_49a2d9db-cf40-4596-8445-4a4dd55db256",
-     "smoke-R4-fieldnotes-storage-conflict:claim_92dff127-624f-4906-9d9a-09718c064f12",
-     "smoke-R4-fieldnotes-storage-conflict:claim_a8a6fa8f-df5d-4970-aef4-e04167dee830"
-    ],
-    "count": 30,
-    "lessons": [
-     "smoke-L1-ledgerlite-test-command#0",
-     "smoke-L1-ledgerlite-test-command#1",
-     "smoke-L2-fieldnotes-iso-dates#0",
-     "smoke-L3-household-grocery-budget#0",
-     "smoke-R1-fieldnotes-check-env-fixed#0",
-     "smoke-R2-ledgerlite-import-fixed#0",
-     "smoke-R3-household-budget-correction#0",
-     "smoke-R4-fieldnotes-storage-conflict#0"
-    ]
+    "claims": [],
+    "count": 0,
+    "lessons": []
    }
   },
   "examples": {
@@ -3159,7 +3134,9 @@
    "incorrect_guidance": [],
    "irrelevant_cautions": [],
    "missed_lessons": [],
-   "unsupported_admitted": []
+   "unsupported_admitted": [
+    "smoke-L4-ledgerlite-resume-refactor: Running `ls && PYTHONPATH=src python -m pytest -q 2>&1 | tail -20` from the project root, with the Python 3.13 installed"
+   ]
   },
   "measures": {
    "conflict_uncertainty_preservation": {
@@ -3175,13 +3152,16 @@
    },
    "failed_approach_recall": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 2,
+    "met": true,
+    "numerator": 2,
     "target": ">= 0.9",
-    "unadjudicated": 8,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 1.0,
+    "wilson_95": [
+     0.3424,
+     1.0
+    ]
    },
    "incorrect_confident_guidance": {
     "count": 0,
@@ -3219,23 +3199,29 @@
    },
    "supported_precision": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 22,
+    "met": true,
+    "numerator": 21,
     "target": ">= 0.95",
-    "unadjudicated": 22,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 0.9545,
+    "wilson_95": [
+     0.782,
+     0.9919
+    ]
    },
    "useful_recall": {
     "basis": "reviewer labels (adjudication.json)",
-    "denominator": 0,
-    "met": null,
-    "numerator": 0,
+    "denominator": 7,
+    "met": true,
+    "numerator": 7,
     "target": ">= 0.85",
-    "unadjudicated": 8,
-    "value": null,
-    "wilson_95": null
+    "unadjudicated": 0,
+    "value": 1.0,
+    "wilson_95": [
+     0.6457,
+     1.0
+    ]
    }
   },
   "population": "12 candidate smoke trials (one per scenario)",
