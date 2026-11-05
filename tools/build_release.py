@@ -36,6 +36,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 import zipfile
 from importlib import metadata
 from pathlib import Path
@@ -92,9 +93,9 @@ def dependency_inventory() -> dict:
 
 
 def _project_license() -> str | None:
-    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    m = re.search(r'^license\s*=\s*(.+)$', text, re.M)
-    return m.group(1).strip() if m else None
+    """The SPDX expression of ``[project].license`` (PEP 639), or the legacy table's text or file."""
+    value = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"].get("license")
+    return value.get("text") or value.get("file") if isinstance(value, dict) else value
 
 
 def wheel_inventory(wheel: Path) -> dict:
@@ -158,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         "artifacts": artifacts, "provisioning_inputs": inputs, "dependency_inventory": inventory, "wheel_inventory": wheel, "problems": problems,
         "signing": {"state": "unsigned", "blocker": "signing needs operator material (a signing key or an attestation identity the owner selects); none is created by the build"},
         "publication": "none: nothing is tagged, uploaded or published by this tool",
-        "readiness_note": "a built artifact is not a readiness claim: claude_preview stays blocked until the live gate passes (B1)",
+        "readiness_note": "a built artifact is not a readiness claim: claude_preview is ready only when docs/release/claude_preview_checklist.json says so",
     }
     (out / "RELEASE_MANIFEST.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
     (out / "SHA256SUMS").write_text("".join(f"{a['sha256']}  {name}\n" for name, a in sorted(artifacts.items())), encoding="utf-8")
