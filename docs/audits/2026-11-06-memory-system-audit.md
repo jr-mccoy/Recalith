@@ -257,7 +257,9 @@ The tenth live gate passed on 2026-11-04 with the owner's recorded labels: suppo
 
 The full deterministic suite (`uv sync --locked` then `python -m pytest -q -rs -p no:cacheprovider`) was run on Linux, Python 3.13.18, in this container.
 
-The run had passed its first 55 % (about 1,350 tests, three skips, no failures) when this report was committed; it was still in the slow worker crash-matrix section. The final result is recorded in a follow-up commit and in the 2026-11-06 checkpoint of BUILD_PROGRESS.
+Result: **1,399 passed, 18 skipped, 0 failed** in 35 min 37 s (exit 0). The skips are the expected environment ones: the installed Claude Code here is 2.1.318, which is not a capture-certified version, so the eight installed-host smoke tests skip in favour of replayed fixtures; the container runs as root, so three permission-bit tests skip in favour of their injected-EACCES variants; three Windows-only cases (junctions, Job Object breakaway) and one case-insensitive-filesystem case skip; one provisioning test needs a real wheel and wheelhouse.
+
+Two things follow. First, every defect in this report lives in code the suite exercises and passes, which is the point: the suite tests the mechanics the specification names, and these are gaps between the specification's intent and the code (argv scrubbing, proxy handling, partition sizing, lease renewal, applicability-before-caps) that no existing test asserts. Phase 0 to 2 of the plan add a test for each. Second, the installed host being ahead of every certified version (2.1.318 against 2.1.310) is the ordinary state for any user who installs Claude Code today; decision 0019's per-version capture review is a recurring cost the project should plan for (see the fix plan, Phase 5.5).
 
 ## 7. What was checked and found sound
 
