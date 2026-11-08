@@ -28,13 +28,15 @@ from recalith.capture import pipeline
 from recalith.contracts.common import RecordRef, digest_of, parse_utc, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, REASONING_HEADROOM, BudgetConfig, ProjectConfig, body_cap_for, provider_output_cap
 from recalith.contracts.jobs import MODEL_JOB_KINDS, BudgetReservation
-from recalith.controller import apply, budgets, jobs, worker
+from recalith.controller import apply, budgets, jobs, review, worker
 from recalith.errors import RecalithError
 from recalith.storage import db, failpoints, spool
 
 HERE = Path(__file__).resolve().parent
 REPS = int(os.environ.get("RECALITH_CRASH_REPS", "3"))
 MODEL = tuple(sorted(MODEL_JOB_KINDS))
+# The provider scenario's fake reviewer answers review_capacity: its one review is retried alone, bounded (decision 0044).
+REVIEWS = 1 + review.REVIEW_RETRY_LIMIT
 
 
 @pytest.fixture(autouse=True)
@@ -1321,8 +1323,12 @@ def test_claim_admission_crash_matches_reference(tmp_path, failpoint):
     assert by_text[claims["obs"]][2:5] == ("active", "supported", "observed")
     assert by_text[claims["inf1"]][2:4] == ("active", "supported") and by_text[claims["inf2"]][2:4] == ("active", "supported")
     assert by_text[claims["decl"]][2:] == ("candidate", "weak", "user_declared", "reject", ("review_capacity",))
-    assert {o[2] for o in state["outcomes"]} == {"admitted", "duplicate", "capacity", "missing"} and state["batches"] == (1, [5])
-    assert state["priorities"] == ["correction_or_declaration"] and state["review_requests"] == [("extracted", 0, True)]
+    # The capacity-limited declaration and the unjudged lesson are each reviewed again alone, three times, then stop
+    # with review_retry_limit (decision 0044): one batch of five plus six of one.
+    retries = 2 * review.REVIEW_RETRY_LIMIT
+    assert {o[2] for o in state["outcomes"]} == {"admitted", "duplicate", "capacity", "missing", "deferred"} and state["batches"] == (1 + retries, [5])
+    assert state["priorities"] == ["correction_or_declaration"] * (1 + review.REVIEW_RETRY_LIMIT) + ["ordinary"] * review.REVIEW_RETRY_LIMIT
+    assert state["review_requests"] == [("extracted", 0, True)] * (1 + retries)
     assert sorted((t[3], t[4]) for t in state["triggers"] if "crash" in t[0]) == [("due", "count"), ("resolved", None)]
     hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
     mine = [i for i, (name, outstanding) in enumerate(h for h in hits if h[0] == failpoint) if outstanding == "1"]
@@ -1384,7 +1390,7 @@ def test_provider_path_crash_matches_reference(tmp_path, failpoint):
     reference_extra = ps.extra_state(reference_root)
     # Since Task 9 the episode checkpoint and the lifecycle's unfixed failures also schedule extractions (no-op answers).
     assert {"build_episode", "review_claims", "service", "update_task"} <= set(reference["applications"]) <= {"build_episode", "review_claims", "service", "update_task", "extract_claims"}
-    assert reference_extra["review_batches"] == (1, 1) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
+    assert reference_extra["review_batches"] == (REVIEWS, REVIEWS) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
     assert "Continue from the last checkpoint." in reference_extra["next_actions"]
     assert wh_wait(lambda: not _alive_pids(tmp_path / "reference.pids"))
     hits = [line.split() for line in hits_log.read_text(encoding="utf-8").splitlines()]
@@ -1433,7 +1439,7 @@ def test_api_provider_path_crash_matches_reference(tmp_path, failpoint):
         reference = osc.normalized(reference_root)
         reference_extra = ps.extra_state(reference_root)
         assert {"build_episode", "review_claims", "service", "update_task"} <= set(reference["applications"])
-        assert reference_extra["review_batches"] == (1, 1) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
+        assert reference_extra["review_batches"] == (REVIEWS, REVIEWS) and any(t.startswith("Narrative: ") for t in reference_extra["episode_titles"])
         assert "Continue from the last checkpoint." in reference_extra["next_actions"]
         assert fake.snapshot(), "the reference run never reached the provider"
         assert wh_wait(lambda: not _alive_pids(tmp_path / "reference.pids"))

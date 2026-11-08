@@ -54,6 +54,7 @@ The audit reproduced, against real installations with the fake provider and a vi
 - `tests/unit/test_provider_contract.py`: a reply quoting each separator unwraps intact; six host error texts name their codes, the auth ones withdrawing the route, through `unwrap` and through a nonzero exit.
 - `tests/integration/test_audit_small_fixes.py`: read-view pragma writes refused and reads allowed; the stop file 0600; continuity by pause start; the request's timeout; the journal directory 0700 (fails on `0.1.0.dev11`).
 - The existing `test_review_capacity_is_not_a_refutation_and_cannot_loop` now expects the one bounded retry; its other assertions are unchanged.
+- The kill/restart families over review (`test_claim_admission_crash_matches_reference`, `test_provider_path_crash_matches_reference`, `test_api_provider_path_crash_matches_reference`) now expect the bounded retries in their reference runs: the claim-admission reviewer judges by claim rather than position, so each retry gets the same answer and the run reaches `review_retry_limit`, and it states a no-op reason when it judges nothing (an empty operation list without one is an invalid body).
 
 ## Limits
 

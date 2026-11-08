@@ -300,18 +300,24 @@ def crash_answer(spec: dict[str, Any], request: dict[str, Any], purpose: str) ->
         return json.dumps({"operations": [], "no_op_reason": "nothing durable"}).encode("utf-8")
     batch = ReviewBatch.model_validate(request["review_batch"])
     claims = {c["claim_id"]: c for c in request["claims"]}
+    roles = {text: role for role, text in CRASH_CLAIMS.items()}
     ops: list[dict[str, Any]] = []
+    # Verdicts by claim, not by position: the capacity-limited and the unjudged candidate get the same answer on each
+    # bounded retry (decision 0044), so the run also reaches the retry limit.
     for i, ref in enumerate(batch.candidate_refs):
         body = claims[ref.id]
-        if i in (0, 1):
+        role = roles.get(body["proposition"])
+        if role in ("inf1", "inf2"):
             ops.append(assess(batch, ref, "supported", local_ref=f"s{i}", evidence_ids=support_ids(batch, body)[:1]))
-        elif i == 2:
+        elif role == "inf3":
             ops += [assess(batch, ref, "supported", local_ref="d1", evidence_ids=support_ids(batch, body)[:1]), assess(batch, ref, "reject", local_ref="d2", objections=["duplicate verdict"])]
-        elif i == 3:
+        elif role == "decl":
             ops.append(assess(batch, ref, "reject", local_ref="cap", objections=[review.CAPACITY]))
-        # i == 4: no verdict (missing)
+        # the lesson: no verdict (missing)
     if len(batch.candidate_refs) > 5:
         raise AssertionError("one fitting batch of five")
+    if not ops:  # a retry of the unjudged lesson alone: the reviewer judges nothing, and says so
+        return json.dumps({"operations": [], "no_op_reason": "no verdict"}).encode("utf-8")
     return json.dumps({"operations": ops}).encode("utf-8")
 
 
@@ -329,8 +335,8 @@ def outstanding(root: Path) -> str:
         extraction = conn.execute("SELECT state FROM jobs WHERE job_id = ?", (spec.get("extraction_job"),)).fetchone()
         reviews = conn.execute("SELECT COUNT(*) FROM jobs WHERE kind = 'review_claims' AND state NOT IN ('completed', 'cancelled', 'failed')").fetchone()[0]
         ready = any((root / ".recalith" / "spool" / "ready").glob("*.json"))
-        # A candidate is owed a review until a review job names it or an outcome (e.g. deferral) records it. An
-        # assessment-only revision (revise, capacity) is never re-reviewed, so the match is by claim, not revision.
+        # A candidate is owed a review until a review job names it or an outcome (e.g. deferral) records it. The match
+        # is by claim, not revision: a revise is never re-reviewed, and a capacity retry names the claim again.
         named = {r["id"] for (b,) in conn.execute("SELECT body FROM jobs WHERE kind = 'review_claims'").fetchall() for r in json.loads(b)["input_refs"]}
         named |= {c for (c,) in conn.execute("SELECT claim_id FROM review_outcomes").fetchall()}
         owed = any(c not in named for (c,) in conn.execute("SELECT claim_id FROM claim_heads WHERE status = 'candidate'").fetchall())
