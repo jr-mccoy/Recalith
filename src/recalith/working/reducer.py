@@ -76,7 +76,7 @@ class Reduction:
         self.scope_id = scope_id
         self.now = now
         self.applications = 0
-        self.flagged: dict[str, set[str]] = {}  # task_id -> {"checkpoint", "session_end"}
+        self.flagged: dict[str, set[str]] = {}  # task_id -> {"checkpoint", "session_end", "idle_pause"}
         self.touched: set[str] = set()
         self._reset()
 
@@ -333,7 +333,7 @@ class Reduction:
             book = bindings.task_book(self.txn, task_id)
             flags = self.flagged.get(task_id, set())
             checkpoint = book["checkpoint_pending"] or "checkpoint" in flags
-            body = self.episode_for(task_id, book, checkpoint=checkpoint, session_end="session_end" in flags)
+            body = self.episode_for(task_id, book, checkpoint=checkpoint, session_end="session_end" in flags, idle="idle_pause" in flags)
             if body is None:
                 if checkpoint and not book["checkpoint_pending"]:
                     book["checkpoint_pending"] = True
@@ -344,7 +344,10 @@ class Reduction:
         if not ops:
             return
         result = self._apply_episodes(ops)
-        for task_id, ref in zip(planned, [r for r in result.changed_refs if r.kind == "episode"], strict=False):
+        created = [r for r in result.changed_refs if r.kind == "episode"]
+        if len(created) != len(planned):  # one episode per planned task, in order; never pair a task with another's episode
+            raise RecalithError("policy_refused", "typed reduction created a different number of episodes than it planned")
+        for task_id, ref in zip(planned, created, strict=True):
             book = bindings.task_book(self.txn, task_id)
             book.update({"open_from": None, "checkpoint_pending": False, "last_episode_id": ref.id})
             bindings.save_task_book(self.txn, task_id, book)
@@ -358,14 +361,14 @@ class Reduction:
         assert result is not None
         return result
 
-    def episode_for(self, task_id: str, book: dict[str, Any], *, checkpoint: bool, session_end: bool) -> dict[str, Any] | None:
+    def episode_for(self, task_id: str, book: dict[str, Any], *, checkpoint: bool, session_end: bool, idle: bool = False) -> dict[str, Any] | None:
         if book["open_from"] is None:
             return None
         events = open_range(self.txn, task_id, book["open_from"])
         if not events:
             return None
         finished = finished_calls(self.txn, events)
-        decision = episode_segment.decide(episode_segment.range_state(events, finished_calls=finished), checkpoint=checkpoint, session_end=session_end)
+        decision = episode_segment.decide(episode_segment.range_state(events, finished_calls=finished), checkpoint=checkpoint, session_end=session_end, idle=idle)
         if decision is None:
             return None
         current = tasks.head_state(self.txn, task_id)
@@ -441,7 +444,7 @@ def pause_idle_tasks(store: Any, ctx: InstallationContext, config: ProjectConfig
                 paused.append(task_id)
         reduction = Reduction(txn, ctx, config, scope_id=derived_id("op", ["pause", now]), now=now)
         for task_id in paused:
-            reduction.flagged[task_id] = {"checkpoint"}
+            reduction.flagged[task_id] = {"checkpoint", "idle_pause"}
         reduction.checkpoints()
     return paused
 

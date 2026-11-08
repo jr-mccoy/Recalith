@@ -8,7 +8,8 @@ so a proposed claim is a weak candidate until its review passes (or an
 ``observed`` fact whose mapping code verifies).
 
 **When.** Two deterministic triggers schedule it, both inside the
-transaction that establishes them: a *settled* episode with steps (the
+transaction that establishes them: a *settled* episode with steps, or an
+*open* one flushed at the idle pause or the step cap (decision 0044) (the
 attempt boundary of SYSTEM_SPEC §3.5; due after the quiet window so its
 narrative usually lands first), and a *due* failure trigger
 (``controller.triggers``: a failure not fixed within six relevant task events
@@ -167,7 +168,10 @@ def select(view: Any, ctx: InstallationContext, job: Job) -> requests.Selection:
 
 
 def schedule_for_episode(txn: Any, *, episode_ref: RecordRef, now: str) -> str | None:
-    """One extraction per new settled episode, after the quiet window.
+    """One extraction per new settled or open episode, after the quiet window.
+
+    An open episode is a range its task left unresolved when it went quiet (the idle pause), or one flushed at the
+    step cap: its user declarations and its attempt are extracted now rather than never (decision 0044).
 
     A conversation-only episode has no steps when its one request is the
     objective; it is still extracted (decision 0036), and :func:`select`
@@ -175,7 +179,7 @@ def schedule_for_episode(txn: Any, *, episode_ref: RecordRef, now: str) -> str |
     """
     current = records.head(txn, "episode", episode_ref.id)
     body = records.body(txn, "episode", episode_ref.id, episode_ref.revision) if current is not None else None
-    if body is None or body.get("state") != "settled" or not body.get("source_event_ids"):
+    if body is None or body.get("state") not in ("settled", "open") or not body.get("source_event_ids"):
         return None
     due = format_utc(parse_utc(now) + _dt.timedelta(seconds=EXTRACT_DUE_SECONDS))
     key = digest_of(["extract", "episode", episode_ref.id])

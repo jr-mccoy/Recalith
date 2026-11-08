@@ -133,6 +133,11 @@ def worker_report(ctx: InstallationContext, *, now: str) -> dict[str, Any]:
     status = read_worker_status(ctx) if running else None
     out: dict[str, Any] = {"running": running, "state": "stopped", "spawned_by": None, "method": None, "independence": None, "degraded_reasons": [], "heartbeat_age_seconds": None, "last_error": None, "pid": None}
     if not running:
+        last = read_worker_status(ctx)
+        if last is not None and last.get("state") == "crashed":
+            # A worker that died on an unexpected error says so (audit 2026-11-06 CTL-4); the next hook starts a new one.
+            out["degraded_reasons"] = ["worker_crashed"]
+            out["last_error"] = last.get("last_error")
         return out
     out["state"] = "running"
     if status is None:

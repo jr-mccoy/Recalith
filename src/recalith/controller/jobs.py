@@ -21,9 +21,20 @@ DATA_CONTRACTS §8 and SYSTEM_SPEC §6.2. Rules implemented here:
   reservation fits.** :func:`lease_next` checks the purpose's smallest
   possible reservation before leasing; a job that cannot fit is set to
   ``waiting_budget`` with its reason visible in ``last_error_code``. The exact
-  reservation is made after the request is prepared (``budgets.reserve``).
-* **Retry/backoff.** A failed attempt is retried after 1, 5 and 30 minutes;
-  after that the job is ``failed`` until a scheduled or explicit retry.
+  reservation is made after the request is prepared (``budgets.reserve``); a
+  job whose exact reservation does not fit waits with a due time
+  (:func:`wait_budget`), so it is not re-leased and re-prepared every poll and
+  jobs in later bands get their turn (decision 0044).
+* **A lease covers the whole call.** A model lease lasts every allowed round
+  (the initial call and each evidence expansion) plus a margin, and the lane
+  renews it before each round (:func:`renew`), so a slow but healthy job is
+  never fenced out of its own result (decision 0044).
+* **Retry/backoff.** Every lease is an attempt, counted when it is taken; a
+  lease that turns out not to be one (a budget wait, an unavailable provider,
+  a deferral) gives it back. A failed attempt is retried after 1, 5 and 30
+  minutes; after that the job is ``failed`` until a scheduled or explicit
+  retry. A lease that expired under its own worker counts as a failed attempt
+  (:func:`fail_expired`), never as a free retry (decision 0044).
 * **Coalescing.** Equivalent jobs share an idempotency key. An enqueue with
   ``coalesce=True`` cancels older, not-yet-leased jobs of the same kind over
   the same records. Recurring maintenance is scheduled for the *current* slot
@@ -236,7 +247,10 @@ def schedule_housekeeping(txn: Txn, *, now: str, interval_seconds: int = HOUSEKE
 
 
 def lease_seconds(kind: str, config: BudgetConfig) -> int:
-    return config.timeout_seconds + MODEL_LEASE_MARGIN_SECONDS if kind in MODEL_KINDS else DETERMINISTIC_LEASE_SECONDS
+    """A model lease covers the initial call and every allowed evidence-expansion round, plus a margin."""
+    if kind not in MODEL_KINDS:
+        return DETERMINISTIC_LEASE_SECONDS
+    return (config.evidence_expansion_rounds + 1) * config.timeout_seconds + MODEL_LEASE_MARGIN_SECONDS
 
 
 def _candidates(txn: Txn, now: str, kinds: Collection[str]) -> list[Job]:
@@ -286,7 +300,7 @@ def lease_next(
                         "lease_owner": owner,
                         "lease_generation": job.lease_generation + 1,
                         "lease_until": _plus(now, lease_seconds(job.kind, config)),
-                        "attempt": job.attempt if job.kind in MODEL_KINDS else job.attempt + 1,
+                        "attempt": job.attempt + 1,  # every lease is an attempt until a non-attempt gives it back
                         "last_error_code": None if job.last_error_code in (PROVIDER_UNAVAILABLE,) or (job.last_error_code or "").startswith("budget_exhausted") else job.last_error_code,
                     }
                 )
@@ -349,12 +363,11 @@ def supersede(txn: Txn, job: Job, code: str) -> Job:
     return done
 
 
-def count_attempt(txn: Txn, job: Job) -> Job:
-    """A model launch is an attempt (charged even when it fails)."""
-    current = _current(txn, job)
-    current = current.model_copy(update={"attempt": current.attempt + 1})
-    _save(txn, current)
-    return current
+BUDGET_RETRY_SECONDS = 600
+
+
+def _uncounted(current: Job) -> int:
+    return max(current.attempt - 1, 0)
 
 
 def fail(txn: Txn, job: Job, code: str, *, now: str, backoff: Sequence[int]) -> Job:
@@ -370,18 +383,50 @@ def fail(txn: Txn, job: Job, code: str, *, now: str, backoff: Sequence[int]) -> 
     return failed
 
 
-def wait_budget(txn: Txn, job: Job, reason: str) -> Job:
+def next_utc_day(now: str) -> str:
+    moment = parse_utc(now)
+    return format_utc(_dt.datetime(moment.year, moment.month, moment.day, tzinfo=_dt.timezone.utc) + _dt.timedelta(days=1))
+
+
+def wait_budget(txn: Txn, job: Job, reason: str, *, now: str) -> Job:
+    """The exact reservation did not fit: wait without counting an attempt, due again at the earlier of
+    ten minutes from now (released reservations may free capacity) and the next UTC day (the pools reset).
+
+    Until then the job is not a lease candidate, so it is not prepared again every poll and jobs in
+    later bands, protected revalidation included, are leased instead (audit 2026-11-06 CTL-2)."""
     current = _current(txn, job)
-    waiting = current.model_copy(update={"state": "waiting_budget", "lease_owner": None, "lease_until": None, "last_error_code": reason[:64]})
+    due = min(_plus(now, BUDGET_RETRY_SECONDS), next_utc_day(now))
+    waiting = current.model_copy(update={"state": "waiting_budget", "due_at": due, "attempt": _uncounted(current), "lease_owner": None, "lease_until": None, "last_error_code": reason[:64]})
     _save(txn, waiting)
     return waiting
 
 
-def release(txn: Txn, job: Job, *, reason: str | None = None) -> Job:
+def release(txn: Txn, job: Job, *, reason: str | None = None, due_at: str | None = None, uncount: bool = False) -> Job:
+    """Back to ``pending``; ``uncount`` when the lease was not an attempt (an unavailable provider, a deferral)."""
     current = _current(txn, job)
-    released = current.model_copy(update={"state": "pending", "lease_owner": None, "lease_until": None, "last_error_code": reason or current.last_error_code})
+    update: dict[str, Any] = {"state": "pending", "lease_owner": None, "lease_until": None, "last_error_code": reason or current.last_error_code}
+    if due_at is not None:
+        update["due_at"] = due_at
+    if uncount:
+        update["attempt"] = _uncounted(current)
+    released = current.model_copy(update=update)
     _save(txn, released)
     return released
+
+
+def fail_expired(store: Store, job: Job, code: str, *, now: str, backoff: Sequence[int]) -> Job | None:
+    """A lease that expired under its own worker is a failed attempt (audit 2026-11-06 CTL-1).
+
+    :func:`fenced` refuses an expired lease, so without this the job stayed ``leased`` and was simply
+    leased again, from its first round, with no attempt ever failing. This fails it through the ladder
+    when the job still carries this worker's lease (same owner and generation, expired or not); a
+    newer lease taken by someone else is left alone. Returns the failed job, or None when superseded.
+    """
+    with store.transaction() as txn:
+        current = get_job(txn, job.job_id)
+        if current is None or current.state != "leased" or current.lease_generation != job.lease_generation or current.lease_owner != job.lease_owner:
+            return None
+        return fail(txn, current, code, now=now, backoff=backoff)
 
 
 RETRYABLE_STATES = frozenset({"failed"})

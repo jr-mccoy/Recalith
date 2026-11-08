@@ -384,3 +384,47 @@ def test_private_root_is_fresh_and_outside_checkouts(tmp_path):
     with pytest.raises(isolation.PrivateRootError):
         isolation.PrivateRoot(base=str(checkout))
     assert list(checkout.iterdir()) == [checkout / ".git"]  # the refused root was removed
+
+
+def raw_stream(result: dict, *, version="9.9.9") -> bytes:
+    """A stream-json envelope written as Node writes it: U+2028/U+2029/U+0085 stay raw inside strings."""
+    init = {"type": "system", "subtype": "init", "tools": [], "mcp_servers": [], "plugins": [{"name": "builtin-a", "path": "builtin"}], "apiKeySource": SELECTED, "claude_code_version": version, "model": "resolved-model-id"}
+    return ("\n".join(json.dumps(x, ensure_ascii=False) for x in (init, result)) + "\n").encode("utf-8")
+
+
+@pytest.mark.parametrize("separator", [" ", " ", "\u0085"])
+def test_cli_envelope_keeps_a_reply_that_quotes_a_unicode_line_separator(separator):
+    """Audit 2026-11-06 PROV-2: the envelope was split with str.splitlines(), which cuts at these characters, so a
+    reply quoting one failed as envelope_invalid (charged) on every retry."""
+    body = json.dumps({"operations": [], "no_op_reason": f"quoted{separator}text"}, ensure_ascii=False)
+    stdout = raw_stream({"type": "result", "subtype": "success", "is_error": False, "result": body, "usage": {"input_tokens": 4, "output_tokens": 2}})
+    assert separator.encode("utf-8") in stdout  # raw, as the host writes it
+    out, _usage = claude_cli.unwrap(stdout, expect=claude_cli.Expectations(host_version="9.9.9", api_key_source=SELECTED))
+    assert out.decode("utf-8") == body
+
+
+@pytest.mark.parametrize(
+    "text, code, withdraws",
+    [
+        ("Invalid API key · Please run /login", "provider_auth_rejected", True),
+        ("API Error: 401 authentication_error", "provider_auth_rejected", True),
+        ("API Error: 429 rate_limit_error", "provider_rate_limited", False),
+        ("API Error: 529 Overloaded", "provider_overloaded", False),
+        ("Credit balance is too low", "provider_request_rejected", False),
+        ("Something else went wrong", "provider_failed", False),
+    ],
+)
+def test_cli_error_results_name_their_failure_and_an_auth_rejection_withdraws_the_route(tmp_path, text, code, withdraws):
+    """Audit 2026-11-06 PROV-3: every CLI error result became envelope_invalid (or a bare provider_failed on a nonzero
+    exit), so a revoked key looked like a host-format change and never withdrew the route as it does on the API path."""
+    stdout = raw_stream({"type": "result", "subtype": "success", "is_error": True, "result": text})
+    expect = claude_cli.Expectations(host_version="9.9.9", api_key_source=SELECTED)
+    raised = IsolationViolation if withdraws else base.ProviderCallFailed
+    with pytest.raises(raised) as caught:
+        claude_cli.unwrap(stdout, expect=expect)
+    assert caught.value.code == code and claude_cli.failure_code(stdout) == code
+    # The same result after a nonzero exit (how the host usually reports it) names the same code; the backend
+    # withdraws itself on an auth rejection.
+    backend = base.ProviderBackend(config("/bin/true"), inherited=env())
+    result = base.evaluate_outcome(base.LaunchOutcome(stdout=stdout, returncode=1), backend, purpose="update_task", body_cap=body_cap_for("update_task"), estimate=1)
+    assert result.code == code and (backend.unavailable_reason == code) is withdraws

@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev11` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev12` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -39,6 +39,7 @@ No routine memory operation needs a person: nobody approves a queue of memories,
 | Pre-action or compaction path unavailable | Prompt delivery substitutes eligible cautions within one shared 400-token allowance | Pre-action injection | reported only; not a readiness loss |
 | Out-of-band edits (a pull, another editor) | The hook's bounded live dependency check labels affected knowledge `needs_revalidation` and never cautions on it | Cautions that depend on the changed file | `dependency_changed` |
 | Unknown or uncertified host version | Conservative capture with explicit coverage gaps | Delivery and the notice | `uncertified_host_version` |
+| The worker stopped on an unexpected error (decision 0044) | Capture: hooks keep spooling, and the next hook starts a new worker | Ingestion and curation until that restart | `worker_crashed` under recovery; a failing poll step that the worker survives shows as `worker_error` with `poll_error:<step>:<type>` in its status |
 
 A fallback is never promoted to "ready", and an unavailable capability never counts as a passed check.
 

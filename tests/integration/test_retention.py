@@ -159,6 +159,46 @@ def test_unreferenced_payloads_expire_at_180_days(tmp_path):
     assert again.expired == [] and rsn.guidance(p) == before
 
 
+def test_sweep_pages_past_pinned_payloads_and_always_progresses(tmp_path):
+    """Audit 2026-11-06 STO-1: the sweep took its window of oldest age-eligible payloads before excluding pins, so once
+    the window was all pinned nothing expired again and the truncated sweep re-ran every poll. With a window of one,
+    every truncated sweep now expires exactly one unpinned payload, continuing after the last, until none is left."""
+    b = rsn.build(tmp_path)
+    p = b.p
+    day = rsn.day(p, 181)
+    with p.view() as v:
+        pinned = retention.pinned_events(v)
+    unpinned = set(rsn.states(p)) - pinned
+    assert unpinned and pinned
+    swept, resume = [], 0
+    for _ in range(len(unpinned) + 2):
+        report = sweep(p, day, limit=1, resume_after=resume)
+        swept += report.expired
+        if not report.truncated:
+            assert report.resume_after == 0
+            break
+        assert len(report.expired) == 1  # a truncated sweep always makes progress
+        resume = report.resume_after
+    assert set(swept) == unpinned and expired(p, *unpinned) and available(p, *(e for e in pinned if rsn.states(p).get(e)))
+
+
+def test_a_sweep_over_an_all_pinned_store_wraps_instead_of_looping(tmp_path):
+    """The scan is bounded per sweep and resumes where it stopped; past the end it wraps and stops being truncated."""
+    b = rsn.build(tmp_path)
+    p = b.p
+    day = rsn.day(p, 181)
+    with p.view() as v:
+        everything = set(rsn.states(p))  # every payload treated as pinned
+        cursor = retention.owed_cursor(v)
+        position, more, sweeps = 0, True, 0
+        while more:
+            found, position, more = retention._eligible(v, cutoff=retention._minus(day, 180), delivery_cutoff=retention._minus(day, 90), cursor=cursor, limit=1, pinned=everything, after=position, scan_pages=1)
+            assert found == []
+            sweeps += 1
+            assert sweeps <= len(everything) + 1
+    assert position == 0 and sweeps > 1  # it paged through, then wrapped
+
+
 def test_worker_expires_at_day_181_and_republishes(tmp_path):
     """The real worker's retention step at day 181 (a clock ahead of every capture): the same outcome, views follow."""
     b = rsn.build(tmp_path)

@@ -103,21 +103,38 @@ class SessionLock:
             os.makedirs(directory, exist_ok=True)
             if os.name != "nt":
                 os.chmod(directory, 0o700)
-        fd = os.open(self.path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
         give_up = time.monotonic() + max(0.0, wait)
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
         while True:
             try:
                 if _fcntl is not None:
                     _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
                 else:
                     _msvcrt.locking(fd, _msvcrt.LK_NBLCK, 1)
-                self.fd = fd
-                return True
             except OSError:
                 if time.monotonic() >= give_up:
                     os.close(fd)
                     return False
                 time.sleep(_POLL_SECONDS)
+                continue
+            # The lock is ours only if the path still names the file we locked: a pruned lock file leaves an
+            # orphaned inode, and two holders of two inodes would both write scratch (audit 2026-11-06 FP-2).
+            try:
+                same = os.path.samestat(os.fstat(fd), os.stat(self.path))
+            except OSError:
+                same = False
+            if not same:
+                os.close(fd)
+                if time.monotonic() >= give_up:
+                    return False
+                fd = os.open(self.path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
+                continue
+            try:
+                os.utime(self.path)  # a lock in use is never "abandoned" to the 24-hour prune
+            except OSError:
+                pass
+            self.fd = fd
+            return True
 
     def release(self) -> None:
         if self.fd is None:
@@ -304,10 +321,13 @@ def owes_receipts(scratch: dict) -> bool:
 
 
 def prune_abandoned(root, *, now: float | None = None, limit: int = PRUNE_BATCH) -> int:
-    """Delete at most ``limit`` scratch/lock files idle for more than 24 hours.
+    """Delete at most ``limit`` scratch/lock files of sessions idle for more than 24 hours.
 
     Scratch that still owes receipts (and its lock) is kept: the worker's
     retention step settles it through the spool before it goes (Task 15).
+    A session is idle only when *every* file of it is: its lock file is not
+    judged by its own time (a lock in use was never rewritten), and it goes
+    only while this prune holds it (audit 2026-11-06 FP-2).
     """
     directory = sessions_dir(root)
     now = time.time() if now is None else now
@@ -322,16 +342,47 @@ def prune_abandoned(root, *, now: float | None = None, limit: int = PRUNE_BATCH)
             value = read_scratch(root, name[: -len(".json")])
             if value is not None and owes_receipts(value):
                 owed.add(name[: -len(".json")])
+    stems: dict[str, list[str]] = {}
     for name in names:
+        if name.endswith((".json", ".lock")):
+            stems.setdefault(name.rsplit(".", 1)[0], []).append(name)
+    for stem, files in stems.items():
         if removed >= limit:
             break
-        if not name.endswith((".json", ".lock")) or name.rsplit(".", 1)[0] in owed:
+        if stem in owed:
             continue
-        path = os.path.join(directory, name)
         try:
-            if now - os.stat(path).st_mtime > ABANDONED_SECONDS:
-                os.unlink(path)
-                removed += 1
+            if any(now - os.stat(os.path.join(directory, n)).st_mtime <= ABANDONED_SECONDS for n in files):
+                continue  # the session is not idle: one of its files is recent
         except OSError:
             continue
+        lock = SessionLock(root, stem)
+        try:
+            if not lock.acquire(0.0):
+                continue  # a hook holds it: the session is in use after all
+        except OSError:
+            continue
+        lock_name = f"{stem}.lock"
+        try:
+            for name in files:
+                if name != lock_name:
+                    try:
+                        os.unlink(os.path.join(directory, name))
+                        removed += 1
+                    except OSError:
+                        pass
+            if os.name != "nt":
+                try:
+                    os.unlink(lock.path)  # while held: a waiter holding the old inode re-checks the path and reopens
+                    removed += 1
+                except OSError:
+                    pass
+        finally:
+            lock.release()
+        if os.name == "nt":
+            try:
+                os.unlink(lock.path)  # Windows deletes no file another handle holds open, so this cannot orphan a holder
+                removed += 1
+            except OSError:
+                pass
     return removed

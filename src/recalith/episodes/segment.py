@@ -13,6 +13,16 @@ episode, unless that would sever an attempt from its later result or fix:
   session end, where an unanswered call (a denied tool, for example) is
   recorded as unresolved instead of holding the episode forever.
 
+A range still unresolved when its task is **paused for inactivity** (the
+idle pause, 24 hours by default) becomes an ``open`` episode then. A session
+end does not close it, because a resumed session may still bring the fix
+into the same episode (an episode may span sessions); but once the task has
+gone quiet, the user may have given up, or rerun the test under another
+spelling that never resolves the first, and no event would ever settle it
+(audit 2026-11-06 CAP-5). Its failure stays in ``unresolved``; a later fix
+lands in the next episode, which names this one in ``related_episode_ids``
+(decision 0044).
+
 A range with no tool calls stays open until session end, where it settles
 when it holds a user request: a session that only talked still has an
 attempt boundary, and a user's declaration in it is extracted then
@@ -75,8 +85,8 @@ def range_state(events: Sequence[Ev], *, finished_calls: set[str] = frozenset())
     return state
 
 
-def decide(state: RangeState, *, checkpoint: bool, session_end: bool) -> str | None:
-    """``settled``, ``open`` (flushed at the step cap while unresolved) or None (keep the range open)."""
+def decide(state: RangeState, *, checkpoint: bool, session_end: bool, idle: bool = False) -> str | None:
+    """``settled``, ``open`` (flushed at the step cap or the idle pause while unresolved) or None (keep the range open)."""
     if state.tool_steps == 0:
         # A conversation without tool calls settles at session end, so a declaration in it is extracted (decision 0036).
         return "settled" if session_end and state.steps else None
@@ -85,4 +95,6 @@ def decide(state: RangeState, *, checkpoint: bool, session_end: bool) -> str | N
         return "settled" if resolved else "open"
     if checkpoint and resolved:
         return "settled"
+    if idle:
+        return "open"  # the task went quiet unresolved: the attempt is recorded now, its failure stays unresolved (decision 0044)
     return None

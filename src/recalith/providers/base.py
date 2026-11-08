@@ -135,7 +135,9 @@ def _evaluate(outcome: LaunchOutcome, backend: Any, *, purpose: str, body_cap: i
     if outcome.overflowed or len(outcome.stdout) > cap:
         return Evaluation("wire_stdout_oversized", None, None, None)
     if outcome.returncode != 0:
-        return Evaluation("provider_failed", None, None, None)
+        # A host that exits nonzero may still say why in its result event (a revoked key, a rate limit).
+        classify = getattr(backend, "failure_code", None)
+        return Evaluation((classify(outcome.stdout) if classify is not None else None) or "provider_failed", None, None, None)
     try:
         body, usage = backend.unwrap(outcome.stdout)
     except IsolationViolation as exc:
@@ -439,6 +441,14 @@ class ProviderBackend:
         except IsolationViolation as exc:
             self.disable(exc.code)  # the effective launch (or the provider's reply) no longer matches its certification
             raise
+
+    def failure_code(self, stdout: bytes) -> str | None:
+        """The code a failed launch's own output names, if its adapter reads one; an auth rejection withdraws the route."""
+        classify = getattr(self.adapter, "failure_code", None)
+        code = classify(stdout) if classify is not None else None
+        if code == "provider_auth_rejected":
+            self.disable(code)
+        return code
 
 
 # --------------------------------------------------------------------------

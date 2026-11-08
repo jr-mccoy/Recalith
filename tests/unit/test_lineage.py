@@ -557,3 +557,30 @@ def test_replayed_source_event_has_one_root_and_one_effect(tmp_path):
     assert decisions(again) == [("candidate_only", "duplicate_existing")] and again.operation_ids == []
     assert decisions(ls.attach(p, cid, [ls.link(fail)])) == [("apply", "duplicate_evidence")]
     assert ls.claim(p, cid)["revision"] == 1 and len(ls.roots(p, ls.claim(p, cid)["supports"])) == 1
+
+
+def test_lineage_rules_cover_exactly_the_capture_certified_versions():
+    """Audit 2026-11-06 CAP-4: the artifact-snapshot rule applied only to 2.1.301, so on every later certified host two
+    reads of one unchanged file from different working directories counted as two roots. The rules now follow the
+    capture-certified set, and a complete Read classifies identically on each version."""
+    from recalith.contracts.events import EventEnvelope
+    from recalith.core import lineage
+    from recalith.fast import claude_capture
+    from recalith.fast.normalize import RawEvent, normalize_raw
+
+    assert lineage.ADAPTER_LINEAGE["claude_code"].versions == claude_capture.CERTIFIED_VERSIONS
+    ids = {"project_id": "proj_" + "0" * 64, "installation_id": "inst_" + "1" * 64, "workspace_id": "ws_" + "2" * 64}
+
+    def read(version, cwd):
+        body = {"tool_call_id": "toolu_1", "tool_name": "Read", "arguments": {"file_path": "src/a.py"}, "result_received": True, "outcome": "success", "exit_code": None,
+                "result_text": "print(1)\n", "observation": None,
+                "action": {"cwd_path": cwd, "tool": "Read", "action_kind": "read", "executable": None, "argv": None, "paths": ["src/a.py"], "raw_digest": None, "parse_status": "exact", "shell": None}}
+        raw = RawEvent("claude_code", version, f"s:tool:toolu_1:{cwd}", "sess_" + "3" * 64, "s", "tool_finished", body)
+        return EventEnvelope.model_validate(normalize_raw(ids, raw)[0][0])
+
+    for version in sorted(claude_capture.CERTIFIED_VERSIONS):
+        main, sub = read(version, "."), read(version, "src")
+        a, b = lineage.classify(main), lineage.classify(sub)
+        assert a.certified_snapshot and a.descriptor.observation_kind == "artifact_snapshot", version
+        shared = {token for token, _reason in lineage.tokens(main, a)} & {token for token, _reason in lineage.tokens(sub, b)}
+        assert shared, version  # one artifact snapshot: one class, whatever the working directory

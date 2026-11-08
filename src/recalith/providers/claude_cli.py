@@ -22,7 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Sequence
 
-from recalith.providers.errors import IsolationViolation
+from recalith.providers.errors import IsolationViolation, ProviderCallFailed
 
 BACKEND = "claude_cli"
 ENVELOPE = "claude_stream_json"
@@ -101,7 +101,10 @@ def parse_envelope(stdout: bytes) -> tuple[dict[str, Any] | None, dict[str, Any]
     """
     init = None
     results = []
-    for line in stdout.decode("utf-8").splitlines():
+    # Split on b"\n" only: Node's JSON.stringify leaves U+2028, U+2029 and U+0085 raw inside a string, and
+    # str.splitlines() would cut a reply quoting one of them in two (audit 2026-11-06 PROV-2).
+    for raw_line in stdout.split(b"\n"):
+        line = raw_line.decode("utf-8").rstrip("\r")
         if not line.strip():
             continue
         event = json.loads(line, parse_constant=_reject_constant)
@@ -138,12 +141,46 @@ def _int(value: Any) -> int | None:
     return value if type(value) is int and value >= 0 else None
 
 
+# What a host error result says, as a content-free code (the text itself is never kept). An authentication
+# failure withdraws the route, as a 401/403 does on the API path; the rest are charged and backed off.
+_AUTH_ERROR = re.compile(r"(?i)invalid api key|authenticat|unauthori[sz]ed|\b40[13]\b|/login|not logged in|oauth token")
+_CREDIT_ERROR = re.compile(r"(?i)credit balance|billing")
+_RATE_ERROR = re.compile(r"(?i)\b429\b|rate.?limit")
+_OVERLOADED_ERROR = re.compile(r"(?i)\b529\b|overloaded")
+
+
+def error_code(result: dict[str, Any]) -> str:
+    """The failure code of a ``result`` event that is not a success (audit 2026-11-06 PROV-3)."""
+    text = result.get("result") if isinstance(result.get("result"), str) else ""
+    for pattern, code in ((_AUTH_ERROR, "provider_auth_rejected"), (_CREDIT_ERROR, "provider_request_rejected"), (_RATE_ERROR, "provider_rate_limited"), (_OVERLOADED_ERROR, "provider_overloaded")):
+        if pattern.search(text[:2000]):
+            return code
+    return "provider_failed"
+
+
+def failure_code(stdout: bytes) -> str | None:
+    """For a launch that exited nonzero: the code its result event names, or None when there is none to read."""
+    try:
+        _init, result = parse_envelope(stdout)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if result.get("subtype") == "success" and result.get("is_error") is False:
+        return None
+    return error_code(result)
+
+
 def unwrap(stdout: bytes, *, expect: Expectations) -> tuple[bytes, dict[str, Any]]:
-    """Validate the envelope and the per-call isolation diagnostic; return (body bytes, usage)."""
+    """Validate the envelope and the per-call isolation diagnostic; return (body bytes, usage).
+
+    A result event that is not a success is the host reporting a provider failure, not a malformed envelope: an
+    authentication failure withdraws the route, anything else is a charged, backed-off failure with its own code."""
     init, result = parse_envelope(stdout)
     summary = check_init(init, expect)
     if result.get("subtype") != "success" or result.get("is_error") is not False:
-        raise ValueError("result event is not a success")
+        code = error_code(result)
+        if code == "provider_auth_rejected":
+            raise IsolationViolation(code)
+        raise ProviderCallFailed(code)
     body = result.get("result")
     if not isinstance(body, str):
         raise ValueError("result event carries no body string")
@@ -159,4 +196,4 @@ def unwrap(stdout: bytes, *, expect: Expectations) -> tuple[bytes, dict[str, Any
     return body.encode("utf-8"), usage
 
 
-__all__ = ["BACKEND", "ISOLATION_ARGS", "Expectations", "argument_problems", "argv", "parse_version", "parse_envelope", "check_init", "summarize_init", "unwrap"]
+__all__ = ["BACKEND", "ISOLATION_ARGS", "Expectations", "argument_problems", "argv", "parse_version", "parse_envelope", "check_init", "summarize_init", "unwrap", "error_code", "failure_code"]

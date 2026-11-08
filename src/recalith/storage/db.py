@@ -15,6 +15,7 @@ chained row appends its revision-chain entry before it commits
 from __future__ import annotations
 
 import contextlib
+import re
 import sqlite3
 from dataclasses import dataclass
 from importlib import resources
@@ -283,12 +284,30 @@ class Store:
             raise
 
 
+# A read view's PRAGMA must be a read: a named check or listing (arguments allowed), or a value read with no
+# argument at all (``PRAGMA user_version = 99`` and ``PRAGMA user_version(99)`` both write; audit 2026-11-06 STO-3).
+_READ_PRAGMA_CALLS = frozenset({"quick_check", "integrity_check", "foreign_key_check", "foreign_key_list", "table_list", "table_info", "table_xinfo", "index_list", "index_info", "index_xinfo"})
+_READ_PRAGMA_VALUES = frozenset({"user_version", "schema_version", "application_id", "page_count", "page_size", "freelist_count", "data_version", "database_list", "compile_options"})
+_PRAGMA = re.compile(r"\s*PRAGMA\s+(?:main\.)?([a-z_]+)\s*(\([^()=;]*\))?\s*;?\s*$", re.I)
+
+
+def _read_only_sql(sql: str) -> bool:
+    head = sql.lstrip().upper()
+    if head.startswith(("SELECT", "WITH")):
+        return True
+    match = _PRAGMA.match(sql)
+    if match is None:
+        return False
+    name, call = match.group(1).lower(), match.group(2)
+    return name in _READ_PRAGMA_CALLS or (name in _READ_PRAGMA_VALUES and call is None)
+
+
 class _ReadView:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
     def execute(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Cursor:
-        if not sql.lstrip().upper().startswith(("SELECT", "WITH", "PRAGMA")):
+        if not _read_only_sql(sql):
             raise RecalithError("policy_refused", "read views are read-only")
         return self._conn.execute(sql, params)
 

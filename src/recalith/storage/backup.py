@@ -139,7 +139,9 @@ def _replace(source: Path, target: Path) -> None:
 
 
 def _atomic_write(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    from recalith.core.paths import private_mkdir
+
+    private_mkdir(path.parent)  # 0700: journals name staging and destination paths (audit 2026-11-06 STO-4)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.{time.monotonic_ns()}.tmp")
     _write_file(tmp, data)
     for attempt in range(RENAME_RETRIES):
@@ -468,11 +470,52 @@ def holds(path: Path | str, event_ids: set[str], record_ids: set[str]) -> bool |
                 chunk = ids[i : i + 400]
                 if conn.execute(f"SELECT 1 FROM {table} WHERE body IS NOT NULL AND {key} IN ({','.join('?' for _ in chunk)}) LIMIT 1", tuple(chunk)).fetchone():  # noqa: S608
                     return True
-        return False
+        return _bookkeeping_holds(conn, event_ids, record_ids)
     except sqlite3.Error:
         return None
     finally:
         conn.close()
+
+
+def _bookkeeping_holds(conn: sqlite3.Connection, event_ids: set[str], record_ids: set[str]) -> bool:
+    """The places the live purge scrubs besides payloads and bodies (``forget._purge_bookkeeping``), checked the same way.
+
+    A backup taken after the closure's payloads expired and its task and episode bodies aged can still hold the
+    forgotten text in a proposed operation, a proposal body, a source-conflict body or a delivered item; such a
+    backup is affected, and forgetting deletes it (audit 2026-11-06 STO-2). A table an older snapshot lacks is skipped.
+    """
+    from recalith.privacy.forget import _ID, CONTENT_FREE_OPERATIONS
+
+    ids = event_ids | record_ids
+
+    def rows(sql: str) -> list[tuple]:
+        try:
+            return conn.execute(sql).fetchall()
+        except sqlite3.OperationalError:
+            return []  # not in this snapshot's schema
+
+    def names(*texts: str | None) -> bool:
+        return bool(set(_ID.findall("".join(t or "" for t in texts))) & ids)
+
+    creators: set[str] = set()
+    for operation_kind, inputs, changed, local_ref, proposal_id in rows("SELECT kind, inputs, changed, local_ref, proposal_id FROM operations"):
+        if proposal_id is not None and names(changed):
+            creators.add(proposal_id)  # a proposal that wrote a forgotten record holds its text, named or not
+        if operation_kind in CONTENT_FREE_OPERATIONS or local_ref == "@apply":
+            continue
+        if names(inputs, changed) and '"purged":true' not in (inputs or "").replace(" ", ""):
+            return True
+    inputs_of = {job_id: {r.get("id") for r in json.loads(body).get("input_refs") or []} for job_id, body in rows("SELECT job_id, body FROM jobs")}
+    for proposal_id, job_id, body in rows("SELECT proposal_id, job_id, body FROM proposals WHERE body IS NOT NULL"):
+        if proposal_id in creators or inputs_of.get(job_id, set()) & ids or names(body):
+            return True
+    for (original,) in rows("SELECT original_event_id FROM source_conflicts WHERE scrubbed_payload IS NOT NULL"):
+        if original in event_ids:
+            return True
+    for items, receipt, trigger in rows("SELECT items, receipt_event_id, trigger_event_id FROM deliveries"):
+        if names(items) or receipt in event_ids or trigger in event_ids:
+            return True
+    return False
 
 
 def delete_recorded(store: Store, backup_id: str) -> bool:

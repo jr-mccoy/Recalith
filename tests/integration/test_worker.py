@@ -329,6 +329,137 @@ def test_evidence_expansion_rounds_are_charged(root):
     assert [r.job_id for r in reservations(root)].count(endless) == 3 and ws.state(root)["effects"] == {expanding: 1}
 
 
+def test_slow_expansion_rounds_keep_their_lease_and_apply_once(root):
+    """Audit 2026-11-06 CTL-1: three 100 s calls outlasted the 180 s lease, the result was fenced and the job
+    re-leased from round 0, two charged calls per cycle and never failed. The lease now covers every round and
+    is renewed before each, so the job completes on its first lease with exactly three charged calls."""
+    job_id = ws.enqueue_model_job(root, "extract_claims")
+    clock = ws.FakeClock()
+    backend = ws.FakeBackend(lambda purpose, i: outcome(ws.evidence_request_body() if i < 2 else ws.NO_OP_BODY), on_launch=lambda request, purpose: clock.advance(100))
+    w = make_worker(root, backend, clock=clock)
+    assert w.lane.step()
+    row = job_row(root, job_id)
+    assert row.state == "completed" and row.lease_generation == 1 and row.attempt == 1
+    assert w.counters["fenced_results"] == 0 and len(reservations(root)) == 3
+    assert jobs.lease_seconds("extract_claims", BudgetConfig()) >= 3 * BudgetConfig().timeout_seconds
+
+
+def test_a_lease_lost_mid_call_is_a_failed_attempt_not_a_free_rerun(root):
+    """A call that outlives even the whole-call lease is fenced; the job then fails onto the ladder instead of
+    staying leased and being re-run from its first round on the next poll."""
+    job_id = ws.enqueue_model_job(root, "extract_claims")
+    clock = ws.FakeClock()
+    lease = jobs.lease_seconds("extract_claims", BudgetConfig())
+    backend = ws.FakeBackend(lambda purpose, i: outcome(ws.NO_OP_BODY), on_launch=lambda request, purpose: clock.advance(lease + 1))
+    w = make_worker(root, backend, clock=clock)
+    assert w.lane.step()
+    row = job_row(root, job_id)
+    assert row.state == "pending" and row.last_error_code == "lease_expired" and row.attempt == 1
+    assert row.due_at == jobs._plus(clock.now(), 60) and w.counters["lease_expired"] == 1
+    assert w.lane.step() is False  # not due again before its backoff
+
+
+def test_a_near_fit_job_waits_without_starving_protected_revalidation(root):
+    """Audit 2026-11-06 CTL-2: an extraction that passes the lower bound but not its exact reservation was leased and
+    re-prepared every second and, always first in order, blocked a protected revalidation behind it all day."""
+    cfg = config_with(daily_input_estimate=320_000, protected_input_estimate=300_000)  # 20,000 ordinary input estimates
+    extract = ws.enqueue_model_job(root, "extract_claims", key="x")
+    reval = ws.enqueue_model_job(root, "revalidate", key="r")
+    prepared: list[str] = []
+
+    def prepare(store, job, rounds):
+        prepared.append(job.kind)
+        return ws.sized_preparer(90_000 if job.kind == "extract_claims" else 3_000)(store, job, rounds)
+
+    backend = ws.FakeBackend()
+    clock = ws.FakeClock()
+    w = make_worker(root, backend, clock=clock, config=cfg, prepare=prepare)
+    for _ in range(20):
+        w.lane.step()
+        clock.advance(1)
+    row = job_row(root, extract)
+    assert row.state == "waiting_budget" and row.last_error_code.startswith("budget_exhausted") and row.attempt == 0
+    assert prepared.count("extract_claims") == 1  # prepared once per retry window, not every poll
+    assert job_row(root, reval).state == "completed" and [p for p, _ in backend.calls] == ["revalidate"]
+    clock.advance(jobs.BUDGET_RETRY_SECONDS)
+    w.lane.step()
+    assert prepared.count("extract_claims") == 2  # due again ten minutes later
+
+
+def test_waiting_for_budget_is_due_again_by_the_next_utc_day():
+    assert jobs.next_utc_day("2026-11-08T23:55:00.000000Z") == "2026-11-09T00:00:00.000000Z"
+    assert min(jobs._plus("2026-11-08T23:55:00.000000Z", jobs.BUDGET_RETRY_SECONDS), jobs.next_utc_day("2026-11-08T23:55:00.000000Z")) == "2026-11-09T00:00:00.000000Z"
+
+
+def test_a_persistent_prepare_failure_reaches_failed(root):
+    """Audit 2026-11-06 CTL-3: the ladder advanced only after a reservation, so a prepare that always failed was
+    retried every 60 s forever. Every lease is now an attempt: 1, 5 and 30 minutes, then failed."""
+    job_id = ws.enqueue_model_job(root, "extract_claims")
+    clock = ws.FakeClock()
+
+    def prepare(store, job, rounds):
+        raise RecalithError("storage_failure", "a persistent store error")
+
+    w = make_worker(root, ws.FakeBackend(), clock=clock, prepare=prepare)
+    for expected_delay in (60, 300, 1800):
+        assert w.lane.step()
+        row = job_row(root, job_id)
+        assert row.state == "pending" and row.due_at == jobs._plus(clock.now(), expected_delay)
+        clock.advance(expected_delay)
+    assert w.lane.step()
+    row = job_row(root, job_id)
+    assert row.state == "failed" and row.attempt == 4 and row.last_error_code == "storage_failure"
+    assert reservations(root) == []  # nothing was ever reserved or launched
+
+
+def test_a_busy_tasks_narrative_is_deferred_without_counting_attempts(root):
+    from recalith.controller.requests import PrepareDeferred
+
+    job_id = ws.enqueue_model_job(root, "update_task")
+    clock = ws.FakeClock()
+
+    def prepare(store, job, rounds):
+        raise PrepareDeferred("task_active", seconds=300)
+
+    w = make_worker(root, ws.FakeBackend(), clock=clock, prepare=prepare)
+    for _ in range(6):
+        assert w.lane.step()
+        row = job_row(root, job_id)
+        assert row.state == "pending" and row.attempt == 0 and row.last_error_code == "task_active"
+        assert row.due_at == jobs._plus(clock.now(), 300)
+        clock.advance(300)
+
+
+def test_a_bug_in_one_poll_step_neither_kills_the_worker_nor_skips_the_others(root, monkeypatch):
+    """Audit 2026-11-06 CTL-4: a KeyError in the planner escaped tick() and killed the worker, whose status file
+    still said idle; every hook then restarted it into the same bug. Now the step's error is recorded, the
+    later steps still run, and a fatal error leaves ``crashed`` on record, which health reports."""
+    from recalith.controller import planner
+    from recalith.operations import autostart, health
+    from recalith.privacy import retention
+
+    ran: list[str] = []
+    monkeypatch.setattr(planner, "run", lambda *a, **k: (_ for _ in ()).throw(KeyError("a planner bug")))
+    real_retention = retention.run
+    monkeypatch.setattr(retention, "run", lambda *a, **k: (ran.append("retention"), real_retention(*a, **k))[1])
+    w = make_worker(root)
+    w.poll_once()
+    assert w.last_error == "poll_error:planner:KeyError" and ran == ["retention"] and w.state in ("idle", "running")
+    w.write_status()
+    assert worker.read_status(root)["last_error"] == "poll_error:planner:KeyError"
+
+    crashing = make_worker(root)
+    monkeypatch.setattr(crashing, "poll_once", lambda: (_ for _ in ()).throw(MemoryError()))
+    with pytest.raises(MemoryError):
+        crashing.run()
+    status = worker.read_status(root)
+    assert status["state"] == "crashed" and status["last_error"] == "worker_crashed:MemoryError"
+    report = autostart.worker_report(ws.context(root), now=utc_now())
+    assert report["running"] is False and report["degraded_reasons"] == ["worker_crashed"]
+    recovery = health.health(ws.context(root)).capabilities["recovery"]
+    assert "worker_crashed" in recovery.reason_codes
+
+
 # ---------------------------------------------------------------------------
 # Priority (A50)
 

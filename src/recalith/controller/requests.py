@@ -80,14 +80,22 @@ class PrepareFailed(Exception):
 
     ``final`` failures (an input over the cap, a prompt version this build does
     not ship, an input this installation does not hold) are not retried; the
-    others use the normal backoff (``task_active`` defers a busy task's
-    narrative without counting an attempt).
+    others use the normal backoff. A :class:`PrepareDeferred` (``task_active``
+    for a busy task's narrative) is not a failure at all.
     """
 
     def __init__(self, code: str, message: str = "", *, final: bool = False) -> None:
         super().__init__(f"{code}: {message}" if message else code)
         self.code = code[:64]
         self.final = final
+
+
+class PrepareDeferred(PrepareFailed):
+    """Not yet: the lane releases the job, due again in ``seconds``, without counting an attempt (decision 0044)."""
+
+    def __init__(self, code: str, message: str = "", *, seconds: int) -> None:
+        super().__init__(code, message)
+        self.seconds = seconds
 
 
 class NothingToPrepare(PrepareFailed):
@@ -305,7 +313,7 @@ def _select_update_task(view: Any, job: Job, now: str) -> Selection:
     if task is None or task.status not in ("active", "paused"):
         raise NothingToPrepare("narrative_obsolete")
     if parse_utc(task.last_activity_at) > parse_utc(now) - _dt.timedelta(seconds=QUIET_SECONDS):
-        raise PrepareFailed("task_active", "task narrative waits for a quiet task")
+        raise PrepareDeferred("task_active", "task narrative waits for a quiet task", seconds=QUIET_SECONDS)
     sel.task = task
     sel.boundaries = _boundaries(view, task.task_id)
     for boundary in sel.boundaries:

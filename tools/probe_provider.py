@@ -493,7 +493,8 @@ def parse_claude_stream(stdout: bytes, body_cap: int) -> dict[str, Any]:
     before JSON parsing; nothing is clipped to make it fit.
     """
     out: dict[str, Any] = {"envelope_valid": False, "init": None, "result_event": None, "body_bytes": None, "body": None, "errors": []}
-    lines = [ln for ln in stdout.decode("utf-8", "replace").splitlines() if ln.strip()]
+    # b"\n" only, as the production adapter: U+2028/U+2029/U+0085 stay raw inside a JSON string (decision 0044).
+    lines = [ln.decode("utf-8", "replace").rstrip("\r") for ln in stdout.split(b"\n") if ln.strip()]
     results = []
     for ln in lines:
         try:

@@ -83,7 +83,7 @@ import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Collection, Iterable, Sequence
 
 from recalith.contracts.common import EvidenceLink, InstallationContext, RecordRef, canonical_json, derived_id, digest_of, format_utc, parse_utc, utc_now
 from recalith.contracts.config import ProjectConfig, RetentionConfig
@@ -100,6 +100,7 @@ TERMINAL_JOBS = ("completed", "failed", "cancelled")
 DELIVERY_EVENT_KINDS = ("memory_delivered",)
 SWEEP_INTERVAL_SECONDS = 3600
 SWEEP_LIMIT = 4096  # candidates one sweep handles; more stay due for the next poll
+SWEEP_SCAN_PAGES = 16  # one sweep reads at most this many SWEEP_LIMIT-sized pages of age-eligible rows, pinned ones included
 AUDIT_IDS = 256
 STRENGTH_ORDER = {"weak": 0, "supported": 1, "corroborated": 2}
 SCRATCH_IDLE_SECONDS = 24 * 3600
@@ -311,6 +312,7 @@ class Report:
     proposals_trimmed: int = 0
     conflicts_trimmed: int = 0
     truncated: bool = False
+    resume_after: int = 0  # commit sequence the next sweep continues after (0: start over); kept only while truncated
     records_aged: dict[str, int] = field(default_factory=lambda: {"task": 0, "episode": 0})
     compacted: list[str] = field(default_factory=list)  # events now capsule-only (full profile)
     compaction_deferred: dict[str, int] = field(default_factory=dict)  # reason -> pinned payloads kept in full
@@ -323,7 +325,7 @@ class Report:
             "now": self.now, "cutoff": self.cutoff, "delivery_cutoff": self.delivery_cutoff, "expired_count": len(self.expired), "repinned_count": len(self.repinned),
             "pinned_count": self.pinned_count, "owed_count": self.owed_count, "downgraded_count": len(self.downgraded), "deliveries_removed": self.deliveries_removed,
             "outcome_links_removed": self.outcome_links_removed, "proposals_trimmed": self.proposals_trimmed, "conflicts_trimmed": self.conflicts_trimmed,
-            "truncated": self.truncated, "records_aged": dict(self.records_aged), "compacted_count": len(self.compacted),
+            "truncated": self.truncated, "resume_after": self.resume_after, "records_aged": dict(self.records_aged), "compacted_count": len(self.compacted),
             "compaction_deferred": dict(sorted(self.compaction_deferred.items())), "links_redirected": self.links_redirected,
             "summary": self.summary.model_dump(mode="json") if self.summary is not None else None,
         }
@@ -352,29 +354,48 @@ def summary(q: Any, ctx: InstallationContext, *, now: str, config: RetentionConf
 # The sweep
 
 
-def _eligible(q: Any, *, cutoff: str, delivery_cutoff: str, cursor: int, limit: int) -> list[str]:
+def _eligible(q: Any, *, cutoff: str, delivery_cutoff: str, cursor: int, limit: int, pinned: Collection[str] = frozenset(), after: int = 0, scan_pages: int = SWEEP_SCAN_PAGES) -> tuple[list[str], int, bool]:
+    """Age-eligible, *unpinned* candidates in commit order: (up to ``limit`` IDs, resume point, more left).
+
+    Pins are excluded while paging, not after a fixed window: a window taken first could be all pinned, so nothing
+    expired again and the truncated sweep re-ran every poll (audit 2026-11-06 STO-1). At most ``scan_pages`` pages
+    of rows are read per sweep; the resume point lets the next sweep continue there, and wraps to 0 at the end.
+    """
     marks = ",".join("?" for _ in DELIVERY_EVENT_KINDS)
-    rows = q.execute(
-        f"SELECT event_id FROM events WHERE ((payload_state = 'available' AND payload IS NOT NULL) OR payload_state = 'capsule_only') AND commit_sequence <= ? "  # noqa: S608
-        f"AND ((kind IN ({marks}) AND recorded_at < ?) OR (kind NOT IN ({marks}) AND recorded_at < ?)) ORDER BY commit_sequence LIMIT ?",
-        (cursor, *DELIVERY_EVENT_KINDS, delivery_cutoff, *DELIVERY_EVENT_KINDS, cutoff, limit),
-    ).fetchall()
-    return [r[0] for r in rows]
+    out: list[str] = []
+    position = after
+    for _ in range(scan_pages):
+        rows = q.execute(
+            f"SELECT event_id, commit_sequence FROM events WHERE ((payload_state = 'available' AND payload IS NOT NULL) OR payload_state = 'capsule_only') AND commit_sequence <= ? AND commit_sequence > ? "  # noqa: S608
+            f"AND ((kind IN ({marks}) AND recorded_at < ?) OR (kind NOT IN ({marks}) AND recorded_at < ?)) ORDER BY commit_sequence LIMIT ?",
+            (cursor, position, *DELIVERY_EVENT_KINDS, delivery_cutoff, *DELIVERY_EVENT_KINDS, cutoff, limit),
+        ).fetchall()
+        for event_id, sequence in rows:
+            if event_id in pinned:
+                position = sequence
+                continue
+            if len(out) == limit:
+                return out, position, True  # more unpinned candidates: the next sweep continues after the last one taken
+            out.append(event_id)
+            position = sequence
+        if len(rows) < limit:
+            return out, 0, False  # the end: the next sweep starts over
+    return out, position, True  # the scan bound: continue here
 
 
-def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, config: RetentionConfig | None = None, limit: int = SWEEP_LIMIT) -> Report:
-    """One bounded retention pass: expire eligible unpinned payloads, age out delivery metadata and proposal bodies."""
+def sweep(store: Store, ctx: InstallationContext, *, now: str | None = None, config: RetentionConfig | None = None, limit: int = SWEEP_LIMIT, resume_after: int = 0) -> Report:
+    """One bounded retention pass: expire eligible unpinned payloads, age out delivery metadata and proposal bodies.
+
+    ``resume_after`` continues a truncated sweep where it stopped (the previous report's ``resume_after``)."""
     now = now or utc_now()
     config = config or retention_config(ctx)
     report = Report(now=now, cutoff=_minus(now, config.unpinned_event_payload.days), delivery_cutoff=_minus(now, config.delivery_metadata.days))
     # Candidates in a read snapshot (cheap); the pins decided here are only a prefilter.
     with store.read() as view:
         cursor = owed_cursor(view)
-        found = _eligible(view, cutoff=report.cutoff, delivery_cutoff=report.delivery_cutoff, cursor=cursor, limit=limit + 1)
-        report.truncated = len(found) > limit
-        found = found[:limit]
         pinned = pins(view)
         prefilter = pinned.events
+        found, report.resume_after, report.truncated = _eligible(view, cutoff=report.cutoff, delivery_cutoff=report.delivery_cutoff, cursor=cursor, limit=limit, pinned=prefilter, after=resume_after)
         # Aging takes the write lock only when something can age; the transaction recomputes pins and candidates.
         ageing = bool(aging_candidates(view, now, config, pinned.records))
         full = view.execute("SELECT release_profile FROM installation_meta WHERE singleton = 1").fetchone()[0] == "full"
@@ -809,7 +830,10 @@ def run(store: Store, ctx: InstallationContext, config: ProjectConfig, *, now: s
         did["ledger_epoch"] = written["tombstone_epoch"]
     if not _due(swept_at, now):
         return did
-    report = sweep(store, ctx, now=now, config=config.retention)
+    with store.read() as view:
+        previous = last_report(view)["last_sweep"]
+    resume = int(previous.get("resume_after") or 0) if previous.get("truncated") else 0
+    report = sweep(store, ctx, now=now, config=config.retention, resume_after=resume)
     deleted = backup.prune(store, ctx, now=now, days=config.retention.private_backups.days)
     scratch = prune_scratch(store, ctx, config=config.retention)
     data = {**report.as_dict(), "backups_deleted": len(deleted), "scratch": scratch}

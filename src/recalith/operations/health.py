@@ -437,6 +437,8 @@ def health(ctx: InstallationContext, *, inherited: Mapping[str, str] | None = No
             cap.flag("degraded", "worker_error")
         if "worker_status_unavailable" in worker["degraded_reasons"]:
             cap.flag("degraded", "worker_status_unavailable")
+    elif "worker_crashed" in worker["degraded_reasons"]:
+        cap.flag("degraded", "worker_crashed")
     if restore_journaled:
         cap.flag("degraded", "restore_recovery_pending")
     if upgrade_phase is not None:

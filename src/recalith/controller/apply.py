@@ -1051,7 +1051,7 @@ def _apply(run: _Run, response: ModelResponse, read_set: ReadSet | None, *, kind
         if run.revalidate_claims:
             revalidate.enqueue(run.txn, sorted(run.revalidate_claims), now=run.now)
         if run.resolution.review is not None:
-            review.record_outcomes(run.txn, run.resolution.review, response, decisions, now=run.now)
+            review.record_outcomes(run.txn, run.resolution.review, response, decisions, now=run.now, ctx=run.ctx)
         if run.review_queue:
             review.schedule(run.txn, run.ctx, run.review_queue, origin_job_id=run.job.job_id if run.job else None, submission_id=None if run.job else run.scope_id, now=run.now)
             failpoints.hit(failpoints.REVIEW_AFTER_SCHEDULE)

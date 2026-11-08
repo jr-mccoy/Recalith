@@ -55,7 +55,6 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import sys
 import threading
 import time
@@ -64,14 +63,14 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from recalith.capture import pipeline
-from recalith.contracts.common import Actor, InstallationContext, canonical_json, new_id, utc_now
+from recalith.contracts.common import Actor, InstallationContext, canonical_json, format_utc, new_id, parse_utc, utc_now
 from recalith.contracts.config import MODEL_INPUT_CAP, ProjectConfig, estimate_tokens
 from recalith.contracts.jobs import MODEL_JOB_KINDS, Job
 from recalith.contracts.operations import ModelRequest, ModelResponse
 from recalith.controller import apply, budgets, jobs, launch, planner, triggers
 from recalith.privacy import forget, retention
 from recalith.retrieval import compile as projection
-from recalith.controller.requests import NothingToPrepare, PrepareFailed
+from recalith.controller.requests import NothingToPrepare, PrepareDeferred, PrepareFailed
 from recalith.errors import RecalithError
 from recalith.fast import claude_capture, failpoints, process_env, session
 from recalith.storage import spool
@@ -313,7 +312,7 @@ class Worker:
         self._store: Store | None = None
         self._seen_sources: dict[str, tuple] = {}
         self._reported_gaps: set[tuple[str, str]] = set()
-        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "clock_jumps": 0, "errors": 0, "status_write_failures": 0, "checkpoints": 0}
+        self.counters: dict[str, int] = {"polls": 0, "active_polls": 0, "segments": 0, "deterministic_jobs": 0, "model_launches": 0, "fenced_results": 0, "lease_expired": 0, "clock_jumps": 0, "errors": 0, "status_write_failures": 0, "checkpoints": 0}
         self.lane = ModelLane(self) if model is not None else None
         self.state = "starting"
         self.last_error: str | None = None
@@ -360,49 +359,74 @@ class Worker:
     # ---------------------------------------------------------------- one poll
 
     def tick(self) -> bool:
-        """One deterministic poll; True when it found work (the next poll is active)."""
-        worked = False
+        """One deterministic poll; True when it found work (the next poll is active).
+
+        Privacy recovery runs first and a failure there ends the poll (nothing else may read the store
+        before it). Every later step runs on its own: an error in one, of any type, is recorded and the
+        others still run, so a bug in the planner can neither kill the worker nor stop retention or
+        ingestion behind it (audit 2026-11-06 CTL-4). The first error of the poll is reported.
+        """
+        self._poll_errors: list[str] = []
         now = self.clock.now()
-        try:
+
+        def privacy() -> bool:
+            done = False
             if forget.restore_pending(self.ctx.root):
+                if self.lane is not None and self.lane.busy:
+                    # The restore's marker already stops new model launches; the call in flight finishes on its own
+                    # connection first, never closed from this thread under it (audit 2026-11-06 CTL-6).
+                    self._poll_errors.append("restore_waiting_for_model_call")
+                    return False
                 self.close()  # an interrupted restore is finished before this worker reads the store again
-                worked |= bool(forget.recover_restore(self.ctx))
-            worked |= bool(forget.resume(self.store, self.ctx, now=now))  # persisted forget phases before anything else
-            self._mark("forget")
-            worked |= self._recover_sources()
-            self._mark("sources")
-            ready = len(spool.ready_segments(self.dirs))
-            self._segments_seen = ready
-            self._mark("spool_scanned")
-            if ready:
-                result = pipeline.ingest_ready(self.ctx, store=self.store)
-                self.counters["segments"] += ready
-                worked = worked or ready > 0 or bool(result.created_job_ids)
-                self._mark("ingested")
-            with self.store.transaction() as txn:
-                jobs.schedule_housekeeping(txn, now=now)
-            self._mark("housekeeping")
-            worked |= self._run_deterministic()
-            self._mark("deterministic")
-            worked |= bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now))
-            worked |= bool(triggers.sweep(self.store, now=now))
-            self._mark("sweeps")
-            worked |= bool(planner.run(self.store, self.ctx, now=now))
-            self._mark("planner")
-            worked |= bool(projection.refresh_projection(self.store, self.ctx, now=now))
-            self._mark("projection")
-            worked |= bool(retention.run(self.store, self.ctx, self.config, now=now))
-            self._mark("retention")
-            if self.lane is None or not self.lane.available():
-                jobs.mark_provider_unavailable(self.store)
-            self.last_error = None
-        except RecalithError as exc:
-            self.counters["errors"] += 1
-            self.last_error = exc.code
-        except (OSError, ValueError, sqlite3.Error) as exc:  # a poll never kills the worker; the next poll retries
-            self.counters["errors"] += 1
-            self.last_error = f"poll_error:{type(exc).__name__}"[:64]
+                done |= bool(forget.recover_restore(self.ctx))
+            return done | bool(forget.resume(self.store, self.ctx, now=now))  # persisted forget phases before anything else
+
+        worked = self._step("forget", privacy)
+        if self._poll_errors:
+            self._finish_poll()
+            return worked
+        worked |= self._step("sources", self._recover_sources)
+        worked |= self._step("ingested", self._ingest)
+        worked |= self._step("housekeeping", lambda: self._housekeeping(now))
+        worked |= self._step("deterministic", self._run_deterministic)
+        worked |= self._step("sweeps", lambda: bool(working_reducer.pause_idle_tasks(self.store, self.ctx, self.config, now=now)) | bool(triggers.sweep(self.store, now=now)))
+        worked |= self._step("planner", lambda: bool(planner.run(self.store, self.ctx, now=now)))
+        worked |= self._step("projection", lambda: bool(projection.refresh_projection(self.store, self.ctx, now=now)))
+        worked |= self._step("retention", lambda: bool(retention.run(self.store, self.ctx, self.config, now=now)))
+        if self.lane is None or not self.lane.available():
+            self._step("provider", lambda: bool(jobs.mark_provider_unavailable(self.store)))
+        self._finish_poll()
         return worked
+
+    def _step(self, name: str, fn: Callable[[], Any]) -> bool:
+        try:
+            return bool(fn())
+        except RecalithError as exc:
+            self._poll_errors.append(exc.code)
+        except Exception as exc:  # noqa: BLE001 - a poll never kills the worker; the next poll retries the step
+            self._poll_errors.append(f"poll_error:{name}:{type(exc).__name__}"[:64])
+        finally:
+            self._mark(name)
+        self.counters["errors"] += 1
+        return False
+
+    def _finish_poll(self) -> None:
+        self.last_error = self._poll_errors[0] if self._poll_errors else None
+
+    def _ingest(self) -> bool:
+        ready = len(spool.ready_segments(self.dirs))
+        self._segments_seen = ready
+        self._mark("spool_scanned")
+        if not ready:
+            return False
+        result = pipeline.ingest_ready(self.ctx, store=self.store)
+        self.counters["segments"] += ready
+        return ready > 0 or bool(result.created_job_ids)
+
+    def _housekeeping(self, now: str) -> bool:
+        with self.store.transaction() as txn:
+            jobs.schedule_housekeeping(txn, now=now)
+        return False
 
     def _gap_once(self, code: str, reason: str, source_id: str) -> None:
         if (code, source_id) in self._reported_gaps:
@@ -471,7 +495,7 @@ class Worker:
             self.counters["deterministic_jobs"] += 1
         except RecalithError as exc:
             if exc.code == "revision_conflict" and "lease fenced" in exc.message:
-                self.counters["fenced_results"] += 1
+                self._lost_lease(job)
                 return
             self._fail(job, exc.code)
         except Exception as exc:  # noqa: BLE001 - a handler bug fails its job, not the worker
@@ -482,7 +506,16 @@ class Worker:
             with jobs.fenced(self.store, job, now=self.clock.now()) as txn:
                 jobs.fail(txn, job, code, now=self.clock.now(), backoff=self.config.budgets.retry_backoff_seconds)
         except RecalithError:
-            self.counters["fenced_results"] += 1
+            self._lost_lease(job)
+
+    def _lost_lease(self, job: Job) -> None:
+        """A deterministic lease that ran out under its handler is a failed attempt, as in the model lane."""
+        self.counters["fenced_results"] += 1
+        try:
+            if jobs.fail_expired(self.store, job, "lease_expired", now=self.clock.now(), backoff=self.config.budgets.retry_backoff_seconds) is not None:
+                self.counters["lease_expired"] += 1
+        except RecalithError:
+            pass
 
     # ---------------------------------------------------------------- status
 
@@ -706,11 +739,19 @@ class Worker:
             self.write_status()
             if self.lane is not None:
                 self.lane.start()
-            while not self.stop_requested():
-                started = self.clock.monotonic()
-                self.poll_once()
+            try:
+                while not self.stop_requested():
+                    started = self.clock.monotonic()
+                    self.poll_once()
+                    self.write_status()
+                    self._sleep(self.cadence_wait(started))
+            except BaseException as exc:
+                # Never leave "idle" on record for a dead worker (audit 2026-11-06 CTL-4): the status says it crashed
+                # and why (the exception's type only), and health reads that instead of an ageing heartbeat.
+                self.state = "crashed"
+                self.last_error = f"worker_crashed:{type(exc).__name__}"[:64]
                 self.write_status()
-                self._sleep(self.cadence_wait(started))
+                raise
             self.state = "stopping"
             self.write_status()
             if self.lane is not None:
@@ -808,7 +849,7 @@ class ModelLane:
             self._apply(job, response)
         except RecalithError as exc:
             if exc.code == "revision_conflict" and "lease fenced" in exc.message:
-                self.worker.counters["fenced_results"] += 1
+                self._lost_lease(job)
                 return True
             self._fail_quietly(job, exc.code)
             raise
@@ -819,11 +860,21 @@ class ModelLane:
             self.busy = False
         return True
 
+    def _lost_lease(self, job: Job) -> None:
+        """This attempt's lease ran out under it: a failed attempt on the ladder, never a free re-lease from round 0
+        (audit 2026-11-06 CTL-1). A lease superseded by a newer generation is left to its new owner."""
+        self.worker.counters["fenced_results"] += 1
+        try:
+            if jobs.fail_expired(self.store, job, "lease_expired", now=self.now(), backoff=self.config.retry_backoff_seconds) is not None:
+                self.worker.counters["lease_expired"] += 1
+        except RecalithError:
+            pass  # the store is unavailable: the expired lease is re-leased and counted as a new attempt
+
     def _fail_quietly(self, job: Job, code: str) -> None:
         try:
             self._fail(job, code[:64])
         except RecalithError:
-            pass  # already fenced or the store is unavailable: the lease simply expires
+            self._lost_lease(job)  # fenced: the lease expired, or a newer one owns the job
 
     def _fail(self, job: Job, code: str, *, final: bool = False) -> None:
         with jobs.fenced(self.store, job, now=self.now()) as txn:
@@ -832,11 +883,17 @@ class ModelLane:
     def _call(self, job: Job) -> ModelResponse | None:
         rounds: list[ModelResponse] = []
         while True:
+            if rounds:  # each expansion round is another call: the lease must cover it (audit 2026-11-06 CTL-1)
+                job = jobs.renew(self.store, job, now=self.now(), config=self.config)
             try:
                 request = self.runtime.prepare(self.store, job, list(rounds))
             except NothingToPrepare as exc:
                 with jobs.fenced(self.store, job, now=self.now()) as txn:
                     jobs.supersede(txn, job, exc.reason)
+                return None
+            except PrepareDeferred as exc:
+                with jobs.fenced(self.store, job, now=self.now()) as txn:
+                    jobs.release(txn, job, reason=exc.code, due_at=_seconds_after(self.now(), exc.seconds), uncount=True)
                 return None
             except PrepareFailed as exc:
                 self._fail(job, exc.code, final=exc.final)
@@ -854,14 +911,13 @@ class ModelLane:
             estimate = estimate_tokens(len(raw))
             if not self.available():  # disabled by an earlier call: nothing is reserved or launched
                 with jobs.fenced(self.store, job, now=self.now()) as txn:
-                    jobs.release(txn, job, reason=jobs.PROVIDER_UNAVAILABLE)
+                    jobs.release(txn, job, reason=jobs.PROVIDER_UNAVAILABLE, uncount=True)
                 return None
             with jobs.fenced(self.store, job, now=self.now()) as txn:
                 reservation = budgets.reserve(txn, job_id=job.job_id, purpose=job.kind, input_estimate=estimate, now=self.now(), config=self.config)
                 if isinstance(reservation, budgets.Refusal):
-                    jobs.wait_budget(txn, job, reservation.reason)
+                    jobs.wait_budget(txn, job, reservation.reason, now=self.now())
                     return None
-                jobs.count_attempt(txn, job)
             failpoints.hit(failpoints.JOB_AFTER_RESERVE)
             self.worker.counters["model_launches"] += 1
             try:
@@ -904,6 +960,12 @@ class ModelLane:
             self._fail(job, exc.code)
 
 
+def _seconds_after(now: str, seconds: float) -> str:
+    import datetime as _dt
+
+    return format_utc(parse_utc(now) + _dt.timedelta(seconds=seconds))
+
+
 def _project_config(ctx: InstallationContext) -> ProjectConfig:
     from recalith.core.identity import installation_config
 
@@ -940,14 +1002,17 @@ def configured_provider(ctx: InstallationContext, environment: Mapping[str, str]
     provider = ProviderSupervisor(ctx, inherited=environment)
     if provider.backend is None:
         return provider, None
-    return provider, ModelRuntime(backend=provider.backend, prepare=requests.runtime_preparer(ctx))
+    timeout = _project_config(ctx).budgets.timeout_seconds  # the lane launches with this; the request says the same
+    return provider, ModelRuntime(backend=provider.backend, prepare=requests.runtime_preparer(ctx, timeout_seconds=timeout))
 
 
 def request_stop(root: Path | str) -> None:
     """Ask the installation's running worker to stop at its next wait slice."""
     path = Path(process_env.run_dir(root)) / STOP_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"requested_at": utc_now()}), encoding="utf-8")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)  # private, as the status file
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps({"requested_at": utc_now()}))
 
 
 def read_status(root: Path | str) -> dict[str, Any] | None:
@@ -994,6 +1059,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except RecalithError as exc:
         print(f"recalith-worker: {exc.code}", file=sys.stderr)
         return exc.exit_code
+    except Exception as exc:  # noqa: BLE001 - content-free: the type only; the status file already says crashed
+        print(f"recalith-worker: worker_crashed:{type(exc).__name__}", file=sys.stderr)
+        return 5
 
 
 if __name__ == "__main__":

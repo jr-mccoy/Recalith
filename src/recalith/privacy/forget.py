@@ -156,7 +156,9 @@ def _exclusive(ctx: InstallationContext, *, wait: float) -> Iterator[None]:
 def write_marker(ctx: InstallationContext, *, kind: str, operation_id: str) -> None:
     """Pause delivery and model launches: the hook and the model lane check this file (decision 0017)."""
     path = Path(session.maintenance_path(ctx.root))
-    path.parent.mkdir(parents=True, exist_ok=True)
+    from recalith.core.paths import private_mkdir
+
+    private_mkdir(path.parent)  # 0700 (audit 2026-11-06 STO-4)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
     try:
@@ -1097,7 +1099,9 @@ def _ledgers(ctx: InstallationContext, verified: Any) -> tuple[list[dict[str, An
 
 def _write_journal(ctx: InstallationContext, data: dict[str, Any]) -> None:
     path = Path(ctx.root) / RESTORE_JOURNAL
-    path.parent.mkdir(parents=True, exist_ok=True)
+    from recalith.core.paths import private_mkdir
+
+    private_mkdir(path.parent)  # 0700 (audit 2026-11-06 STO-4)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
     try:

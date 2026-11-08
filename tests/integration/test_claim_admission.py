@@ -702,14 +702,43 @@ def test_review_capacity_is_not_a_refutation_and_cannot_loop(p):
     assert adm.outcomes(p, cap) == [("capacity", review.CAPACITY)]
     assert adm.head(p, rej)["status"] == "archived"  # not admitted; asserts no falsity
     assert adm.head(p, mix)["status"] == "candidate" and adm.outcomes(p, mix) == [("refused", "capacity_requires_sole_reject")]
-    # No loop: recording the capacity failure scheduled no further review.
-    assert [j.job_id for j in adm.review_jobs(p, cap)] == [job.job_id]
-    # A later (explicit) re-review sees the candidate without its earlier assessment or objections.
-    with db.open_store(p.ctx) as store, store.transaction() as txn:
-        again, _ = jobs.enqueue(txn, kind="review_claims", input_refs=[osc.head_ref(p.root, "claim", cap)], now=utc_now(), prompt_version=prompts.CURRENT["review_claims"], review_candidates=[jobs.ReviewCandidate(cap, "extracted", "fact")], idempotency=digest_of(new_id("job")))
-    request, _result = adm.run_review(p, again, lambda r: [], no_op_reason="no verdict")
+    # A bounded retry, not a loop (audit 2026-11-06 CTL-5; SYSTEM_SPEC §7.2): the capacity-limited candidate is
+    # reviewed again alone, at its latest revision; the rejected and refused candidates are not.
+    (retry,) = [j for j in adm.review_jobs(p, cap) if j.job_id != job.job_id]
+    assert [r.id for r in retry.input_refs] == [cap] and retry.input_refs[0].revision == capped["revision"]
+    assert [j.job_id for j in adm.review_jobs(p, rej)] == [job.job_id] and [j.job_id for j in adm.review_jobs(p, mix)] == [job.job_id]
+    # The retry sees the candidate without its earlier assessment or objections.
+    request, _result = adm.run_review(p, retry.job_id, lambda r: [], no_op_reason="no verdict")
     assert [c.review_assessment for c in request.claims if c.claim_id == cap] == [None]
     assert review.CAPACITY not in json.dumps([c.model_dump(mode="json") for c in request.claims])
+
+
+def test_unjudged_candidates_are_reviewed_again_at_most_three_times(p):
+    """Audit 2026-11-06 CTL-5: a candidate the reviewer left without a verdict was never reviewed again. It is now
+    re-queued alone, at most REVIEW_RETRY_LIMIT times; then it stays a candidate with ``review_retry_limit``."""
+    fail = fail_mid(p)
+    result = adm.extract(p, [
+        OP("a", "propose_claim", adm.claim("test_mid fails its assertion."), evidence=[adm.link(fail)]),
+        OP("b", "propose_claim", adm.claim("test_mid prints a traceback.", subject="b"), evidence=[adm.link(fail)]),
+    ])
+    a, b = [r.id for r in result.changed_refs if r.kind == "claim"]
+    (job,) = adm.review_jobs(p, a)
+
+    def judge_b_only(request):
+        batch = request.review_batch
+        refs = [r for r in batch.candidate_refs if r.id == b]
+        return [adm.assess(batch, refs[0], "reject", local_ref="b", objections=["The traceback is not shown."])] if refs else []
+
+    adm.run_review(p, job.job_id, judge_b_only, no_op_reason=None)
+    seen = [job.job_id]
+    for _ in range(review.REVIEW_RETRY_LIMIT):
+        (retry,) = [j for j in adm.review_jobs(p, a) if j.job_id not in seen]
+        assert [r.id for r in retry.input_refs] == [a]  # alone in its batch
+        seen.append(retry.job_id)
+        adm.run_review(p, retry.job_id, lambda r: [], no_op_reason="no verdict")
+    assert [j.job_id for j in adm.review_jobs(p, a) if j.job_id not in seen] == []  # the limit holds
+    assert adm.outcomes(p, a)[-1] == ("deferred", "review_retry_limit") and adm.head(p, a)["status"] == "candidate"
+    assert [j.job_id for j in adm.review_jobs(p, b)] == [job.job_id]  # a judged candidate is never retried
 
 
 def test_assessment_is_bound_to_the_snapshot_digest(p):

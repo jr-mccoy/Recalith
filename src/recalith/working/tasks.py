@@ -416,12 +416,25 @@ def continuity_candidates(q: Any, workspace_id: str, *, exclude: Iterable[str], 
     for task_id, revision, status in q.execute("SELECT task_id, revision, status FROM task_heads WHERE workspace_id = ? AND status IN ('active', 'paused') ORDER BY task_id", (workspace_id,)).fetchall():
         if task_id in excluded:
             continue
-        if status == "paused":
-            body = records.body(q, "task", task_id, revision) or {}
-            if (body.get("updated_at") or "") < since:
-                continue
+        if status == "paused" and (paused_at(q, task_id, revision) or "") < since:
+            continue
         out.append(task_id)
     return out
+
+
+def paused_at(q: Any, task_id: str, revision: int) -> str | None:
+    """When the task's current pause began: the time of the earliest revision of its latest unbroken paused run.
+
+    ``updated_at`` is not it: a narrative patch to a task paused days ago refreshes it, which made a long-quiet
+    task look "paused within 24 hours" to the continuity link (audit 2026-11-06 CAP-11). A body-less (aged)
+    revision ends the walk."""
+    first: str | None = None
+    for rev in range(revision, 0, -1):
+        body = records.body(q, "task", task_id, rev)
+        if body is None or body.get("status") != "paused":
+            break
+        first = body.get("updated_at") or first
+    return first
 
 
 def completion_supported(data: dict[str, Any]) -> bool:

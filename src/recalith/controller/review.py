@@ -8,8 +8,10 @@ partitioned in stable proposal order into review jobs of at most eight
 candidates, at most as many as the 9,000-byte review body holds at 768 bytes
 per compact assessment beside the 2,000-byte envelope, and at most the 96 KiB
 serialized request. A candidate too large to review on its own is deferred
-(``review_outcomes``: ``deferred``), never truncated. Recording an assessment
-never schedules another review, so a ``review_capacity`` reject cannot loop.
+(``review_outcomes``: ``deferred``), never truncated. A candidate left without
+a verdict, or rejected with ``review_capacity``, is reviewed again alone, at
+most :data:`REVIEW_RETRY_LIMIT` times, so the retry is bounded and cannot loop
+(decision 0044); no other assessment schedules another review.
 The review priority is code-assigned from the guarded origin and candidate
 kind (``jobs.review_priority_for``); it orders launches, it never admits.
 
@@ -57,6 +59,10 @@ from recalith.errors import RecalithError
 from recalith.storage import records
 
 CAPACITY = "review_capacity"
+# A candidate whose verdict was missing or capacity-limited is reviewed again, alone, at most this many times per
+# claim; then it stays a candidate with a ``review_retry_limit`` outcome (decision 0044; SYSTEM_SPEC §7.2).
+REVIEW_RETRY_LIMIT = 3
+RETRYABLE_OUTCOMES = ("missing", "capacity")
 OUTCOMES = {"review_supported": "admitted", "review_revise": "revise", "review_rejected": "rejected", CAPACITY: "capacity"}
 REJECTED_OUTCOMES = {"assessment_foreign": "foreign", "assessment_duplicate": "duplicate", "candidate_stale": "stale"}
 # Fields of a candidate the reviewer sees; everything else (earlier assessments,
@@ -239,8 +245,11 @@ def partition(view: Any, ctx: InstallationContext, claims: Sequence[ClaimRevisio
     return batches, deferred
 
 
-def schedule(txn: Any, ctx: InstallationContext, queued: Sequence[Queued], *, origin_job_id: str | None, submission_id: str | None, now: str) -> list[str]:
-    """Review jobs for an application's new candidates, in its transaction; returns created job IDs."""
+def schedule(txn: Any, ctx: InstallationContext, queued: Sequence[Queued], *, origin_job_id: str | None, submission_id: str | None, now: str, retry_of: str | None = None) -> list[str]:
+    """Review jobs for an application's new candidates, in its transaction; returns created job IDs.
+
+    ``retry_of`` names the review job whose verdict for these candidates was missing or capacity-limited; it
+    keeps the original provenance and makes the retry's idempotency key its own."""
     latest: dict[str, Queued] = {}
     for item in queued:
         latest[item.ref.id] = item
@@ -265,7 +274,7 @@ def schedule(txn: Any, ctx: InstallationContext, queued: Sequence[Queued], *, or
         refs = [records.ref_of(c) for c in batch]
         candidates = [jobs.ReviewCandidate(claim_id=c.claim_id, origin=by_id[c.claim_id].origin, claim_kind=c.kind, direct_user_evidence=c.basis == "user_declared") for c in batch]
         origin = next((q.origin for q in (by_id[c.claim_id] for c in batch) if q.origin != "extracted"), "extracted")
-        key = digest_of(["review", origin_job_id, submission_id, index, [r.model_dump(mode="json") for r in refs]])
+        key = digest_of(["review", origin_job_id, submission_id, index, [r.model_dump(mode="json") for r in refs], *([["retry_of", retry_of]] if retry_of else [])])
         job_id, new = jobs.enqueue(txn, kind="review_claims", input_refs=refs, now=now, prompt_version=prompts.CURRENT["review_claims"], review_candidates=candidates, idempotency=key)
         if new:
             txn.execute(
@@ -359,7 +368,7 @@ def record_outcome(txn: Any, *, claim_id: str, revision: int, batch_id: str | No
     )
 
 
-def record_outcomes(txn: Any, scope: ReviewScope, response: ModelResponse, decisions: Sequence[AdmissionDecision], *, now: str) -> None:
+def record_outcomes(txn: Any, scope: ReviewScope, response: ModelResponse, decisions: Sequence[AdmissionDecision], *, now: str, ctx: InstallationContext | None = None) -> None:
     """One exact outcome per assessment, and ``missing`` for every batch candidate no assessment named."""
     by_ref = {d.local_ref: d for d in decisions}
     named: set[tuple[str, int]] = set()
@@ -382,6 +391,40 @@ def record_outcomes(txn: Any, scope: ReviewScope, response: ModelResponse, decis
     for ref in batch.candidate_refs:
         if (ref.id, ref.revision) not in named:
             record_outcome(txn, claim_id=ref.id, revision=ref.revision, batch_id=batch.batch_id, review_job_id=scope.job.job_id, outcome="missing", reason="verdict_missing", now=now, key="missing")
+    if ctx is not None:
+        _retry_unjudged(txn, ctx, scope, now=now)
+
+
+def _retry_unjudged(txn: Any, ctx: InstallationContext, scope: ReviewScope, *, now: str) -> None:
+    """Review again a candidate this batch left unjudged: its verdict was missing, or a ``review_capacity`` reject
+    (audit 2026-11-06 CTL-5; SYSTEM_SPEC §7.2 "retries follow the existing bounded retry policy").
+
+    Each goes alone into its own batch, so it has the whole response budget, at most :data:`REVIEW_RETRY_LIMIT`
+    times per claim; after that it stays a candidate with a ``review_retry_limit`` outcome. A candidate whose head
+    was written by anything but this review's own verdict is left alone: that revision has its own review. ``revise`` is not retried: its
+    objections stand until a changed proposition is resubmitted (decision 0011).
+    """
+    job_id = scope.job.job_id
+    origin_job_id, origin = origin_of(txn, job_id)
+    marks = ",".join("?" for _ in RETRYABLE_OUTCOMES)
+    for ref in scope.batch.candidate_refs:
+        mine = txn.execute(f"SELECT 1 FROM review_outcomes WHERE claim_id = ? AND claim_revision = ? AND review_job_id = ? AND outcome IN ({marks})", (ref.id, ref.revision, job_id, *RETRYABLE_OUTCOMES)).fetchone()  # noqa: S608
+        if mine is None:
+            continue
+        head = records.head(txn, "claim", ref.id)
+        if head is None or head[1] != "candidate":
+            continue
+        claim = records.load(txn, "claim", ref.id, head[0])
+        # The reviewed revision, or the one this review's own capacity verdict wrote; a revision written by
+        # anything else has its own review.
+        if claim is None or not (head[0] == ref.revision or (claim.review_assessment is not None and claim.review_assessment.review_job_id == job_id)):
+            continue
+        (count,) = txn.execute(f"SELECT COUNT(*) FROM review_outcomes WHERE claim_id = ? AND outcome IN ({marks})", (ref.id, *RETRYABLE_OUTCOMES)).fetchone()  # noqa: S608
+        if count > REVIEW_RETRY_LIMIT:
+            record_outcome(txn, claim_id=ref.id, revision=claim.revision, batch_id=scope.batch.batch_id, review_job_id=job_id, outcome="deferred", reason="review_retry_limit", now=now, key="retry_limit")
+            continue
+        queued = Queued(ref=records.ref_of(claim), claim_kind=claim.kind, basis=claim.basis, origin=origin or "extracted")
+        schedule(txn, ctx, [queued], origin_job_id=origin_job_id, submission_id=None, now=now, retry_of=job_id)
 
 
 def outcomes(view: Any, claim_id: str) -> list[dict[str, Any]]:

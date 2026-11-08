@@ -228,3 +228,37 @@ def test_a_session_without_tool_calls_settles_at_session_end(tmp_path):
     with p.view() as v:
         kinds = sorted(r[0] for r in v.execute("SELECT kind FROM jobs WHERE kind IN ('extract_claims', 'build_episode', 'update_task')").fetchall())
     assert kinds == ["extract_claims", "update_task"]  # no narrative of zero steps; the declaration is extracted
+
+
+
+def test_a_task_that_goes_quiet_unresolved_is_an_open_episode_and_is_extracted(tmp_path):
+    """Audit 2026-11-06 CAP-5: a range with an unresolved failing test never became an episode unless 64 steps
+    followed, so an abandoned attempt (and any declaration in it) was never extracted. A session end still keeps
+    the range open, since a resumed session may bring the fix into the same episode; the idle pause now records it
+    as an open episode with its extraction scheduled.
+
+    Synthetic variant: the real failing ``test_mid`` call; the pause is run 25 hours after the last activity.
+    """
+    from recalith.contracts.common import format_utc, parse_utc
+    from recalith.core import identity
+    from recalith.storage import db
+    from recalith.working import reducer
+    import datetime as _dt
+
+    p = wks.Project(tmp_path)
+    p.send(record("lifecycle", "SessionStart"))
+    p.send(record("lifecycle", "UserPromptSubmit"))
+    p.send_all(call("toolu_probe_0003", post="PostToolUseFailure"))
+    p.send(record("lifecycle", "SessionEnd"))
+    p.drain()
+    tid = task_id(p)
+    assert p.episodes(tid) == []  # a session end keeps it open: a resumed session may still bring the fix
+    later = format_utc(parse_utc(p.task(tid)["last_activity_at"]) + _dt.timedelta(hours=25))
+    with db.open_store(p.ctx) as store:
+        assert reducer.pause_idle_tasks(store, p.ctx, identity.installation_config(p.root), now=later) == [tid]
+    [first] = p.episodes(tid)
+    assert first["state"] == "open" and [u["text"] for u in first["unresolved"]] == ["Bash `pytest -q test_mid.py` still fails (exit 1)"]
+    with p.view() as v:
+        extractions = [r[0] for r in v.execute("SELECT body FROM jobs WHERE kind = 'extract_claims'").fetchall()]
+    assert any(first["episode_id"] in body for body in extractions)
+    assert episode_segment.decide(episode_segment.RangeState(steps=2, tool_steps=2, unresolved={"sig": None}), checkpoint=True, session_end=True) is None

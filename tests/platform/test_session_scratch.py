@@ -248,3 +248,80 @@ def test_receipts_owed_are_respooled_and_settled_before_discard(built, tmp_path)
     ds.ingest(p)
     assert [r["state"] for r in ds.deliveries(p, p.sid(host))] == ["uncertain"]
     assert ds.accounting(p, p.sid(host))["charged"] > 0 and ds.accounting(p, p.sid(host))["emitted"] == 0
+
+
+SESSION = "sess_99999999-9999-4999-8999-999999999999"
+
+
+def test_a_lock_in_use_is_never_pruned_and_a_reopened_lock_is_the_live_file(tmp_path):
+    """Audit 2026-11-06 FP-2: acquiring never refreshed the lock file's time, so after 24 hours the prune deleted the
+    lock of a live session and a second hook locked a new inode while the first still held the old one."""
+    import os
+
+    root = tmp_path
+    lock = session.SessionLock(root, SESSION)
+    assert lock.acquire(0.02)
+    lock.release()
+    old = time.time() - 2 * session.ABANDONED_SECONDS
+    os.utime(lock.path, (old, old))
+    assert lock.acquire(0.02)  # a live hook takes it again: the file is fresh now
+    try:
+        assert time.time() - os.stat(lock.path).st_mtime < session.ABANDONED_SECONDS
+        assert session.prune_abandoned(root) == 0 and os.path.exists(lock.path)
+        assert session.SessionLock(root, SESSION).acquire(0.0) is False  # still exclusive
+    finally:
+        lock.release()
+
+
+def test_an_idle_session_is_pruned_whole_but_a_held_lock_is_kept(tmp_path):
+    import os
+
+    root = tmp_path
+    lock = session.SessionLock(root, SESSION)
+    assert lock.acquire(0.02)  # creates the sessions directory
+    lock.release()
+    session.write(root, session.empty_scratch(SESSION, 1))
+    old = time.time() - 2 * session.ABANDONED_SECONDS
+    scratch = session.scratch_path(root, SESSION)
+    os.utime(scratch, None)  # recent scratch, ancient lock: the session is not idle
+    os.utime(lock.path, (old, old))
+    assert session.prune_abandoned(root) == 0 and os.path.exists(lock.path)
+    os.utime(scratch, (old, old))  # now every file is idle
+    holder = session.SessionLock(root, SESSION)
+    assert holder.acquire(0.02)
+    os.utime(lock.path, (old, old))
+    try:
+        assert session.prune_abandoned(root) == 0
+        assert os.path.exists(lock.path) and os.path.exists(scratch)  # held: the whole session is kept even though idle
+    finally:
+        holder.release()
+    os.utime(lock.path, (old, old))
+    os.utime(scratch, (old, old))
+    assert session.prune_abandoned(root) == 2 and not os.path.exists(lock.path) and not os.path.exists(scratch)
+
+
+def test_acquire_rechecks_that_the_path_still_names_the_locked_file(tmp_path, monkeypatch):
+    """A waiter that locked an inode which was unlinked meanwhile reopens the path instead of holding an orphan."""
+    import os
+
+    root = tmp_path
+    first = session.SessionLock(root, SESSION)
+    assert first.acquire(0.02)
+    first.release()
+    real_flock_ok = session.SessionLock.acquire
+    unlinked = {"done": False}
+    real_fstat = os.fstat
+
+    def fstat_after_unlink(fd):
+        if not unlinked["done"]:
+            unlinked["done"] = True
+            os.unlink(first.path)  # pruned between the open and the identity check
+        return real_fstat(fd)
+
+    monkeypatch.setattr(os, "fstat", fstat_after_unlink)
+    second = session.SessionLock(root, SESSION)
+    assert real_flock_ok(second, 0.5)
+    try:
+        assert os.path.samestat(real_fstat(second.fd), os.stat(second.path))  # holds the live file, not the orphan
+    finally:
+        second.release()

@@ -98,10 +98,15 @@ class AdapterLineage:
 
 # Claude Code 2.1.301 (decision 0005; the real ``subagent`` fixture): a ``Task``/
 # ``Agent`` result names ``agentId`` and the subagent's own tool events carry
-# ``extensions.claude_code.agent_id``.
+# ``extensions.claude_code.agent_id``. Every later capture-certified version was
+# reviewed field by field against it (decisions 0019, 0020, 0027, 0029), so the
+# rules apply to exactly the capture-certified set (``fast.claude_capture.
+# CERTIFIED_VERSIONS``; a test keeps the two equal, and this layer imports no
+# host adapter). Pinning 2.1.301 alone made a repeated read of one unchanged file
+# count as two roots on every current host (audit 2026-11-06 CAP-4, decision 0044).
 ADAPTER_LINEAGE: dict[str, AdapterLineage] = {
     "claude_code": AdapterLineage(
-        versions=frozenset({"2.1.301"}),
+        versions=frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310"}),
         artifact_tools=frozenset({"Read"}),
         forwarding_tools=frozenset({"Agent", "Task"}),
         agent_extension_key="agent_id",

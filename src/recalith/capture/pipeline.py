@@ -186,7 +186,15 @@ def recover_source(ctx: InstallationContext, source_id: str, parse_line: sources
     for code, count in tail.gaps.items():
         spool.record_gap(dirs, code=code, reason="source_coverage", event_count=count, at=utc_now(), source_ids=[source_id])
     if tail.events:
-        return capture(ctx, tail.events, cursor_proposals=[{"source_id": source_id, "cursor": tail.cursor}]), tail
+        receipt = capture(ctx, tail.events, cursor_proposals=[{"source_id": source_id, "cursor": tail.cursor}])
+        if receipt.status == "not_captured" and receipt.error_code in ("policy_refused", "invalid_schema") and (receipt.coverage or {}).get("rejected"):
+            # Every event of the tail was examined and refused: nothing will ever make them capturable, so the cursor
+            # moves past them and the refusal is a recorded gap, instead of re-reading the same tail every poll
+            # (audit 2026-11-06 CAP-13). An I/O failure keeps the cursor: that tail is retried.
+            rejected = sum((receipt.coverage or {}).get("rejected", {}).values())
+            spool.record_gap(dirs, code="source_events_refused", reason=receipt.error_code, event_count=rejected, at=utc_now(), source_ids=[source_id])
+            spool.write_cursor(dirs, source_id, tail.cursor)
+        return receipt, tail
     if tail.advanced:
         spool.write_cursor(dirs, source_id, tail.cursor)  # only skipped/blank records: nothing to publish
     return None, tail

@@ -429,6 +429,40 @@ def test_failed_post_forget_backup_still_deletes_affected_backups(tmp_path):
     assert states[affected.manifest.artifact_id] == "deleted" and states[b.early.manifest.artifact_id] == "verified"
 
 
+def test_a_backup_holding_forgotten_text_only_in_bookkeeping_is_affected(tmp_path):
+    """Audit 2026-11-06 STO-2: ``holds()`` looked only at payloads, capsules and revision bodies. A backup taken after
+    the closure's payloads expired and its bodies aged still holds the forgotten text in proposed operations,
+    proposal bodies and delivered items, exactly where the live purge scrubs; it is now treated as affected."""
+    import shutil
+    import sqlite3
+
+    b = fs.build(tmp_path)
+    made = backup.create(b.p.ctx, tmp_path / "made")
+    aged = tmp_path / "aged"
+    shutil.copytree(made.location, aged)
+    snapshot = aged / "memory.sqlite"
+    conn = sqlite3.connect(snapshot)
+    with conn:  # what expiry and body aging leave: no payload, capsule or revision body anywhere
+        conn.execute("UPDATE events SET payload = NULL")
+        for table in ("claim_revisions", "task_revisions", "episode_revisions"):
+            conn.execute(f"UPDATE {table} SET body = NULL")  # noqa: S608 - fixed names
+    conn.close()
+    events = {b.events["said"], b.events["echo"], b.events["echo_start"]}
+    records = {b.claims["decl"], b.claims["derived"], b.tasks["forgotten"], b.episode}
+    assert fs.marker_locations(tmp_path, aged) != []  # the text is still there, outside payloads and bodies
+    assert backup.holds(snapshot, events, records) is True
+    conn = sqlite3.connect(snapshot)
+    with conn:  # and once the bookkeeping is scrubbed as the purge scrubs it, it holds nothing of the closure
+        conn.execute("""UPDATE operations SET inputs = '{"kind":"x","purged":true}', changed = '[]' WHERE local_ref IS NOT '@apply'""")
+        conn.execute("UPDATE operations SET changed = '[]', proposal_id = NULL")
+        conn.execute("UPDATE proposals SET body = NULL")
+        conn.execute("UPDATE source_conflicts SET scrubbed_payload = NULL")
+        conn.execute("DELETE FROM deliveries")
+        conn.execute("UPDATE jobs SET body = json_set(body, '$.input_refs', json('[]'))")
+    conn.close()
+    assert backup.holds(snapshot, events, records) is False
+
+
 def test_post_forget_backup_verifies_before_old_ones_are_deleted(tmp_path):
     """A64 success order: at the moment affected backups start to go, the new backup is already recorded and verifies."""
     b = fs.build(tmp_path, deliver=False)
