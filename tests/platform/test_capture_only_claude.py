@@ -30,7 +30,7 @@ from recalith.contracts.common import canonical_json as strict_canonical
 from recalith.contracts.context import SessionScratch
 from recalith.contracts.events import CaptureReceipt, EventEnvelope, Segment
 from recalith.core import identity
-from recalith.fast import claude_capture, entry, failpoints, session, spool, wire
+from recalith.fast import claude_capture, delivery, entry, failpoints, session, spool, wire
 from recalith.fast.normalize import normalize_raw
 from recalith.storage import db
 from recalith.storage.repository import event_from_row
@@ -178,6 +178,41 @@ def test_secret_prompt_is_scrubbed_before_any_byte_is_written(replay, tmp_path):
     assert SECRET_FRAGMENT not in prompt.payload["text"] and prompt.coverage.redacted
     store_bytes = b"".join(p.read_bytes() for p in (replay.root / ".recalith" / "state").glob("memory.sqlite*"))
     assert SECRET_FRAGMENT.encode() not in store_bytes
+
+
+SPLIT_SECRET_COMMANDS = {
+    "mytool --password Spl1tSecretA --host db": "Spl1tSecretA",
+    "deploy --api-key Spl1tSecretB --region eu": "Spl1tSecretB",
+    "release --token Spl1tSecretC": "Spl1tSecretC",
+    "curl -u alice:Spl1tSecretD https://example.invalid": "Spl1tSecretD",
+    "mysql -u root -pSpl1tSecretE app": "Spl1tSecretE",
+}
+
+
+def test_split_command_secrets_never_reach_spool_scratch_store_or_overlay(replay):
+    """Audit 2026-11-06 FP-1 (A34): a secret passed as its own argument is scrubbed from ``action.argv``
+    too, in a fresh ``-I`` hook process, before any byte is written; the overlay text the next delivery
+    renders from scratch and the stored event hold only the marker."""
+    failure = next(r for r in cf.records("lifecycle") if r["event"] == "PostToolUseFailure")
+    for i, command in enumerate(SPLIT_SECRET_COMMANDS):
+        record = json.loads(json.dumps(failure))
+        record["payload"]["tool_use_id"] = f"toolu_split_{i:02d}"
+        record["payload"]["tool_input"] = {"command": command}
+        proc, _ = cf.run_hook(replay.root, replay.prepare(record), event=record["event"])
+        assert proc.returncode == 0
+    secrets = [s.encode() for s in SPLIT_SECRET_COMMANDS.values()]
+    segments = [json.loads(p.read_text(encoding="utf-8")) for p in spool.ready_segments(spool.SpoolDirs(replay.root))]
+    actions = [env["payload"]["action"] for seg in segments for env in seg["envelopes"]]
+    assert len(actions) == len(SPLIT_SECRET_COMMANDS) and all(a["parse_status"] == "exact" for a in actions)
+    assert all(any("[REDACTED:" in arg for arg in a["argv"]) for a in actions)
+    private = b"".join(p.read_bytes() for d in ("spool", "run") for p in (replay.root / ".recalith" / d).rglob("*") if p.is_file())
+    assert not [s for s in secrets if s in private]
+    session_id = segments[0]["envelopes"][0]["session_id"]
+    overlay = [delivery._outcome_text(o) for o in session.read_scratch(replay.root, session_id)["outcomes"]]
+    assert overlay and not [s for s in SPLIT_SECRET_COMMANDS.values() if any(s in text for text in overlay)]
+    pipeline.ingest_ready(replay.ctx)
+    store_bytes = b"".join(p.read_bytes() for p in (replay.root / ".recalith" / "state").glob("memory.sqlite*"))
+    assert not [s for s in secrets if s in store_bytes]
 
 
 def test_duplicate_and_changed_host_events(replay, tmp_path):

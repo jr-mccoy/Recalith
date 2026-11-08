@@ -229,6 +229,38 @@ def test_large_message_is_partitioned_with_original_offsets(tmp_path):
     assert rebuilt == text and len({e.event_id for e in envelopes}) == len(envelopes)
 
 
+ESCAPE_HEAVY = {
+    "minified_json": '{"k":"v","key2":"value2","a":"b"},' * 3100,
+    "windows_paths": "C:\\Users\\x\\proj\\src\\mod\\file.py:12 \"quoted\"\n" * 2400,
+    "ansi_output": "\x1b[31mERROR\x1b[0m line of output here\n" * 2900,
+    "control_characters": "\x01\x02\x03\x04\x05\x06\x07\x08" * 12000,
+}
+
+
+@pytest.mark.parametrize("label", sorted(ESCAPE_HEAVY))
+def test_escape_heavy_messages_partition_into_valid_parts_on_both_paths(tmp_path, label):
+    """Audit 2026-11-06 CAP-1: parts used to be cut at 48 KiB of raw UTF-8 while the cap is on canonical JSON,
+    so quote-, backslash- and control-heavy pastes produced parts over 64 KiB and the message was lost."""
+    from recalith.fast import wire
+    from recalith.fast.normalize import normalize_raw
+
+    text = ESCAPE_HEAVY[label]
+    raw = RawEvent(adapter_id=f.ADAPTER, adapter_version="1", source_event_key="paste", session_id=f.SESSION, host_session_id="h", kind="user_message", payload={"text": text})
+    envelopes, notes = normalize_event(ctx(tmp_path), raw)  # the worker path: strict models, raises on any invalid part
+    assert len(envelopes) >= 2 and notes.warnings["message_partitioned"] == len(envelopes)
+    assert "".join(e.payload["text"] for e in envelopes) == text
+    for index, env in enumerate(envelopes):
+        part = env.payload["text_part"]
+        assert part["index"] == index and part["count"] == len(envelopes)
+        assert text[part["original_start"] : part["original_end"]] == env.payload["text"]
+        assert len(canonical_json(env.payload)) <= EVENT_PAYLOAD_CAP
+    c = ctx(tmp_path)
+    ids = {"project_id": c.project_id, "installation_id": c.installation_id, "workspace_id": c.workspace_id}
+    fast_envelopes, _ = normalize_raw(ids, raw)  # the hook path: the generated wire validator
+    assert len(fast_envelopes) == len(envelopes)
+    assert all(wire.validate("EventEnvelope", env)[0] == [] for env in fast_envelopes)
+
+
 def test_normalization_is_deterministic_for_duplicate_detection(tmp_path):
     a, _ = one(tmp_path, tool_raw(text="x" * 50000 + "\n=== 1 failed in 1.0s ==="))
     b, _ = one(tmp_path, tool_raw(text="x" * 50000 + "\n=== 1 failed in 1.0s ==="))

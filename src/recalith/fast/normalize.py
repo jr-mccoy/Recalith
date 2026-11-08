@@ -350,13 +350,28 @@ def normalize_tool_payload(kind: str, raw: Mapping[str, Any], notes: Notes) -> d
 # Events
 
 
+# The largest text_part a message can carry, so a part is sized with its own metadata included.
+_PART_SIZING = {"source_field": "text", "index": 10**9, "count": 10**9, "original_start": 10**15, "original_end": 10**15}
+
+
 def _partition(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    """Split an oversized message ``text`` into parts with original offsets."""
+    """Split an oversized message ``text`` into parts with original offsets.
+
+    A part is sized by its canonical JSON, the form the 64 KiB cap is enforced on: quotes, backslashes and
+    control characters expand there (``\\"``, ``\\\\``, ``\\u001b``), so a part cut at 48 KiB of raw UTF-8 can
+    exceed the cap and be refused (audit 2026-11-06 CAP-1). 48 KiB of raw text stays the upper bound.
+    """
     text = payload["text"]
     rest = {k: v for k, v in payload.items() if k != "text"}
     parts, start, data = [], 0, text
     while data:
         chunk_chars = len(data.encode("utf-8")[:MESSAGE_PART_BYTES].decode("utf-8", errors="ignore"))
+        while chunk_chars > 1:
+            size = len(canonical_json(dict(rest, text=data[:chunk_chars], text_part=_PART_SIZING)))
+            if size <= EVENT_PAYLOAD_CAP:
+                break
+            # Shrink in proportion to the overshoot, and always by at least one code point.
+            chunk_chars = max(1, min(chunk_chars - 1, chunk_chars * EVENT_PAYLOAD_CAP // size - 64))
         parts.append((start, data[:chunk_chars]))
         start += chunk_chars
         data = data[chunk_chars:]

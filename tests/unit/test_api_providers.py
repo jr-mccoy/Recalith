@@ -434,17 +434,42 @@ def test_tls_handshake_against_a_plaintext_server_fails():
     assert result.response is None and result.code in {"tls_handshake_failed", "tls_verification_failed", "endpoint_unreachable"}, result.code
 
 
-def test_proxy_settings_reach_the_child_only_when_named():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        dead = s.getsockname()[1]
-    proxy = f"http://127.0.0.1:{dead}"
-    with fas.FakeProvider("ok") as fake:
+def test_a_loopback_endpoint_never_leaves_the_machine_through_a_proxy():
+    """Audit 2026-11-06 PROV-1: a named HTTP_PROXY used to receive a loopback plain-http request, its body and
+    its bearer key. Now the request reaches the loopback endpoint and the (live) proxy sees nothing."""
+    with fas.FakeProvider("ok") as proxy, fas.FakeProvider("ok") as fake:
+        names = ["HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"]
+        values = {n: proxy.url("") for n in names}
         url = fake.url("/v1/chat/completions")
-        _b, _raw, _o, direct = call(api_config("openai_compatible", url), env(HTTP_PROXY=proxy, http_proxy=proxy))
-        assert direct.code is None  # an unnamed proxy is never inherited
-        _b, _raw, _o, proxied = call(api_config("openai_compatible", url, network_env_keys=["HTTP_PROXY", "http_proxy"]), env(HTTP_PROXY=proxy, http_proxy=proxy))
-        assert proxied.code == "endpoint_unreachable"  # the named proxy is used (and is dead here)
+        _b, _raw, _o, unnamed = call(api_config("openai_compatible", url), env(**values))
+        _b, _raw, _o, named = call(api_config("openai_compatible", url, network_env_keys=names), env(**values))
+        assert unnamed.code is None and named.code is None
+        assert len(fake.requests) == 2 and proxy.requests == []
+
+
+def test_named_proxies_still_apply_to_remote_hosts_and_never_to_loopback():
+    from recalith.providers import http_transport
+
+    def proxies(host):
+        # An empty ProxyHandler registers no open methods, so the opener leaves it out entirely.
+        found = [h.proxies for h in http_transport._opener(None, host).handlers if isinstance(h, http_transport.urllib.request.ProxyHandler)]
+        return found[0] if found else {}
+
+    saved = {k: os.environ.get(k) for k in ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy")}
+    try:
+        os.environ["HTTPS_PROXY"] = os.environ["https_proxy"] = "http://proxy.example.invalid:3128"
+        assert proxies("api.example.invalid").get("https") == "http://proxy.example.invalid:3128"
+        for host in http_transport.LOOPBACK_HOSTS:
+            assert proxies(host) == {}
+    finally:
+        for k, v in saved.items():
+            os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+
+
+def test_proxy_settings_never_ride_in_nonsecret_env():
+    for name in ("HTTP_PROXY", "https_proxy", "ALL_PROXY", "NO_PROXY"):
+        with pytest.raises(ValidationError, match="network_env_keys"):
+            api_config("openai_compatible", "http://127.0.0.1:9/v1/chat/completions", nonsecret_env={name: "http://proxy.example.invalid:3128"})
 
 
 def test_selected_keys_are_found_case_insensitively_on_windows(tmp_path):

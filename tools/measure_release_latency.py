@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import platform
 import shutil
@@ -218,14 +219,19 @@ def environment() -> dict:
     return facts
 
 
+def _file_name(path: str) -> str:
+    """The last component of a POSIX or Windows path, on any platform (``Path.name`` keeps a whole Windows path on POSIX)."""
+    return re.split(r"[\\/]", path)[-1]
+
+
 def recorded_args(argv: list[str]) -> list[str]:
     """The command line as the report records it: the output path by its file name only (no user or machine path)."""
     out = list(argv)
     for i, arg in enumerate(out):
         if arg == "--output" and i + 1 < len(out):
-            out[i + 1] = Path(out[i + 1]).name
+            out[i + 1] = _file_name(out[i + 1])
         elif arg.startswith("--output="):
-            out[i] = "--output=" + Path(arg.split("=", 1)[1]).name
+            out[i] = "--output=" + _file_name(arg.split("=", 1)[1])
     return out
 
 

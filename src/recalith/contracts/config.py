@@ -203,6 +203,7 @@ EnvKeyName = Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")]
 # Names an explicit route or nonsecret switch may never use (SYSTEM_SPEC §9.1, §13.1).
 FORBIDDEN_ENV_NAMES = frozenset({"CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION"})
 _CREDENTIAL_NAME = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)
+_PROXY_ENV_NAMES = frozenset({"http_proxy", "https_proxy", "all_proxy", "no_proxy"})
 ModelName = Annotated[str, Field(min_length=1, max_length=128)]
 CheckName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")]
 
@@ -370,6 +371,8 @@ class ProviderConfig(StrictModel):
         for name in self.nonsecret_env:
             if _CREDENTIAL_NAME.search(name):
                 raise ValueError("nonsecret_env must not carry credentials")
+            if name.lower() in _PROXY_ENV_NAMES:
+                raise ValueError("a proxy reaches the curator only as a named network key (network_env_keys), never through nonsecret_env")
         if self.max_wire_stdout_bytes > WIRE_STDOUT_CAP or self.max_stderr_bytes > STDERR_CAP:
             raise ValueError("provider output caps cannot exceed the hard 256 KiB wire / 64 KiB stderr limits")
         if self.backend in API_BACKENDS:

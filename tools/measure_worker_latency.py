@@ -31,6 +31,7 @@ import json
 import os
 import platform
 import random
+import re
 import statistics
 import sys
 import tempfile
@@ -303,6 +304,23 @@ def proc_rss_mib(pid: int) -> float | None:
     return None if other is None else other[1]
 
 
+
+def _file_name(path: str) -> str:
+    """The last component of a POSIX or Windows path, on any platform (``Path.name`` keeps a whole Windows path on POSIX)."""
+    return re.split(r"[\\/]", path)[-1]
+
+
+def recorded_args(argv: list[str]) -> list[str]:
+    """The command line as the report records it: the output path by its file name only (no user or machine path;
+    audit 2026-11-06 REL-6). Same rule as ``measure_release_latency.recorded_args``."""
+    out = list(argv)
+    for i, arg in enumerate(out):
+        if arg == "--output" and i + 1 < len(out):
+            out[i + 1] = _file_name(out[i + 1])
+        elif arg.startswith("--output="):
+            out[i] = "--output=" + _file_name(arg.split("=", 1)[1])
+    return out
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--trials", type=int, default=100)
@@ -321,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "host_fixture_version": cf.VERSION,
         "environment": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version(), "logical_cpus": os.cpu_count(), "os_page_cache": "not dropped"},
-        "command": "python tools/measure_worker_latency.py " + " ".join(sys.argv[1:] if argv is None else argv),
+        "command": "python tools/measure_worker_latency.py " + " ".join(recorded_args(sys.argv[1:] if argv is None else argv)),
     }
     try:
         # Hook cost when it starts the worker versus when one is running.

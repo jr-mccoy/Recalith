@@ -26,7 +26,8 @@ Rules this file keeps (and tests audit): ``http`` only to a loopback host;
 TLS always verified with the default context (system trust, or a managed
 bundle reached only through ``SSL_CERT_FILE``/``SSL_CERT_DIR`` in the
 environment); proxies only from the environment, never the platform's system
-settings; no redirect is ever followed; no retry. Nothing is written to
+settings, and never for a loopback endpoint (a request to this machine must not
+leave it, audit 2026-11-06 PROV-1); no redirect is ever followed; no retry. Nothing is written to
 stderr except a content-free reason for an internal failure, and no
 credential, header value or body is ever echoed.
 """
@@ -47,10 +48,14 @@ RESPONSE_HEADERS = ("content-type", "request-id", "x-request-id", "retry-after",
 USER_AGENT_DEFAULT = "recalith"
 
 
-def _opener(context):
+def _opener(context, host):
     """Proxy, HTTP and HTTPS handlers only: no error processor and no redirect handler, so every status,
-    a 3xx included, comes back as the final response (a key never moves to another origin)."""
-    proxies = urllib.request.getproxies_environment()  # the curator environment only, never system settings
+    a 3xx included, comes back as the final response (a key never moves to another origin).
+
+    A loopback endpoint is never proxied: urllib would otherwise send a plain-``http`` request to
+    ``127.0.0.1``, its body and its key, to whatever host ``HTTP_PROXY`` names."""
+    # The curator environment only, never system settings; none at all for this machine.
+    proxies = {} if host in LOOPBACK_HOSTS else urllib.request.getproxies_environment()
     director = urllib.request.OpenerDirector()
     director.addheaders = []
     for handler in (urllib.request.ProxyHandler(proxies), urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(context=context)):
@@ -136,7 +141,7 @@ def main():
     request = urllib.request.Request(url, data=spec["body"].encode("utf-8"), headers=headers, method="POST")
     cap = spec["max_response_bytes"]
     try:
-        response = _opener(context).open(request, timeout=float(spec["timeout_seconds"]))
+        response = _opener(context, host).open(request, timeout=float(spec["timeout_seconds"]))
     except Exception as exc:  # noqa: BLE001 - every failure becomes a content-free reason
         _error(_classify(exc), echo)
         return 0

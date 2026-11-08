@@ -11,7 +11,7 @@ Each project has its own complete installation under `.recalith/`, with its own 
 
 ## Status: experimental preview, not released
 
-- **Engine:** `0.1.0.dev10`, release profile `claude_preview`.
+- **Engine:** `0.1.0.dev11`, release profile `claude_preview`. It fixes the first phase of a [pre-publication audit](docs/audits/2026-11-06-memory-system-audit.md) (credentials escaping the scrubber, lost large messages); the live gate below ran on `0.1.0.dev10` and is re-run on the fixed engine before any release.
 - **Tests:** the deterministic suites run in CI on Linux (Python 3.12–3.14), macOS and Windows (Python 3.13). One macOS timing test fails intermittently (see BUILD_PROGRESS).
 - **The live preview gate passed** on native Windows on 2026-11-04 (its tenth run). That is 12 scripted scenarios, each run with Recalith and with a clean no-memory baseline, plus three eight-hour workload days. With reviewer labels:
   - 21 of 22 saved facts were supported by their evidence;
