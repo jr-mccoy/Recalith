@@ -206,7 +206,10 @@ def publish_views(store: Store, ctx: InstallationContext, *, now: str | None = N
                 if cand is not None and claim_id not in {c["ref"]["id"] for c in ranked} and _in_scope(cand, workspace_id, None):
                     ranked.append(cand)
             for rank, cand in enumerate((questions + ranked)[:FALLBACK_STORED]):
-                body = {"view_schema": VIEW_SCHEMA, "workspace_id": workspace_id, "environment": environment, **{k: meta[k] for k in meta}, "candidate": cand}
+                quoted = lookup.quoted_of_candidate(txn, cand)
+                body = {"view_schema": VIEW_SCHEMA, "workspace_id": workspace_id, "environment": environment, **{k: meta[k] for k in meta}, "candidate": cand,
+                        # What the row's text quotes and cites, so the hook drops it once that evidence changes (audit 2026-11-06 RET-7).
+                        "quoted_states": quoted, "cited_ids": lookup.cited_of_candidate(cand, quoted)}
                 _insert_view(txn, fallback_id(workspace_id, rank, cand["ref"]["id"]), workspace_id, None, "fallback", meta, body)
                 written += 1
         txn.execute(

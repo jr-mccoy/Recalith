@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "EpisodePatch": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "enum": [
+            "title",
+            "objective",
+            "preconditions",
+            "steps",
+            "outcome",
+            "unresolved",
+            "related_episode_ids",
+            "ended_at",
+            "state"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "set",
+            "append"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "maxLength": 256,
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "op",
+        "field",
+        "value"
+      ],
+      "title": "EpisodePatch",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ReviseEpisodePayload",
+  "additionalProperties": false,
+  "properties": {
+    "episode_id": {
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "expected_revision": {
+      "minimum": 1,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "patches": {
+      "items": {
+        "$ref": "#/$defs/EpisodePatch"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Patches",
+      "type": "array"
+    }
+  },
+  "required": [
+    "episode_id",
+    "expected_revision",
+    "patches"
+  ],
+  "title": "ReviseEpisodePayload",
+  "type": "object"
+}

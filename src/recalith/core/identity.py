@@ -23,6 +23,7 @@ import json
 import os
 import re
 import shutil
+import sys
 import tempfile
 import tomllib
 from pathlib import Path
@@ -40,7 +41,13 @@ DIR = ".recalith"
 PRIVATE_DIRS = ("runtime", "state", "spool", "cache", "run", "backups", "exports")
 REQUIRES_PYTHON = ">=3.12,<3.15"
 CONTRACT_VERSIONS = {"event_schema": 1, "segment_schema": 1, "provider_operation_schema": 1, "packet_schema": 1, "store_schema": db.SCHEMA_VERSION, "export_schema": 1}
-NETWORK_FILESYSTEMS = frozenset({"nfs", "nfs4", "cifs", "smb3", "smbfs", "fuse.sshfs", "sshfs", "afs", "ceph", "glusterfs", "fuse.rclone", "davfs", "9p", "lustre", "gpfs"})
+# Network filesystems and VM/WSL shared folders (SQLite's locking is unreliable on all of them). The macOS names
+# (smbfs, nfs, afpfs, webdav) are also caught by statfs's MNT_LOCAL flag.
+NETWORK_FILESYSTEMS = frozenset({
+    "nfs", "nfs4", "cifs", "smb3", "smb2", "smbfs", "fuse.sshfs", "sshfs", "afs", "afpfs", "webdav", "ceph", "glusterfs", "fuse.rclone", "davfs", "9p",
+    "lustre", "gpfs", "ncpfs", "vboxsf", "virtiofs", "vmhgfs", "fuse.vmhgfs-fuse", "prl_fs", "drvfs", "wslfs",
+})
+LOCAL_FUSE_SOURCES = frozenset({"gocryptfs", "encfs", "bindfs", "ntfs-3g", "securefs", "cryfs"})  # a bare ``fuse`` from these stays on local disk
 INITIALIZER = Actor(kind="controller", id="initializer", channel="cli")
 RETENTION_TABLE = "retention"  # project.toml: explicit operator retention overrides in days (decision 0026)
 
@@ -123,28 +130,109 @@ class Layout:
         return venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def filesystem_type(path: Path) -> str | None:
-    """Filesystem type of ``path`` from /proc/self/mountinfo (Linux), else None."""
-    mountinfo = Path("/proc/self/mountinfo")
-    if not mountinfo.exists():
+MOUNTINFO = Path("/proc/self/mountinfo")
+_OCTAL = re.compile(r"\\([0-7]{3})")
+MNT_LOCAL = 0x1000  # macOS <sys/mount.h>
+DRIVE_REMOTE = 4  # Windows GetDriveTypeW
+
+
+def _unescape(field: str) -> str:
+    """mountinfo octal escapes (space, tab, newline, backslash): ``\\040`` and the rest."""
+    return _OCTAL.sub(lambda m: chr(int(m.group(1), 8)), field)
+
+
+def _mount_entry(path: Path) -> tuple[str, str] | None:
+    """``(fstype, source)`` of the mount holding ``path`` from /proc/self/mountinfo (Linux), else None."""
+    if not MOUNTINFO.exists():
         return None
     target = str(canonical(path))
-    best, fstype = "", None
-    for line in mountinfo.read_text(encoding="utf-8", errors="replace").splitlines():
+    best, entry = "", None
+    for line in MOUNTINFO.read_text(encoding="utf-8", errors="replace").splitlines():
         left, _, right = line.partition(" - ")
-        fields = left.split()
-        if len(fields) < 5 or not right:
+        fields, tail = left.split(), right.split()
+        if len(fields) < 5 or not tail:
             continue
-        mount_point = fields[4].replace("\\040", " ")
+        mount_point = _unescape(fields[4])
         if (target == mount_point or target.startswith(mount_point.rstrip("/") + "/")) and len(mount_point) >= len(best):
-            best, fstype = mount_point, right.split()[0]
-    return fstype
+            best, entry = mount_point, (tail[0], _unescape(tail[1]) if len(tail) > 1 else "")
+    return entry
+
+
+def filesystem_type(path: Path) -> str | None:
+    """Filesystem type of ``path`` from /proc/self/mountinfo (Linux), else None."""
+    entry = _mount_entry(path)
+    return entry[0] if entry else None
+
+
+def _darwin_statfs(path: Path) -> tuple[str, bool] | None:
+    """``(f_fstypename, MNT_LOCAL set)`` from statfs(2) on macOS; None when the call is unavailable."""
+    import ctypes
+    import ctypes.util
+
+    class StatFS(ctypes.Structure):  # struct statfs with 64-bit inodes (the only layout on arm64; statfs$INODE64 on x86_64)
+        _fields_ = [("f_bsize", ctypes.c_uint32), ("f_iosize", ctypes.c_int32), ("f_blocks", ctypes.c_uint64), ("f_bfree", ctypes.c_uint64),
+                    ("f_bavail", ctypes.c_uint64), ("f_files", ctypes.c_uint64), ("f_ffree", ctypes.c_uint64), ("f_fsid", ctypes.c_int32 * 2),
+                    ("f_owner", ctypes.c_uint32), ("f_type", ctypes.c_uint32), ("f_flags", ctypes.c_uint32), ("f_fssubtype", ctypes.c_uint32),
+                    ("f_fstypename", ctypes.c_char * 16), ("f_mntonname", ctypes.c_char * 1024), ("f_mntfromname", ctypes.c_char * 1024),
+                    ("f_flags_ext", ctypes.c_uint32), ("f_reserved", ctypes.c_uint32 * 7)]
+
+    try:
+        libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+        try:
+            call = libc["statfs$INODE64"]
+        except AttributeError:
+            call = libc.statfs
+        buf = StatFS()
+        if call(os.fsencode(str(path)), ctypes.byref(buf)) != 0:
+            return None
+        return buf.f_fstypename.decode("ascii", "replace"), bool(buf.f_flags & MNT_LOCAL)
+    except (OSError, AttributeError, ValueError):
+        return None
+
+
+def _windows_remote(path: Path) -> str | None:
+    """A UNC root or a drive Windows reports as remote names its kind; a local drive is None."""
+    text = str(path)
+    if text.startswith(("\\\\", "//")) and not text.startswith(("\\\\?\\", "\\\\.\\")) or text.upper().startswith("\\\\?\\UNC\\"):
+        return "unc"
+    drive = os.path.splitdrive(text)[0]
+    if not drive:
+        return None
+    try:
+        import ctypes
+
+        kind = ctypes.windll.kernel32.GetDriveTypeW(drive + "\\")  # type: ignore[attr-defined]
+    except (OSError, AttributeError):
+        return None
+    return "remote drive" if kind == DRIVE_REMOTE else None
+
+
+def remote_filesystem(path: Path) -> tuple[str | None, bool]:
+    """``(filesystem type, is remote or shared)`` for the live database's location (audit 2026-11-06 CAP-6, decision 0045).
+
+    Linux reads mountinfo: a listed network or VM shared-folder type, or a bare ``fuse`` mount whose source is not a
+    known local FUSE filesystem, is remote. macOS asks statfs(2) for ``MNT_LOCAL``. Windows refuses a UNC root and a
+    drive it reports as remote. An unreadable answer is not a refusal."""
+    if os.name == "nt":
+        kind = _windows_remote(path)
+        return kind, kind is not None
+    if sys.platform == "darwin":
+        found = _darwin_statfs(path)
+        if found is None:
+            return None, False
+        fstype, local = found
+        return fstype, (not local) or fstype in NETWORK_FILESYSTEMS
+    entry = _mount_entry(path)
+    if entry is None:
+        return None, False
+    fstype, source = entry
+    return fstype, fstype in NETWORK_FILESYSTEMS or (fstype == "fuse" and source.split("#")[0] not in LOCAL_FUSE_SOURCES)
 
 
 def require_local_filesystem(path: Path) -> str | None:
-    fstype = filesystem_type(path)
-    if fstype is not None and fstype in NETWORK_FILESYSTEMS:
-        raise RecalithError("storage_failure", f"the live database must be on a local filesystem (found {fstype})")
+    fstype, remote = remote_filesystem(path)
+    if remote:
+        raise RecalithError("storage_failure", f"the live database must be on a local filesystem, not a network or shared folder (found {fstype})")
     return fstype
 
 

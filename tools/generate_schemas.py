@@ -70,6 +70,12 @@ MODELS = {
     "HostCertification": health.HostCertification,
     "ProjectConfig": config.ProjectConfig,
     "ProviderConfig": config.ProviderConfig,
+    # Captured tool payloads and the observations they carry (audit 2026-11-06 CAP-8).
+    "ObservationDescriptor": events.ObservationDescriptor,
+    "ToolPayload": events.ToolPayload,
+    "AgentAttemptPayload": events.AgentAttemptPayload,
+    # Every operation payload the provider output schema is built from (requests.output_schema).
+    **{model.__name__: model for model in operations.PAYLOAD_MODELS.values()},
 }
 
 

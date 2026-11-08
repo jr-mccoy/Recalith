@@ -323,6 +323,7 @@ def fit(purpose: str, pairs: list, *, remaining: int, substitute: bool, max_toke
     keys = {id(i): k for i, k in pairs}
     assembled = fc.assemble(purpose, items, max_estimated_tokens=max_tokens, substitute_pre_action=substitute and purpose == "prompt")
     budget_cut = 0
+    omitted = assembled["omitted_count"]  # the packet caps' omissions survive the allowance's reassembly (RET-6)
     if purpose != "compact_restore":
         chosen = list(assembled["items"])
         while chosen and assembled["estimated_tokens"] > remaining and any(not _critical(i) for i in chosen):
@@ -330,8 +331,9 @@ def fit(purpose: str, pairs: list, *, remaining: int, substitute: bool, max_toke
             chosen.pop(drop)
             budget_cut += 1
             assembled = fc.assemble(purpose, chosen, max_estimated_tokens=max_tokens, substitute_pre_action=substitute and purpose == "prompt")
+            omitted += assembled["omitted_count"]
             chosen = list(assembled["items"])
-    assembled["omitted_count"] += budget_cut
+    assembled["omitted_count"] = omitted + budget_cut
     return assembled, [keys[id(i)] for i in assembled["items"]], budget_cut
 
 

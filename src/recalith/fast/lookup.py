@@ -48,6 +48,7 @@ DF_CAP = 1024
 ROWS = 16
 MIN_REMAINING = 0.060
 PURPOSES = frozenset({"prompt"})
+FAMILY_PURPOSES = frozenset({"pre_action"})  # the action's own family, read live (decision 0045)
 
 
 def environment_digest(environment) -> str:
@@ -133,7 +134,26 @@ def _bound_tasks(conn, events: list) -> list:
 
 def candidates(conn, workspace_id: str, text: str, meta: dict, environment: dict, *, base_environment, exclude=frozenset()) -> tuple:
     """``(candidates, reasons)``: live-filtered lookup candidates for one prompt compile (bounded; see the module docstring)."""
-    ids = select(conn, workspace_id, text, exclude=exclude)
+    return rows_for(conn, workspace_id, select(conn, workspace_id, text, exclude=exclude), meta, environment, base_environment=base_environment)
+
+
+def family_candidates(conn, workspace_id: str, family: str, meta: dict, environment: dict, *, base_environment, exclude=frozenset()) -> tuple:
+    """``(candidates, reasons)``: the live claims of exactly this action family, at most :data:`ROWS`, for a pre-action compile.
+
+    The views carry a query-independent slice of action-family claims (64 across every family), so enough lessons
+    of *other* families removed the caution for the action about to run while the hook reported a healthy view
+    (audit 2026-11-06 RET-2). ``claim_heads`` indexes the family, so the action's own lessons are read directly and
+    pass the same row filters, decision and fence as every other candidate (decision 0045).
+    """
+    ids = [r[0] for r in conn.execute(
+        "SELECT claim_id FROM claim_heads WHERE action_family_digest = ? AND status IN ('candidate', 'active', 'disputed') ORDER BY claim_id LIMIT ?",
+        (family, ROWS + len(exclude)),
+    ).fetchall() if r[0] not in exclude][:ROWS]
+    return rows_for(conn, workspace_id, ids, meta, environment, base_environment=base_environment)
+
+
+def rows_for(conn, workspace_id: str, ids: list, meta: dict, environment: dict, *, base_environment) -> tuple:
+    """The live-filtered candidates of these claims' rendered rows, in the given order."""
     if not ids:
         return [], []
     rows = conn.execute(

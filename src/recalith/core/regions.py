@@ -29,7 +29,7 @@ KINDS = ("fenced_code", "blockquote", "attachment", "email", "diff", "pasted")
 _NEWLINE = re.compile(r"\r\n|\r|\n")
 _FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _QUOTE = re.compile(r"^ {0,3}>")
-_ATTACH_OPEN = re.compile(r"^\s*<(document|attachment|file|pasted[-_ ]?text|email|quote|quoted|context|source|transcript)\b[^>]*>", re.I)
+_ATTACH_OPEN = re.compile(r"^\s*<(document|attachment|file|pasted[-_ ]?text|email|quote|quoted|context|source|transcript|pre|code|blockquote|details)\b[^>]*>", re.I)
 _PASTE_MARKER = re.compile(r"\[Pasted text #\d+[^\]]*\]", re.I)
 _EMAIL_HEADER = re.compile(r"^\s*(From|To|Cc|Bcc|Subject|Date|Sent|Reply-To)\s*:\s*\S", re.I)
 _EMAIL_DIVIDER = re.compile(r"^\s*-{2,}\s*(Original Message|Forwarded message)\s*-{2,}", re.I)
@@ -42,6 +42,10 @@ _TRACEBACK = re.compile(r"^Traceback \(most recent call last\):\s*$")
 _EXCEPTION = re.compile(r"^[A-Za-z_][\w.]*(?:Error|Exception|Failure|Exit|Interrupt|Warning)\b")
 _LOG_LINE = re.compile(r"^\s*\[?(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|(?:DEBUG|INFO|WARN|WARNING|ERROR|FATAL|CRITICAL|TRACE)\b)")
 _SHELL_PROMPT = re.compile(r"^(\$|>>>|PS [A-Za-z]:\\[^>]*>|[A-Za-z]:\\[^>]*>) \S")
+# zsh (``% cmd``), root (``# cmd``) and user@host prompts (``user@host:~/dir$ cmd``, ``user@host dir % cmd``). ``#`` also
+# opens a Markdown heading and ``user@host %`` can be prose, so these count only for a lowercase command word followed by
+# an output line (the two-line guard; audit 2026-11-06 CAP-9).
+_GUARDED_PROMPT = re.compile(r"^(?:[\w.-]+@[\w.-]+(?::\S*| \S+)? ?)?[$%#] [a-z0-9_./~-]+(?: |$)")
 _INDENTED = re.compile(r"^( {4}|\t)\S")
 
 
@@ -212,7 +216,8 @@ def _shell(ls: Sequence[_Line]) -> list[Region]:
     out = []
     i = 0
     while i < len(ls):
-        if not _SHELL_PROMPT.match(ls[i].text):
+        guarded = bool(_GUARDED_PROMPT.match(ls[i].text)) and i + 1 < len(ls) and _adjacent(ls[i], ls[i + 1]) and not ls[i + 1].blank
+        if not (_SHELL_PROMPT.match(ls[i].text) or guarded):
             i += 1
             continue
         j = i

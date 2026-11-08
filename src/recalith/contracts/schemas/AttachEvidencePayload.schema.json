@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/AttachEvidencePayload",
+  "additionalProperties": false,
+  "properties": {
+    "claim_ref": {
+      "$ref": "#/$defs/RecordRef"
+    },
+    "relation": {
+      "enum": [
+        "supports",
+        "contradicts",
+        "context"
+      ],
+      "title": "Relation",
+      "type": "string"
+    }
+  },
+  "required": [
+    "claim_ref",
+    "relation"
+  ],
+  "title": "AttachEvidencePayload",
+  "type": "object"
+}

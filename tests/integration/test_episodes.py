@@ -262,3 +262,23 @@ def test_a_task_that_goes_quiet_unresolved_is_an_open_episode_and_is_extracted(t
         extractions = [r[0] for r in v.execute("SELECT body FROM jobs WHERE kind = 'extract_claims'").fetchall()]
     assert any(first["episode_id"] in body for body in extractions)
     assert episode_segment.decide(episode_segment.RangeState(steps=2, tool_steps=2, unresolved={"sig": None}), checkpoint=True, session_end=True) is None
+
+
+def test_an_excerpt_never_quotes_only_the_omission_marker():
+    """Audit 2026-11-06 CAP-12: a result bounded to its tail (no kept head) quotes no excerpt; a kept head is quoted."""
+    from recalith.fast import normalize
+    from recalith.working import tasks
+
+    def finished(bounded) -> tasks.Ev:
+        payload = {"tool_name": "Bash", "outcome": "failure", "exit_code": 1, "result_text": bounded.stored, "text_chunks": bounded.chunks}
+        from recalith.contracts.common import new_id
+
+        return tasks.Ev(new_id("evt"), 1, "tool_finished", new_id("sess"), "claude", "tool", "observed", "2026-11-08T00:00:00Z", None, payload, {"truncated": True})
+
+    tail_only = normalize.bound_text("x" * 50_000 + "\nFAILED test_mid", source_field="result_text", head=0)
+    assert tail_only.stored.startswith("\n[recalith:")
+    item = condense._result(finished(tail_only))  # noqa: SLF001
+    assert "[recalith:" not in item["text"] and all(link["locator"] is None or link["locator"]["field"] != "result_text" for link in item["evidence"])
+    with_head = normalize.bound_text("collected 3 items\n" + "y" * 50_000, source_field="result_text")
+    item = condense._result(finished(with_head))  # noqa: SLF001
+    assert "collected 3 items" in item["text"] and any((link["locator"] or {}).get("field") == "result_text" for link in item["evidence"])

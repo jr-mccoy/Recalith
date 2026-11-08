@@ -22,6 +22,15 @@ def test_schema_snapshots_have_no_unversioned_drift():
     assert generate_schemas.drift() == []
 
 
+def test_snapshots_cover_every_model_the_provider_schema_is_built_from():
+    """Audit 2026-11-06 CAP-8: a change to an operation payload, a tool payload or an observation is schema drift."""
+    from recalith.contracts import events, operations
+
+    covered = set(generate_schemas.MODELS.values())
+    assert set(operations.PAYLOAD_MODELS.values()) <= covered
+    assert {events.ToolPayload, events.ObservationDescriptor, events.AgentAttemptPayload} <= covered
+
+
 def test_every_snapshot_forbids_unknown_top_level_fields():
     for name in generate_schemas.MODELS:
         schema = json.loads((generate_schemas.SCHEMA_DIR / f"{name}.schema.json").read_text(encoding="utf-8"))

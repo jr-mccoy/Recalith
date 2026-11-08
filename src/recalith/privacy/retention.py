@@ -585,8 +585,7 @@ def age_records(txn: Txn, ctx: InstallationContext, report: Report, config: Rete
         return
     txn.execute("DELETE FROM context_views")
     txn.execute("UPDATE projection_state SET views_store_revision = -1, views_guidance_epoch = -1, views_policy_revision = -1, views_tombstone_epoch = -1")
-    if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None:
-        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    index.optimize_fts(txn)
     _audit(txn, ctx, kind=RECORD_AGING_KIND, key=[report.now, aged["task"], aged["episode"]], inputs={
         "task_ids": aged["task"][:AUDIT_IDS], "episode_ids": aged["episode"][:AUDIT_IDS], "task_cutoff": task_cut, "episode_cutoff": episode_cut,
         "revisions": dict(report.records_aged), "pinned_records": len(keep),

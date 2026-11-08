@@ -1,0 +1,47 @@
+{
+  "$id": "recalith:contracts/CreateTaskPayload",
+  "additionalProperties": false,
+  "description": "Controller-only: a provisional task for a new session, a reset or a host binding.\n\nCode allocates ``task_id`` (no model purpose may return this kind). The\ntask starts active; its objective is unknown unless typed evidence names it.",
+  "properties": {
+    "reason": {
+      "enum": [
+        "new_session",
+        "host_reset"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "session_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Session Ids",
+      "type": "array"
+    },
+    "started_at": {
+      "title": "Started At",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "title",
+    "reason",
+    "session_ids",
+    "started_at"
+  ],
+  "title": "CreateTaskPayload",
+  "type": "object"
+}

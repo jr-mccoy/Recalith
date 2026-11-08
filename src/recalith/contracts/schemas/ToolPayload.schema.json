@@ -1,0 +1,546 @@
+{
+  "$defs": {
+    "ActionDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "action_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "read",
+                "write",
+                "delete",
+                "test",
+                "build",
+                "publish",
+                "version_control",
+                "other",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action Kind"
+        },
+        "argv": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Argv"
+        },
+        "cwd_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cwd Path"
+        },
+        "executable": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable"
+        },
+        "parse_status": {
+          "enum": [
+            "exact",
+            "conservative",
+            "unknown"
+          ],
+          "title": "Parse Status",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "raw_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Digest"
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shell"
+        },
+        "tool": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "parse_status"
+      ],
+      "title": "ActionDescriptor",
+      "type": "object"
+    },
+    "DependencyRef": {
+      "additionalProperties": false,
+      "description": "A registered dependency; a null fingerprint never matches a current value.",
+      "properties": {
+        "fingerprint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fingerprint"
+        },
+        "key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "config",
+            "environment",
+            "claim"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "key"
+      ],
+      "title": "DependencyRef",
+      "type": "object"
+    },
+    "ObservationDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionDescriptor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "artifact_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Digest"
+        },
+        "artifact_key": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Key"
+        },
+        "authority_actor_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Actor Id"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/DependencyRef"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "dependency_coverage": {
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ],
+          "title": "Dependency Coverage",
+          "type": "string"
+        },
+        "experiment_identity": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Experiment Identity"
+        },
+        "forwarded_origin_keys": {
+          "items": {
+            "$ref": "#/$defs/OriginEventKey"
+          },
+          "title": "Forwarded Origin Keys",
+          "type": "array"
+        },
+        "observation_kind": {
+          "enum": [
+            "user_declaration",
+            "tool_result",
+            "artifact_snapshot"
+          ],
+          "title": "Observation Kind",
+          "type": "string"
+        },
+        "origin_event_key": {
+          "$ref": "#/$defs/OriginEventKey"
+        }
+      },
+      "required": [
+        "origin_event_key",
+        "observation_kind",
+        "dependency_coverage"
+      ],
+      "title": "ObservationDescriptor",
+      "type": "object"
+    },
+    "OriginEventKey": {
+      "additionalProperties": false,
+      "properties": {
+        "source_event_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Source Event Key",
+          "type": "string"
+        },
+        "source_namespace": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Namespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_namespace",
+        "source_event_key"
+      ],
+      "title": "OriginEventKey",
+      "type": "object"
+    },
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    },
+    "TextChunk": {
+      "additionalProperties": false,
+      "description": "A stored span with its original code-point coordinates.",
+      "properties": {
+        "original_end": {
+          "minimum": 0,
+          "title": "Original End",
+          "type": "integer"
+        },
+        "original_start": {
+          "minimum": 0,
+          "title": "Original Start",
+          "type": "integer"
+        },
+        "source_field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Source Field",
+          "type": "string"
+        },
+        "stored_field": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Stored Field",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "text_digest": {
+          "title": "Text Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stored_field",
+        "source_field",
+        "original_start",
+        "original_end",
+        "text",
+        "text_digest"
+      ],
+      "title": "TextChunk",
+      "type": "object"
+    },
+    "ToolAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "minLength": 1,
+          "title": "Identity",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "test_result",
+            "exit_status",
+            "parsed_value"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Passed"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "identity",
+        "value"
+      ],
+      "title": "ToolAssertion",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/ToolPayload",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "$ref": "#/$defs/ActionDescriptor"
+    },
+    "arguments": {
+      "additionalProperties": true,
+      "title": "Arguments",
+      "type": "object"
+    },
+    "assertions": {
+      "items": {
+        "$ref": "#/$defs/ToolAssertion"
+      },
+      "maxItems": 32,
+      "title": "Assertions",
+      "type": "array"
+    },
+    "error_signature": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Signature"
+    },
+    "exit_code": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Exit Code"
+    },
+    "expected_red": {
+      "const": false,
+      "default": false,
+      "title": "Expected Red",
+      "type": "boolean"
+    },
+    "observation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ObservationDescriptor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome": {
+      "enum": [
+        "success",
+        "failure",
+        "interrupted",
+        "not_run",
+        "unknown"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "result_received": {
+      "title": "Result Received",
+      "type": "boolean"
+    },
+    "result_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Text"
+    },
+    "text_chunks": {
+      "items": {
+        "$ref": "#/$defs/TextChunk"
+      },
+      "title": "Text Chunks",
+      "type": "array"
+    },
+    "tool_call_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Tool Call Id",
+      "type": "string"
+    },
+    "tool_name": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Tool Name",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool_call_id",
+    "tool_name",
+    "arguments",
+    "result_received",
+    "outcome",
+    "action"
+  ],
+  "title": "ToolPayload",
+  "type": "object"
+}

@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "RecordRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "event",
+            "task",
+            "episode",
+            "claim",
+            "capsule"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "title": "RecordRef",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/AssessClaimPayload",
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "candidate_ref": {
+      "$ref": "#/$defs/RecordRef"
+    },
+    "evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "objections": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2,
+      "title": "Objections",
+      "type": "array"
+    },
+    "verdict": {
+      "enum": [
+        "supported",
+        "revise",
+        "reject"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "candidate_ref",
+    "verdict",
+    "objections",
+    "evidence_ids"
+  ],
+  "title": "AssessClaimPayload",
+  "type": "object"
+}

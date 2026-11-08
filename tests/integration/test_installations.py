@@ -205,13 +205,51 @@ def test_interrupted_init_completes_with_the_same_identity(tmp_path):
     assert again.installation_id == a.installation_id and again.workspace_id == a.workspace_id
 
 
-def test_network_filesystem_is_refused(tmp_path, monkeypatch):
-    monkeypatch.setattr(identity, "filesystem_type", lambda path: "nfs4")
-    root = tmp_path / "remote"
+def _mountinfo(tmp_path, root, fstype: str, source: str) -> "Path":
+    """A mountinfo whose longest match for ``root`` is a ``fstype`` mount (the mount point written with its octal escapes)."""
+    escaped = str(root).replace("\\", "\\134").replace(" ", "\\040").replace("\t", "\\011")
+    info = tmp_path / "mountinfo"
+    info.write_text(f"22 1 8:1 / / rw,relatime shared:1 - ext4 /dev/sda1 rw\n98 22 0:51 / {escaped} rw,relatime shared:9 - {fstype} {source} rw\n", encoding="utf-8")
+    return info
+
+
+@pytest.mark.skipif(os.name == "nt" or sys.platform == "darwin", reason="the Linux mountinfo branch")
+@pytest.mark.parametrize("fstype, source", [
+    ("nfs4", "server:/export"), ("vboxsf", "shared"), ("virtiofs", "myfs"), ("fuse.vmhgfs-fuse", "vmhgfs-fuse"), ("prl_fs", "none"),
+    ("drvfs", "C:\\"), ("9p", "drvfs"), ("smb2", "//host/share"), ("fuse", "unknownfs"),
+])
+def test_network_or_shared_filesystem_is_refused(tmp_path, monkeypatch, fstype, source):
+    """Audit 2026-11-06 CAP-6: network filesystems, VM and WSL shared folders and unknown bare FUSE are refused at init, named."""
+    root = tmp_path / "shared folder\twith escapes"
     root.mkdir()
-    with pytest.raises(RecalithError, match="storage_failure"):
+    monkeypatch.setattr(identity, "MOUNTINFO", _mountinfo(tmp_path, root, fstype, source))
+    with pytest.raises(RecalithError, match="storage_failure") as err:
         identity.initialize_installation(root, ProjectConfig.defaults_for(new_id("proj")))
+    assert f"found {fstype}" in str(err.value)
     assert not (root / ".recalith").exists()
+
+
+@pytest.mark.skipif(os.name == "nt" or sys.platform == "darwin", reason="the Linux mountinfo branch")
+@pytest.mark.parametrize("fstype, source", [("ext4", "/dev/sdb1"), ("fuse", "gocryptfs"), ("fuseblk", "/dev/sdc1"), ("overlay", "overlay")])
+def test_local_filesystems_are_accepted(tmp_path, monkeypatch, fstype, source):
+    root = tmp_path / "local disk"
+    root.mkdir()
+    monkeypatch.setattr(identity, "MOUNTINFO", _mountinfo(tmp_path, root, fstype, source))
+    assert identity.remote_filesystem(root) == (fstype, False)
+
+
+def test_remote_answers_on_macos_and_windows(monkeypatch, tmp_path):
+    """The macOS (statfs MNT_LOCAL) and Windows (UNC root, remote drive) branches, with the platform calls patched."""
+    monkeypatch.setattr(identity.sys, "platform", "darwin")
+    monkeypatch.setattr(identity.os, "name", "posix")
+    monkeypatch.setattr(identity, "_darwin_statfs", lambda path: ("smbfs", False))
+    assert identity.remote_filesystem(tmp_path) == ("smbfs", True)
+    monkeypatch.setattr(identity, "_darwin_statfs", lambda path: ("apfs", True))
+    assert identity.remote_filesystem(tmp_path) == ("apfs", False)
+    monkeypatch.setattr(identity, "_darwin_statfs", lambda path: None)
+    assert identity.remote_filesystem(tmp_path) == (None, False)
+    assert identity._windows_remote(Path("\\\\server\\share\\repo")) == "unc"  # noqa: SLF001
+    assert identity._windows_remote(Path("//server/share/repo")) == "unc"  # noqa: SLF001
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")

@@ -133,7 +133,7 @@ def _epochs(body: dict) -> tuple:
 def _live_candidate(conn: sqlite3.Connection, cand: dict, row_meta: dict, tombstoned: set) -> bool:
     """Retirement, evidence and forgetting filters for a fallback row (SYSTEM_SPEC §8.3)."""
     ref = cand["ref"]
-    if ref["id"] in tombstoned or tombstoned & set(cand.get("support_events") or ()):
+    if ref["id"] in tombstoned or tombstoned & set(cand.get("support_events") or ()) or tombstoned & set(row_meta.get("cited_ids") or ()):
         return False
     if cand.get("members"):
         row = conn.execute("SELECT state FROM intent_questions WHERE question_id = ?", (cand.get("question_id"),)).fetchone()
@@ -149,11 +149,16 @@ def _live_candidate(conn: sqlite3.Connection, cand: dict, row_meta: dict, tombst
     head = conn.execute("SELECT revision, status, freshness FROM claim_heads WHERE claim_id = ?", (ref["id"],)).fetchone()
     if head is None or head[0] != ref["revision"] or head[1] != cand["status"] or head[1] not in fc.LIVE:
         return False
-    events = list(cand.get("support_events") or ())
+    support = list(cand.get("support_events") or ())
+    quoted = row_meta.get("quoted_states") or {}
+    events = sorted(set(support) | set(quoted))
     if events:
         marks = ",".join("?" for _ in events)
-        states = {r[0] for r in conn.execute(f"SELECT payload_state FROM events WHERE event_id IN ({marks})", events).fetchall()}  # noqa: S608
-        if not states & fc.SUFFICIENT_EVIDENCE:
+        states = dict(conn.execute(f"SELECT event_id, payload_state FROM events WHERE event_id IN ({marks})", events).fetchall())  # noqa: S608
+        if support and not {states.get(e) for e in support} & fc.SUFFICIENT_EVIDENCE:
+            return False
+        # A disputed row's text quotes these events: once one expires or is redacted the text is stale (audit 2026-11-06 RET-7).
+        if any(states.get(e) != state for e, state in quoted.items()):
             return False
     return True
 
@@ -253,6 +258,16 @@ def compile_packet(ctx: dict, query: dict, *, deadline: float, substitute_pre_ac
                 reasons += why
                 cands = [*cands, *extra]
                 found = [c["ref"]["id"] for c in extra]
+        family = fc.action_family(q["workspace_id"], q.get("action")) if purpose in lookup.FAMILY_PURPOSES else None
+        if family is not None:
+            if deadline - time.monotonic() < lookup.MIN_REMAINING:
+                reasons.append("deadline_lookup_skipped")
+            else:
+                extra, why = lookup.family_candidates(conn, q["workspace_id"], family, meta, environment, base_environment=base_environment,
+                                                      exclude=frozenset(c["ref"]["id"] for c in cands))
+                reasons += why
+                cands = [*cands, *extra]
+                found += [c["ref"]["id"] for c in extra]
         restore = restored_ids(conn, query["session_id"], restore_ids) if purpose == "compact_restore" else frozenset()
         entries, dep_reasons = _decide_all(conn, ctx, cands, q, environment, deadline=deadline, live=source == "fallback", restore_ids=restore)
         reasons += dep_reasons

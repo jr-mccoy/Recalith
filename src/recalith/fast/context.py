@@ -578,8 +578,8 @@ def decide(cand: dict, query: dict, environment: dict, *, family, query_terms, w
         return None
     if cand.get("ref", {}).get("kind") == "claim" and not cand.get("members"):  # a claim (disputed ones too); questions carry members
         current = {}
-        lesson_gate = cand.get("claim_kind") == "failure_lesson" and cand.get("status") == "active" and app == TRUE
-        if cand.get("dependencies") and cand.get("freshness") == "current" and (lesson_gate or cand.get("claim_kind") != "failure_lesson"):
+        # Every live claim with dependencies, failure lessons whatever their applicability included (decision 0045).
+        if cand.get("dependencies") and cand.get("freshness") == "current":
             current = current_dependencies(cand.get("dependencies") or [], workspace_root=workspace_root, environment=environment, budget=budget, claim_values=claim_values)
         advice, dependency, why_extra, shown = guidance(cand, app, current)
         if advice is None:

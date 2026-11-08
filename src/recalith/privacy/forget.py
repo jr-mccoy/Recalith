@@ -638,10 +638,11 @@ def _purge_bookkeeping(txn: Txn, ids: set[str], events: set[str]) -> dict[str, i
 
 def _purge_projections(txn: Txn) -> None:
     """Views are dropped (republished after maintenance); FTS segments are merged so deleted terms leave the shadow tables."""
+    from recalith.retrieval import index
+
     txn.execute("DELETE FROM context_views")
     txn.execute("UPDATE projection_state SET views_store_revision = -1, views_guidance_epoch = -1, views_policy_revision = -1, views_tombstone_epoch = -1")
-    if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None:
-        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    index.optimize_fts(txn)  # without FTS5 the shadow tables are emptied directly (audit 2026-11-06 RET-5, decision 0045)
 
 
 def purge(txn: Txn, ctx: InstallationContext, cl: Closure, *, now: str) -> dict[str, Any]:
@@ -1367,15 +1368,13 @@ def _stage(ctx: InstallationContext, verified: Any, source: Path, staged: Path, 
 
 def _reset_projections(txn: Txn) -> None:
     """The restored projections are rebuilt from the authoritative heads after the swap."""
-    from recalith.retrieval import lookup
+    from recalith.retrieval import index, lookup
 
     txn.execute("DELETE FROM context_views")
     lookup.reset(txn)
     txn.execute("DELETE FROM lexical_index")
     txn.execute("DELETE FROM retrieval_docs")
-    if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None:
-        txn.execute("DELETE FROM lexical_fts")
-        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    index.clear_fts(txn)
     txn.execute("DELETE FROM projection_state")
 
 

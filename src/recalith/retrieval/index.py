@@ -172,12 +172,49 @@ def _ensure_fts(txn: Txn) -> None:
     txn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS lexical_fts USING fts5(body, tokenize = 'unicode61 remove_diacritics 0')")
 
 
+FTS_SHADOW_TABLES = ("lexical_fts_data", "lexical_fts_idx", "lexical_fts_content", "lexical_fts_docsize")
+
+
+def _clear_fts_shadow(txn: Txn) -> None:
+    """Empty the FTS table's shadow tables directly: ordinary tables, writable without the FTS5 module.
+
+    They hold the words of every indexed record, forgotten ones included, so a store whose SQLite lost FTS5 must not
+    leave them behind when it falls back to the token index (audit 2026-11-06 RET-5, decision 0045)."""
+    for name in FTS_SHADOW_TABLES:
+        if txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)) is not None:
+            txn.execute(f"DELETE FROM {name}")  # noqa: S608 - fixed names
+
+
+def fts_usable(txn: Txn) -> bool:
+    """The FTS table exists and this SQLite build can open it."""
+    return fts5_available() and txn.one("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lexical_fts'") is not None
+
+
+def optimize_fts(txn: Txn) -> None:
+    """Merge FTS segments so deleted terms leave the shadow tables; a store without FTS5 has none left to merge."""
+    if fts_usable(txn):
+        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    else:
+        _clear_fts_shadow(txn)
+
+
+def clear_fts(txn: Txn) -> None:
+    """Drop every FTS row, through the module when it is present, else from its shadow tables."""
+    if fts_usable(txn):
+        txn.execute("DELETE FROM lexical_fts")
+        txn.execute("INSERT INTO lexical_fts (lexical_fts) VALUES ('optimize')")
+    else:
+        _clear_fts_shadow(txn)
+
+
 def _remove(txn: Txn, kind: str, record_id: str, backend: str) -> None:
     row = txn.one("SELECT rowid FROM retrieval_docs WHERE record_kind = ? AND record_id = ?", (kind, record_id))
     if row is None:
         return
-    if backend == "fts5":
+    if backend == "fts5" and fts5_available():
         txn.execute("DELETE FROM lexical_fts WHERE rowid = ?", (row[0],))
+    elif backend == "fts5":
+        _clear_fts_shadow(txn)  # the module is gone: the next refresh rebuilds on the token index
     txn.execute("DELETE FROM lexical_index WHERE record_kind = ? AND record_id = ?", (kind, record_id))
     txn.execute("DELETE FROM retrieval_docs WHERE rowid = ?", (row[0],))
 
@@ -206,15 +243,22 @@ def refresh(store: Store, ctx: InstallationContext, *, now: str | None = None, p
     """
     with store.transaction() as txn:
         current = state(txn)
-        wanted = backend_for(prefer_fts) if current is None or prefer_fts is not None else current["backend"]
+        if current is None or prefer_fts is not None:
+            wanted = backend_for(prefer_fts)
+        elif current["backend"] == "fts5" and not fts5_available():
+            # The store moved to a SQLite build without FTS5 (a Python upgrade, another machine): rebuild on the token
+            # index instead of failing every refresh, search and forget (audit 2026-11-06 RET-5, decision 0045).
+            wanted = "tokens"
+        else:
+            wanted = current["backend"]
         if current is not None and current["backend"] == wanted and current["indexed"] == txn.meta.store_revision:
             return 0
         rebuild = current is None or current["backend"] != wanted
         if wanted == "fts5":
             _ensure_fts(txn)
         if rebuild:
-            if current is not None and current["backend"] == "fts5" and fts5_available():
-                txn.execute("DELETE FROM lexical_fts")
+            if current is not None and current["backend"] == "fts5":
+                clear_fts(txn)
             txn.execute("DELETE FROM lexical_index")
             txn.execute("DELETE FROM retrieval_docs")
         since = 0 if rebuild else current["indexed"]  # type: ignore[index]
@@ -292,12 +336,62 @@ def structural_ids(q: Any, keys: list[str]) -> dict[tuple[str, str], set[str]]:
     return out
 
 
-def docs(q: Any, ids: Iterable[tuple[str, str]]) -> dict[tuple[str, str], Hit]:
+DOCS_CHUNK = 500
+
+
+def _ids_list(raw: str | None) -> list[str]:
+    return [] if not raw or raw == "[]" else json.loads(raw)
+
+
+def ranked_claims(q: Any, words: list[str], weights: dict[str, float], *, limit: int, workspace_id: str, task_id: str | None) -> list[tuple[str, float]]:
+    """The ``limit`` in-scope claims with the highest summed weight of the query words they hold, best first (ties by ID).
+
+    Ranked inside SQLite over the term index, so a query whose words occur in every one of 10,000 claims hands
+    Python at most ``limit`` rows instead of 10,000 (audit 2026-11-06 RET-3, decision 0045). The workspace and task
+    scope (the same rule as the hot-column prefilter) is applied *before* the limit, so claims scoped elsewhere never
+    take a ranked slot (RET-1). The term index holds every live head's words whatever the lexical backend."""
+    if not words:
+        return []
+    cases = " ".join("WHEN ? THEN ?" for _ in words)
+    marks = ",".join("?" for _ in words)
+    params: list[Any] = []
+    for w in words:
+        params += [w, float(weights.get(w, 1.0))]
+    ws_needle = canonical_json(workspace_id).decode()
+    task_needle = canonical_json(task_id).decode() if task_id is not None else None
+    rows = q.execute(
+        f"SELECT li.record_id, SUM(CASE li.term {cases} ELSE 0 END) AS score FROM lexical_index li "  # noqa: S608
+        "JOIN retrieval_docs d ON d.record_kind = 'claim' AND d.record_id = li.record_id "
+        f"WHERE li.record_kind = 'claim' AND li.term IN ({marks}) "
+        "AND (d.workspace_ids = '[]' OR instr(d.workspace_ids, ?) > 0) "
+        "AND (? IS NULL OR d.task_ids = '[]' OR instr(d.task_ids, ?) > 0) "
+        "GROUP BY li.record_id ORDER BY score DESC, li.record_id LIMIT ?",
+        (*params, *words, ws_needle, task_needle, task_needle, limit),
+    ).fetchall()
+    return [(rid, round(score, 9)) for rid, score in rows]
+
+
+def docs(q: Any, ids: Iterable[tuple[str, str]], *, words_by_id: dict[tuple[str, str], list[str]] | None = None) -> dict[tuple[str, str], Hit]:
+    """The indexed rows of these records, fetched in chunks (one query per record cost 72 ms at 10,000 hits).
+
+    With ``words_by_id`` a hit's ``words`` come from that map (empty when absent) and its term list is never read or
+    parsed: the caller already ranked the records (:func:`ranked_claims`; audit 2026-11-06 RET-3, decision 0045)."""
+    by_kind: dict[str, list[str]] = {}
+    for kind, rid in set(ids):
+        by_kind.setdefault(kind, []).append(rid)
     out = {}
-    for kind, rid in sorted(set(ids)):
-        row = q.execute("SELECT record_revision, status, workspace_ids, task_ids, terms FROM retrieval_docs WHERE record_kind = ? AND record_id = ?", (kind, rid)).fetchone()
-        if row is not None:
-            out[(kind, rid)] = Hit(kind, rid, row[0], row[1], json.loads(row[2]), json.loads(row[3]), json.loads(row[4]))
+    for kind, rids in sorted(by_kind.items()):
+        rids.sort()
+        for i in range(0, len(rids), DOCS_CHUNK):
+            chunk = rids[i : i + DOCS_CHUNK]
+            column = "NULL" if words_by_id is not None else "terms"
+            rows = q.execute(
+                f"SELECT record_id, record_revision, status, workspace_ids, task_ids, {column} FROM retrieval_docs WHERE record_kind = ? AND record_id IN ({','.join('?' for _ in chunk)})",  # noqa: S608
+                (kind, *chunk),
+            ).fetchall()
+            for rid, revision, status, workspaces, tasks, terms in rows:
+                words = json.loads(terms) if words_by_id is None else list(words_by_id.get((kind, rid), ()))
+                out[(kind, rid)] = Hit(kind, rid, revision, status, _ids_list(workspaces), _ids_list(tasks), words)
     return out
 
 
@@ -307,5 +401,5 @@ def idf(q: Any, words: list[str]) -> dict[str, float]:
         return {}
     n = q.execute("SELECT COUNT(*) FROM retrieval_docs").fetchone()[0] or 1
     marks = ",".join("?" for _ in words)
-    df = dict(q.execute(f"SELECT term, COUNT(DISTINCT record_kind || ':' || record_id) FROM lexical_index WHERE term IN ({marks}) GROUP BY term", tuple(words)).fetchall())  # noqa: S608
+    df = dict(q.execute(f"SELECT term, COUNT(*) FROM lexical_index WHERE term IN ({marks}) GROUP BY term", tuple(words)).fetchall())  # noqa: S608 - terms are distinct per record
     return {w: round(1.0 + math.log(max(n, 1) / max(df.get(w, 1), 1)), 6) for w in words}

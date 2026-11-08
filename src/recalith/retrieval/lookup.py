@@ -78,6 +78,22 @@ def _quoted(q: Any, claim: Any) -> dict[str, str | None]:
     return {e: states.get(e) for e in events}
 
 
+def quoted_of_candidate(q: Any, cand: dict[str, Any]) -> dict[str, str | None]:
+    """:func:`_quoted` from a rendered candidate: a disputed claim's evidence refs are those same two supports and two contradictions."""
+    if cand.get("status") != "disputed" or cand.get("members"):
+        return {}
+    events = sorted({r["id"] for r in cand.get("evidence_refs") or [] if r.get("kind") == "event"})
+    if not events:
+        return {}
+    marks = ",".join("?" for _ in events)
+    states = dict(q.execute(f"SELECT event_id, payload_state FROM events WHERE event_id IN ({marks})", tuple(events)).fetchall())  # noqa: S608
+    return {e: states.get(e) for e in events}
+
+
+def cited_of_candidate(cand: dict[str, Any], quoted: dict[str, Any]) -> list[str]:
+    return _cited(cand, quoted)
+
+
 def _cited(cand: dict[str, Any] | None, quoted: dict[str, Any]) -> list[str]:
     """Every ID a row's content derives from besides its claim: what tombstones and forgetting must find."""
     ids = set(quoted)
@@ -110,6 +126,10 @@ def plan(q: Any, ctx: InstallationContext, meta: dict[str, int]) -> Plan:
         revision, status, freshness = heads[claim_id]
         claim = records.load(q, "claim", claim_id, revision)
         cand = search.servable_candidate(q, ctx, claim, environment=environment, workspace_id=workspace_id) if claim is not None else None
+        if cand is not None and search.statically_inapplicable(claim, search.environment_query(workspace_id, environment)):
+            # False for this workspace's environment: not servable here, so no postings, and it never takes one of the
+            # hook's bounded posting or row slots (audit 2026-11-06 RET-1, decision 0045).
+            cand = None
         if cand is not None:
             cand["task_ids"] = sorted(set(cand["scope"].get("task_ids") or ()))  # bindings change without a revision: the hook re-reads them live
         quoted = _quoted(q, claim) if claim is not None else {}

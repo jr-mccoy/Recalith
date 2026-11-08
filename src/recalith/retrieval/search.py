@@ -53,6 +53,7 @@ from recalith.storage.db import Store, open_store
 
 CANDIDATE_LIMIT = 64
 SEED_LIMIT = 96
+SEED_SCAN_LIMIT = 8 * SEED_LIMIT  # seeds examined to find SEED_LIMIT that are not statically inapplicable (decision 0045)
 NEIGHBOR_LIMIT = 16
 TASK_CLAIMS = 128
 OBSERVATIONS = 3
@@ -224,7 +225,7 @@ def claim_candidate(q: Any, ctx: InstallationContext, claim: ClaimRevision, *, e
     if disputed:
         pro = "; ".join(_link_summary(q, link) for link in data["supports"][:2]) or "no available support"
         con = "; ".join(_link_summary(q, link) for link in data["contradicts"][:2]) or "contradiction recorded without available evidence"
-        text = fc.bounded(f"Disputed: {fc.bounded(claim.proposition, PROPOSITION_CHARS)} For: {pro}. Against: {con}. Unresolved; verify before relying on either side.", 1800)
+        text = fc.bounded(f"Disputed: {fc.bounded(claim.proposition, PROPOSITION_CHARS)} For: {pro}. Against: {con}. Unresolved: the evidence supports neither side over the other.", 1800)
         refs = [link.ref.model_dump(mode="json") for link in [*claim.supports[:2], *claim.contradicts[:2]]]
     claim_values = {}
     for dep in claim.dependencies:
@@ -245,6 +246,22 @@ def claim_candidate(q: Any, ctx: InstallationContext, claim: ClaimRevision, *, e
         "evidence_refs": refs, "support_events": support_events, "conditions_text": conditions_text(data["scope"], data["conditions"], data["dependencies"]),
         "retry_text": retry_text(data) if claim.kind == "failure_lesson" else None, "precomputed": _precomputed(claim, environment), "claim_values": claim_values,
     }
+
+
+def statically_inapplicable(claim: ClaimRevision, query: ContextQuery) -> bool:
+    """True when the claim's scope and conditions evaluate ``false`` for this query (SYSTEM_SPEC §8.1 step 2).
+
+    The engine's own evaluator (:func:`recalith.core.conditions.applicability`), so the answer equals the final
+    decision's: dimensions the query does not know (no action, no task, no branch) are ``unknown``, never ``false``.
+    It runs *before* a candidate limit, so a claim scoped to another environment cannot occupy a slot an
+    applicable one needed (audit 2026-11-06 RET-1, decision 0045).
+    """
+    return cond.applicability(claim.scope, claim.conditions, query) == cond.FALSE
+
+
+def environment_query(workspace_id: str, environment: dict[str, str]) -> ContextQuery:
+    """A query that knows only the workspace and its environment: what a pre-rendered row can be judged against."""
+    return ContextQuery(session_id="sess_00000000-0000-4000-8000-000000000000", task_id=None, workspace_id=workspace_id, purpose="manual", text="", action=None, environment=environment, max_estimated_tokens=None, branch_ref=None)
 
 
 def servable_candidate(q: Any, ctx: InstallationContext, claim: ClaimRevision | None, *, environment: dict[str, str], workspace_id: str | None = None) -> dict[str, Any] | None:
@@ -358,7 +375,7 @@ def question_candidates(q: Any, ctx: InstallationContext, *, environment: dict[s
         out.append({
             "ref": {"kind": "claim", "id": first.claim_id, "revision": first.revision}, "group": "conflict", "question_id": qid, "status": "question",
             "basis": "user_declared", "freshness": "current", "evidence": "available",
-            "text": fc.bounded(f"Open question: conflicting user decisions about {subject}: {sides}. Recalith has not chosen; ask the user which applies.", 1800),
+            "text": fc.bounded(f"Open question: conflicting user decisions about {subject}: {sides.rstrip('.')}. Unresolved: Recalith has not chosen between them, and no later user decision has.", 1800),
             "scope": {}, "conditions": [], "dependencies": [], "family": None, "task_ids": [], "terms": words[:64], "term_count": len(words), "base": 2.0,
             "tentative": False, "subject": None, "members": [m.claim_id for m in members], "member_revisions": {m.claim_id: m.revision for m in members},
             "evidence_refs": [{"kind": "claim", "id": m.claim_id, "revision": m.revision} for m in members[1:4]], "support_events": [],
@@ -388,8 +405,9 @@ def decide(q: Any, ctx: InstallationContext, cand: dict[str, Any], query: Contex
         return None
     if claim is not None:
         current: dict[str, str | None] = {}
-        lesson_gate = claim.kind == "failure_lesson" and claim.status == "active" and app == cond.TRUE
-        if claim.dependencies and claim.freshness == "current" and (lesson_gate or claim.kind != "failure_lesson"):
+        # Every live claim with dependencies, failure lessons whatever their applicability included: an outside edit
+        # shows as needs_revalidation (SYSTEM_SPEC §8.2, decision 0020; audit 2026-11-06 RET-4, decision 0045).
+        if claim.dependencies and claim.freshness == "current":
             values = {k: v["value"] for k, v in (cand.get("claim_values") or {}).items()}
             current = fc.current_dependencies(cand["dependencies"], workspace_root=str(ctx.workspace_root), environment=query.environment, budget=budget, claim_values=values)
         g = revalidate.guidance(q, ctx, claim, query, current=current)
@@ -554,7 +572,6 @@ def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int 
     words = fc.terms(eq.text)
     query_terms = set(words)
     state = index.state(q)
-    backend = state["backend"] if state else "tokens"
     indexed = state["indexed"] if state else 0
     lag_docs, overflow = index.lagging(q, indexed) if indexed != meta["store_revision"] or state is None else ([], False)
     if overflow:
@@ -562,25 +579,47 @@ def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int 
     lagged = {(d.kind, d.record_id): d for d in lag_docs}
 
     keys = structural_keys(eq, family)
+    # Seeds: ranked in SQLite by the summed weight of the query words each claim holds, at most SEED_SCAN_LIMIT of them,
+    # so a word common to every claim never makes Python load every claim (audit 2026-11-06 RET-3, decision 0045);
+    # structural matches (paths, the action family, tools) join with no lexical weight. Hot columns (status, scope)
+    # come next; the cap counts eligible items only.
+    idf = index.idf(q, words)
     hits: dict[tuple[str, str], index.Hit] = {}
+    score: dict[str, float] = {}
     if state is not None:
-        ids = set(index.lexical_ids(q, words, backend)) | set(index.structural_ids(q, keys))
-        hits = index.docs(q, ids)
+        ranked = index.ranked_claims(q, words, idf, limit=SEED_SCAN_LIMIT, workspace_id=eq.workspace_id, task_id=eq.task_id)
+        score = dict(ranked)
+        ids = {("claim", rid) for rid, _s in ranked} | {k for k in index.structural_ids(q, keys) if k[0] == "claim"}
+        hits = index.docs(q, ids, words_by_id={})
     for key, doc in lagged.items():
         hits.pop(key, None)
+        score.pop(key[1], None)
         if index.eligible(doc.kind, doc.status) and (set(doc.words) & query_terms or set(doc.keys) & set(keys)):
             hits[key] = index.Hit(doc.kind, doc.record_id, doc.revision, doc.status, doc.workspace_ids, doc.task_ids, doc.words, set(doc.keys))
-
-    # Seeds: status and scope first (hot columns), then a cheap preliminary order; the cap counts eligible items only.
-    idf = index.idf(q, words)
+            score[doc.record_id] = sum(idf.get(w, 1.0) for w in doc.words if w in query_terms)
     seeds = []
     for (kind, rid), hit in hits.items():
         if kind != "claim" or not index.eligible(kind, hit.status) or not _prefilter(hit.workspace_ids, hit.task_ids, eq):
             continue
-        prelim = sum(idf.get(w, 1.0) for w in hit.words if w in query_terms)
-        seeds.append((-prelim, rid))
+        seeds.append((-score.get(rid, 0.0), rid))
     seeds.sort()
-    claim_ids = [rid for _p, rid in seeds[:SEED_LIMIT]]
+    # The cap counts claims that are not statically inapplicable: scope and conditions are judged here, in the
+    # preliminary order, so 96 claims scoped to another environment cannot crowd out the one that applies
+    # (audit 2026-11-06 RET-1, decision 0045). The scan is bounded; running past it is reported.
+    claim_ids: list[str] = []
+    loaded: dict[str, ClaimRevision] = {}
+    for scanned, (_p, rid) in enumerate(seeds):
+        if len(claim_ids) >= SEED_LIMIT:
+            break
+        if scanned >= SEED_SCAN_LIMIT:
+            degraded.append("candidate_scan_bounded")
+            break
+        claim = records.load(q, "claim", rid, hits[("claim", rid)].revision)
+        if claim is None:
+            continue
+        loaded[rid] = claim
+        if not statically_inapplicable(claim, eq):
+            claim_ids.append(rid)
     if task_id is not None:
         claim_ids += [c for c in task_claim_ids(q, task_id) if c not in claim_ids]
     if family is not None:
@@ -599,7 +638,7 @@ def gather(q: Any, ctx: InstallationContext, query: ContextQuery, *, limit: int 
         head = records.head(q, "claim", claim_id)
         if head is None or head[1] not in fc.LIVE:
             continue
-        claim = records.load(q, "claim", claim_id, head[0])
+        claim = loaded[claim_id] if claim_id in loaded and loaded[claim_id].revision == head[0] else records.load(q, "claim", claim_id, head[0])
         if claim is None:
             continue
         considered += 1

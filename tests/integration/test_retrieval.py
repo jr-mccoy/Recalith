@@ -377,6 +377,35 @@ def test_every_delivery_row_reaches_the_compiler(p):
     assert rows["active_supported_current"][0] not in rs.ids(rs.hook(p, q.model_copy(update={"purpose": "session_start"}))["packet"])
 
 
+def test_a_fallback_conflict_is_dropped_once_its_quoted_contradiction_expires(p):
+    """Audit 2026-11-06 RET-7: a disputed fallback row quotes its contradiction; once that event expires (no new claim
+    revision) the hook no longer serves the stale quote, as the lookup rows already did not."""
+    fact = cs.fact(p, "Row fact: the fixture value comes from dep.txt.", subject="row fact")
+    green = p.event("tool_finished", call="toolu_probe_0004")
+    contra = [{"ref": {"kind": "event", "id": green["id"], "revision": 1}, "relation": "contradicts", "root_event_ids": [green["id"]], "locator": None, "mapping": None}]
+    disputed = rs.seed(p, fact, proposition="Row disputed: the fixture value comes from dep.txt.", status="disputed", contradicts=contra)
+    q = rs.query(p, "session_start", text="row fixture value dep.txt", task=_task(p))
+    rs.publish(p)
+    cs.fact(p, "An unrelated later fact makes the views stale.", subject="unrelated")
+    before = rs.hook(p, q)
+    assert before["source"] == "fallback" and rs.advice(before["packet"], disputed) == "conflict"
+    rs.set_payload_state(p, green["id"], "expired")
+    after = rs.hook(p, q)
+    assert after["source"] == "fallback" and disputed not in rs.ids(after["packet"]) and fact in rs.ids(after["packet"])
+
+
+def test_conflict_items_state_the_conflict_and_instruct_nobody(p):
+    """Audit 2026-11-06 RET-8: a packet is advisory, so a disputed claim's item describes state; it tells the agent nothing to do."""
+    rows = _rows(p)
+    packet = rs.service(p, rs.query(p, "manual", text="row fixture value dep.txt", task=_task(p)))
+    (item,) = [i for i in packet.model_dump(mode="json")["items"] if i["ref"]["id"] == rows["disputed"][0]]
+    assert item["advice"] == "conflict" and "Unresolved:" in item["text"]
+    assert not any(word in item["text"].casefold() for word in IMPERATIVES)
+
+
+IMPERATIVES = ("ask the user", "verify before", "you should", "you must", "check with")
+
+
 def test_candidates_are_tentative_only_for_the_bound_task_or_exact_action(p):
     """A weak candidate is context only for its bound task or an exact pending-action match; never repeated otherwise."""
     cand = cs.lesson(p, "Tentative: rerunning test_mid without its fixture fails.", admit=False)
@@ -399,6 +428,7 @@ def test_intent_question_is_one_conflict_item(p):
     conflicts = [i for i in packet.items if i.advice == "conflict"]
     assert len(conflicts) == 1 and conflicts[0].why[0] == "conflict"
     assert "Indentation uses tabs." in conflicts[0].text and "Indentation uses spaces." in conflicts[0].text and "has not chosen" in conflicts[0].text
+    assert not any(word in conflicts[0].text.casefold() for word in IMPERATIVES)  # state, not an instruction (RET-8)
     assert not ({a, b} - {conflicts[0].ref.id} - {r.id for r in conflicts[0].evidence_refs})
     assert len([i for i in packet.items if i.ref.id in (a, b)]) == 1  # folded, not repeated as separate context
     start = rs.service(p, rs.query(p, "session_start", task=_task(p)))
@@ -630,7 +660,44 @@ def test_fts5_and_token_index_agree(p):
     assert len(packets[False][0]) >= 41
 
 
-def test_index_lag_is_covered_directly(p):
+def test_a_store_that_loses_fts5_falls_back_to_the_token_index(p, monkeypatch):
+    """Audit 2026-11-06 RET-5: a store indexed with FTS5, opened by a SQLite build without it, rebuilds on the token
+    index, empties the FTS shadow tables (they hold forgotten words too) and still searches and forgets."""
+    import re
+    import sqlite3
+
+    from recalith.privacy import forget
+
+    if not index.fts5_available():
+        pytest.skip("this SQLite build has no FTS5 to lose")
+    fact = cs.fact(p, "The fixture database keeps teardown order in dep.txt.", subject="teardown")
+    rs.publish(p)
+    with p.view() as v:
+        assert index.state(v)["backend"] == "fts5"
+        assert v.execute("SELECT COUNT(*) FROM lexical_fts_content").fetchone()[0] > 0
+
+    # This build has no FTS5: the module refuses every statement naming the virtual table (its shadow tables are plain).
+    monkeypatch.setattr(index, "fts5_available", lambda: False)
+    real = db.Txn.execute
+
+    def no_module(self, sql, params=()):
+        if re.search(r"\blexical_fts\b", sql):
+            raise sqlite3.OperationalError("no such module: fts5")
+        return real(self, sql, params)
+
+    monkeypatch.setattr(db.Txn, "execute", no_module)
+    later = cs.fact(p, "Admitted after the move: the fixture database migrations run first.", subject="migrations")
+    rs.publish(p)
+    with p.view() as v:
+        assert index.state(v)["backend"] == "tokens"
+        for name in index.FTS_SHADOW_TABLES:
+            if v.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (name,)).fetchone():
+                assert v.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0] == 0, name  # noqa: S608
+    got = rs.ids(rs.service(p, rs.query(p, "prompt", text="fixture database teardown migrations", task=_task(p))))
+    assert {fact, later} <= set(got)
+    with db.open_store(p.ctx) as store, store.transaction() as txn:
+        forget._purge_projections(txn)  # the purge's projection step runs without the module
+        forget._reset_projections(txn)  # and so does a restore's
     """Records changed after the index refresh are covered from the live heads (no stale index entry is trusted)."""
     rs.publish(p)
     new = cs.fact(p, "Freshly admitted: the fixture cache lives in tmp.", subject="cache")
@@ -680,6 +747,25 @@ def test_ten_thousand_claim_corpus(p):
     assert hooked["source"] == "view" and not any("Corpus out of scope" in i["text"] or "Corpus retired" in i["text"] for i in hooked["packet"]["items"])
     print(f"10k corpus: publish {publish_seconds:.2f}s; service p50 {sorted(timings)[2] * 1000:.0f} ms; hook compile (in process) p50 {sorted(hook_times)[2] * 1000:.0f} ms")
     assert max(timings) < 5.0 and max(hook_times) < 2.0  # generous CI bounds; measured values are recorded in docs/measurements
+
+
+def test_ten_thousand_claims_sharing_the_query_words(p, monkeypatch):
+    """Audit 2026-11-06 RET-3: with the query's words in every one of 10,000 claim heads, the deterministic query loaded
+    all 10,000 index rows (one SQL statement each) before ranking and missed p95 <= 150 ms (167 ms p50, 217 ms max).
+    Ranking now happens in SQLite and Python loads at most the scan bound. The structural bound is asserted; the time
+    bound is loose for shared runners, and the measured p50/p95 are printed (decision 0045 records them)."""
+    target = cs.fact(p, "The fixture teardown must close the sqlite connection.", subject="teardown sqlite")
+    rs.corpus(p, target, 10_000, proposition="Corpus {i}: fixture teardown sqlite connection close notes for module {i}.")
+    rs.publish(p)
+    loaded: list[int] = []
+    real_docs = index.docs
+    monkeypatch.setattr(index, "docs", lambda q, ids, **kw: (loaded.append(len(set(ids))), real_docs(q, ids, **kw))[1])
+    for q in (rs.query(p, "prompt", text="teardown sqlite connection close", session=new_id("sess")),
+              rs.query(p, "prompt", text="teardown sqlite connection close", task=_task(p))):
+        timings = sorted(rs.fixed_seconds(rs.service, p, q, repeat=21))
+        print(f"10k common-term query: p50 {timings[10] * 1000:.0f} ms, p95 {timings[19] * 1000:.0f} ms")
+        assert max(loaded) <= search.SEED_SCAN_LIMIT + 64  # the ranked scan bound plus structural matches, never 10,000
+        assert timings[19] < 1.0 and rs.service(p, q).items  # every corpus claim ties the target; which ties make the cut is arbitrary
 
 
 def test_hook_and_service_decisions_agree(p):
@@ -882,3 +968,63 @@ def test_a_fresh_session_start_carries_the_one_active_tasks_episodes(tmp_path):
         items = rs.by_id(packet)
         assert {episode["episode_id"], episode["task_id"]} <= set(items), items.keys()
         assert items[episode["episode_id"]]["why"][0] == "task_continuity" and items[episode["episode_id"]]["advice"] == "context"
+
+
+def test_inapplicable_claims_never_occupy_the_candidate_slots(tmp_path):
+    """Audit 2026-11-06 RET-1 (SYSTEM_SPEC §8.1 step 2): applicability was judged after the 96 lexical seeds and the
+    hook's 64 postings per term, so 200 same-topic claims scoped to another OS crowded out the one applicable fact, on
+    both paths, with ``omitted_count`` 0 and no degraded reason. Scope and conditions are now judged before the caps."""
+    from recalith.capture import provenance
+
+    p = rs.project(tmp_path, "slots")
+    kept = cs.fact(p, "fixture setup database teardown migration guidance.", subject="fixture setup")
+    with p.view() as v:
+        here = provenance.environment_values_in(v, p.ctx, workspace_id=p.ctx.workspace_id).get("os") or "linux"
+    elsewhere = "windows" if here != "windows" else "linux"
+    inapplicable = rs.corpus(p, kept, 200, proposition="fixture setup database teardown migration sqlite " + elsewhere + "-only {i}", scope=dict(SCOPE, environment={"os": elsewhere}))
+    rs.publish(p)
+    q = rs.query(p, "prompt", text="fixture setup database teardown migration sqlite", session=new_id("sess"), environment={"os": here})
+    served = rs.service(p, q)
+    assert kept in rs.ids(served) and not set(rs.ids(served)) & set(inapplicable)
+    hooked = rs.hook(p, q)
+    assert kept in rs.ids(hooked["packet"]) and not set(rs.ids(hooked["packet"])) & set(inapplicable)
+
+
+def test_the_current_actions_caution_survives_many_lessons_of_other_families(tmp_path):
+    """Audit 2026-11-06 RET-2: the pre-action view held 64 action-family claims across *every* family by strength, so 70
+    corroborated lessons of other commands removed the caution for the command about to run from the hook, which still
+    reported a healthy view. The hook now reads the action's own family directly (decision 0045)."""
+    from recalith.contracts.common import digest_of
+
+    p = rs.project(tmp_path, "families")
+    lesson = cs.lesson(p)
+    act = rs.mid_action(p)
+    task = p.task_of(cs.failure(p)["id"])
+    body = rs.body(p, lesson)
+    for i in range(70):
+        failure = dict(body["failure"], action_family_digest=digest_of(["other-family", i]))
+        rs.seed(p, lesson, proposition=f"Other family lesson {i}: a different command fails.", strength="corroborated", failure=failure, proposition_key={"subject": f"other {i}", "predicate": "x"})
+    rs.publish(p)
+    q = rs.query(p, "pre_action", act=act, task=task)
+    assert rs.advice(rs.service(p, q), lesson) == "caution"
+    hooked = rs.hook(p, q)
+    assert rs.advice(hooked["packet"], lesson) == "caution" and lesson in hooked["lookup"]
+
+
+def test_a_lesson_with_unknown_applicability_still_shows_an_outside_edit(tmp_path):
+    """Audit 2026-11-06 RET-4: the live dependency check ran for a failure lesson only when its applicability was true,
+    so at a prompt (no action, applicability unknown) a lesson whose file was edited outside any tool showed ``current``
+    while a fact with the same dependency showed ``needs_revalidation``. Both compilers now check every live claim."""
+    p = rs.project(tmp_path, "dep")
+    condition = {"kind": "action_kind", "key": "action_kind", "value": "test", "upper": None, "exclude": False}
+    lesson = cs.lesson(p, "Conditioned lesson: rerunning test_mid fails until dep.txt is fixed.", conditions=[condition])
+    plain = cs.fact(p, "Plain fact depending on dep.txt: the fixture reads dep.txt.", subject="dep fact", dependencies=rs.body(p, lesson)["dependencies"])
+    task = p.task_of(cs.failure(p)["id"])
+    rs.publish(p)
+    (p.root / cs.DEP).write_bytes(b"fixture v2 edited outside any tool\n")
+    q = rs.query(p, "prompt", text="rerunning test_mid dep.txt fixture", task=task)
+    served = rs.by_id(rs.service(p, q))
+    hooked = rs.by_id(rs.hook(p, q)["packet"])
+    for packet in (served, hooked):
+        assert packet[lesson]["applicability"] == "unknown"
+        assert packet[lesson]["freshness"] == packet[plain]["freshness"] == "needs_revalidation"

@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "TaskPatch": {
+      "additionalProperties": false,
+      "description": "Explicit patch; absence from a chunk never clears a field.",
+      "properties": {
+        "field": {
+          "anyOf": [
+            {
+              "enum": [
+                "title",
+                "objective",
+                "constraints",
+                "plan",
+                "pending_actions",
+                "known_results",
+                "blockers",
+                "open_questions",
+                "next_action",
+                "completion_basis"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
+        },
+        "op": {
+          "enum": [
+            "set",
+            "append",
+            "close",
+            "status"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "active",
+                "paused",
+                "completed",
+                "abandoned"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "op"
+      ],
+      "title": "TaskPatch",
+      "type": "object"
+    }
+  },
+  "$id": "recalith:contracts/UpdateTaskPayload",
+  "additionalProperties": false,
+  "properties": {
+    "expected_revision": {
+      "minimum": 1,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "patches": {
+      "items": {
+        "$ref": "#/$defs/TaskPatch"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Patches",
+      "type": "array"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "expected_revision",
+    "patches"
+  ],
+  "title": "UpdateTaskPayload",
+  "type": "object"
+}

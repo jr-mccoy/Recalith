@@ -1059,3 +1059,33 @@ def test_regions_are_newline_independent_and_use_code_points():
     # No first-person heuristic: plain first-person prose is not a region, and an unclosed fence runs to the end.
     assert regions.regions("I want us to use uv. I decided that yesterday.") == []
     assert regions.regions("Do this.\n```\nI want X\nstill code")[0].end == len("Do this.\n```\nI want X\nstill code")
+
+
+@pytest.mark.parametrize("pasted", [
+    "<pre>\nI prefer tabs over spaces.\n</pre>",
+    "<code>We decided to drop Python 3.12.</code>",
+    "<blockquote>Always deploy on Fridays.</blockquote>",
+    "<details><summary>log</summary>\nI want the old parser back.\n</details>",
+    "% npm test\nI decided the flaky test is fine",
+    "# rm -rf build\nI want everything removed",
+    "jo@devbox:~/repo$ make deploy\nI decided to skip the tests",
+    "jo@mac repo % make deploy\nI decided to skip the tests",
+])
+def test_html_blocks_and_more_shell_prompts_are_regions(pasted):
+    """Audit 2026-11-06 CAP-9: HTML code/quote blocks and zsh, root and user@host prompts mark pasted text."""
+    text = pasted + "\n\nKeep running the tests before deploys."
+    found = regions.regions(text)
+    inner = text.index("I ") if "I " in text else text.index("We ") if "We " in text else text.index("Always")
+    assert regions.intersects(found, inner, inner + 5), pasted
+    own = text.index("Keep running")
+    assert regions.intersects(found, own, own + len("Keep running the tests before deploys.")) == []
+
+
+@pytest.mark.parametrize("own", [
+    "# Indentation\nWe use tabs in this repository.",  # a Markdown heading: capitalized, not a command
+    "# notes",  # one line: the two-line guard
+    "% of the budget goes to tests, I decided.",
+    "Reach me at jo@example.com about this; I decided to keep uv.",
+])
+def test_headings_and_percentages_are_not_shell_prompts(own):
+    assert regions.regions(own) == []

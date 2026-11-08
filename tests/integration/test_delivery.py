@@ -721,3 +721,18 @@ def test_live_worker_mid_checkpoint(built):
     finally:
         writer.kill()
         writer.communicate(timeout=30)
+
+
+def test_the_omitted_count_keeps_cap_omissions_after_the_allowance_cuts():
+    """Audit 2026-11-06 RET-6: items the packet cap dropped stay counted when the session allowance drops more."""
+    def item(n: int) -> dict:
+        return {"advice": "context", "text": f"Note {n}: " + "fixture teardown order " * 12, "why": ["lexical_match"], "applicability": "true",
+                "freshness": "current", "basis": "observed", "ref": {"kind": "claim", "id": f"clm_{n:04d}", "revision": 1}}
+
+    pairs = [(item(n), {"n": n}) for n in range(12)]
+    capped = fc.assemble("pre_action", [i for i, _k in pairs])
+    assert capped["omitted_count"] > 0  # the 400-token packet cap already drops some
+    shown = len(capped["items"])
+    assembled, keys, cut = fd.fit("pre_action", pairs, remaining=capped["estimated_tokens"] // 2, substitute=False, max_tokens=None)
+    assert cut > 0 and len(assembled["items"]) == shown - cut == len(keys)
+    assert assembled["omitted_count"] == len(pairs) - len(assembled["items"])

@@ -1,0 +1,31 @@
+{
+  "$id": "recalith:contracts/AgentAttemptPayload",
+  "additionalProperties": false,
+  "description": "Content-free record of a refused administrative command.",
+  "properties": {
+    "command_kind": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Command Kind",
+      "type": "string"
+    },
+    "marker_category": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Marker Category",
+      "type": "string"
+    },
+    "reason_code": {
+      "const": "policy_refused",
+      "title": "Reason Code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_kind",
+    "marker_category",
+    "reason_code"
+  ],
+  "title": "AgentAttemptPayload",
+  "type": "object"
+}

@@ -54,10 +54,12 @@ def _result(ev: Ev) -> dict[str, Any]:
     stored = ev.payload.get("result_text")
     if isinstance(stored, str) and stored:
         head = stored
-        for chunk in ev.payload.get("text_chunks") or []:
-            if chunk.get("stored_field") == "result_text_head" and isinstance(chunk.get("text"), str):
-                head = chunk["text"]
+        chunks = [c for c in ev.payload.get("text_chunks") or [] if str(c.get("stored_field", "")).startswith("result_text_")]
+        if chunks:  # bounded at capture: only the kept head is the tool's own text; the rest starts at the omission marker
+            head = next((c["text"] for c in chunks if c.get("stored_field") == "result_text_head" and isinstance(c.get("text"), str)), "")
         n = min(len(head), EXCERPT_CHARS)
+        if not head[:n].strip():
+            return tasks.supported(text, links, "observed")  # nothing but the omission marker would be quoted (audit 2026-11-06 CAP-12)
         excerpt = stored[:n]
         text = f"{text}\n{excerpt}" + ("…" if n < len(stored) else "")
         links.append(tasks.event_link(ev, field="result_text", length=n))
