@@ -2499,7 +2499,7 @@ Phase 2 of the [fix plan](audits/2026-11-06-fix-plan.md), all eight items, in a 
 - **Small (CAP-8/9/12):** 63 schema snapshots (every operation payload, `ToolPayload`, `ObservationDescriptor`, `AgentAttemptPayload`); HTML code/quote blocks and guarded `%`/`#`/`user@host` prompts are regions; a result bounded to its tail quotes no excerpt.
 - **Engine `0.1.0.dev13`.** No adapter changed. The checklist's smoke gate stays blocked.
 - **Tests added:** seven retrieval tests (each failing on `0.1.0.dev12`), one delivery test, fourteen filesystem cases (replacing the single patched-type test), one schema-coverage test, twelve region cases, one excerpt test.
-- **Checks:** schema (63 snapshots) and wire drift checks 0, `requirements.lock` unchanged, `tools/release_checklist.py` `problems: []`, `ruff --select F,E9,B` clean on the touched source (one pre-existing unused variable in `test_installations.py` left as is). SUITE_RESULT
+- **Checks:** schema (63 snapshots) and wire drift checks 0, `requirements.lock` unchanged, `tools/release_checklist.py` `problems: []`, `ruff --select F,E9,B` clean on the touched source (one pre-existing unused variable in `test_installations.py` left as is). Full suite (`python -m pytest -q -rs -p no:cacheprovider`, Linux, Python 3.13.18): 1,548 passed, 18 skipped, 0 failed in 42 min 42 s, exit 0; the skips are environment-only (root permission bits, no provisioning wheel, no capture-certified Claude CLI installed (2.1.319 found), Windows-only mechanisms, a case-sensitive filesystem). No `src/` or `tests/` file changed while it ran.
 - **Next action:** Phase 3 (engine `0.1.0.dev14`).
 
 ## Blockers and decisions
