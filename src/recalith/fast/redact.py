@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Credential scrubbing before anything is durably written (SYSTEM_SPEC §13, A34).
 
 Written fresh for Recalith (no Breadcrumbs source copied). Standard library

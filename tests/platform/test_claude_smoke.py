@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 13 smoke test on the real installed Claude Code host (request-capture mode; decision 0019).
 
 The installed CLI runs real sessions in disposable, owned fixture

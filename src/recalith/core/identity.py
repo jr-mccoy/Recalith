@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Independent project installations (SYSTEM_SPEC §2; A01–A04 preview slices).
 
 Each project root owns ``.recalith/``: a tracked portable identity

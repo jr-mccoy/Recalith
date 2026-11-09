@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The release layout tools (audit 2026-11-06 REL-1, decision 0046): a wheelhouse is checked against the lock and named
 for its platform and Python; the release copies the bootstrap and the lock and verifies every wheelhouse it ships."""
 
@@ -77,7 +78,7 @@ def test_release_verifies_each_shipped_wheelhouse_against_the_lock(tmp_path, mon
 def test_release_layout_carries_the_bootstrap_and_the_lock(tmp_path, monkeypatch):
     """``--skip-build`` over a wheel and sdist copies bootstrap.py and requirements.lock beside them and digests all four."""
     (tmp_path / "recalith-0-py3-none-any.whl").write_bytes(b"wheel")
-    (tmp_path / "recalith-0.tar.gz").write_bytes(b"sdist")
+    _sdist(tmp_path / "recalith-0.tar.gz", {"recalith-0/src/recalith/__init__.py": "# SPDX-License-Identifier: GPL-3.0-only\n", "recalith-0/README.md": "r"})
     monkeypatch.setattr(build_release, "wheel_inventory", lambda wheel: {"files": 0, "modules_missing_from_wheel": [], "unexpected_files": [], "foreign_copyright_headers": [], "dist_info": []})
     monkeypatch.setattr(build_release, "dependency_inventory", lambda: json.loads(build_release.INVENTORY.read_text(encoding="utf-8")))
     assert build_release.main(["--out", str(tmp_path), "--skip-build"]) == 0
@@ -86,6 +87,32 @@ def test_release_layout_carries_the_bootstrap_and_the_lock(tmp_path, monkeypatch
         assert (tmp_path / name).read_bytes() == (ROOT / name).read_bytes() and f"  {name}\n" in sums
     manifest = json.loads((tmp_path / "RELEASE_MANIFEST.json").read_text(encoding="utf-8"))
     assert set(manifest["artifacts"]) == {"recalith-0-py3-none-any.whl", "recalith-0.tar.gz", "bootstrap.py", "requirements.lock"} and manifest["wheelhouses"] == {}
+    assert manifest["sdist_inventory"] == {"files": 2, "repository_files_in_sdist": [], "foreign_copyright_headers": []}
+
+
+def _sdist(path: Path, members: dict[str, str]) -> None:
+    import io
+    import tarfile
+
+    with tarfile.open(path, "w:gz") as tf:
+        for name, text in members.items():
+            data = text.encode("utf-8")
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+
+
+def test_sdist_inventory_names_repository_files_and_foreign_notices(tmp_path):
+    """Audit 2026-11-06 REL-2, REL-8: the sdist holds what builds the engine; a notice that is not the project's own is flagged."""
+    sdist = tmp_path / "recalith-0.tar.gz"
+    _sdist(sdist, {
+        "recalith-0/src/recalith/a.py": "# SPDX-License-Identifier: GPL-3.0-only\n# Copyright (C) 2026 Recalith contributors\n",
+        "recalith-0/src/recalith/b.py": "# Copyright (c) 2019 Somebody Else\n",
+        "recalith-0/docs/BUILD_PROGRESS.md": "x", "recalith-0/review/ROUND_1.md": "x", "recalith-0/tests/unit/test_x.py": "x", "recalith-0/MANIFEST.json": "{}",
+    })
+    inventory = build_release.sdist_inventory(sdist)
+    assert inventory["repository_files_in_sdist"] == ["MANIFEST.json", "docs/BUILD_PROGRESS.md", "review/ROUND_1.md", "tests/unit/test_x.py"]
+    assert inventory["foreign_copyright_headers"] == ["recalith-0/src/recalith/b.py"]
 
 
 def test_every_health_reason_code_has_a_meaning():

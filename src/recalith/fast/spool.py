@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Durable capture spool: the durability boundary before ingestion (SYSTEM_SPEC §5.1).
 
 Publication order: write a private temp segment in ``spool/tmp/``, flush and

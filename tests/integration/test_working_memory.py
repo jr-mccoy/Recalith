@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 6: task state, versioned bindings and cross-session continuity (A10, A11, A13, A57).
 
 Events enter through the real Claude Code 2.1.301 hook mapping and are

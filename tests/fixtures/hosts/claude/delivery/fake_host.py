@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic stand-in for a Claude Code session, for delivery-probe tests only.
 
 It reads the workspace's ``.claude/settings.local.json`` hooks, fires the four

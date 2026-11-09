@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic admission: structure, identity, revisions, evidence and semantic gates.
 
 ``evaluate_operation`` (DATA_CONTRACTS §11) decides one proposed operation

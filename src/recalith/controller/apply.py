@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Transactional application of proposed operations (SYSTEM_SPEC §6.2, §10; DATA_CONTRACTS §8, §11).
 
 **Persist, then apply.** :func:`persist_proposal` stores a model response

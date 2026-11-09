@@ -28,8 +28,8 @@ The first delivery milestone is the **Claude autonomous preview**. The complete 
 | [docs/ACCEPTANCE_TESTS.md](ACCEPTANCE_TESTS.md) | All 73 acceptance cases and profile-specific release gates |
 | [docs/SOURCES_AND_REUSE.md](SOURCES_AND_REUSE.md) | Pinned Breadcrumbs reference, optional reuse, and required compatibility evidence |
 | [docs/REVIEW_RESPONSE.md](REVIEW_RESPONSE.md) | Integrated round-three dispositions |
-| `review/` | Five unchanged historical review documents |
-| [MANIFEST.json](../MANIFEST.json) | Packet inventory, source provenance, and file digests |
+| [docs/history/packet/review/](history/packet/review/) | Five unchanged historical review documents (moved from `review/`, decision 0047) |
+| [docs/history/packet/MANIFEST.json](history/packet/MANIFEST.json) | The initial packet's inventory, source provenance and file digests (historical; it describes the design packet, not the implementation) |
 
 Specification revision `1.3` and packet edition `1.3-recalith.1` identify these documents. Neither is an implemented engine version. This packet applies the chosen name to the reviewed design; it does not reopen its architecture or change its acceptance gates. Historical names in `review/` and upstream Breadcrumbs paths are intentionally preserved.
 
@@ -41,7 +41,7 @@ The memory system automatically captures work, maintains task state, creates epi
 
 ## Final design handoff
 
-[REVIEW_RESPONSE.md](REVIEW_RESPONSE.md) records all **21 round-three dispositions**: seven main findings and fourteen smaller fixes. The [round-one review](../review/INPUT_REVIEW.md), its [v1.1 response](../review/ROUND_1_RESPONSE.md), the [round-two review](../review/ROUND_2_REVIEW.md), its [v1.2 response](../review/ROUND_2_RESPONSE.md), and the [round-three review](../review/ROUND_3_REVIEW.md) are preserved unchanged as historical inputs. Current policy is in the revised documents, not those historical copies.
+[REVIEW_RESPONSE.md](REVIEW_RESPONSE.md) records all **21 round-three dispositions**: seven main findings and fourteen smaller fixes. The [round-one review](history/packet/review/INPUT_REVIEW.md), its [v1.1 response](history/packet/review/ROUND_1_RESPONSE.md), the [round-two review](history/packet/review/ROUND_2_REVIEW.md), its [v1.2 response](history/packet/review/ROUND_2_RESPONSE.md), and the [round-three review](history/packet/review/ROUND_3_REVIEW.md) are preserved unchanged as historical inputs. Current policy is in the revised documents, not those historical copies.
 
 The plan has **22 work packages**, including the new early delivery probe, and **73 acceptance cases**. It names two shippable cuts: **Claude autonomous preview** first, then the full release. Preview includes 67 case IDs with explicit feature variants, a comparative 12-scenario smoke run against a clean no-memory baseline, and three default-budget workload days. Full adds the remaining features and the separate 48-scenario, three-trial evaluation. A capability reported unavailable is never counted as a passed test.
 
@@ -59,7 +59,7 @@ The policy, contract, acceptance, implementation-order, and required certificati
 
 ## Starting the new repository
 
-Copy all packet contents into the new repository, including this README, `AGENTS.md`, `CODING_AGENT_HANDOFF.md`, `.gitignore`, `docs/`, `review/`, and `MANIFEST.json`. Do not initialize the new codebase by copying Breadcrumbs wholesale. The implementation plan includes an optional, pinned reference checkout and a one-way importer. Preserve upstream notices for code actually adapted.
+Copy all packet contents into the new repository, including this README, `AGENTS.md`, `CODING_AGENT_HANDOFF.md`, `.gitignore`, `docs/`, `review/`, and `MANIFEST.json` (in this repository those two now live under `docs/history/packet/`). Do not initialize the new codebase by copying Breadcrumbs wholesale. The implementation plan includes an optional, pinned reference checkout and a one-way importer. Preserve upstream notices for code actually adapted.
 
 Begin with **Task 0 (provider isolation) and Task 0b (delivery feasibility), before Task 1**. These are standalone installed-host probes; no memory engine is needed. Copy the revised docs into the new repository and treat their round-three corrections as Task 0/1 preconditions. **Once that repository exists, its version-controlled docs and tests become the design authority. Do not wait for another downloadable design-package review before starting.** This v1.3 snapshot incorporates the requested corrections as the final handoff; subsequent empirical findings should be resolved in the repository.
 

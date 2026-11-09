@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Evaluation arms and their trial manifests (ACCEPTANCE_TESTS §6, §6.1; decision 0020).
 
 Preview compares exactly two arms per smoke scenario, one fresh trial each:

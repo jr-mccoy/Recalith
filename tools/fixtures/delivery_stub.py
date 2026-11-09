@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Nonce-only delivery stub hook for the Task 0b probe (not a product hook).
 
 Invoked by the host as::

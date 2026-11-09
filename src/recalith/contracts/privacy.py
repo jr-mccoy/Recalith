@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Forgetting, tombstones, operator tokens and restore (DATA_CONTRACTS §8, §11)."""
 
 from __future__ import annotations

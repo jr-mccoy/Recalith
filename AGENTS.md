@@ -17,7 +17,7 @@ Start by reading [CODING_AGENT_HANDOFF.md](CODING_AGENT_HANDOFF.md), the current
 | [SOURCES_AND_REUSE.md](docs/SOURCES_AND_REUSE.md) | Required compatibility probes and pinned upstream reference |
 | [Naming decision](docs/decisions/0001-recalith-name.md) | Recalith name and namespace |
 
-The review response explains the design. `review/` preserves historical inputs and is not current policy. README, this file, the handoff, and the progress tracker are navigation and execution guidance; they do not override the normative documents. Resolve an actual contradiction in the owning docs before implementing the affected behavior, record the decision, and continue independent work. Routine implementation choices do not need another design-package approval.
+The review response explains the design. `docs/history/packet/review/` preserves the historical review inputs and is not current policy. README, this file, the handoff, and the progress tracker are navigation and execution guidance; they do not override the normative documents. Resolve an actual contradiction in the owning docs before implementing the affected behavior, record the decision, and continue independent work. Routine implementation choices do not need another design-package approval.
 
 ## Build sequence and naming
 

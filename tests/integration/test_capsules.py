@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 15 full capsule slice: exact evidence capsules, link redirection and retained pins (A55, A35 full; decision 0025).
 
 Full adds exact evidence capsules: a pinned payload past the 30-day unpinned

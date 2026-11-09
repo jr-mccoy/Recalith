@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Retrieval: eligible candidates, applicability, advice and deterministic ranking (SYSTEM_SPEC §7.3–§7.4, §8.1–§8.2; DATA_CONTRACTS §9, §11).
 
 Order (SYSTEM_SPEC §8.1): resolve the installation, workspace and task (a

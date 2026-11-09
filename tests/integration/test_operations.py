@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 5: mutation application and optimistic concurrency (A14, A19–A21, A41; review focus 1).
 
 Every test applies real operations in real transactions against a real store

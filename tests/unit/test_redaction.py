@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 3: credential scrubbing before durable capture (A34)."""
 
 from __future__ import annotations

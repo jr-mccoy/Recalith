@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Harmless sentinel MCP stdio server.
 
 Invoked as: python -I sentinel_mcp.py MARKER_FILE TOOL_NAME

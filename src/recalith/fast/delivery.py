@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The hook's delivery branch: reservation, final fence, emission and receipts (SYSTEM_SPEC §5.1.1–§5.1.2, §8.2–§8.3; DATA_CONTRACTS §2.3, §9; decision 0015).
 
 Standard library and ``recalith.fast`` only; the hook never writes SQLite.

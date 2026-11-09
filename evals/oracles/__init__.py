@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task oracles: they judge final artifacts and the action log, never memory text (ACCEPTANCE_TESTS §6).
 
 ``evals/oracles`` is the plan's ``evals/oracles.py`` (IMPLEMENTATION_PLAN Task 18) as a package, so the

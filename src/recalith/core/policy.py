@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Operation policy tables (SYSTEM_SPEC §7.2, §10; DATA_CONTRACTS §7.1, §8).
 
 Code, not the model, decides which actor may apply which operation kind,

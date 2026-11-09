@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The 12 non-held-out smoke scenarios and their oracles (Task 1; ACCEPTANCE_TESTS §6.1).
 
 Each oracle must fail on the untouched seed (the task was not done) and pass on a

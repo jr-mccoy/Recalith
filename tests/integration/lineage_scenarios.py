@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 8: lineage over real captured payloads and named synthetic variants.
 
 Real inputs: every Claude event enters through the real 2.1.301 adapter

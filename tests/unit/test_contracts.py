@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 1 contract tests: strict DTOs, authority boundaries and defaults."""
 
 from __future__ import annotations
@@ -488,3 +489,16 @@ def test_recalith_error_codes():
     assert RecalithError("capability_degraded", "x").exit_code == 8
     with pytest.raises(ValueError):
         RecalithError("made_up", "x")
+
+
+def test_endpoint_path_may_not_carry_a_credential():
+    """Audit 2026-11-06 PROV-6: the path is checked for credential shapes as the query already was."""
+    from recalith.contracts.config import ApiEndpoint
+
+    def endpoint(url: str) -> ApiEndpoint:
+        return ApiEndpoint(url=url, dialect="messages", auth_header="x-api-key", output_cap_field="max_tokens", json_mode="none", api_version="2023-06-01")
+
+    assert endpoint("https://api.example.com/v1/messages").url.endswith("/messages")
+    for bad in ("https://api.example.com/v1/sk-ant-aaaaaaaaaaaaaaaaaaaaaaaa/messages", "https://api.example.com/api_key=abc/v1/messages"):
+        with pytest.raises(ValidationError, match="credential"):
+            endpoint(bad)

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Direct-API dialects: the exact request the engine sends and the strict reading of the reply (decision 0023).
 
 Two dialects ship, each as code in this module, never a user-supplied

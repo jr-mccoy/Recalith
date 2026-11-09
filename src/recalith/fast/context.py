@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Context composition primitives shared by the worker and the stdlib hook compiler (SYSTEM_SPEC §5.1.1, §7.4, §8; DATA_CONTRACTS §9).
 
 This module is standard library only and imports nothing outside

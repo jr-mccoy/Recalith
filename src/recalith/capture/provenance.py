@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Declared versus observed runtime provenance (SYSTEM_SPEC §13; DATA_CONTRACTS §1.1; A52, A54).
 
 * ``os``/``arch``/``ci`` come from normalized adapter platform facts.

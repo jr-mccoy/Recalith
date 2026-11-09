@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The persistent project worker (SYSTEM_SPEC §4, §6.1–6.3; DATA_CONTRACTS §11).
 
 One worker per installation is the only automatic writer for hook-captured

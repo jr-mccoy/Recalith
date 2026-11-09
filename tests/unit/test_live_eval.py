@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The live evaluation path (decision 0028): what can be checked without an account or a live session.
 
 No model is called here. The live agent's stream parsing runs on the record

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Evidence lineage: canonical origins, root classes and independent roots.
 
 SYSTEM_SPEC §5.3, §7.1, §7.1.1, §13; DATA_CONTRACTS §1, §2.1, §6, §6.1 (decision 0010).

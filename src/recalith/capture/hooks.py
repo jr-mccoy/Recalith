@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Service-side writer of the hook context manifest read by ``recalith.fast.entry``.
 
 The fast path never resolves an installation itself (no TOML, no SQLite): it

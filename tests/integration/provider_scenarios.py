@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builder for the Task 7 kill/restart scenario: real request preparation and provider launches.
 
 The project holds the real Claude Code 2.1.301 lifecycle session plus two

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 2: independent installations and the transactional store (A01–A04 preview slices, A53 launcher)."""
 
 from __future__ import annotations

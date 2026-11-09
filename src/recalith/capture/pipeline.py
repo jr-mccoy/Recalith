@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """``capture`` and ``ingest_ready`` (DATA_CONTRACTS §11; SYSTEM_SPEC §5.1).
 
 ``capture`` re-checks every envelope (ownership, derived identity, scrubbing,

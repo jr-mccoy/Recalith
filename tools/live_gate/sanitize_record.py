@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Copy a live gate's results into the repository with machine paths replaced, then scan the copy by count.
 
     python tools/live_gate/sanitize_record.py C:\\Code\\rl-gate10 docs/evaluations/preview-live-2026-11-04-gate10

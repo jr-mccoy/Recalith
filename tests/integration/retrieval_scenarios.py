@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 11: retrieval, context packets, views and the hook compiler over real payloads.
 
 Real inputs: every Claude event enters through the real 2.1.301 adapter

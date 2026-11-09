@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Capture-only real Claude Code adapter and fast-path boundary (Task 3b).
 
 Every test feeds *actual serialized* host events: the sanitized hook stdin

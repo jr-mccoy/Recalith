@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 3: normalization — bounded text, certified parsers, expected_red, environment (A52, A54, A66, A68)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 6: real captured hook payloads, variants and recorded proposals.
 
 Every event enters through the real Claude Code 2.1.301 adapter mapping and

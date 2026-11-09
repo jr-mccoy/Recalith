@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """JSON-file note storage."""
 
 from __future__ import annotations

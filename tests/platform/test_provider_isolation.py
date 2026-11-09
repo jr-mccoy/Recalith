@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 7: isolated inference through real bounded launches (A28, A29, A30, A47, A67).
 
 Every launch here is a real child process through the production path

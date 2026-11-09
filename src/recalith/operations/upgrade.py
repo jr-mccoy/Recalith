@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The preview-to-full profile transition of one installation (SYSTEM_SPEC §10.1; DATA_CONTRACTS §11/§12; decision 0026).
 
 :func:`transition` moves a ``claude_preview`` installation to ``full`` in

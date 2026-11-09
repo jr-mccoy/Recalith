@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 18 (preview): the acceptance manifest and the evaluation harness (ACCEPTANCE_TESTS §2.1, §5–§8; decision 0020).
 
 ``test_acceptance_manifest_covers_A01_through_A73_by_profile`` checks the

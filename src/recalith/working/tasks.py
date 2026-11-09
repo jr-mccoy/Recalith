@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task state helpers and the typed fact fold (SYSTEM_SPEC §3.2; DATA_CONTRACTS §3).
 
 **Typed facts only.** :func:`fold_event` sets exactly what an event

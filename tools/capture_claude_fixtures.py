@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Capture sanitized real Claude Code hook payloads and transcript boundaries.
 
     python tools/capture_claude_fixtures.py [--executable claude] [--output tests/fixtures/hosts/claude]

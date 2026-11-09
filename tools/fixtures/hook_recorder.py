@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Owned, capture-only recorder hook used by tools/capture_claude_fixtures.py.
 
 It appends the exact hook stdin, the event name it was registered for and the

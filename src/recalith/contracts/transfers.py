@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Backup/export manifests, imports and upgrades (DATA_CONTRACTS §11)."""
 
 from __future__ import annotations

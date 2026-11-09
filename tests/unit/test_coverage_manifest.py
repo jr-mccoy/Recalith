@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The acceptance coverage manifest keeps every case mapped (ACCEPTANCE_TESTS §2.1, §3)."""
 
 from __future__ import annotations

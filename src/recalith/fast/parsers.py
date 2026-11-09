@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Certified tool-output parsers (DATA_CONTRACTS §1.1 MappingName, §2.1 ToolAssertion).
 
 Typed assertions, the exact error-signature line and observed runtime

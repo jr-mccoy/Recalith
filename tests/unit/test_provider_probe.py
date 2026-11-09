@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 0 harness tests (A28/A30/A67 mechanics) using a fake CLI.
 
 These verify the probe's own decisions. They never certify a real host: a

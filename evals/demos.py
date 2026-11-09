@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The §6.1 preview demonstrations, scripted and recorded (ACCEPTANCE_TESTS §6.1; decision 0020).
 
 1. **Fresh-session reuse** — in any learning scenario (decision 0028 item 16),

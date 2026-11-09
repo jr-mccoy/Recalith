@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Schema snapshots and shared wire fixtures (Task 1 gate)."""
 
 from __future__ import annotations

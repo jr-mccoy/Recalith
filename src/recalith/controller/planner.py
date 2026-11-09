@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The deterministic revision planner (SYSTEM_SPEC §6.2, §6.3, §7.2, §7.3; decision 0012).
 
 The planner runs in the worker's deterministic lane on every poll, uses no

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Working state, episodes, durable claims and lineage (DATA_CONTRACTS §3–§6)."""
 
 from __future__ import annotations

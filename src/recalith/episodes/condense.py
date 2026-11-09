@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Bounded episode condensation (SYSTEM_SPEC §3.3; DATA_CONTRACTS §4, §11).
 
 :func:`episode_body` turns a task's ordered range into the body of a

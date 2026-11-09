@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 16 (preview): suppression-aware restore (A37; the A40 preview variant's restore path).
 
 Real inputs as in ``test_forgetting`` (real 2.1.301 payloads, recorded

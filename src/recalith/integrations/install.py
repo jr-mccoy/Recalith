@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Owned host-settings installation with an ownership manifest (SYSTEM_SPEC §2.2; decision 0019).
 
 One host settings file (a JSON object) receives *owned* entries: hook groups

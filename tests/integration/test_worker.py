@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 4: queue, budgets, leases and the project worker (A21, A30, A31, A45, A50).
 
 Scheduling tests drive real worker polls and model-lane steps against real

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Read-only CLI forms (DATA_CONTRACTS §12): no operator guard, no authority, bounded output.
 
 ``status``, ``doctor`` (no probes), ``observe``, ``context``, ``search``,

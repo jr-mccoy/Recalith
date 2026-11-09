@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """A33: traversal, symlink/junction swap, case variation, Unicode and spaces.
 
 Case-insensitive coverage is claimed only on a filesystem that actually is

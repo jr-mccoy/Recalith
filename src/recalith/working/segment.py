@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic task-boundary signals and the session continuity rule (SYSTEM_SPEC §3.2).
 
 ``working/segment.py`` owns binding decisions that need no model:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The hook's bounded lexical lookup into worker-published candidate rows (SYSTEM_SPEC §5.1.1; DATA_CONTRACTS §2.3, §10; decision 0021).
 
 Standard library and ``recalith.fast`` only; nothing here imports

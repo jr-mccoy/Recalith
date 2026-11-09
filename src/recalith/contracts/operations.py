@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Provider requests, proposed operations and admission results (DATA_CONTRACTS §7).
 
 The model returns only a :class:`ModelProposalBody`. Usage, provider and model

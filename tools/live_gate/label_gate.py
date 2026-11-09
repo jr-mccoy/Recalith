@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Write a reviewer's adjudication.json from a live gate's adjudication.suggested.json.
 
 Read every item and its reason first (labels-to-review.md in the results directory). Then, from the repository root:

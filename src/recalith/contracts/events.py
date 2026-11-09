@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Event envelope, durable segments and capture receipts (DATA_CONTRACTS §2).
 
 Adapters assign transport, origin and authority. A strict envelope rejects

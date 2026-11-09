@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 0: standalone provider-isolation probe (IMPLEMENTATION_PLAN Task 0).
 
 Usage::
@@ -1103,6 +1104,7 @@ def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool =
         report["certified"] = certified
         report["verdict"] = "certified" if certified else ("unavailable" if any(dims[k]["verdict"] == "not_run" for k in blocking) else "uncertified")
         report["blocking_dimensions"] = blocking
+        report["failed_checks"] = sorted({str(x) for k in blocking for x in (dims[k].get("failures") or [])})
         report["usable_route"] = cfg["provider_id"] if certified else None
         report["limitations"] = [
             "Request-capture observations show the client-side request for this CLI build; server-side features of a real account route are checked only in live mode.",
@@ -1111,7 +1113,9 @@ def probe_provider(config_path: Path, output_path: Path, *, keep_fixture: bool =
         ]
         section = sanitizer.value(report)
         pc.merge_report_section(output_path, SECTION, cfg["provider_id"], section)
-        print(json.dumps({"verdict": report["verdict"], "blocking_dimensions": blocking}))
+        import probe_api
+
+        probe_api.console_summary(report["verdict"], blocking, report["failed_checks"])
         if route_out is not None:
             try:
                 path = write_route(route_out, cfg, section)

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Jobs, budgets and deterministic triggers (DATA_CONTRACTS §8)."""
 
 from __future__ import annotations

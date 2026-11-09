@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Measure the hook with its delivery branch in fresh processes: compile and local emission timing only (ACCEPTANCE_TESTS §7; Task 12b).
 
     python tools/measure_delivery_latency.py [--trials 500] [--corpus 10000] \

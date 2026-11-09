@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Tracked evidence holds no machine path, user home or agent scratch path (AGENTS.md; audit 2026-11-06 REL-6).
 
 Measurement reports, live-gate records and the host compatibility report are committed. They may name

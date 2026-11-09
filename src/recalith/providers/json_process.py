@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Generic configured JSON-process backend (SYSTEM_SPEC §9.1).
 
 A local model adapter can speak this envelope: the request JSON on stdin, one

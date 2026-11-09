@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Working agents for the smoke evaluation (ACCEPTANCE_TESTS §6, §6.1; decision 0020).
 
 Two agents drive a trial's sessions:

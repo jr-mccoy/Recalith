@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 5: real captured evidence, seeded records and proposals.
 
 Projects are filled from the sanitized real Claude Code 2.1.301 lifecycle

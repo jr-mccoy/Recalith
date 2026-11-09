@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Revalidation: FailureRecheck, the dependency index and revalidation outcomes (SYSTEM_SPEC §3.5, §6.3, §7.2–§7.4; DATA_CONTRACTS §5, §8, §11).
 
 **Rechecks.** Every reason a claim needs revalidation is one ``claim_rechecks``

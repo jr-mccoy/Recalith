@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The final read-only fence before emission (SYSTEM_SPEC §8.3; DATA_CONTRACTS §2.3, §9).
 
 Standard library and ``recalith.fast`` only. The fence opens a **fresh**

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Claude Code capture adapter for the exact host versions 2.1.301, 2.1.305, 2.1.306, 2.1.309 and 2.1.310.
 
 Standard library only. The mapping below was established from real hook

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Standard-library hook fast path (SYSTEM_SPEC §5.1.1; DATA_CONTRACTS §2.3).
 
 Everything under ``recalith.fast`` imports only the Python standard library

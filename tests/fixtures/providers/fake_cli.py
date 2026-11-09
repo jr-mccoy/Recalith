@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic stand-in for a Claude-like CLI, used only by probe unit tests.
 
 It models the behaviors the provider probe must detect, so the harness logic is

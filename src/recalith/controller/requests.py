@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Model request preparation and narrative scheduling (DATA_CONTRACTS §7, §11; SYSTEM_SPEC §6.2–§6.3).
 
 :func:`prepare_model_request` builds the one bounded :class:`ModelRequest` a

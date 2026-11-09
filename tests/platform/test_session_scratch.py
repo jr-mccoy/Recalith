@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Session scratch on each native platform (SYSTEM_SPEC §5.1.2; DATA_CONTRACTS §2.3; decision 0015).
 
 The per-session lock is ``flock`` on POSIX and ``msvcrt.locking`` on Windows;

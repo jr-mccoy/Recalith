@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The smoke evaluation harness (evals/run.py): Task 7's first increment and Task 18's preview harness.
 
 No model is called and no live agent session runs here: preflight states which
@@ -191,3 +192,20 @@ def test_release_checklist_and_dependency_inventory_are_consistent():
     assert problems == [] and summary["verdict"] == "blocked"
     tracked = json.loads((ROOT / "docs" / "release" / "DEPENDENCIES.json").read_text(encoding="utf-8"))
     assert build_release.dependency_inventory() == tracked
+
+
+def test_gate_record_pins_its_inputs_and_refuses_a_dirty_tree(monkeypatch, tmp_path):
+    """Audit 2026-11-06 EVAL-1: the record digests every scenario, overlay, oracle and workload day; a live gate from a tree
+    with uncommitted changes is refused unless --allow-dirty is passed, which is then recorded."""
+    import argparse
+
+    from evals import run
+
+    inputs = run.input_digests()
+    assert len(inputs["scenarios"]) == 12 and inputs["overlays"] and inputs["oracles"] and inputs["workload_days"]
+    assert all(len(d) == 64 for group in ("scenarios", "overlays", "oracles", "workload_days") for d in inputs[group].values())
+    assert run.versions()["inputs"] == inputs and run.versions()["allow_dirty"] is False
+    monkeypatch.setattr(run, "versions", lambda: {"tree_clean": False})
+    ns = argparse.Namespace(command="gate", mode="live", init_route="operator_token", operator_token_file=tmp_path / "t", allow_dirty=False)
+    assert run._dispatch(ns) == run.EXIT_USAGE  # noqa: SLF001
+    assert run.ALLOW_DIRTY is False

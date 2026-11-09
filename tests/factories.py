@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test factories: build *valid* contract objects for tests.
 
 Factories only assemble well-formed inputs. They never implement production

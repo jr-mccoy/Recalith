@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Session-local scratch for the hook fast path (SYSTEM_SPEC §5.1.2).
 
 ``run/sessions/<session_id>.json`` holds bounded, scrubbed data only. Every

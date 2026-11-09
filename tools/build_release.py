@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Build digested release artifacts with the repository's own process (ACCEPTANCE_TESTS §8; decision 0020).
 
     python tools/build_release.py --out DIR [--skip-build]
@@ -14,7 +15,9 @@
    alongside (audit 2026-11-06 REL-1).
 3. **Shipped-code inventory**: every module under ``src/recalith`` is in the
    wheel, and the wheel holds nothing else but its ``.dist-info`` (no tests,
-   evals, tools, probe output or private configuration).
+   evals, tools, probe output or private configuration); the sdist holds only
+   what builds and installs the engine (no docs, evals, tests, tools, workflows
+   or the design packet; decision 0047).
 4. **Dependency and license inventory**: the runtime closure of
    ``requirements.lock`` (exact versions and hashes) with each package's
    declared license from its installed metadata, compared with the tracked
@@ -52,7 +55,8 @@ import build_wheelhouse  # noqa: E402
 
 INVENTORY = ROOT / "docs" / "release" / "DEPENDENCIES.json"
 PROVISIONING_FILES = ("bootstrap.py", "requirements.lock")
-FOREIGN_COPYRIGHT = re.compile(r"Copyright \(c\)|Copyright 20\d\d (?!Recalith)", re.I)
+FOREIGN_COPYRIGHT = re.compile(r"Copyright(?![^\n]*Recalith)", re.I)  # a notice that does not name the project's own holder
+SDIST_FORBIDDEN = ("docs/", "evals/", "review/", ".github/", "tests/", "tools/", "probe-private/", "MANIFEST.json")
 
 
 def sha256(path: Path) -> str:
@@ -139,6 +143,22 @@ def wheelhouses(out: Path, lock_text: str) -> dict[str, dict]:
     return found
 
 
+def sdist_inventory(sdist: Path) -> dict:
+    """The source distribution's members, and any that belong to the repository rather than the engine (REL-2)."""
+    import tarfile
+
+    with tarfile.open(sdist) as tf:
+        names = [m.name.split("/", 1)[1] for m in tf.getmembers() if m.isfile() and "/" in m.name]
+    stray = sorted(n for n in names if any(n == p.rstrip("/") or n.startswith(p) for p in SDIST_FORBIDDEN))
+    texts = []
+    with tarfile.open(sdist) as tf:
+        for m in tf.getmembers():
+            if m.isfile() and m.name.endswith(".py"):
+                texts.append((m.name, tf.extractfile(m).read().decode("utf-8", "replace")))
+    foreign = sorted(n for n, text in texts if FOREIGN_COPYRIGHT.search(text))
+    return {"files": len(names), "repository_files_in_sdist": stray, "foreign_copyright_headers": foreign}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, required=True)
@@ -167,14 +187,19 @@ def main(argv: list[str] | None = None) -> int:
         INVENTORY.write_text(json.dumps(inventory, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     tracked = json.loads(INVENTORY.read_text(encoding="utf-8")) if INVENTORY.exists() else None
     wheel = wheel_inventory(wheels[0])
+    sdist = sdist_inventory(sdists[0])
     problems = []
+    if sdist["repository_files_in_sdist"]:
+        problems.append("sdist_carries_repository_files")
+    if sdist["foreign_copyright_headers"]:
+        problems.append("foreign_copyright_without_notice")
     if tracked != inventory:
         problems.append("dependency_inventory_differs_from_docs/release/DEPENDENCIES.json")
     if any(p["license"] is None for p in inventory["packages"].values()):
         problems.append("dependency_license_unknown")
     if wheel["modules_missing_from_wheel"] or wheel["unexpected_files"]:
         problems.append("wheel_contents_differ_from_src")
-    if wheel["foreign_copyright_headers"]:
+    if wheel["foreign_copyright_headers"] and "foreign_copyright_without_notice" not in problems:
         problems.append("foreign_copyright_without_notice")
     for name in PROVISIONING_FILES:  # the bootstrap and the lock it reads beside itself travel with the wheel (REL-1)
         shutil.copyfile(ROOT / name, out / name)
@@ -193,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     version = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "pyproject.toml").read_text(encoding="utf-8"), re.M).group(1)
     manifest = {
         "release_manifest_schema": 1, "name": "recalith", "version": version, "profile": "claude_preview", "commit": commit,
-        "artifacts": artifacts, "provisioning_inputs": inputs, "wheelhouses": houses, "dependency_inventory": inventory, "wheel_inventory": wheel, "problems": problems,
+        "artifacts": artifacts, "provisioning_inputs": inputs, "wheelhouses": houses, "dependency_inventory": inventory, "wheel_inventory": wheel, "sdist_inventory": sdist, "problems": problems,
         "layout": "the wheel, the sdist, bootstrap.py, requirements.lock, one wheelhouse-<platform>-<python tag>/ per supported platform and Python version, SHA256SUMS and this manifest",
         "signing": {"state": "unsigned", "blocker": "signing needs operator material (a signing key or an attestation identity the owner selects); none is created by the build"},
         "publication": "none: nothing is tagged, uploaded or published by this tool",

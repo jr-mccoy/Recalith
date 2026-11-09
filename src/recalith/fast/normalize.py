@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Normalize adapter events into envelope dicts (SYSTEM_SPEC §3.3, §5.1, §13).
 
 Standard library only. This is the single normalization implementation: the

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Build one self-contained review packet for an outside reviewer of a live gate's labels.
 
 Mechanical: everything comes from the sanitized record and the fixture sources. It deliberately leaves out this

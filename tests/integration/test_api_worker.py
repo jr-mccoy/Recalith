@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Decision 0023: the worker's model lane through a direct-API backend (A21, A29, A47, A50, A67).
 
 The project is the Task 7 provider scenario (real typed reduction schedules

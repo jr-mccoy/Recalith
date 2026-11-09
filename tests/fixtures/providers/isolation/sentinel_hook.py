@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Harmless sentinel hook: records that it ran, then exits 0 with no output.
 
 Invoked as: python -I sentinel_hook.py MARKER_FILE LABEL

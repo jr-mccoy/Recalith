@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Installation-local repository operations.
 
 Every write verifies that the record belongs to the resolved installation

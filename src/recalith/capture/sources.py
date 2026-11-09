@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Capture-source registration, cursors and tail recovery (SYSTEM_SPEC §5.1–5.2).
 
 A source is one exact file registered from an actual session payload; the

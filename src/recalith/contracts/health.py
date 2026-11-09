@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Profile-aware health and readiness (DATA_CONTRACTS §11, SYSTEM_SPEC §15; decision 0018)."""
 
 from __future__ import annotations

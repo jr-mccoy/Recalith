@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only capture source, seeded scenarios and the kill/restart crash driver.
 
 The JSONL format here is a *test-only registered source* (IMPLEMENTATION_PLAN

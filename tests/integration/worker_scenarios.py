@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only worker fixtures: fake clock, fake provider backends and the crash driver.
 
 The fake backends stand in for a certified provider route (Task 7); they are

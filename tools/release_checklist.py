@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Check the preview release checklist (ACCEPTANCE_TESTS §8, preview column; decision 0020).
 
     python tools/release_checklist.py [--checklist docs/release/claude_preview_checklist.json]

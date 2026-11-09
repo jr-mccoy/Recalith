@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Generate (or check) the approved JSON Schema snapshots of the strict contracts.
 
     python tools/generate_schemas.py          # rewrite src/recalith/contracts/schemas/

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Helpers for native worker lifecycle tests: simulated hosts, waits and cleanup.
 
 A *host* here is a real process standing in for Claude Code: it runs the real

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Strict normalization: the shared stdlib core plus Pydantic validation.
 
 The normalization rules live in :mod:`recalith.fast.normalize` so the hook fast

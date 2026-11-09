@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """A fresh hook process with one failpoint armed, then the real entry (fault-injection latency trials only).
 
     python -I tools/fixtures/hook_fault.py MODE ARGS...   (ARGS are recalith.fast.entry's own)

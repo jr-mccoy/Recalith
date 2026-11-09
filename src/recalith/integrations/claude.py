@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """``recalith integrate claude`` and ``integrate claude --remove`` (preview; SYSTEM_SPEC §2.2, §13.1; decision 0019).
 
 Local by default and only: the owned entries go into the untracked

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only helpers for Task 12a: the real CLI as a subprocess, simulated callers and the crash scenario.
 
 Every CLI call here is a real child process of an installed spelling:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 12b: delivery accounting, the session overlay and corrections at the final fence (SYSTEM_SPEC §5.1.1–§5.1.2, §8.2–§8.3; DATA_CONTRACTS §2.3, §9–§11; decision 0015).
 
 Inputs are real Claude 2.1.301 payloads through the real adapter, capture,

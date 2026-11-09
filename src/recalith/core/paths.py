@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Registered path boundaries (SYSTEM_SPEC §13, A33).
 
 The engine may touch only its installation root and explicitly registered

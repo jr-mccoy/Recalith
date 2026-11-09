@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 8: tri-state applicability (SYSTEM_SPEC §7.4, §8.1, §13; DATA_CONTRACTS §1.1, §9).
 
 Acceptance: A18, A23, A62, A70 (and the runtime-provenance side of A52/A54).

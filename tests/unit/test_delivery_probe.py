@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 0b delivery-probe tests (A61 harness mechanics).
 
 The pure evaluation tests pin the nonce protocol. End-to-end tests drive a fake

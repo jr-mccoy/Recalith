@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 5 full slice: the revision hash chain and the integrity scanner (A65; decision 0024).
 
 Preview reserves the ``revision_chain`` table and never writes it: no chain

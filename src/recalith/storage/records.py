@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task, episode and claim revisions with their heads and normalized links.
 
 Revisions are immutable once committed (except explicit privacy purging); a

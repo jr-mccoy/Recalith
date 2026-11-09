@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Adversarial review of claim candidates (SYSTEM_SPEC §6.2, §7.1.2, §7.2; DATA_CONTRACTS §5, §6.2, §7.1, §8, §11).
 
 **Scheduling** (:func:`schedule`). Every application that writes a new or

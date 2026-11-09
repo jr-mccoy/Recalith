@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 13: Claude Code integration (decision 0019).
 
 Real inputs: ``recalith integrate claude`` and ``integrate claude --remove``

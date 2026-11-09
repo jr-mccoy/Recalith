@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """The preview evaluation harness (ACCEPTANCE_TESTS §5.2, §6.1, §6.2, §7, §8; decision 0020).
 
     python evals/run.py preflight [--route PROVIDER_JSON] [--host-record HOST_JSON]
@@ -62,6 +63,7 @@ reviewer's ``adjudication.json`` gives live §5.1 support and recall.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -190,6 +192,24 @@ def prepare(sid: str, out_dir: Path) -> tuple[int, dict]:
 # Run metadata
 
 
+ALLOW_DIRTY = False  # set by `--allow-dirty`; recorded in every run's versions
+
+
+def input_digests() -> dict:
+    """SHA-256 of everything that judges a run: the smoke scenarios, their overlays, the oracle module, the workload days
+    and the recorded curator (audit 2026-11-06 EVAL-1: a gate record pins exactly what judged it)."""
+    def digest(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def tree(root: Path, pattern: str) -> dict[str, str]:
+        return {str(p.relative_to(ROOT)).replace("\\", "/"): digest(p) for p in sorted(root.rglob(pattern)) if p.is_file() and "__pycache__" not in p.parts}
+
+    return {
+        "scenarios": tree(SMOKE, "smoke-*.json"), "overlays": tree(SMOKE / "overlays", "*"), "oracles": tree(ROOT / "evals" / "oracles", "*.py"),
+        "workload_days": tree(ROOT / "evals" / "workload", "*.json"), "recorded_curator": digest(ROOT / "evals" / "curator.py"), "scripted_agent": digest(ROOT / "evals" / "agent.py"),
+    }
+
+
 def versions() -> dict:
     from recalith import __version__, prompts
     from recalith.fast import claude_capture
@@ -210,6 +230,7 @@ def versions() -> dict:
             host_version = None
     return {
         "engine": __version__, "commit": git("rev-parse", "HEAD"), "tree_clean": git("status", "--porcelain") == None,  # noqa: E711 - "" is clean
+        "allow_dirty": ALLOW_DIRTY, "inputs": input_digests(),
         "schema": db.SCHEMA_VERSION, "prompts": dict(prompts.CURRENT), "python": platform.python_version(), "sqlite": sqlite3.sqlite_version,
         "platform": f"{platform.system()} {platform.release()} {platform.machine()}", "installed_host": host_version,
         "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)", "certified_capture_versions": sorted(claude_capture.CERTIFIED_VERSIONS),
@@ -436,6 +457,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--wheel", type=Path, default=None, help="live: the verified release wheel the trial installations are provisioned with")
         p.add_argument("--wheelhouse", type=Path, default=None, help="live: the hash-locked wheelhouse for the release bootstrap")
         p.add_argument("--slots", type=int, default=1, help="live: smoke trials and workload days run at once, each in its own installation")
+        p.add_argument("--allow-dirty", dest="allow_dirty", action="store_true", help="live gate: run from a repository with uncommitted changes anyway (recorded in the run)")
     rep = sub.add_parser("report")
     rep.add_argument("results", type=Path)
     adj = sub.add_parser("adjudicate", help="write the claim adjudication sheet and label template for a live run")
@@ -463,6 +485,13 @@ def _dispatch(ns: argparse.Namespace) -> int:
         if ns.command in ("smoke", "workload", "demonstrate", "gate") and ns.mode == "scripted" and ns.init_route != "test_fixture" and ns.operator_token_file is None:
             print("error: --init-route operator_token needs --operator-token-file", file=sys.stderr)
             return EXIT_USAGE
+        if ns.command == "gate" and ns.mode == "live":
+            global ALLOW_DIRTY
+            ALLOW_DIRTY = bool(getattr(ns, "allow_dirty", False))
+            if not versions()["tree_clean"] and not ALLOW_DIRTY:
+                # A gate record must pin exactly what judged it (EVAL-1): commit first, or say so and have it recorded.
+                print("error: the repository has uncommitted changes; commit them, or pass --allow-dirty to run anyway (recorded in the run)", file=sys.stderr)
+                return EXIT_USAGE
         if ns.command == "smoke":
             return cmd_smoke(ns)
         if ns.command == "workload":

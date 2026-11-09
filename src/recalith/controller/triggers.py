@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Failure triggers: the task-local six-event / ten-minute extraction debounce (SYSTEM_SPEC §6.3; DATA_CONTRACTS §8; A66).
 
 A certified failure (a finished tool result under host authority with

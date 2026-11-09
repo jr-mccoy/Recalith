@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 17: independent installations across pinned builds and schemas, and the preview-to-full transition (A02, A40).
 
 **Preview (A02/A40 preview variants).** Two independent installations with

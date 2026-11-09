@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Episode boundaries: when a task's open range becomes an episode (SYSTEM_SPEC §3.3, §3.5).
 
 A task's *open range* is its bound events not yet in one of its episodes.

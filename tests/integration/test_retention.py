@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 15 core (preview): evidence retention with live pins and verified backups (A35, A40 preview variants).
 
 Real inputs: Claude Code 2.1.301 payloads through the real adapter, ingestion

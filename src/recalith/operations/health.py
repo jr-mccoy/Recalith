@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Profile-aware health and readiness of one installation (DATA_CONTRACTS §11, SYSTEM_SPEC §1.2, §15; decision 0018).
 
 ``health(ctx)`` composes a :class:`HealthReport` for exactly the resolved

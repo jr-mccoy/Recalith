@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Exact evidence capsules (full profile; SYSTEM_SPEC §11; DATA_CONTRACTS §6; decision 0025).
 
 **What a capsule is.** When a payload a live claim needs is past the full

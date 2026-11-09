@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev14` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev15` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -69,7 +69,7 @@ Administrative commands are refused inside an agent's process tree, even with a 
 ### Linux
 
 ```bash
-RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev14
+RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev15
 WHEEL="$RELEASE/recalith-$VERSION-py3-none-any.whl"
 DIGEST=$(grep " recalith-$VERSION-py3-none-any.whl$" "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
 HOUSE="$RELEASE/wheelhouse-linux-x86_64-cp313"
@@ -97,7 +97,7 @@ uv run python tools/probe_delivery.py --config probe-private/local-config.json -
 ### Native Windows (PowerShell)
 
 ```powershell
-$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev14"
+$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev15"
 $Wheel = "$Release\recalith-$Version-py3-none-any.whl"
 $Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern " recalith-$Version-py3-none-any.whl$").Line.Split(' ')[0]
 $House = "$Release\wheelhouse-win-amd64-cp313"
@@ -206,3 +206,34 @@ After it finishes, the live §5.1 support and recall need a reviewer's labels, b
 ```
 
 Until every admitted claim and gold lesson is labeled, the report gives those three measures as unestablished and the gate fails with `claims_unadjudicated`. A coding agent may draft suggestions with the evidence for each item (as `adjudication.suggested.json`, every label left null), but only a reviewer's labels count.
+
+## 7. What Recalith stores and sends
+
+Early adopters should know exactly what leaves their machine and what stays on it (audit 2026-11-06 REL-5; decision 0047).
+
+**What is captured.** The installed Claude Code hooks record, per session: your prompts, the tool calls the agent makes (the command or the file path, with arguments), the tools' results (output text bounded to a head and a tail; the rest is replaced by an omission marker that says how much was cut), the environment values you registered (operating system, versions of named tools), and session events (start, compaction, stop). Nothing is read from files the agent did not read, and nothing outside the project's registered workspace is captured.
+
+**What is scrubbed, and its limits.** Before anything is written to disk, the stdlib scrubber (`recalith.fast.redact`) replaces credential-shaped values with `[REDACTED:<kind>]` markers: known key formats (Anthropic, OpenAI, GitHub, AWS, Slack, Google, Stripe, npm, GitLab, SendGrid, Twilio, private-key blocks and others), `NAME=value` and `--flag value` assignments whose name says key, token, secret or password (split arguments included, decision 0043), bearer headers and connection strings. The original value is never kept; reports carry kinds and counts. **The scrubber is a guard, not a guarantee:** a secret that looks like ordinary text (a plain-word password, a number) is not recognized. Keep credentials out of prompts and tool output where you can, and treat the store as holding whatever the agent saw.
+
+**What reaches the model provider, and when.** Only the background curator talks to a provider, only over the one route you certified, and only from the worker. Each request (DATA_CONTRACTS §7) carries, as quoted data inside a fixed instruction: the current task's state, a bounded set of recent captured events (scrubbed prompts, commands, result excerpts), the task's recent episodes and a bounded slice of existing claims; a review request carries the candidate claims and exactly their cited evidence. Requests are capped at 96 KiB. Nothing is sent on a hook, during a session's turn, or on a schedule you did not configure: the worker sends when curation is due and within your daily budgets. The provider's retention and terms are its own; a forget in Recalith does not reach the provider's copies (§5 says so on every forget). The route is explicit: no fallback provider, model, key or endpoint is ever chosen for you.
+
+**What stays local.** Everything else: the spool, the store (`.recalith/state/`), the session scratch, backups, the worker's status, your route record and host record. Delivered context goes to Claude Code on your machine through the hook's standard output, never to a network.
+
+**Retention windows (defaults; `project.toml` `[retention]` overrides in whole days).** Unpinned event payloads expire after 180 days; evidence a live memory cites is pinned and kept; closed task history ages after 90 days and episodes 180 days after their task closed unless cited; delivery metadata after 90 days; private backups after 30 days. Forgetting is explicit (§5) and purges every derivative inside the installation, with the limits each forget reports.
+
+## 8. Uninstalling
+
+From an ordinary terminal, in the project:
+
+1. `.recalith/bin/recalith integrate claude --remove` (`.recalith\bin\recalith.cmd` on Windows): removes the owned hook groups and deny rules from `.claude/settings.local.json` (restoring the file byte for byte when nothing else changed) and the owned `.gitignore` line, and deletes the hook manifest. An owned entry you edited is reported for you to reconcile.
+2. `.recalith/bin/recalith worker stop`: stops the running worker. The next session would otherwise start a new one; after step 1 no hook does.
+3. Delete the private state: everything in `.recalith/` that `.recalith/.gitignore` ignores (`local.toml`, `state/`, `spool/`, `cache/`, `run/`, `backups/`, `exports/`, `runtime/`, `provider.json`, `host.json`). That is the memory; deleting it is final unless you kept a backup (`recalith backup`).
+4. The tracked files (`.recalith/project.toml`, `engine.lock`, `bin/`, `.gitignore`) are the project's portable identity. Collaborators who cloned them have no memory of yours: a clone gets its own installation when its owner runs the bootstrap, and nothing of yours is in those files. Delete them too if the project leaves Recalith; a clone whose launchers point at no runtime does nothing (the hooks exit quietly).
+
+Nothing is installed outside the project: no global daemon, registry, startup entry or shell profile change. The probe configuration under `probe-private/` and any exported key live where you put them.
+
+## 9. Compatibility of preview stores
+
+The store's schema is versioned (`store_schema_version`, 12 at this engine). A later engine refuses a store whose schema it cannot serve (`status` reports `store_schema_newer` or `schema_migration_required`), and `init` never resets an existing store.
+
+**The promise for the preview:** a later `0.1.0` preview engine (any `0.1.0.devN` or `0.1.0aN`) migrates a store of schema 12 or newer in place, or refuses it visibly; it never silently drops memory. Before `0.1.0` final, a schema change that cannot be migrated is announced in the CHANGELOG and the release notes, and the way through is a backup with the old engine, a fresh installation with the new one, and the export/import path once it exists (a full-release feature, §3). Until then, expect that a preview store may need to be deleted (`.recalith/` private state, §8) at some release; keep anything you cannot lose outside Recalith.

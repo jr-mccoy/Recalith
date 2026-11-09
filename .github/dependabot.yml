@@ -1,0 +1,16 @@
+# Dependency update proposals (decision 0047). Nothing merges by itself: every proposal is a pull request the
+# owner reviews, and the lock files stay authoritative (CI runs --locked).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"

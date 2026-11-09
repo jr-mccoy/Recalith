@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Revision hash chain and integrity scanner: full profile only (SYSTEM_SPEC §10, DATA_CONTRACTS §11; decision 0024).
 
 **Recording.** In a ``release_profile: full`` store every write transaction

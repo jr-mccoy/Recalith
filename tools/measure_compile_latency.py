@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Measure hook-side context compilation latency in fresh interpreter processes (ACCEPTANCE_TESTS §7; Task 11).
 
     python tools/measure_compile_latency.py [--trials 500] [--corpus 10000] \

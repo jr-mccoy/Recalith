@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """SQLite store: connection policy, migrations and fenced transactions.
 
 Authoritative writes use WAL journaling, ``synchronous=FULL``, foreign keys and

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Decision 0023: direct-API inference backends (``anthropic_messages``, ``openai_compatible``).
 
 Every call here is a real child process through the production path

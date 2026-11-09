@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Claude Code host integration on the stdlib fast path (Task 13; decision 0019).
 
 Standard library only, imported by the hook entry and by the installer:

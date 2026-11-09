@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Decision 0023: the operator probe for direct-API backends (``anthropic_messages``, ``openai_compatible``).
 
 Called by ``tools/probe_provider.py`` when the configured backend is an API
@@ -222,10 +223,27 @@ def dimensions(config: Any, cfg: Mapping[str, Any], capture: dict[str, Any] | No
 
 
 def _origin(url: str) -> str:
+    """The endpoint as a tracked report may name it: its scheme and a hash of its host, never the host or the path.
+
+    A private deployment's hostname or path can identify an organization (audit 2026-11-06 PROV-6); the route record
+    the project keeps privately holds the full URL."""
+    import hashlib
     from urllib.parse import urlsplit
 
     parts = urlsplit(url)
-    return f"{parts.scheme}://{parts.netloc}"
+    return f"{parts.scheme}://<host:{hashlib.sha256(parts.netloc.lower().encode('utf-8')).hexdigest()[:16]}>"
+
+
+TLS_HINT = "a TLS failure usually means a corporate CA bundle the curator cannot see: name SSL_CERT_FILE or SSL_CERT_DIR in network_env_keys and export it; verification is never turned off"
+
+
+def console_summary(verdict: str, blocking: list[str], failed_checks: list[str]) -> None:
+    """The probe's one console line, plus a hint on stderr for the failures an operator can act on (PROV-5)."""
+    print(json.dumps({"verdict": verdict, "blocking_dimensions": blocking, "failed_checks": failed_checks}))
+    if any(c.startswith("tls_") for c in failed_checks):
+        print(f"hint: {TLS_HINT}", file=sys.stderr)
+    if "selected_auth_missing" in failed_checks:
+        print("hint: the key the config names is not exported in this terminal", file=sys.stderr)
 
 
 def route_record(cfg: Mapping[str, Any], section: Mapping[str, Any], *, installation_id: str, resolved_model: str | None = None) -> Any:
@@ -276,7 +294,7 @@ def run(cfg: dict[str, Any], output_path: Path, *, route_out: Path | None = None
     report: dict[str, Any] = {
         "probe": "tools/probe_provider.py", "probe_schema": 1, "tested_at": pc.utc_now(), "platform": pc.platform_facts(), "provider_id": cfg["provider_id"],
         "backend": cfg["backend"], "engine_build": __version__, "configured_model": cfg["model"], "expected_resolved_model": cfg.get("expected_resolved_model"),
-        "endpoint": {"origin": _origin(config.endpoint.url), "path": config.endpoint.url[len(_origin(config.endpoint.url)):], **{k: v for k, v in config.endpoint.model_dump(mode="json").items() if k != "url"}},
+        "endpoint": {"origin": _origin(config.endpoint.url), **{k: v for k, v in config.endpoint.model_dump(mode="json").items() if k != "url"}},
         "auth_route": {"kind": auth["kind"], "billing": auth["billing"], "selected_env_key_names": auth["env_keys"], "description": auth["description"], "note": "Names only. No other credential is forwarded to the transport."},
         "operator_attestation": cfg["operator_attestation"],
         "adapter": {"transport": "src/recalith/providers/http_transport.py (python -I, by path)", "dialects": "src/recalith/providers/api.py", "adapter_sha256": api.adapter_digest()},
@@ -315,7 +333,7 @@ def run(cfg: dict[str, Any], output_path: Path, *, route_out: Path | None = None
     ]
     section = sanitizer.value(report)
     pc.merge_report_section(output_path, SECTION, cfg["provider_id"], section)
-    print(json.dumps({"verdict": report["verdict"], "blocking_dimensions": blocking}))
+    console_summary(report["verdict"], blocking, report["failed_checks"])
     if route_out is not None:
         try:
             path = write_route(route_out, cfg, section, resolved_model=report["resolved_model"])

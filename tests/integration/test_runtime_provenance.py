@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 3: declared vs observed runtime provenance and allowlisted environment (A52, A54)."""
 
 from __future__ import annotations

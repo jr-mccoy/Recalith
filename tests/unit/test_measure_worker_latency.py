@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The typed-state measurement's arrival model (ACCEPTANCE_TESTS §7; decision 0022).
 
 Arrivals are placed at a uniformly random phase of an *idle* worker's 5-second

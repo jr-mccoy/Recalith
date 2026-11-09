@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Decision 0023: the operator probe and runtime check for direct-API backends.
 
 ``tools/probe_provider.py`` and ``tools/check_provider_runtime.py`` run the
@@ -246,3 +247,19 @@ def test_api_example_configs_are_valid_and_secret_free(name, backend):
     assert cfg["backend"] == backend and "executable" not in cfg and cfg["endpoint"]["url"]
     text = path.read_text(encoding="utf-8")
     assert not pc._SECRETISH.search(text) and "EXPLICIT" in cfg["model"]  # a placeholder, never a model name
+
+
+def test_tracked_endpoint_is_scheme_and_host_hash_only(capsys):
+    """Audit 2026-11-06 PROV-5/PROV-6: a tracked report names neither the endpoint's host nor its path; the console names the
+    failed checks and hints at the CA bundle on a TLS failure."""
+    import probe_api as pa
+
+    origin = pa._origin("https://gateway.internal.example.com/v1/team-7/chat/completions")  # noqa: SLF001
+    assert origin.startswith("https://<host:") and "example" not in origin and "team-7" not in origin and len(origin) == len("https://<host:>") + 16
+    assert pa._origin("https://GATEWAY.internal.example.com/other") == origin  # noqa: SLF001 - the host, case-folded, not the path
+    pa.console_summary("uncertified", ["endpoint_identity"], ["tls_verification_failed"])
+    out = capsys.readouterr()
+    assert json.loads(out.out.strip().splitlines()[-1]) == {"verdict": "uncertified", "blocking_dimensions": ["endpoint_identity"], "failed_checks": ["tls_verification_failed"]}
+    assert "SSL_CERT_FILE" in out.err and "never turned off" in out.err
+    pa.console_summary("certified", [], [])
+    assert capsys.readouterr().err == ""

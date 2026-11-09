@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Make the src-layout package importable for unittest discovery."""
 
 import sys

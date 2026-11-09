@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The curator's HTTP transport child for direct-API backends (decision 0023).
 
     python -I http_transport.py   < spec.json

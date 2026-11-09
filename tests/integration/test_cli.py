@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 12a: public service and CLI contracts (A32, A60, A72, A73; Task 12a parts of A19, A33, A53).
 
 Every CLI assertion runs the real command as a child process through an

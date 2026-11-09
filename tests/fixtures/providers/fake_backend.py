@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic stand-in for a provider CLI, used only by worker tests (never certified).
 
     python -I fake_backend.py MODE [ARGS...]

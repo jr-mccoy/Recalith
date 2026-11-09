@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The hook fast path imports only the standard library and ``recalith.fast`` (A58).
 
 Each check runs in a fresh interpreter (``-I``), takes the module inventory

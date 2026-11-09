@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Project and provider configuration with SYSTEM_SPEC defaults.
 
 Values here are initial engineering defaults (SYSTEM_SPEC §6.3, §8.2, §11),
@@ -274,6 +275,9 @@ class ApiEndpoint(StrictModel):
         for name, value in parse_qsl(parts.query, keep_blank_values=True):
             if _CREDENTIAL_NAME.search(name) or redact.contains_secret(value):
                 raise ValueError("the endpoint URL may not carry a credential; keys travel only in the auth header")
+        for segment in parts.path.split("/"):  # a key in the path is a key too (audit 2026-11-06 PROV-6)
+            if redact.contains_secret(segment) or ("=" in segment and _CREDENTIAL_NAME.search(segment.split("=", 1)[0])):
+                raise ValueError("the endpoint URL may not carry a credential in its path; keys travel only in the auth header")
         if self.dialect == "messages":
             if self.auth_header not in ("x-api-key", "authorization_bearer") or self.output_cap_field != "max_tokens" or self.json_mode != "none" or self.api_version is None:
                 raise ValueError("the messages dialect uses x-api-key or bearer auth, max_tokens, no native JSON mode, and an api_version")

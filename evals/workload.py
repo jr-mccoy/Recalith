@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Workload days: three eight-hour activity days, one per project (ACCEPTANCE_TESTS §5.2; decision 0020).
 
     python evals/workload.py generate        # (re)write evals/workload/days/*.json from the seeded templates

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Moved to :mod:`recalith.fast.failpoints` in Task 3b (decision 0005).
 
 The synchronous hook path may import only the standard library and

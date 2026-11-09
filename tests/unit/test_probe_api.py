@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The live provider probe's parent environments (tools/probe_api.py).
 
 The host-marked parent plants decoy credentials to prove that only the selected

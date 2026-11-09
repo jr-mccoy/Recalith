@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Native worker lifecycle: registered hook start, role environments, detachment (A45, A67, A73).
 
 These tests run real processes on the native platform: the real hook entry

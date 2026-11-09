@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The provider contract: routes, certification status and isolated calls.
 
 SYSTEM_SPEC §9.1, §6.3; DATA_CONTRACTS §7, §8, §11; decisions 0002, 0006, 0009.

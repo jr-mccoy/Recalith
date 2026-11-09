@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Curator isolation: private roots, role environments and effective-isolation checks.
 
 SYSTEM_SPEC §5.3, §9.1, §13; DATA_CONTRACTS §2.3; decision 0002.

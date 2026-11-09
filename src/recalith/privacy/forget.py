@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Intentional forgetting and suppression-aware restore (SYSTEM_SPEC §11–§12; DATA_CONTRACTS §8, §10–§11; decision 0017).
 
 **Preview** (:func:`preview_forget`, read-only). A :class:`ForgetSelector`

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Consistent, verified private backups and the tombstone ledger (SYSTEM_SPEC §11–§12; DATA_CONTRACTS §10–§11; decision 0016).
 
 **A backup** is a directory of exactly three files: ``memory.sqlite`` (a

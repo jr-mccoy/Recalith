@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Versioned event-to-task bindings and their resolution (SYSTEM_SPEC §3.2; DATA_CONTRACTS §3.1).
 
 An event's capture-time ``task_id`` is only an immutable hint. Its task is the

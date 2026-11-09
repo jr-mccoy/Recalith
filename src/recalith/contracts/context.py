@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Context queries, packets, delivery accounting and session scratch (DATA_CONTRACTS §2.3, §9)."""
 
 from __future__ import annotations

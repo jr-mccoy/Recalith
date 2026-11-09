@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Delivery accounting: service receipts, receipt ingestion and outcome links (SYSTEM_SPEC §5.1.2, §8.2–§8.3; DATA_CONTRACTS §9–§11; decision 0015).
 
 Hooks never write SQLite. Every delivery, from the hook's delivery branch

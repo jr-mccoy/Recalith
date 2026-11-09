@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """``recalith`` command-line transport: parsing, the guard, dispatch and output (DATA_CONTRACTS §12).
 
 Exactly the command forms of DATA_CONTRACTS §12. With ``--json`` stdout is

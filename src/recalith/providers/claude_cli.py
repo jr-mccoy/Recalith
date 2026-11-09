@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Claude CLI inference adapter (SYSTEM_SPEC §9.1; decision 0002).
 
 The curator runs the configured executable with the certified argument array

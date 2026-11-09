@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Fixture-capture and probe-report sanitization (tools/capture_claude_fixtures.py, tools/probe_common.py; decision 0027).
 
 The first native-Windows capture (Claude Code 2.1.309) leaked the login name and
@@ -127,3 +128,18 @@ def test_sanitize_report_reapplies_the_harness_sanitizer(tmp_path):
     text = report.read_text(encoding="utf-8")
     assert "vendor-model-7" not in text and "vendor-agent-9" not in text and "<curator-model>" in text and "<agent-model>" in text
     assert json.loads(text)["updated_at"] == "t"  # sanitizing changes no recorded result or time
+
+
+def test_report_sanitizer_replaces_any_home_unc_and_email():
+    """Audit 2026-11-06 PROV-7: a report from another machine carries no user's home directory, UNC share or email."""
+    import probe_common as pc
+
+    san = pc.Sanitizer()
+    for text, want in [
+        ("/home/alice/proj/x.py", "<home>/proj/x.py"), ("/Users/bob.smith/code", "<home>/code"), ("C:\\Users\\carol\\proj", "<home>\\proj"),
+        ("C:/Users/carol/proj", "<home>/proj"), ("C:\\\\Users\\\\carol\\\\proj", "<home>\\\\proj"), ("/c/Users/carol/proj", "<home>/proj"),
+        ("\\\\fileserver\\share\\dir\\f.txt", "<unc>"), ("see \\\\\\\\srv\\\\share\\\\x", "see <unc>"), ("mail dave@example.com now", "mail <email> now"),
+    ]:
+        assert san.text(text) == want, text
+    kept = "sha 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef /usr/lib/python3 a\\b"
+    assert san.text(kept) == kept  # digests, system paths and a lone backslash are not homes, shares or addresses

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Strict worker/service contracts (DATA_CONTRACTS).
 
 Importing this package imports Pydantic. Synchronous hook code under

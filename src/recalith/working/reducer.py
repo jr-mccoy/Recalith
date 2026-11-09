@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Typed task reduction: the deterministic ingest reducer (SYSTEM_SPEC §3.2, §3.5, §6.2).
 
 Registered on the worker as an ingest reducer (decision 0006), it runs in the

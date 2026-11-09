@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "recalith"
-version = "0.1.0.dev14"
+version = "0.1.0.dev15"
 description = "Autonomous, project-local memory: working state, episodes, and evidence-backed knowledge for one project."
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -44,6 +44,11 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/recalith"]
+
+[tool.hatch.build.targets.sdist]
+# What builds and installs the engine (decision 0047). Documents, evaluations, tests, tools, workflows
+# and the design packet live in the repository, not in the source distribution.
+include = ["/src/recalith", "/README.md", "/LICENSE", "/CHANGELOG.md", "/pyproject.toml", "/bootstrap.py", "/requirements.lock", "/uv.lock"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

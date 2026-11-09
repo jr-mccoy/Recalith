@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Bounded child-process launch for model backends (SYSTEM_SPEC §6.3, §9.1; A30).
 
 The worker never waits on an unbounded child. :func:`run_bounded` runs an

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """What each health reason code means and what the operator does about it (OPERATIONS §2 as code; decision 0046).
 
 ``recalith status`` and ``doctor`` print these in their human form: one line per

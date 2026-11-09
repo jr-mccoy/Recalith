@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 9: claim extraction, deterministic admission and review over real payloads.
 
 Real inputs: every Claude event enters through the real 2.1.301 adapter

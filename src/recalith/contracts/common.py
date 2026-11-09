@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Shared primitive types and references (DATA_CONTRACTS §1).
 
 Every worker/service DTO derives from :class:`StrictModel`: unknown fields are

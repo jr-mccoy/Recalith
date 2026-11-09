@@ -36,6 +36,11 @@ on:
 permissions:
   contents: read
 
+# Measurements are long and compared across runs: a newer push waits for the older run instead of cancelling it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   measure:
     name: measure (${{ matrix.os }})
@@ -46,8 +51,8 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.runners || '["ubuntu-latest", "macos-latest", "windows-latest"]') }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
         with:
           version: "0.11.32"
       - name: Install locked dependencies
@@ -59,7 +64,7 @@ jobs:
       - name: Idle worker footprint over 10 minutes (and typed-state latency)
         continue-on-error: true
         run: uv run --locked python tools/measure_worker_latency.py --trials ${{ inputs.trials || '20' }} --start-trials 5 --idle-seconds ${{ inputs.idle_seconds || '600' }} --output measurements/worker-${{ runner.os }}.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: measurements-${{ runner.os }}
           path: measurements/

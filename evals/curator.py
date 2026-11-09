@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The recorded curator: a labeled stand-in for a certified inference route (decision 0020).
 
 Under B1 no certified route exists, so a recorded evaluation run answers the

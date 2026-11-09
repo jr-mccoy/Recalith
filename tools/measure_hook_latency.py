@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Measure capture-only hook latency in fresh interpreter processes (ACCEPTANCE_TESTS §7).
 
     python tools/measure_hook_latency.py [--warm 500] [--cold 100] [--first-launch 50] \

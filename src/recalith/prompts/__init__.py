@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Versioned curator prompts (SYSTEM_SPEC §5.3, §9.1; DATA_CONTRACTS §7).
 
 A job pins its ``prompt_version``; the request preparer uses exactly that

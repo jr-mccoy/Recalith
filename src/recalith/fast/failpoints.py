@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Deterministic failpoints for the failure-injection protocol (ACCEPTANCE_TESTS §4).
 
 Production code calls :func:`hit` at named points around spool temp write,

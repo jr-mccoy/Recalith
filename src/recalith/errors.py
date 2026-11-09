@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Service error type shared by every layer.
 
 Standard library only, so the fast hook path may raise or translate it without

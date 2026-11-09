@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The public project-memory service (DATA_CONTRACTS §11–§12; SYSTEM_SPEC §7.1.2, §7.3, §13.1, §14).
 
 Every function takes a resolved :class:`InstallationContext` (no global

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The lexical lookup projection behind the hook's prompt context (SYSTEM_SPEC §5.1.1; DATA_CONTRACTS §10; decision 0021).
 
 Views hold a query-independent slice; a prompt-specific fact outside it never

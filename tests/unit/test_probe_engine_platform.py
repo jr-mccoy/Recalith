@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The engine-mode host probe on native Windows (tools/probe_engine.py; decision 0027).
 
 The probe ran only on Linux before: it linked the shared runtime with a

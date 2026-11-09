@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 9: claim extraction, deterministic admission, adversarial review and failure debounce.
 
 Acceptance: A14–A17, A60, A66 and the A50 review-batch parts (ACCEPTANCE_TESTS §2).

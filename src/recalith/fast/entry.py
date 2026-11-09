@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Hook entry point: capture, registered worker start and delivery (DATA_CONTRACTS §2.3; SYSTEM_SPEC §5.1).
 
     python -I -m recalith.fast.entry --project ROOT claude_code [--event NAME]

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Build the hash-locked wheelhouse one platform and Python version needs (audit 2026-11-06 REL-1).
 
     python tools/build_wheelhouse.py --out DIR [--python PYTHON]

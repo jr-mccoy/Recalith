@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Applicability: tri-state scope and condition evaluation (SYSTEM_SPEC §7.4, §8.1, §13; DATA_CONTRACTS §1.1, §5, §9).
 
 Every predicate returns exactly ``"true"``, ``"false"`` or ``"unknown"``.

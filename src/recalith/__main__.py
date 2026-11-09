@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """``python -m recalith``: the guarded command-line transport (DATA_CONTRACTS §12; Task 12a).
 
 The project launcher ``.recalith/bin/recalith`` runs exactly this module on

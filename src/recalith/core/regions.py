@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Nondeclaration regions of user-channel text (SYSTEM_SPEC §7.1.2; decision 0011).
 
 A sentence on the user channel is a declaration only when the user actually

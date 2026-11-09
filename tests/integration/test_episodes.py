@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 6: connected episodes across chunks and compactions (A12, A13 episode side).
 
 Same harness as ``test_working_memory.py``: real 2.1.301 hook payloads through

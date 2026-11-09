@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Replay of the sanitized real Claude Code 2.1.301 hook fixtures (test helper).
 
 ``tests/fixtures/hosts/claude/2.1.301/*.hooks.jsonl`` holds the exact hook

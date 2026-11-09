@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Fresh role environments and the registered worker start (SYSTEM_SPEC §6.1, §9.1).
 
 Standard library only: the hook fast path uses this module to start the

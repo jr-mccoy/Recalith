@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Live evaluation runs: setup, per-installation certification and real-time quiescence (decisions 0020, 0028).
 
 A live run starts from an ordinary operator terminal (no host or role marker)

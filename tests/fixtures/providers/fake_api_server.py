@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """A loopback fake model API for tests (never a certification subject, never a real network call).
 
 ``FakeProvider`` is a threaded HTTP(S) server on 127.0.0.1 owned by the test.

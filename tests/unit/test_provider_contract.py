@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 7: the provider contract (SYSTEM_SPEC §9.1, §6.3; DATA_CONTRACTS §7, §8, §11).
 
 Route status, certification records, envelope parsing and output bounds. The

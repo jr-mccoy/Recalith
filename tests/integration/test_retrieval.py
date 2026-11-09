@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 11: retrieval and bounded context composition (SYSTEM_SPEC §5.1.1, §7.3–§7.4, §8; DATA_CONTRACTS §9–§11; decision 0013).
 
 Inputs are real Claude 2.1.301 payloads through the real adapter, ingestion,

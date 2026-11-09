@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 8: source lineage and independent root classes (SYSTEM_SPEC §7.1, §7.1.1, §7.1.2, §13; DATA_CONTRACTS §6.1).
 
 Acceptance: A16, A17, A32, A56 (and review focus 2). Every Claude event

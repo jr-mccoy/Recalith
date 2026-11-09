@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Provider failure types shared by the adapters (no engine imports)."""
 
 from __future__ import annotations

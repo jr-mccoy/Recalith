@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """One smoke trial: one scenario, one arm (ACCEPTANCE_TESTS §6, §6.1; decision 0020).
 
 A trial copies the scenario's seed project into a disposable workspace with a

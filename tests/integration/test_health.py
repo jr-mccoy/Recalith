@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 17 preview: profile-aware health and readiness of one installation (A29, A40, A46, A47, A49, A65, A72).
 
 Health is computed by ``operations.health.health(ctx)`` (the service's

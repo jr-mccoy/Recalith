@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Primitive wire layer of the hook fast path (DATA_CONTRACTS §1, §2.3).
 
 Standard library only. It provides the canonical JSON/digest/identifier

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Command-line entry point: `python -m fieldnotes.cli add TEXT` or `list`."""
 
 from __future__ import annotations

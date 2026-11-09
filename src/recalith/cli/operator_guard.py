@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The operator command guard (SYSTEM_SPEC §13.1; DATA_CONTRACTS §1.1, §12; decision 0014).
 
 It runs in the CLI process **before any actor is assigned**, on the

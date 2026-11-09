@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Project startup in the preview profile: the hook-started worker, reported without side effects (decision 0018).
 
 Preview's only automatic startup route is the registered internal hook

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 17 full: the preview-to-full profile transition (A02, A40 full; decision 0026).
 
 Real inputs: preview stores built by ``retention_scenarios.build`` (real

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Evidence retention with live pins (SYSTEM_SPEC §11; DATA_CONTRACTS §8, §10–§11; decision 0016).
 
 **Pins.** A payload is pinned while a live owner needs it: a current

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Administrative CLI forms behind the operator guard (DATA_CONTRACTS §12; SYSTEM_SPEC §13.1).
 
 :func:`run` applies :mod:`recalith.cli.operator_guard` to the original caller

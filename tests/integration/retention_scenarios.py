@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 15 core: evidence retention with live pins and verified backups over real payloads.
 
 Real inputs: every Claude event enters through the real 2.1.301 adapter

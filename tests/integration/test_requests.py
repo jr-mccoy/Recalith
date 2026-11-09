@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 7: request preparation and narrative scheduling (DATA_CONTRACTS §7, §11; decision 0009).
 
 Projects hold real Claude Code 2.1.301 lifecycle payloads, ingested and

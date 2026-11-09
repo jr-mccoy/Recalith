@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Context packets, pre-serialized views and the worker's projection step (SYSTEM_SPEC §5.1.1, §8.2–§8.3; DATA_CONTRACTS §9–§11; decision 0013).
 
 :func:`compile_context` (DATA_CONTRACTS §11) gathers in one read snapshot

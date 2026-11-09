@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Audit 2026-11-06 Phase 1, item 1.12: small fixes, one test each (decision 0044).
 
 STO-3 read views accept only read pragmas; CTL-8 the stop request is a private file; CAP-11 continuity judges a

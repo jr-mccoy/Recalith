@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Job queue: code-assigned priority, leases with fencing, retry and coalescing.
 
 DATA_CONTRACTS §8 and SYSTEM_SPEC §6.2. Rules implemented here:

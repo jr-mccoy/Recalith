@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Lexical and structural candidate indexes (SYSTEM_SPEC §8.1; DATA_CONTRACTS §10; decision 0013).
 
 The index is a disposable projection of the live record heads, maintained by

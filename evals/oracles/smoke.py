@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Task oracles for the 12 non-held-out smoke scenarios.
 
     python evals/oracles/smoke.py CHECK --workspace DIR --actions FILE

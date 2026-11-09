@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Measure the preview worker's typed-state latency, start cost and idle footprint (ACCEPTANCE_TESTS §7).
 
     python tools/measure_worker_latency.py [--trials 100] [--start-trials 30] [--idle-seconds 600] \

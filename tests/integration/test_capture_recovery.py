@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 3: durable capture, source cursors and replay recovery (A05–A09, A34, A49).
 
 Crash tests kill a real child process at a deterministic failpoint, restart

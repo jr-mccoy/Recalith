@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 16 (preview): intentional forgetting (A25, A36, A48, A63, A64; A37's forget side).
 
 Real inputs: Claude Code 2.1.301 payloads through the real adapter, ingestion

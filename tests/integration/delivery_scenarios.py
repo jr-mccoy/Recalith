@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Test-only builders for Task 12b: delivery accounting, the session overlay and corrections at the fence.
 
 Real inputs: every Claude event enters through the real 2.1.301 adapter

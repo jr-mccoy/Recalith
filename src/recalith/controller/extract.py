@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Claim extraction: bounded input selection, deterministic no-op and scheduling (SYSTEM_SPEC §3.5, §6.2–§6.3, §7; decision 0011).
 
 Extraction is a model job (``extract_claims``, ordinary pool, band 4). It

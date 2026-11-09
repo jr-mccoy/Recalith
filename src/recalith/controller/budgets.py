@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """UTC-day model budgets and output bounds (SYSTEM_SPEC §6.3; DATA_CONTRACTS §8).
 
 Each installation has one ledger per UTC day in ``provider_usage``: one

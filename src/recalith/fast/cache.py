@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Pre-serialized context views for the stdlib hook compiler (SYSTEM_SPEC §5.1.1, §8.3; decision 0013).
 
 Standard library and ``recalith.fast`` only; nothing here imports Pydantic,

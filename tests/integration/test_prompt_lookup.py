@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Decision 0021: the bounded lexical lookup behind the hook's prompt context at corpus scale (Task 11 follow-up; A58, A23–A25, A01).
 
 Real inputs: the Task 11 builders (``retrieval_scenarios``): facts admitted

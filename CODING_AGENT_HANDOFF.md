@@ -26,7 +26,7 @@ The first milestone is **Claude autonomous preview** (`claude_preview`). The ful
 6. [SOURCES_AND_REUSE.md](docs/SOURCES_AND_REUSE.md): exact compatibility-report requirements, upstream pin, and optional reuse.
 7. [REVIEW_RESPONSE.md](docs/REVIEW_RESPONSE.md) and [the naming decision](docs/decisions/0001-recalith-name.md): rationale and the accepted namespace.
 
-Historical documents in `review/` may use old names and superseded behavior. Do not implement them in preference to the current documents. SYSTEM_SPEC owns policy; DATA_CONTRACTS owns fields/interfaces; ACCEPTANCE_TESTS owns measurements; IMPLEMENTATION_PLAN owns execution order. Resolve a real disagreement in those documents and record it in the repo; continue unrelated work. Repository docs and tests now own subsequent changes.
+Historical documents in `docs/history/packet/review/` may use old names and superseded behavior. Do not implement them in preference to the current documents. SYSTEM_SPEC owns policy; DATA_CONTRACTS owns fields/interfaces; ACCEPTANCE_TESTS owns measurements; IMPLEMENTATION_PLAN owns execution order. Resolve a real disagreement in those documents and record it in the repo; continue unrelated work. Repository docs and tests now own subsequent changes.
 
 ## 3. Fixed names and implementation boundaries
 

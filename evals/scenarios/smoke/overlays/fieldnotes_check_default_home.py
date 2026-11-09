@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Project checks: unit tests plus a line-length rule (<= 100 characters)."""
 
 from __future__ import annotations

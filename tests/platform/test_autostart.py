@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 17 preview: project startup is the hook-started worker; a copy or a move never auto-starts (A03, A45).
 
 Preview's startup route is the registered internal hook start (SYSTEM_SPEC

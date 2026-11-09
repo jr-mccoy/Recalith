@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """The preview evaluation report (ACCEPTANCE_TESTS §5.1, §5.2, §6.1, §6.2, §8; decision 0020).
 
     python evals/report.py RESULTS_DIR [--output-json FILE] [--output-md FILE]

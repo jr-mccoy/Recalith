@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Apply the probes' own sanitizer to a compatibility report written before one of its rules existed.
 
     python tools/sanitize_report.py --config LOCAL_CONFIG --report docs/host-compatibility.json

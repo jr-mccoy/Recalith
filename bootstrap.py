@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Recalith release bootstrap: provision one project's pinned runtime, and run the first commands on it.
 
     python bootstrap.py install --project PATH --wheel recalith-X-py3-none-any.whl \\

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """The preview hook latency and usefulness gate on this platform (ACCEPTANCE_TESTS §7; Task 18; decision 0020).
 
     python tools/measure_release_latency.py [--warm 500] [--cold 500] [--first-launch 50] [--faults 100] \

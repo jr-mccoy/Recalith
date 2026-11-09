@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Task 10: consolidation and autonomous revision (A18–A22, A43, A44, A51, A62; decision 0012).
 
 Real Claude Code 2.1.301 payloads through the real adapter, capture,

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 """Shared, standard-library-only helpers for the Task 0/0b standalone probes.
 
 These probes run before the engine exists (IMPLEMENTATION_PLAN Tasks 0 and 0b),
@@ -159,8 +160,18 @@ def model_placeholders(cfg: Mapping[str, Any], role: str) -> dict[str, str]:
     return out
 
 
+# Generic shapes a report must never keep, whatever machine produced it (audit 2026-11-06 PROV-7): any user's home
+# directory (POSIX, macOS, Windows in every spelling), a UNC share and an email address.
+_GENERIC_HOME = re.compile(r"(?:/home/|/Users/|(?:[A-Za-z]:|/[a-z])(?:\\\\|\\|/)Users(?:\\\\|\\|/))[^\s/\\\"'<>:]+")
+_UNC_PATH = re.compile(r"(?<![\w\\])\\\\(?:\\\\)?[A-Za-z0-9._-]+(?:\\(?:\\)?[^\s\\\"'<>]+)+")
+_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+
+
 class Sanitizer:
-    """Replace local paths (on Windows in every spelling, :func:`path_forms`) with placeholders and scrub secret-shaped text."""
+    """Replace local paths (on Windows in every spelling, :func:`path_forms`) with placeholders and scrub secret-shaped text.
+
+    The explicit replacements come first (the harness root, this machine's home); the generic home, UNC and email
+    patterns then catch what the explicit list did not know about."""
 
     def __init__(self, replacements: Mapping[str, str] | None = None, secrets: Iterable[str] = ()) -> None:
         pairs = [(form, v, bool(WINDOWS_PATH.match(k))) for k, v in (replacements or {}).items() if k for form in path_forms(k)]
@@ -174,6 +185,9 @@ class Sanitizer:
         for old, new, fold in self._pairs:
             value = replace_path(value, old, new, fold=fold)
         value = _SECRETISH.sub("<redacted>", value)
+        value = _GENERIC_HOME.sub("<home>", value)
+        value = _UNC_PATH.sub("<unc>", value)
+        value = _EMAIL.sub("<email>", value)
         if limit is not None and len(value) > limit:
             value = value[:limit] + f"...<{len(value) - limit} chars omitted>"
         return value
