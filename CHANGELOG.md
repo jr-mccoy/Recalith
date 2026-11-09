@@ -4,7 +4,7 @@ Engine versions of the `claude_preview` profile, newest first. Every entry names
 
 ## 0.1.0.dev16 (2026-11-09) — the Windows launcher parses
 
-Decision 0048. `.recalith\bin\recalith.cmd` from `0.1.0.dev14` and `0.1.0.dev15` failed on every invocation (`. was unexpected at this time.`, exit 255): the bootstrap hint added by decision 0046 put a `)` inside a parenthesized `if` block. The launcher now uses `goto` and has no block, so neither its message nor a project path such as `C:\Program Files (x86)\…` can break it. A Windows project made with those engines keeps its broken launcher; provision a new one on this engine. The release workflow and the Linux install steps choose the wheelhouse whose tag matches the `python3` that runs the bootstrap.
+Decision 0048. `.recalith\bin\recalith.cmd` from `0.1.0.dev14` and `0.1.0.dev15` failed on every invocation (`. was unexpected at this time.`, exit 255): the bootstrap hint added by decision 0046 put a `)` inside a parenthesized `if` block. The launcher now uses `goto` and has no block, so neither its message nor a project path such as `C:\Program Files (x86)\…` can break it. A Windows project made with those engines keeps its broken launcher; provision a new one on this engine. The runtime dependency pydantic is 2.14.3 (pydantic-core 2.50.4); the build backend is hatchling 1.33.0 and the test runner pytest 9.2.0; the workflows use the current majors of checkout, upload-artifact, download-artifact, setup-uv and attest-build-provenance (Node 24). The release workflow and the Linux install steps choose the wheelhouse whose tag matches the `python3` that runs the bootstrap.
 
 ## 0.1.0.dev15 (2026-11-09) — public-repository hygiene
 
