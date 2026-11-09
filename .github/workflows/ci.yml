@@ -45,5 +45,5 @@ jobs:
         shell: bash
         run: |
           uv build --wheel -o dist
-          uv run --locked --with pip python -m pip download --only-binary :all: --require-hashes --no-deps -r requirements.lock -d wheelhouse
-          RECALITH_TEST_WHEEL=$(ls dist/recalith-*.whl) RECALITH_TEST_WHEELHOUSE=wheelhouse uv run --locked python -m pytest -q -rs tests/integration/test_installations.py -k provisions
+          uv run --locked --with pip python tools/build_wheelhouse.py --out wheelhouses
+          RECALITH_TEST_WHEEL=$(ls dist/recalith-*.whl) RECALITH_TEST_WHEELHOUSE=$(ls -d wheelhouses/wheelhouse-*) uv run --locked python -m pytest -q -rs tests/integration/test_installations.py -k bootstrap

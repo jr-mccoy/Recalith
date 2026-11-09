@@ -4,9 +4,14 @@
     python tools/build_release.py --out DIR [--skip-build]
 
 1. ``uv build --sdist --wheel`` (the build the CI provisioning step already uses).
-2. SHA-256 and size of every artifact, written to ``SHA256SUMS`` and the
-   release manifest; the provisioning inputs (``bootstrap.py``,
-   ``requirements.lock``, ``uv.lock``) are digested alongside.
+2. ``bootstrap.py`` and ``requirements.lock`` are copied into ``--out`` (the
+   bootstrap reads the lock beside itself), and every wheelhouse directory
+   already in ``--out`` (``wheelhouse-<platform>-<python tag>/`` from
+   ``tools/build_wheelhouse.py``, built on each platform) is verified against
+   the lock. SHA-256 and size of every artifact, wheelhouse files included,
+   go to ``SHA256SUMS`` and the release manifest; the provisioning inputs
+   (``bootstrap.py``, ``requirements.lock``, ``uv.lock``) are digested
+   alongside (audit 2026-11-06 REL-1).
 3. **Shipped-code inventory**: every module under ``src/recalith`` is in the
    wheel, and the wheel holds nothing else but its ``.dist-info`` (no tests,
    evals, tools, probe output or private configuration).
@@ -42,7 +47,11 @@ from importlib import metadata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import build_wheelhouse  # noqa: E402
+
 INVENTORY = ROOT / "docs" / "release" / "DEPENDENCIES.json"
+PROVISIONING_FILES = ("bootstrap.py", "requirements.lock")
 FOREIGN_COPYRIGHT = re.compile(r"Copyright \(c\)|Copyright 20\d\d (?!Recalith)", re.I)
 
 
@@ -111,6 +120,25 @@ def wheel_inventory(wheel: Path) -> dict:
     }
 
 
+def wheelhouses(out: Path, lock_text: str) -> dict[str, dict]:
+    """Every ``wheelhouse-*`` directory in ``out``: its manifest's platform and tag, and the lock check re-run here."""
+    found: dict[str, dict] = {}
+    for directory in sorted(p for p in out.glob("wheelhouse-*") if p.is_dir()):
+        manifest_path = directory / build_wheelhouse.MANIFEST
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            found[directory.name] = {"problems": ["wheelhouse manifest missing or unreadable"]}
+            continue
+        problems, wheels = build_wheelhouse.check(directory, lock_text)
+        if manifest.get("requirements_lock_sha256") != hashlib.sha256(lock_text.encode("utf-8")).hexdigest():
+            problems.append("wheelhouse was built from another requirements.lock")
+        if build_wheelhouse.wheelhouse_name(str(manifest.get("platform")), str(manifest.get("python_tag"))) != directory.name:
+            problems.append("wheelhouse directory name does not match its manifest")
+        found[directory.name] = {"platform": manifest.get("platform"), "python_tag": manifest.get("python_tag"), "wheels": len(wheels), "problems": problems}
+    return found
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, required=True)
@@ -148,22 +176,32 @@ def main(argv: list[str] | None = None) -> int:
         problems.append("wheel_contents_differ_from_src")
     if wheel["foreign_copyright_headers"]:
         problems.append("foreign_copyright_without_notice")
+    for name in PROVISIONING_FILES:  # the bootstrap and the lock it reads beside itself travel with the wheel (REL-1)
+        shutil.copyfile(ROOT / name, out / name)
+    lock_text = (ROOT / "requirements.lock").read_text(encoding="utf-8")
+    houses = wheelhouses(out, lock_text)
+    for name, house in houses.items():
+        problems += [f"wheelhouse_{name}:{p}" for p in house["problems"]]
     artifacts = {}
-    for path in [*wheels, *sdists]:
+    for path in [*wheels, *sdists, *(out / name for name in PROVISIONING_FILES)]:
         artifacts[path.name] = {"sha256": sha256(path), "bytes": path.stat().st_size}
+    for name in houses:
+        for path in sorted(p for p in (out / name).iterdir() if p.is_file()):
+            artifacts[f"{name}/{path.name}"] = {"sha256": sha256(path), "bytes": path.stat().st_size}
     inputs = {name: sha256(ROOT / name) for name in ("bootstrap.py", "requirements.lock", "uv.lock", "pyproject.toml")}
     commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", check=False).stdout.strip() or None
     version = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "pyproject.toml").read_text(encoding="utf-8"), re.M).group(1)
     manifest = {
         "release_manifest_schema": 1, "name": "recalith", "version": version, "profile": "claude_preview", "commit": commit,
-        "artifacts": artifacts, "provisioning_inputs": inputs, "dependency_inventory": inventory, "wheel_inventory": wheel, "problems": problems,
+        "artifacts": artifacts, "provisioning_inputs": inputs, "wheelhouses": houses, "dependency_inventory": inventory, "wheel_inventory": wheel, "problems": problems,
+        "layout": "the wheel, the sdist, bootstrap.py, requirements.lock, one wheelhouse-<platform>-<python tag>/ per supported platform and Python version, SHA256SUMS and this manifest",
         "signing": {"state": "unsigned", "blocker": "signing needs operator material (a signing key or an attestation identity the owner selects); none is created by the build"},
         "publication": "none: nothing is tagged, uploaded or published by this tool",
         "readiness_note": "a built artifact is not a readiness claim: claude_preview is ready only when docs/release/claude_preview_checklist.json says so",
     }
     (out / "RELEASE_MANIFEST.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
     (out / "SHA256SUMS").write_text("".join(f"{a['sha256']}  {name}\n" for name, a in sorted(artifacts.items())), encoding="utf-8")
-    print(json.dumps({"artifacts": artifacts, "problems": problems, "signing": manifest["signing"]["state"]}, sort_keys=True))
+    print(json.dumps({"artifacts": sorted(artifacts), "wheelhouses": sorted(houses), "problems": problems, "signing": manifest["signing"]["state"]}, sort_keys=True))
     return 1 if problems else 0
 
 

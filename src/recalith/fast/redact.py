@@ -243,7 +243,7 @@ def sensitive_key(key: str) -> bool:
         return False
     if parts[-1] in _SENSITIVE_LAST:
         return True
-    return any(pair in _SENSITIVE_PAIRS for pair in zip(parts, parts[1:]))
+    return any(pair in _SENSITIVE_PAIRS for pair in zip(parts, parts[1:], strict=False))  # adjacent pairs: the shorter tail ends it
 
 
 def sensitive_name(name: str) -> bool:

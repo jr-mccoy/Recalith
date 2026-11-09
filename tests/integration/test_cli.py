@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import stat
 import subprocess
@@ -149,7 +150,8 @@ def test_degraded_capability_returns_8(root, tmp_path, tok):
     assert packet.code in (0, 8)
     assert (packet.code == 8) == bool(packet.obj["result"]["degraded_reasons"])
     # Unavailable (not merely degraded) capabilities are 4, after the guard for administrative forms.
-    assert cs.cli(root, "--json", "doctor", "--full-integrity").code == 4
+    assert cs.cli(root, "--json", "doctor", "--full-integrity").code == 6  # guarded: it would advance the verifier's checkpoint (CLI-9)
+    assert cs.cli(root, "--json", "--operator-token-file", str(tok), "doctor", "--full-integrity").code == 4
     assert cs.cli(root, "--json", "--operator-token-file", str(tok), "worker", "start", "--mode", "session").code == 4
 
 
@@ -196,6 +198,7 @@ def _forms(tmp_path: Path) -> dict[str, list[str]]:
         "operator_token_revoke": ["operator-token", "revoke", "tok_00000000-0000-4000-8000-000000000001"],
         "doctor_probe_host": ["doctor", "--probe-host", "claude_code"],
         "doctor_probe_provider": ["doctor", "--probe-provider", "claude_cli"],
+        "doctor_full_integrity": ["doctor", "--full-integrity"],  # advances the verifier's checkpoint (CLI-9)
     }
 
 
@@ -203,7 +206,7 @@ GUARDED = sorted([
     "init", "init_full", "declare", "declare_preference", "correct", "undo_apply", "forget_apply", "import", "import_breadcrumbs", "restore", "upgrade", "upgrade_full",
     "integrate", "integrate_shared", "integrate_remove", "workspace_attach", "workspace_rebind", "workspace_discard_copy", "project_fork",
     "worker_start", "worker_session", "worker_stop", "worker_run", "jobs_retry", "backup", "export", "operator_token_create", "operator_token_revoke",
-    "doctor_probe_host", "doctor_probe_provider",
+    "doctor_probe_host", "doctor_probe_provider", "doctor_full_integrity",
 ])
 COMBOS = [(True, True), (False, False), (True, False), (False, True)]  # (terminal, token)
 
@@ -842,3 +845,63 @@ def test_machine_output_is_utf8_whatever_the_console_encoding(encoding):
     assert json.loads(lines[0])["result"]["spelling"].endswith("proj with space é/.recalith/bin/recalith")
     assert json.loads(lines[1])["message"] == "the path proj é \u2192 is invalid"
     assert "proj é \u2192" in err_buf.getvalue().decode("utf-8")
+
+
+def test_init_on_a_clone_refuses_a_differing_profile(tmp_path):
+    """Audit 2026-11-06 CLI-8: a clone keeps its tracked profiles; `--profile general` on a coding project is refused, not ignored."""
+    src = cs.init_project(tmp_path, "src")
+    clone = tmp_path / "clone"
+    (clone / ".recalith").mkdir(parents=True)
+    for name in ("project.toml", "engine.lock", ".gitignore"):
+        shutil.copy(src / ".recalith" / name, clone / ".recalith" / name)
+    tok = tmp_path / "op.token"
+    cs.token(tok)
+    other = cs.cli(clone, "--json", "--operator-token-file", str(tok), "init", "--profile", "general", "--release-profile", "claude_preview")
+    assert other.code == 2 and "tracked profile is coding" in other.obj["message"] and not (clone / ".recalith/local.toml").exists()
+    same = cs.cli(clone, "--json", "--operator-token-file", str(tok), "init", "--profile", "coding", "--release-profile", "claude_preview")
+    assert same.code == 0, same.stdout + same.stderr
+    assert same.obj["result"]["project_id"] == cs.PROJECT_ID
+
+
+def test_status_without_json_is_one_screen_naming_the_next_command(root, tmp_path, tok):
+    """Audit 2026-11-06 REL-10: the human form explains each degraded code and names the next command; the full report is --json."""
+    result = cs.cli(root, "status")
+    assert result.code == 8, result.stdout + result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[0].startswith("Recalith status: readiness degraded") and len(lines) <= 40
+    text = result.stdout
+    assert "provider_not_configured: no curator route is configured" in text and "host_not_integrated" in text
+    assert "Next: certify a route from an ordinary terminal: tools/probe_provider.py" in text and "Full report: recalith status --json" in text
+    assert "{" not in lines[0] and '"health"' not in text  # not the JSON report
+    doctor = cs.cli(root, "doctor")
+    assert doctor.code == 8 and doctor.stdout.splitlines()[0].startswith("Recalith doctor: readiness degraded") and "Checks: " in doctor.stdout
+    assert "store_quick_check ok" in doctor.stdout or "store_quick_check" in doctor.stdout
+    assert cs.cli(root, "--json", "status").obj["result"]["readiness"] == "degraded"  # the machine form is unchanged
+    guarded = cs.cli(root, "--operator-token-file", str(tok), "doctor", "--full-integrity")
+    assert guarded.code == 4 and guarded.stdout == ""  # after the guard: unavailable in preview, on stderr
+
+
+def test_a_token_whose_registration_fails_is_not_left_behind(root, tmp_path):
+    """Audit 2026-11-06 CLI-11: `operator-token create --project` registers the verifier; when that fails the file is removed."""
+    local = root / ".recalith" / "local.toml"
+    keep = local.read_bytes()
+    local.unlink()
+    local.mkdir()  # local.toml exists but cannot be read as a file: registration fails after the token was written
+    try:
+        out = tmp_path / "orphan.token"
+        result = cs.cli(root, "--json", "operator-token", "create", "--output", str(out), tty=True)
+        assert result.code == 5 and not out.exists(), result.stdout + result.stderr
+    finally:
+        local.rmdir()
+        local.write_bytes(keep)
+    standalone = cs.cli(None, "--json", "operator-token", "create", "--output", str(tmp_path / "fresh.token"), tty=True)
+    assert standalone.code == 0 and standalone.obj["result"]["registered"] is False and (tmp_path / "fresh.token").exists()
+
+
+def test_every_registered_error_code_has_an_exit_code():
+    """Audit 2026-11-06 CLI-10: no registered code falls back to the storage exit; each names its own."""
+    from recalith.errors import ERROR_CODES, EXIT_CODES, RecalithError
+
+    assert set(EXIT_CODES) == ERROR_CODES
+    assert RecalithError("foreign_installation", "x").exit_code == 6 and RecalithError("event_identity_conflict", "x").exit_code == 3
+    assert RecalithError("backup_unavailable_after_forget", "x").exit_code == 5

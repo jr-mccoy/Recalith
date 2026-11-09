@@ -104,9 +104,10 @@ def test_local_install_is_default_and_ignored(provisioned):
     assert result["delivery_paths"] == [] and "delivery_not_certified" in result["delivery_reasons"]
     assert result["private_paths"]["state"] == "not_run" and result["private_paths"]["installed_rules"] == "unavailable_in_preview"
     assert result["os_startup_entries"] == {"state": "unavailable", "reason": "deferred_full_release"}
-    # Files are private.
-    for rel in (ccs.SETTINGS, ccs.OWNERSHIP, ccs.MANIFEST):
+    # Recalith's own files are private; the user's settings file keeps the mode it had (audit 2026-11-06 CLI-7).
+    for rel in (ccs.OWNERSHIP, ccs.MANIFEST):
         assert not POSIX or (root / rel).stat().st_mode & 0o077 == 0, rel
+    assert not POSIX or (root / ccs.SETTINGS).stat().st_mode & 0o777 == install.public_mode()
 
 
 def test_rerun_is_idempotent_and_installs_no_duplicates(provisioned):
@@ -177,6 +178,92 @@ def test_tracked_settings_are_refused(tmp_path):
     refused = op.integrate()
     assert refused.code == 6 and refused.obj["error"] == "policy_refused" and "tracked" in refused.obj["message"]
     assert cs.tree(root) == before
+
+
+@pytest.mark.skipif(not ccs.has_git(), reason="needs git to track the settings file")
+def test_tracked_settings_in_a_monorepo_subdirectory_are_refused(tmp_path):
+    """Audit 2026-11-06 CLI-3: the repository's top level is found by git, not by a .git directory at the project root."""
+    mono = tmp_path / "mono"
+    mono.mkdir()
+    assert ccs.git(mono, "init", "-q").returncode == 0
+    root = ccs.project(mono, "service", git_repo=False)
+    op = ccs.Operator(root, tmp_path)
+    assert ccs.git(mono, "add", "-f", "service/.claude/settings.local.json").returncode == 0
+    before = cs.tree(root)
+    refused = op.integrate()
+    assert refused.code == 6 and refused.obj["error"] == "policy_refused" and "tracked" in refused.obj["message"], refused.stdout
+    assert cs.tree(root) == before
+    assert ccs.git(mono, "rm", "-q", "--cached", "service/.claude/settings.local.json").returncode == 0
+    (mono / ".gitignore").write_text("service/.claude/settings.local.json\n", encoding="utf-8")
+    result = ok(op.integrate())
+    assert result["ignored"] == "verified"  # judged by the repository that holds the project
+
+
+def test_an_unknown_tracking_state_is_refused_not_read_as_untracked(provisioned, tmp_path):
+    """Audit 2026-11-06 CLI-3: a git error that is not "not a git repository" (dubious ownership, a broken index) is unknown,
+    and an unknown state never means "safe to edit"."""
+    root, op = provisioned
+    fake_git = tmp_path / "fakegit"
+    fake_git.mkdir()
+    if os.name == "nt":
+        (fake_git / "git.cmd").write_text("@echo fatal: detected dubious ownership in repository 1>&2\r\n@exit /b 128\r\n", encoding="utf-8")
+    else:
+        script = fake_git / "git"
+        script.write_text("#!/bin/sh\necho 'fatal: detected dubious ownership in repository' >&2\nexit 128\n", encoding="utf-8")
+        script.chmod(0o755)
+    before = cs.tree(root)
+    refused = op.integrate(env=cs.base_env(PATH=os.pathsep.join([str(fake_git), str(op.bin), os.environ.get("PATH", "")])))
+    assert refused.code == 6 and "settings_tracking_unknown" in refused.obj["message"] and "dubious" not in refused.obj["message"], refused.stdout
+    assert cs.tree(root) == before
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need a privilege on Windows")
+def test_a_symlinked_settings_file_is_refused_and_left_alone(tmp_path):
+    """Audit 2026-11-06 CLI-5: a dotfiles layout links the settings file elsewhere; the rename would destroy the link."""
+    real = tmp_path / "dotfiles" / "settings.local.json"
+    real.parent.mkdir()
+    real.write_text(json.dumps(ccs.UNRELATED, indent=2) + "\n", encoding="utf-8")
+    root = ccs.project(tmp_path, "linked", unrelated=None)
+    (root / ccs.SETTINGS).parent.mkdir(parents=True, exist_ok=True)
+    (root / ccs.SETTINGS).symlink_to(real)
+    op = ccs.Operator(root, tmp_path)
+    refused = op.integrate()
+    assert refused.code == 6 and str(real) in refused.obj["message"] and (root / ccs.SETTINGS).is_symlink()
+    assert real.read_text(encoding="utf-8") == json.dumps(ccs.UNRELATED, indent=2) + "\n" and ccs.ownership(root) is None
+    # An integration already installed is not removed through a link that appeared later either.
+    (root / ccs.SETTINGS).unlink()
+    (root / ccs.SETTINGS).write_text(json.dumps(ccs.UNRELATED, indent=2) + "\n", encoding="utf-8")
+    ok(op.integrate())
+    installed = (root / ccs.SETTINGS).read_bytes()
+    (root / ccs.SETTINGS).unlink()
+    real.write_bytes(installed)
+    (root / ccs.SETTINGS).symlink_to(real)
+    blocked = op.remove()
+    assert blocked.code == 6 and (root / ccs.SETTINGS).is_symlink() and real.read_bytes() == installed and ccs.ownership(root)["state"] == "installed"
+
+
+def test_remove_restores_a_whitespace_only_settings_file(tmp_path):
+    """Audit 2026-11-06 CLI-4: a before-copy of whitespace is the empty object it was read as, not a parse error forever."""
+    root = ccs.project(tmp_path, "blank", raw=b"  \n\n")
+    op = ccs.Operator(root, tmp_path)
+    ok(op.integrate())
+    result = ok(op.remove())
+    assert result["unrelated_preserved"] == "byte_identical" and (root / ccs.SETTINGS).read_bytes() == b"  \n\n" and ccs.ownership(root) is None
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_the_settings_file_keeps_its_mode(tmp_path):
+    """Audit 2026-11-06 CLI-7: the user's settings file is theirs; integrate keeps its mode, and a new one is an ordinary file."""
+    root = ccs.project(tmp_path, "modes")
+    (root / ccs.SETTINGS).chmod(0o664)
+    op = ccs.Operator(root, tmp_path)
+    ok(op.integrate())
+    assert (root / ccs.SETTINGS).stat().st_mode & 0o777 == 0o664
+    ok(op.remove())
+    assert (root / ccs.SETTINGS).stat().st_mode & 0o777 == 0o664
+    fresh = ccs.project(tmp_path, "modes-new", unrelated=None)
+    ok(ccs.Operator(fresh, tmp_path).integrate())
+    assert (fresh / ccs.SETTINGS).stat().st_mode & 0o777 == install.public_mode() and (fresh / ".gitignore").stat().st_mode & 0o777 == install.public_mode()
 
 
 @pytest.mark.parametrize("flag", ["--autostart", "--shared"])
@@ -618,17 +705,18 @@ def test_installer_effects_on_every_platform(tmp_path):
 POSIX_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code --event SessionStart'
 WINDOWS_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook.cmd claude_code --event SessionStart'
 # The launcher texts as generated before decision 0027; an existing installation's tracked launchers are these bytes.
+# Re-pinned by decision 0046: the launchers name the bootstrap form, and the POSIX hook launcher drops stderr and always exits 0 (FP-7).
 LAUNCHER_SHA256 = {
-    "posix_launcher": "9cd034cc0e53c87336dd789b42b93140a4ab5c67621d2b886e7e238eda6e8fba",
-    "posix_hook_launcher": "ac926cf5afd7f1b7694dc9ed2b74a911f41f4686e68ac87954dcbb4130ce4710",
-    "windows_launcher": "b530bdec47caa737f4f46a17df59610f454d19b49281b88c49230bf5a5829eaa",
+    "posix_launcher": "9a3a2662d9e5449befc5c6d4d7689d0b633d172ae6d72013b4213d23f8dc4b4a",
+    "posix_hook_launcher": "78667627f645202adf2002e6df43c78517abf521bd9355fd4ff5e7502f1c0355",
+    "windows_launcher": "989cc41aaf72fe63e0b931a95f8dd1c362d1ad6492d494ce2b840305adf73640",
     "windows_hook_launcher": "58610e6813611092bd5e0f49709a3e515f73d6cdb2a7eaf4a6971e6c29b24619",
 }
 POSIX_SPELLINGS = [
     ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
     "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
     "python -m recalith.cli.main", "python3 -m recalith.cli.main",
-    ".recalith/runtime/0.1.0.dev13/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev13/venv/bin/python -I -m recalith",
+    ".recalith/runtime/0.1.0.dev14/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev14/venv/bin/python -I -m recalith",
 ]
 
 
@@ -648,7 +736,7 @@ def test_launchers_are_unchanged():
 
 
 def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
-    if identity.__version__ != "0.1.0.dev13":
+    if identity.__version__ != "0.1.0.dev14":
         pytest.skip("pinned for the development engine version")
     root = Path("/proj/root")
     assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
@@ -659,7 +747,7 @@ def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
     for want in (
         "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
         f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
-        ".recalith/runtime/0.1.0.dev13/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev13/venv/Scripts/python.exe -I -m recalith",
+        ".recalith/runtime/0.1.0.dev14/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev14/venv/Scripts/python.exe -I -m recalith",
     ):
         assert want in spellings, want
     assert len(spellings) == len(set(spellings))
@@ -993,3 +1081,32 @@ def test_claude_capture_delivery_and_compact(tmp_path):
     with ds.wks.Project.view(p) as v:
         kinds = {k for (k,) in v.execute("SELECT DISTINCT kind FROM events").fetchall()}
     assert {"session_started", "user_message", "tool_started", "tool_finished", "compaction", "session_ended", "memory_delivered"} <= kinds
+
+
+def test_the_notice_names_a_launcher_this_platform_can_run():
+    """Audit 2026-11-06 FP-5: cmd.exe cannot run the sh launcher, so the Windows notice names recalith.cmd."""
+    assert ".recalith/bin/recalith status" in fast_claude.text_for(["capture_gaps"], windows=False)
+    assert ".recalith\\bin\\recalith.cmd status" in fast_claude.text_for(["capture_gaps"], windows=True)
+    assert len(fast_claude.text_for(list(fast_claude.LIMITATIONS), windows=True).encode("utf-8")) <= fast_claude.NOTICE_MAX_BYTES
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the sh hook launcher")
+def test_a_broken_runtime_never_shows_the_host_an_error(provisioned, tmp_path):
+    """Audit 2026-11-06 FP-7: a venv that cannot import the engine (an interrupted bootstrap) exits 0 with empty output."""
+    root, op = provisioned
+    ok(op.integrate())
+    venv = identity.Layout(root).runtime_python(identity.__version__).parents[1]
+    site = next(venv.rglob("site-packages"))
+    (site / "recalith_runtime.pth").unlink()  # the source tree is gone: `import recalith` fails inside the runtime
+    rec = ccs.fixture_records(ccs.VERSION, "lifecycle")[0]
+    payload = ccs.Payloads(root, tmp_path).prepare(rec)
+    proc = ccs.run_installed(root, rec["event"], payload)
+    assert proc.returncode == 0 and proc.stdout == b"" and proc.stderr == b""
+
+
+def test_integrate_says_where_the_curator_key_must_live(provisioned):
+    """Audit 2026-11-06 CLI-6: the worker inherits Claude Code's environment, so the result says which shell needs the key."""
+    root, op = provisioned
+    result = ok(op.integrate())
+    assert "shell you start Claude Code from" in result["worker"]["key_location"] and result["worker"]["route_keys"] == []
+    assert ".claude/settings.local.json" == result["settings_path"]

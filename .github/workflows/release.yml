@@ -2,8 +2,11 @@ name: release-artifacts
 
 # Builds digested, unsigned release artifacts with the repository's own process
 # (tools/build_release.py: uv build, SHA-256 digests, shipped-code and dependency/license
-# inventory checks). It publishes nothing: no tag, no GitHub release, no package upload.
-# Signing needs operator material the repository does not hold (decision 0020).
+# inventory checks) in the layout a stranger installs from: the wheel, the sdist,
+# bootstrap.py, requirements.lock and one hash-locked wheelhouse per supported platform
+# and Python version (tools/build_wheelhouse.py on each runner; decision 0046). It
+# publishes nothing: no tag, no GitHub release, no package upload. Signing needs operator
+# material the repository does not hold (decision 0020).
 
 on:
   push:
@@ -14,6 +17,7 @@ on:
       - "requirements.lock"
       - "bootstrap.py"
       - "tools/build_release.py"
+      - "tools/build_wheelhouse.py"
       - "docs/release/**"
       - ".github/workflows/release.yml"
   workflow_dispatch:
@@ -22,8 +26,32 @@ permissions:
   contents: read
 
 jobs:
+  wheelhouse:
+    name: wheelhouse (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - name: Install locked dependencies
+        run: uv sync --locked --python ${{ matrix.python }}
+      - name: Download the locked wheels for this platform and Python
+        run: uv run --locked --with pip python tools/build_wheelhouse.py --out wheelhouses
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recalith-wheelhouse-${{ matrix.os }}-py${{ matrix.python }}
+          path: wheelhouses/
+          retention-days: 14
+
   build:
     name: build digested artifacts (unsigned)
+    needs: wheelhouse
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,12 +60,35 @@ jobs:
           version: "0.11.32"
       - name: Install locked dependencies
         run: uv sync --locked --python 3.13
-      - name: Build, digest and check the inventories
+      - name: Collect every wheelhouse
+        uses: actions/download-artifact@v4
+        with:
+          pattern: recalith-wheelhouse-*
+          path: dist-release
+          merge-multiple: true
+      - name: Build, digest and check the inventories and the wheelhouses
         run: uv run --locked python tools/build_release.py --out dist-release
+      - name: Install from the release layout alone, offline, and reach `status`
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel=$(ls dist-release/recalith-*.whl)
+          digest=$(sha256sum "$wheel" | cut -d' ' -f1)
+          house=$(ls -d dist-release/wheelhouse-linux-*-cp313)
+          mkdir /tmp/walk && cd /tmp/walk
+          # The stranger types this at a terminal; the runner has none, so a pseudo-terminal stands in (the guard wants one).
+          printf 'import os, pty, sys\nsys.exit(os.waitstatus_to_exitcode(pty.spawn(sys.argv[1:])))\n' > /tmp/with_tty.py
+          python3 /tmp/with_tty.py python3 "$GITHUB_WORKSPACE/dist-release/bootstrap.py" init --project . --profile coding --release-profile claude_preview --wheel "$GITHUB_WORKSPACE/$wheel" --expected-digest "$digest" --wheelhouse "$GITHUB_WORKSPACE/$house" --json
+          set +e
+          .recalith/bin/recalith --json status > status.json
+          code=$?
+          set -e
+          test "$code" -eq 8  # a fresh installation is degraded (no route, no host integration), never ready
+          python3 -c "import json; r = json.load(open('status.json')); print(r['result']['readiness'], r['degraded'])"
       - name: Show the release manifest and digests
         run: |
           cat dist-release/SHA256SUMS
-          python3 -c "import json; m = json.load(open('dist-release/RELEASE_MANIFEST.json')); print(json.dumps({k: m[k] for k in ('version', 'commit', 'artifacts', 'problems', 'signing')}, indent=1))"
+          python3 -c "import json; m = json.load(open('dist-release/RELEASE_MANIFEST.json')); print(json.dumps({k: m[k] for k in ('version', 'commit', 'wheelhouses', 'problems', 'signing')}, indent=1))"
       - uses: actions/upload-artifact@v4
         with:
           name: recalith-release-unsigned

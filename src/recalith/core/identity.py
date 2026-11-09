@@ -86,6 +86,12 @@ def dump_toml(data: Mapping[str, Any], header: str = "") -> str:
     return "\n".join(lines) + "\n"
 
 
+def _public_mode() -> int:
+    mask = os.umask(0)
+    os.umask(mask)
+    return 0o666 & ~mask
+
+
 def _atomic_write(path: Path, text: str, *, private: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -94,8 +100,8 @@ def _atomic_write(path: Path, text: str, *, private: bool) -> None:
             fh.write(text)
             fh.flush()
             os.fsync(fh.fileno())
-        if private and os.name != "nt":
-            os.chmod(tmp, 0o600)
+        if os.name != "nt":
+            os.chmod(tmp, 0o600 if private else _public_mode())  # tracked files are ordinary files (audit 2026-11-06 CLI-7)
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -248,7 +254,7 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(dirname -- "$(dirname -- "$here")")
 py="$root/.recalith/runtime/{version}/venv/bin/python"
 if [ ! -x "$py" ]; then
-  echo "recalith: capability_unavailable: runtime {version} is not provisioned for this project; run the release bootstrap (python bootstrap.py install --project \\"$root\\" --wheel ... --expected-digest ...)." >&2
+  echo "recalith: capability_unavailable: runtime {version} is not provisioned for this project; run the release bootstrap from an ordinary terminal (python bootstrap.py install --project \\"$root\\" --wheel WHEEL --expected-digest DIGEST --wheelhouse DIR)." >&2
   exit 4
 fi
 exec "$py" -I -m recalith --project "$root" "$@"
@@ -263,7 +269,7 @@ setlocal
 for %%I in ("%~dp0..\\..") do set "ROOT=%%~fI"
 set "PY=%ROOT%\\.recalith\\runtime\\{version}\\venv\\Scripts\\python.exe"
 if not exist "%PY%" (
-  echo recalith: capability_unavailable: runtime {version} is not provisioned for this project; run the release bootstrap. 1>&2
+  echo recalith: capability_unavailable: runtime {version} is not provisioned for this project; run the release bootstrap from an ordinary terminal (python bootstrap.py install --project "%ROOT%" --wheel WHEEL --expected-digest DIGEST --wheelhouse DIR). 1>&2
   exit /b 4
 )
 "%PY%" -I -m recalith --project "%ROOT%" %*
@@ -284,7 +290,10 @@ if [ ! -x "$py" ]; then
   cat >/dev/null 2>&1
   exit 0
 fi
-exec "$py" -I -m recalith.fast.entry --project "$root" "$@"
+# A runtime that cannot import the engine (an interrupted bootstrap) must not show the host an error on every event:
+# the entry's own diagnostics go to its private files, so stderr is dropped and the exit is always the host's success.
+"$py" -I -m recalith.fast.entry --project "$root" "$@" 2>/dev/null
+exit 0
 """
 
 
@@ -510,7 +519,11 @@ def _complete_interrupted_init(layout: Layout, *, verifiers: Mapping[str, str] |
 
 def _read_local(layout: Layout) -> dict[str, Any]:
     if not layout.local_toml.exists():
-        raise RecalithError("capability_unavailable", "this checkout has no Recalith installation; run `recalith init` (a clone keeps the project ID and gets a new installation)")
+        raise RecalithError("capability_unavailable", (
+            "this checkout has no Recalith installation. Initialize one from an ordinary terminal: with the release files, "
+            "`python bootstrap.py init --project PATH --profile coding|general --release-profile claude_preview --wheel WHEEL --expected-digest DIGEST --wheelhouse DIR`; "
+            "on a provisioned runtime, `.recalith/bin/recalith init --profile ... --release-profile claude_preview` (a clone keeps the project ID and gets a new installation)"
+        ))
     local = _read_toml(layout.local_toml)
     for key in ("installation_id", "workspace_id", "workspace_root", "root_identity"):
         if not isinstance(local.get(key), str):

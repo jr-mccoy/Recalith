@@ -35,6 +35,7 @@ from recalith.controller import budgets  # noqa: E402
 from recalith.errors import RecalithError  # noqa: E402
 from recalith.fast import failpoints, process_env, session, spool  # noqa: E402
 from recalith.privacy import forget, retention  # noqa: E402
+from recalith.providers import base  # noqa: E402
 from recalith.storage import backup, db  # noqa: E402
 
 POSIX = os.name != "nt"
@@ -206,7 +207,7 @@ def test_deferred_features_are_explicit_not_passed(tmp_path):
     for form in forms:
         result = cs.cli(p.root, "--json", "--operator-token-file", str(tok), *form)
         assert result.code == 4 and result.obj["error"] == "capability_unavailable", (form, result.stdout)
-    full_integrity = cs.cli(p.root, "--json", "doctor", "--full-integrity")
+    full_integrity = cs.cli(p.root, "--json", "--operator-token-file", str(tok), "doctor", "--full-integrity")  # guarded since decision 0046 (CLI-9)
     assert full_integrity.code == 4
     doctor = cs.cli(p.root, "--json", "doctor", env=cs.base_env(**{hs.SELECTED: hs.KEY_VALUE}))
     assert doctor.code == 0, doctor.stdout + doctor.stderr
@@ -648,3 +649,37 @@ def _root_identity(root: Path) -> str:
     from recalith.core.paths import root_identity
 
     return root_identity(root)
+
+
+def test_a_running_worker_reports_the_key_from_its_own_environment(tmp_path):
+    """Audit 2026-11-06 CLI-6: the curator key lives in the environment of the shell that launched Claude Code. From a terminal
+    without it, status judges the running worker's own route report (source ``worker``); without a worker it says this terminal
+    lacks the key (source ``configuration``), and the human text says which."""
+    from recalith.operations import reasons
+
+    p, env = hs.ready(tmp_path)
+    no_key = {k: v for k, v in env.items() if k != hs.SELECTED}
+    rep = hs.report(p, no_key)
+    cap = rep.capabilities["inference"]
+    assert cap.state == "unavailable" and "selected_auth_missing" in cap.reason_codes and cap.coverage["source"] == "configuration"
+    assert "this terminal" in reasons.explain("selected_auth_missing", cap.coverage)[0]
+    lock = process_env.InstallationLock(p.root)
+    assert lock.try_acquire()
+    record = p.root / ".recalith" / "run" / "worker.json"
+    try:
+        provider = base.route_status(base.load_provider_config(p.root), installation_id=p.ctx.installation_id, inherited=env, observe=False).report()
+        assert provider["state"] == "certified"
+        record.write_text(json.dumps({
+            "status_schema": 1, "installation_id": p.ctx.installation_id, "pid": os.getpid(), "state": "idle", "heartbeat_at": utc_now(), "last_error": None,
+            "spawn": {"spawned_by": "hook", "method": "posix_session", "state": "detached", "degraded_reasons": [], "in_job": None}, "provider": provider,
+        }), encoding="utf-8")
+        rep = hs.report(p, no_key)
+        assert rep.capabilities["inference"].state == "healthy" and rep.capabilities["inference"].coverage["source"] == "worker"
+        provider["state"], provider["reasons"] = "unavailable", ["selected_auth_missing"]
+        record.write_text(record.read_text(encoding="utf-8").replace('"state": "certified"', '"state": "unavailable"').replace('"reasons": []', '"reasons": ["selected_auth_missing"]'), encoding="utf-8")
+        rep = hs.report(p, env)  # this terminal has the key; the worker does not: the worker's view wins and the text says so
+        cap = rep.capabilities["inference"]
+        assert cap.state == "unavailable" and cap.coverage["source"] == "worker" and "running worker's environment lacks the key" in reasons.explain("selected_auth_missing", cap.coverage)[0]
+    finally:
+        lock.release()
+        record.unlink(missing_ok=True)

@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev13` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev14` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -64,12 +64,70 @@ The preview-to-full transition is built too (decision 0026) and is likewise not 
 
 ## 4. One-time setup (operator, from an ordinary terminal)
 
-Administrative commands are refused inside an agent's process tree, even with a terminal and a token (exit 6). Run them from an ordinary OS terminal launched outside Claude Code (not an IDE terminal that inherits its marker), using the project launcher `.recalith/bin/recalith`.
+Administrative commands are refused inside an agent's process tree, even with a terminal and a token (exit 6). Run everything below from an ordinary OS terminal you opened yourself, outside Claude Code (not an IDE terminal that inherits its marker). Each step is complete as written; `RELEASE` is the release directory (the wheel, `bootstrap.py`, `requirements.lock`, `SHA256SUMS`, one `wheelhouse-<platform>-<python tag>/` per platform and Python version; the checkout's `tools/build_release.py` and `tools/build_wheelhouse.py` build it) and `PROJECT` is the project you are installing into. Python 3.13 is shown; use the wheelhouse whose tag matches your interpreter (`cp312`, `cp313`, `cp314`).
 
-1. Provision the runtime: `python bootstrap.py install` (hash-locked wheelhouse; no hook-triggered download).
-2. `recalith init --project . --profile coding --release-profile claude_preview` at the terminal. For automation, first create a standalone token at the terminal with `recalith operator-token create --output FILE`, then `recalith init --operator-token-file FILE` from the automation; a token is never minted noninteractively.
-3. Certify the inference route and the host (B1's operator commands in [BUILD_PROGRESS](BUILD_PROGRESS.md#blockers-and-decisions)): `tools/probe_provider.py --backend BACKEND --route-out`, `tools/check_provider_runtime.py --backend BACKEND --project PATH`, `recalith integrate claude`, `tools/probe_delivery.py --engine-project`.
-4. `recalith status` → exit 0.
+### Linux
+
+```bash
+RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev14
+WHEEL="$RELEASE/recalith-$VERSION-py3-none-any.whl"
+DIGEST=$(grep " recalith-$VERSION-py3-none-any.whl$" "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
+HOUSE="$RELEASE/wheelhouse-linux-x86_64-cp313"
+
+# 1. Provision the pinned runtime and initialize the project (one command; exit 0).
+python3 "$RELEASE/bootstrap.py" init --project "$PROJECT" --profile coding --release-profile claude_preview \
+    --wheel "$WHEEL" --expected-digest "$DIGEST" --wheelhouse "$HOUSE"
+cd "$PROJECT"
+.recalith/bin/recalith status      # exit 8: degraded, with the next command named
+
+# 2. Certify the curator route (live; billed). Pick a backend below, copy its example, fill it in,
+#    export the key in THIS shell, then (from a checkout of the repository, with its own tooling):
+export ANTHROPIC_API_KEY=...        # the key name your config selects
+uv run python tools/probe_provider.py --config probe-private/local-config.json --backend anthropic_messages --route-out "$PROJECT" --output docs/host-compatibility.json
+uv run python tools/check_provider_runtime.py --config probe-private/local-config.json --backend anthropic_messages --project "$PROJECT" --output docs/host-compatibility.json
+
+# 3. Integrate Claude Code (hooks, deny rules, the hook manifest) and certify its delivery paths (live).
+.recalith/bin/recalith integrate claude
+uv run python tools/probe_delivery.py --config probe-private/local-config.json --engine-project "$PROJECT" --output docs/host-compatibility.json
+
+# 4. Ready?
+.recalith/bin/recalith status      # exit 0 when every required capability is healthy
+```
+
+### Native Windows (PowerShell)
+
+```powershell
+$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev14"
+$Wheel = "$Release\recalith-$Version-py3-none-any.whl"
+$Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern " recalith-$Version-py3-none-any.whl$").Line.Split(' ')[0]
+$House = "$Release\wheelhouse-win-amd64-cp313"
+
+# 1. Provision and initialize (exit 0).
+py -3.13 "$Release\bootstrap.py" init --project $Project --profile coding --release-profile claude_preview `
+    --wheel $Wheel --expected-digest $Digest --wheelhouse $House
+cd $Project
+.recalith\bin\recalith.cmd status    # exit 8
+
+# 2. Certify the route (export the key in THIS window; from the repository checkout, with its interpreter):
+$env:ANTHROPIC_API_KEY = "..."
+.\.venv\Scripts\python.exe tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --route-out $Project --output docs\host-compatibility.json
+.\.venv\Scripts\python.exe tools\check_provider_runtime.py --config probe-private\local-config.json --backend anthropic_messages --project $Project --output docs\host-compatibility.json
+
+# 3. Integrate and certify delivery.
+.recalith\bin\recalith.cmd integrate claude
+.\.venv\Scripts\python.exe tools\probe_delivery.py --config probe-private\local-config.json --engine-project $Project --output docs\host-compatibility.json
+
+# 4. Ready?
+.recalith\bin\recalith.cmd status    # exit 0
+```
+
+The probe configuration file is documented in [docs/probes/LOCAL_CONFIG.md](probes/LOCAL_CONFIG.md); `probe-private/` is git-ignored and holds names, paths and switches, never key values. The live gate (§6) is a separate, optional step.
+
+**Where the curator key must live.** The hook-started worker inherits the environment of the process that launches Claude Code and forwards only the route's key names to the curator (`integrate claude` prints them under `worker.route_keys` and says so under `worker.key_location`). Export the key's variable in the shell you start Claude Code from, or in that shell's profile, not only in the terminal that ran the probes. `recalith status` judges the running worker's own route report when a worker runs (`source: worker`) and this terminal's environment otherwise (`source: configuration`), and its human form says which one lacks the key.
+
+**Automation.** A token stands in for the terminal: `python bootstrap.py operator-token create --project PROJECT --output FILE --wheel … --expected-digest … --wheelhouse …` at a terminal (it is never minted noninteractively), then `python bootstrap.py init … --operator-token-file FILE` from the automation. A clone of an initialized project keeps its tracked profiles: `init` refuses a differing `--profile` or `--release-profile` instead of ignoring it.
+
+**Without a release directory.** From a checkout: `uv run python tools/build_release.py --out dist-release` builds the wheel and copies `bootstrap.py` and `requirements.lock` beside it; `uv run --with pip python tools/build_wheelhouse.py --out dist-release` adds the wheelhouse for the current platform and Python (run it on each platform you need); `dist-release/` is then a release directory.
 
 ### Choosing the curator backend (decision 0023)
 
@@ -94,7 +152,7 @@ Re-run step 3 after any Claude Code upgrade: a new host version needs a fixture 
 
 ### Native Windows (decision 0027)
 
-- **Where to run.** Claude Code on native Windows runs hook commands and its Bash tool through Git Bash. Run the operator commands from an ordinary PowerShell or Windows Terminal window that you opened yourself (not one an IDE or Claude Code started), in the same Windows account; check `Get-ChildItem Env: | Where-Object Name -like '*CLAUDE*'` prints nothing. Call the launcher as `.recalith\bin\recalith.cmd`.
+- **Where to run.** Claude Code on native Windows runs hook commands and its Bash tool through Git Bash. Run the operator commands from an ordinary PowerShell or Windows Terminal window that you opened yourself (not one an IDE or Claude Code started), in the same Windows account; check `Get-ChildItem Env: | Where-Object Name -like '*CLAUDE*'` prints nothing. Call the launcher as `.recalith\bin\recalith.cmd` (the session-start notice names it so on Windows). `integrate claude` installs 475 deny rules on Windows (228 on POSIX): 19 administrative forms in every launcher and module spelling.
 - **What integrate installs.** On Windows the hook command is `"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook.cmd claude_code --event E`; the POSIX launcher cannot reach a Windows venv. An installation integrated on Windows before decision 0027 has POSIX hook commands that do nothing: run `integrate claude` again.
 - **Path length.** Without Windows long-path support (`LongPathsEnabled` 0) every path stops at 260 characters. Claude Code's transcript path repeats the workspace path, so keep project and output directories short (for example `C:\Code\project`, and `--out C:\Code\rl-gate` for the live gate).
 - **Worker independence.** The hook-started worker survives the session and a kill of the host's process tree, but CPython's venv launcher keeps it inside a Job Object, so `recalith status` reports `recovery` degraded (`worker_independence_degraded`) while a worker runs. This is an open limit, not a failed check.

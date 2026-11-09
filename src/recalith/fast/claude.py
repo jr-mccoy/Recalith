@@ -205,9 +205,10 @@ def limitations(ctx: dict, previous: dict | None) -> tuple[list[str], float]:
     return codes, max(newest, seen)
 
 
-def text_for(codes: list[str]) -> str:
+def text_for(codes: list[str], *, windows: bool | None = None) -> str:
     phrases = "; ".join(LIMITATIONS[c] for c in codes)
-    text = f"Recalith: memory is limited in this project ({phrases}). For details run .recalith/bin/recalith status from an ordinary terminal."
+    launcher = ".recalith\\bin\\recalith.cmd" if (WINDOWS if windows is None else windows) else ".recalith/bin/recalith"  # cmd.exe cannot run the sh launcher
+    text = f"Recalith: memory is limited in this project ({phrases}). For details run {launcher} status from an ordinary terminal."
     raw = text.encode("utf-8")
     return text if len(raw) <= NOTICE_MAX_BYTES else raw[: NOTICE_MAX_BYTES - 3].decode("utf-8", "ignore") + "..."
 

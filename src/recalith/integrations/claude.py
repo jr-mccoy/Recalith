@@ -60,7 +60,11 @@ VERSION_RE = re.compile(r"(\d+\.\d+\.\d+)")
 # Every administrative form of DATA_CONTRACTS §12, as the words that follow a spelling.
 ADMIN_FORMS = (
     "init", "declare", "correct", "undo", "forget", "integrate", "backup", "restore", "export", "import", "upgrade",
-    "workspace", "project", "worker", "jobs retry", "operator-token", "doctor --probe-host", "doctor --probe-provider",
+    "workspace", "project", "worker", "jobs retry", "operator-token", "doctor --probe-host", "doctor --probe-provider", "doctor --full-integrity",
+)
+KEY_LOCATION = (
+    "The hook-started worker inherits the environment of the process that launches Claude Code and forwards only the route's key names to the curator: "
+    "export those variables in the shell you start Claude Code from (or in that shell's profile). Exporting them only in the terminal that ran the probes is not enough."
 )
 COVERAGE_GAPS = {
     "global_options_before_subcommand": "a global option between the spelling and the form (e.g. --json, --project PATH, --operator-token-file PATH) defeats the prefix",
@@ -204,27 +208,62 @@ def _route_keys(root: Path) -> list[str]:
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess | None:
+    """Run git for ``root`` with the caller's own configuration (``safe.directory`` entries included); None without git."""
     git = shutil.which("git")
-    if not git or not (root / ".git").exists():
+    if not git:
         return None
-    env = {"PATH": os.environ.get("PATH", os.defpath), "GIT_CONFIG_NOSYSTEM": "1", "HOME": str(root), "GIT_TERMINAL_PROMPT": "0"}
-    for key in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP"):
-        if key in os.environ:
-            env[key] = os.environ[key]
+    env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "USERPROFILE", "XDG_CONFIG_HOME", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "LANG", "LC_ALL")}
+    env.setdefault("PATH", os.defpath)
+    env["GIT_TERMINAL_PROMPT"] = "0"
     try:
-        return subprocess.run([git, "-C", str(root), *args], capture_output=True, env=env, stdin=subprocess.DEVNULL, timeout=30, check=False)
+        # ``safe.directory`` for this root: ownership checks (another user owns the checkout, a mounted volume) must not turn
+        # "tracked" into "unknown" for the user's own project; the user's global config is read as usual (CLI-3).
+        return subprocess.run([git, "-c", f"safe.directory={root}", "-C", str(root), *args], capture_output=True, env=env, stdin=subprocess.DEVNULL, timeout=30, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
 
 
+def repository_state(root: Path) -> tuple[str, Path | None]:
+    """``(state, toplevel)``: ``repository`` when ``root`` is inside a git work tree (at its top level or in a subdirectory),
+    ``no_repository`` when git says so, ``no_git`` without git, else ``unknown`` (an error class git did not name as "not a repository")."""
+    proc = _git(root, "rev-parse", "--show-toplevel")
+    if proc is None:
+        return "no_git", None
+    if proc.returncode == 0:
+        text = proc.stdout.decode("utf-8", "replace").strip()
+        return ("repository", Path(text)) if text else ("unknown", None)
+    err = proc.stderr.decode("utf-8", "replace")
+    if proc.returncode == 128 and "not a git repository" in err:
+        return "no_repository", None
+    return "unknown", None
+
+
 def _tracked(root: Path, rel: Path) -> bool | None:
+    """Whether ``root/rel`` is tracked by the repository that holds ``root`` (a monorepo subdirectory included); None is unknown.
+
+    Audit 2026-11-06 CLI-3: the old check looked for ``.git`` at the project root only and read any git failure as "not
+    tracked", so a tracked settings file in a monorepo subdirectory, or under a dubious-ownership error, was edited."""
+    state, _top = repository_state(root)
+    if state in ("no_git", "no_repository"):
+        return False
+    if state == "unknown":
+        return None
     proc = _git(root, "ls-files", "--error-unmatch", "--", rel.as_posix())
-    return None if proc is None else proc.returncode == 0
+    if proc is None:
+        return None
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    return None
 
 
 def _ignored(root: Path, rel: Path) -> str:
+    state, _top = repository_state(root)
+    if state != "repository":
+        return "unverified"
     proc = _git(root, "check-ignore", "-q", "--", rel.as_posix())
-    if proc is None:
+    if proc is None or proc.returncode not in (0, 1):
         return "unverified"
     return "verified" if proc.returncode == 0 else "not_ignored"
 
@@ -248,8 +287,18 @@ def integrate(ctx: InstallationContext, *, executable: str | None = None, now: s
     """Install (or update) the local Claude Code integration; see the module docstring."""
     now = now or utc_now()
     root = Path(ctx.root)
-    if _tracked(root, SETTINGS_LOCAL):
+    tracked = _tracked(root, SETTINGS_LOCAL)
+    if tracked is None:
+        raise RecalithError("policy_refused", (
+            "settings_tracking_unknown: git could not say whether .claude/settings.local.json is tracked (git reported an error other than "
+            "\"not a git repository\"; run `git status` in the project to see it); the local integration edits only a file it knows is untracked"
+        ))
+    if tracked:
         raise RecalithError("policy_refused", ".claude/settings.local.json is tracked by git; the local integration needs an untracked location (shared, tracked settings are the full-release --shared mode)")
+    link = root / SETTINGS_LOCAL
+    if link.is_symlink():
+        # Writing through would replace the link with a regular file and break a dotfiles layout (audit 2026-11-06 CLI-5).
+        raise RecalithError("policy_refused", f".claude/settings.local.json is a symbolic link to {os.readlink(link)}; the local integration writes a regular file there: integrate a checkout whose settings file is a file, or replace the link with a copy first")
     host = host_version(executable)
     paths, reasons = certified_paths(ctx, host["version"])
     want = desired(root)
@@ -268,7 +317,7 @@ def integrate(ctx: InstallationContext, *, executable: str | None = None, now: s
         "formatting_preserved": outcome.formatting_preserved, "ignored": _ignored(root, SETTINGS_LOCAL),
         "owned": {"hooks": len(final["owned"]["hooks"]), "deny_rules": len(final["owned"]["deny"]), "deny_rules_preexisting": len(final.get("deny_preexisting") or []), "gitignore_line": bool((final["owned"]["gitignore"] or {}).get("owned"))},
         "host": host, "delivery_paths": paths, "delivery_reasons": reasons,
-        "worker": {"autostart": "registered_hook_start", "route_keys": _route_keys(root)},
+        "worker": {"autostart": "registered_hook_start", "route_keys": _route_keys(root), "key_location": KEY_LOCATION},
         "os_startup_entries": {"state": "unavailable", "reason": "deferred_full_release"},
         "command_deny_rules": coverage,
         "private_paths": {"state": private, "installed_rules": "unavailable_in_preview", "os_level_isolation": False},
@@ -353,7 +402,7 @@ def write_host_record(ctx: InstallationContext, report: Mapping[str, Any], *, no
     return record
 
 
-__all__ = ["integrate", "remove", "write_host_record", "deny_rules", "spellings", "certified_paths", "configured_permission_mode", "host_version", "rules_installed", "ADMIN_FORMS", "HOST_ID"]
+__all__ = ["integrate", "remove", "write_host_record", "deny_rules", "spellings", "certified_paths", "configured_permission_mode", "host_version", "rules_installed", "repository_state", "ADMIN_FORMS", "HOST_ID"]
 
 
 # --------------------------------------------------------------------------

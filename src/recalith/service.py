@@ -377,7 +377,13 @@ def initialize(root: Path, *, domain_profile: str, release_profile: str, operato
         raise RecalithError("invalid_schema", "init takes --profile coding|general and --release-profile claude_preview|full")
     layout = identity.Layout(Path(root))
     if layout.project_toml.exists():
-        project_id = identity.load_project_config(layout).project_id
+        tracked = identity.load_project_config(layout)
+        project_id = tracked.project_id
+        # A clone keeps its tracked profiles; a differing option is refused, never silently ignored (audit 2026-11-06 CLI-8).
+        if tracked.domain_profile != domain_profile:
+            raise RecalithError("invalid_schema", f"this project's tracked profile is {tracked.domain_profile}; a clone keeps it (pass --profile {tracked.domain_profile})")
+        if tracked.release_profile != release_profile:
+            raise RecalithError("invalid_schema", f"this project's tracked release profile is {tracked.release_profile}; a clone keeps it (pass --release-profile {tracked.release_profile})")
     else:
         project_id = new_id("proj")
     config = ProjectConfig.defaults_for(project_id, release_profile=release_profile, domain_profile=domain_profile)

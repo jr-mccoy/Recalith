@@ -28,10 +28,13 @@ ERROR_CODES = frozenset(
 EXIT_CODES = {
     "invalid_schema": 2,
     "revision_conflict": 3,
+    "event_identity_conflict": 3,  # an identity another record holds (audit 2026-11-06 CLI-10)
     "capability_unavailable": 4,
     "installation_relocated": 4,
     "storage_failure": 5,
+    "backup_unavailable_after_forget": 5,
     "policy_refused": 6,
+    "foreign_installation": 6,  # a record, store or query of another installation: refused, never a storage fault
     "not_captured": 7,
     "capability_degraded": 8,
 }

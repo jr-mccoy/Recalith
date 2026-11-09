@@ -49,7 +49,7 @@ Where a rule was ambiguous the stricter reading was taken.
    - **Ignored location:** the location is made ignored by an owned `/.claude/settings.local.json` line in the project `.gitignore`, verified with `git check-ignore` when git is available (`ignored: verified|unverified|not_ignored`).
 5. **Rebind.** After `workspace rebind` the manifest is stale and health reports `hook_context_relocated` (decision 0018). `integrate claude` re-runs cleanly: the hook groups are unchanged, the absolute-path deny spellings follow the new root (`settings: updated`) and the manifest gets the new identities.
 6. **Command deny rules** (`integrations.claude.deny_rules`).
-   - **Rules:** `Bash(SPELLING FORM:*)` for 18 administrative forms × 12 spellings, 216 rules in all.
+   - **Rules:** `Bash(SPELLING FORM:*)` for 18 administrative forms × 12 spellings, 216 rules in all. (Native Windows adds 13 spellings, decision 0027: 450 rules; since decision 0046 `doctor --full-integrity` is a 19th form: 228 on POSIX, 475 on Windows.)
    - **Forms:** init, declare, correct, undo, forget, integrate, backup, restore, export, import, upgrade, workspace, project, worker, `jobs retry`, operator-token, `doctor --probe-host`, `doctor --probe-provider`.
    - **Spellings:** the launcher as `.recalith/bin/recalith`, `./.recalith/bin/recalith` and by its absolute path; `recalith`; `python`/`python3` `-m recalith` with and without `-I`; `-m recalith.cli.main`; and the pinned runtime interpreter, relative and absolute. Windows adds the `.cmd` spellings.
    - **Coverage is reported with `complete: false` and four gaps:**

@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from recalith import service
 from recalith.cli.main import Form, Output, project_root
@@ -57,26 +57,80 @@ def _integrity_progress(step: dict[str, Any]) -> None:
     print(f"integrity: {step['tables_done']}/{step['tables']} tables, {step['rows_scanned']} rows ({step['table']})", file=sys.stderr, flush=True)
 
 
+def health_output(command: str, out: Output, ctx: Any, environ: Mapping[str, str], *, full_integrity: bool = False) -> int:
+    """``status`` and ``doctor``: the JSON report under ``--json``; otherwise a one-screen header that names the next command.
+
+    Exit 0 only when every required capability is healthy; otherwise 8 naming what is not (DATA_CONTRACTS §12)."""
+    from recalith.contracts.health import HealthReport
+    from recalith.operations.health import degraded_codes
+
+    if command == "status":
+        report = service.status(ctx, inherited=environ)
+    else:
+        report = service.doctor(ctx, inherited=environ, full_integrity=full_integrity, progress=_integrity_progress if full_integrity else None)
+    verdict = HealthReport.model_validate(report["health"])
+    degraded = [] if verdict.autonomous_ready else degraded_codes(verdict)
+    chain = (report.get("checks") or {}).get("revision_chain")
+    if isinstance(chain, dict) and chain.get("state") == "findings":
+        degraded.append("revision_chain_findings")  # a detected out-of-band mutation is never exit 0 (decision 0024)
+    if out.as_json:
+        return out.success(report, degraded=degraded)
+    out.text(human_summary(command, report, verdict, degraded))
+    return 8 if degraded else 0
+
+
+def human_summary(command: str, report: Mapping[str, Any], verdict: Any, degraded: Sequence[str]) -> list[str]:
+    """The human form (audit 2026-11-06 REL-10): readiness, each required capability that is not healthy with its reasons'
+    meanings and actions, the one next command, and where the full report is."""
+    from recalith.contracts.health import DEFERRED_FULL_CAPABILITIES, REQUIRED_CAPABILITIES
+    from recalith.operations import reasons
+
+    lines = [
+        f"Recalith {command}: readiness {verdict.readiness}" + ("" if verdict.autonomous_ready else " (not autonomous_ready)"),
+        f"  engine {report.get('engine_version')} · profile {report.get('release_profile')} · store schema {report.get('schema_version')} · worker {report.get('worker_state')}",
+    ]
+    next_action: str | None = None
+    if degraded:
+        lines.append("Required capabilities that are not healthy:")
+        # The next command follows the setup order of OPERATIONS §4: the curator route first, then the host.
+        for name in sorted(REQUIRED_CAPABILITIES, key=lambda n: (n != "inference", REQUIRED_CAPABILITIES.index(n))):
+            cap = verdict.capabilities[name]
+            if cap.state == "healthy":
+                continue
+            lines.append(f"  {name}: {cap.state}")
+            for code in cap.reason_codes:
+                meaning, action = reasons.explain(code, cap.coverage)
+                lines.append(f"    - {code}: {meaning}")
+                lines.append(f"      do: {action}")
+                if next_action is None and not action.startswith("see the"):
+                    next_action = action
+        for code in degraded:
+            if code not in {c for name in REQUIRED_CAPABILITIES for c in verdict.capabilities[name].reason_codes}:
+                meaning, action = reasons.explain(code)
+                lines.append(f"  - {code}: {meaning}")
+                lines.append(f"    do: {action}")
+                next_action = next_action or action
+    optional = [f"{name} ({', '.join(verdict.capabilities[name].reason_codes) or verdict.capabilities[name].state})" for name in verdict.capabilities if name not in REQUIRED_CAPABILITIES and name not in DEFERRED_FULL_CAPABILITIES and verdict.capabilities[name].state != "healthy"]
+    if optional:
+        lines.append("Optional capabilities not healthy (never gate readiness): " + "; ".join(optional))
+    deferred = [name for name in DEFERRED_FULL_CAPABILITIES if name in verdict.capabilities]
+    if deferred:
+        lines.append(f"Deferred to the full release ({len(deferred)} features; OPERATIONS §3): never counted as passed")
+    if command == "doctor":
+        checks = report.get("checks") or {}
+        lines.append("Checks: " + "; ".join(f"{k} {v.get('state') if isinstance(v, dict) else v}" for k, v in checks.items()))
+    lines.append(f"Next: {next_action}" if next_action else "Next: nothing; the installation is ready")
+    lines.append(f"Full report: recalith {command} --json · guide: {reasons.GUIDE}")
+    return lines
+
+
 def run(args: argparse.Namespace, form: Form, out: Output, environ: Mapping[str, str]) -> int:
     root = project_root(args)
     c = args.command
     actor = service.OBSERVER if c == "observe" else service.READER
     ctx = service.resolve(root, actor=actor)
     if c in ("status", "doctor"):
-        from recalith.contracts.health import HealthReport
-        from recalith.operations.health import degraded_codes
-
-        if c == "status":
-            report = service.status(ctx, inherited=environ)
-        else:
-            report = service.doctor(ctx, inherited=environ, full_integrity=args.full_integrity, progress=_integrity_progress if args.full_integrity else None)
-        verdict = HealthReport.model_validate(report["health"])
-        # Exit 0 only when every required capability is healthy; otherwise 8 naming what is not (DATA_CONTRACTS §12).
-        degraded = [] if verdict.autonomous_ready else degraded_codes(verdict)
-        chain = (report.get("checks") or {}).get("revision_chain")
-        if isinstance(chain, dict) and chain.get("state") == "findings":
-            degraded.append("revision_chain_findings")  # a detected out-of-band mutation is never exit 0 (decision 0024)
-        return out.success(report, degraded=degraded)
+        return health_output(c, out, ctx, environ)
     if c == "observe":
         payload = read_stdin_json()
         items = payload.get("observations") if isinstance(payload, dict) and "observations" in payload else [payload]

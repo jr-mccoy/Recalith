@@ -11,7 +11,7 @@ Each project has its own complete installation under `.recalith/`, with its own 
 
 ## Status: experimental preview, not released
 
-- **Engine:** `0.1.0.dev13`, release profile `claude_preview`. It fixes the first three phases of a [pre-publication audit](docs/audits/2026-11-06-memory-system-audit.md) (credentials escaping the scrubber, lost large messages, a worker that could spin, starve work or die silently, and retrieval that lost applicable guidance in a large store); the live gate below ran on `0.1.0.dev10` and is re-run on the fixed engine before any release.
+- **Engine:** `0.1.0.dev14`, release profile `claude_preview`. It fixes the first four phases of a [pre-publication audit](docs/audits/2026-11-06-memory-system-audit.md) (credentials escaping the scrubber, lost large messages, a worker that could spin, starve work or die silently, retrieval that lost applicable guidance in a large store, and an install path nobody could follow from the documents); the live gate below ran on `0.1.0.dev10` and is re-run on the fixed engine before any release.
 - **Tests:** the deterministic suites run in CI on Linux (Python 3.12–3.14), macOS and Windows (Python 3.13). One macOS timing test fails intermittently (see BUILD_PROGRESS).
 - **The live preview gate passed** on native Windows on 2026-11-04 (its tenth run). That is 12 scripted scenarios, each run with Recalith and with a clean no-memory baseline, plus three eight-hour workload days. With reviewer labels:
   - 21 of 22 saved facts were supported by their evidence;
@@ -33,21 +33,33 @@ Current progress, blockers and next steps are in [docs/BUILD_PROGRESS.md](docs/B
 ## Trying it
 
 This is for people comfortable with an experimental tool. You need:
-- Python 3.12–3.14 and [uv](https://docs.astral.sh/uv/);
+- Python 3.12, 3.13 or 3.14 (the plain interpreter; nothing else is installed globally);
 - Claude Code;
 - one explicitly configured route for the background curator: an Anthropic API key, an OpenAI-compatible provider, or a local server.
 
-Background curation is billed by your provider. Recalith enforces its own daily call and token budgets.
+Background curation is billed by your provider. Recalith enforces its own daily call and token budgets. Captured prompts, tool output and file excerpts are scrubbed and then sent to that provider; see [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
-Setup is in [docs/OPERATIONS.md](docs/OPERATIONS.md) §4. In short:
-1. Build the wheel with `python tools/build_release.py --out dist`.
-2. Provision the project with `bootstrap.py install`.
-3. Run `recalith init`.
-4. Certify your curator route and Claude Code's delivery paths with the live probes.
-5. Run `recalith integrate claude`.
-6. Check `recalith status`.
+A release is a directory holding the wheel, `bootstrap.py`, `requirements.lock`, `SHA256SUMS` and one `wheelhouse-<platform>-<python>/` per platform and Python version (until one is published, build it from a checkout: `uv run python tools/build_release.py --out dist-release`, plus `uv run --with pip python tools/build_wheelhouse.py --out dist-release` on each platform). From that directory, in an ordinary terminal (not one inside Claude Code), with `RELEASE` its path and `PROJECT` your project's:
 
-Administrative commands must run from an ordinary terminal, not from inside an agent session. That is deliberate.
+```bash
+# Linux (Python 3.13 shown; use your wheelhouse's tag)
+DIGEST=$(grep ' recalith-0.1.0.dev14-py3-none-any.whl$' "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
+python3 "$RELEASE/bootstrap.py" init --project "$PROJECT" --profile coding --release-profile claude_preview \
+    --wheel "$RELEASE/recalith-0.1.0.dev14-py3-none-any.whl" --expected-digest "$DIGEST" \
+    --wheelhouse "$RELEASE/wheelhouse-linux-x86_64-cp313"
+cd "$PROJECT" && .recalith/bin/recalith status        # exit 8: installed, not yet certified
+```
+
+```powershell
+# Windows (PowerShell; Python 3.13 shown)
+$Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern ' recalith-0.1.0.dev14-py3-none-any.whl$').Line.Split(' ')[0]
+py -3.13 "$Release\bootstrap.py" init --project $Project --profile coding --release-profile claude_preview `
+    --wheel "$Release\recalith-0.1.0.dev14-py3-none-any.whl" --expected-digest $Digest `
+    --wheelhouse "$Release\wheelhouse-win-amd64-cp313"
+cd $Project; .recalith\bin\recalith.cmd status      # exit 8: installed, not yet certified
+```
+
+`status` then names the next command. The rest (certifying your curator route and Claude Code's delivery paths, `integrate claude`) is one ordered page per platform in [docs/OPERATIONS.md §4](docs/OPERATIONS.md#4-one-time-setup-operator-from-an-ordinary-terminal). Administrative commands must run from an ordinary terminal, not from inside an agent session. That is deliberate.
 
 ## Help wanted
 

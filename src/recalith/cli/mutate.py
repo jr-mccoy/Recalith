@@ -91,7 +91,11 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
             return out.failure("policy_refused", refusal.guidance, 6, refusal={"reason": refusal.reason, "category": refusal.category, "audit": "not_applicable"})
         registered = False
         if getattr(args, "project", None) is not None and identity.Layout(root).local_toml.exists():
-            service.register_token(root, token.token_id, operator_guard.make_verifier(token))
+            try:
+                service.register_token(root, token.token_id, operator_guard.make_verifier(token))
+            except BaseException:
+                Path(args.output).unlink(missing_ok=True)  # a token nothing recognizes is not left behind (audit 2026-11-06 CLI-11)
+                raise
             registered = True
         return out.success({"token_id": token.token_id, "output": str(Path(args.output)), "registered": registered})
     if k == "operator_token_revoke":
@@ -117,6 +121,10 @@ def dispatch(args: argparse.Namespace, form: Form, out: Output, environ: Mapping
     if k == "restore" and not identity.Layout(root).db.exists():
         return out.success(service.restore_lost_store(root, actor, Path(args.path), expected_digest=args.expected_digest).model_dump(mode="json"))
     ctx = service.resolve(root, actor=actor)
+    if k == "doctor_full_integrity":
+        from recalith.cli.inspect import health_output
+
+        return health_output("doctor", out, ctx, environ, full_integrity=True)
     if k == "declare":
         return out.success(service.submit_declaration(ctx, args.kind, args.statement, _scope(args.scope)).report())
     if k == "correct":

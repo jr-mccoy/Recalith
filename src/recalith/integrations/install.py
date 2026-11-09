@@ -76,6 +76,12 @@ class Outcome:
     formatting_preserved: bool = True
 
 
+def _parse_or_empty(raw: bytes) -> Any:
+    """The before-copy as settings: whitespace-only bytes were an empty object, as ``read_settings`` read them (CLI-4)."""
+    text = raw.decode("utf-8", "replace")
+    return json.loads(text) if text.strip() else {}
+
+
 def _sha(data: bytes | None) -> str | None:
     return None if data is None else hashlib.sha256(data).hexdigest()
 
@@ -88,8 +94,21 @@ def _canonical(data: Any) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+def public_mode() -> int:
+    """The mode an ordinary new file gets here (``0o666 & ~umask``), for files the user tracks or edits themselves."""
+    mask = os.umask(0)
+    os.umask(mask)
+    return 0o666 & ~mask
+
+
 def atomic_write(path: Path, data: bytes, *, private: bool = True) -> None:
-    """Temporary file in the same directory, flush, fsync, rename (0600 when private)."""
+    """Temporary file in the same directory, flush, fsync, rename.
+
+    Private files are 0600. A public file keeps the mode the existing file had (the user's own settings file stays
+    theirs; audit 2026-11-06 CLI-7), else an ordinary new file's mode. A symbolic link is never replaced: callers refuse
+    one before they get here, and this check keeps a race from writing through."""
+    if path.is_symlink():
+        raise RecalithError("policy_refused", f"{path.name} is a symbolic link; it is never replaced by a regular file")
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
@@ -98,7 +117,14 @@ def atomic_write(path: Path, data: bytes, *, private: bool = True) -> None:
             fh.flush()
             os.fsync(fh.fileno())
         if os.name != "nt":
-            os.chmod(tmp, 0o600 if private else 0o644)
+            if private:
+                mode = 0o600
+            else:
+                try:
+                    mode = path.stat().st_mode & 0o777
+                except OSError:
+                    mode = public_mode()
+            os.chmod(tmp, mode)
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -314,7 +340,7 @@ def install(root: Path, host_id: str, settings_rel: Path, desired: Desired, *, e
         outcome.settings = "unchanged"
     else:
         outcome.settings = "updated" if _canonical(base) != _canonical(data) else "installed"
-        atomic_write(settings_path, new_raw)
+        atomic_write(settings_path, new_raw, private=False)
     outcome.formatting_preserved = raw is None or not raw.strip() or _dump(json.loads(raw.decode("utf-8"))) == raw
     failpoints.hit(AFTER_SETTINGS)
     _ensure_ignore(root / ".gitignore", ignore_plan)
@@ -354,15 +380,17 @@ def remove(root: Path, host_id: str, *, marker: str, after_settings=None) -> tup
     if record is None:
         return outcome, None
     settings_path = root / record["settings_path"]
+    if settings_path.is_symlink():
+        raise RecalithError("policy_refused", f"{record['settings_path']} is now a symbolic link to {os.readlink(settings_path)}; nothing was changed")
     data, raw = read_settings(settings_path)
     owned = _ours(record)  # after a crash during an update, the previous entries are ours too
     remaining = _strip_owned(data, owned, marker, outcome)
     before = record.get("before") or {}
     before_bytes = own.before_copy.read_bytes() if own.before_copy.exists() else None
     if raw is not None:
-        if before.get("existed") and before_bytes is not None and _sha(before_bytes) == before.get("sha256") and _canonical(json.loads(before_bytes.decode("utf-8") or "{}")) == _canonical(remaining):
+        if before.get("existed") and before_bytes is not None and _sha(before_bytes) == before.get("sha256") and _canonical(_parse_or_empty(before_bytes)) == _canonical(remaining):
             if raw != before_bytes:
-                atomic_write(settings_path, before_bytes)
+                atomic_write(settings_path, before_bytes, private=False)
             outcome.unrelated_preserved = "byte_identical"
         elif not before.get("existed") and remaining == {}:
             settings_path.unlink()
@@ -373,7 +401,7 @@ def remove(root: Path, host_id: str, *, marker: str, after_settings=None) -> tup
         else:
             new_raw = _dump(remaining)
             if new_raw != raw:
-                atomic_write(settings_path, new_raw)
+                atomic_write(settings_path, new_raw, private=False)
             outcome.unrelated_preserved = "semantically_identical"
     failpoints.hit(REMOVE_AFTER_SETTINGS)
     if after_settings is not None:
@@ -389,4 +417,4 @@ def remove(root: Path, host_id: str, *, marker: str, after_settings=None) -> tup
     return outcome, None
 
 
-__all__ = ["Desired", "Outcome", "Ownership", "install", "finish", "remove", "read_settings", "atomic_write", "OWNERSHIP_SCHEMA", "OWNERSHIP_DIR"]
+__all__ = ["Desired", "Outcome", "Ownership", "install", "finish", "remove", "read_settings", "atomic_write", "public_mode", "OWNERSHIP_SCHEMA", "OWNERSHIP_DIR"]

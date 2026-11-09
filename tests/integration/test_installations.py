@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def make_project(parent: Path, name: str, project_id: str | None = None):
     root = parent / name
     root.mkdir()
-    ctx = identity.initialize_installation(root, ProjectConfig.defaults_for(project_id or new_id("proj")))
+    identity.initialize_installation(root, ProjectConfig.defaults_for(project_id or new_id("proj")))
     return identity.resolve_installation(root, actor=OPERATOR)
 
 
@@ -261,6 +261,12 @@ def test_private_state_has_restrictive_permissions(tmp_path):
     for name in identity.PRIVATE_DIRS:
         assert (base / name).stat().st_mode & 0o777 == 0o700
     assert os.access(base / "bin/recalith", os.X_OK)
+    # Tracked files are ordinary files (audit 2026-11-06 CLI-7): a clone, a diff or a reviewer reads them like any other.
+    mask = os.umask(0)
+    os.umask(mask)
+    for name in ("project.toml", "engine.lock", ".gitignore", "bin/recalith.cmd", "bin/recalith-hook.cmd"):
+        assert (base / name).stat().st_mode & 0o777 == 0o666 & ~mask, name
+    assert (base / "bin/recalith").stat().st_mode & 0o777 == 0o755
 
 
 def test_tracked_files_are_exactly_the_portable_ones(tmp_path):
@@ -435,19 +441,166 @@ def test_bootstrap_refuses_digest_mismatch_and_missing_inputs(tmp_path):
     assert not any((a.root / ".recalith/runtime").iterdir())
 
 
-@pytest.mark.skipif(not os.environ.get("RECALITH_TEST_WHEELHOUSE"), reason="set RECALITH_TEST_WHEEL and RECALITH_TEST_WHEELHOUSE to exercise real provisioning")
+# ---------------------------------------------------------------- the release bootstrap (CLI-1, CLI-2, CLI-12)
+
+BOOTSTRAP = ROOT / "bootstrap.py"
+WHEELHOUSE_GATE = pytest.mark.skipif(not os.environ.get("RECALITH_TEST_WHEELHOUSE"), reason="set RECALITH_TEST_WHEEL and RECALITH_TEST_WHEELHOUSE to exercise real provisioning")
+
+
+def _bootstrap(*args: str, env: dict[str, str] | None = None, timeout: float = 600) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, str(BOOTSTRAP), *args], capture_output=True, text=True, env=env, timeout=timeout)
+
+
+def _fake_wheel(tmp_path: Path, version: str = identity.__version__) -> tuple[Path, str]:
+    """A file named like the engine wheel (its digest is real; its contents are not a wheel)."""
+    import hashlib
+
+    wheel = tmp_path / f"recalith-{version}-py3-none-any.whl"
+    wheel.write_bytes(b"not a wheel " * 100)
+    return wheel, hashlib.sha256(wheel.read_bytes()).hexdigest()
+
+
+def _load_bootstrap():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("recalith_bootstrap_under_test", BOOTSTRAP)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_bootstrap_names_the_missing_input(tmp_path):
+    """Audit 2026-11-06 CLI-1/CLI-2: a missing wheel, wheelhouse or lock is exit 4 naming which; a bad name or digest is 2."""
+    project = tmp_path / "empty"
+    project.mkdir()
+    wheel, digest = _fake_wheel(tmp_path)
+    house = tmp_path / "house"
+    house.mkdir()
+    missing_wheel = _bootstrap("install", "--project", str(project), "--wheel", str(tmp_path / f"recalith-{identity.__version__}-py3-none-any.whl.absent"), "--expected-digest", digest, "--wheelhouse", str(house))
+    assert missing_wheel.returncode == 2 and "not a recalith pure-Python wheel" in missing_wheel.stderr
+    gone = tmp_path / "gone" / wheel.name
+    missing_wheel = _bootstrap("install", "--project", str(project), "--wheel", str(gone), "--expected-digest", digest, "--wheelhouse", str(house))
+    assert missing_wheel.returncode == 4 and "missing: the wheel" in missing_wheel.stderr and "the wheelhouse directory" not in missing_wheel.stderr
+    missing_house = _bootstrap("install", "--project", str(project), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", str(tmp_path / "nohouse"))
+    assert missing_house.returncode == 4 and "the wheelhouse directory" in missing_house.stderr
+    wrong = _bootstrap("install", "--project", str(project), "--wheel", str(wheel), "--expected-digest", "0" * 64, "--wheelhouse", str(house))
+    assert wrong.returncode == 2 and "does not match" in wrong.stderr
+    assert not (project / ".recalith").exists()  # nothing was created before the inputs were accepted
+    assert "Traceback" not in missing_wheel.stderr + missing_house.stderr + wrong.stderr
+
+
+def test_bootstrap_on_a_clone_or_an_empty_directory_fails_cleanly(tmp_path):
+    """Audit 2026-11-06 CLI-1: a fresh clone has no runtime/ directory; staging used to die in mkdtemp with a traceback.
+
+    With an empty wheelhouse pip cannot install, so the result is a named exit 4, the private layout exists, and no
+    staging directory is left behind. An empty directory (no project.toml) takes the same path."""
+    a = make_project(tmp_path, "a")
+    clone = tmp_path / "clone"
+    tracked_clone(a.root, clone)
+    assert not (clone / ".recalith" / "runtime").exists()
+    wheel, digest = _fake_wheel(tmp_path)
+    house = tmp_path / "house"
+    house.mkdir()
+    for project in (clone, tmp_path / "empty"):
+        project.mkdir(exist_ok=True)
+        result = _bootstrap("install", "--project", str(project), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", str(house))
+        assert result.returncode == 4, (result.returncode, result.stderr)
+        assert "Traceback" not in result.stderr and "wheelhouse" in result.stderr and "requirements.lock" in result.stderr
+        runtime = project / ".recalith" / "runtime"
+        assert runtime.is_dir() and list(runtime.iterdir()) == []  # the staging directory was removed
+        if os.name != "nt":
+            assert (project / ".recalith").stat().st_mode & 0o777 == 0o700 and runtime.stat().st_mode & 0o777 == 0o700
+    assert not (tmp_path / "empty" / ".recalith" / "engine.lock").exists()  # the lock is written only after a successful provisioning
+
+
+def test_bootstrap_never_deletes_an_unmarked_runtime_tree(tmp_path):
+    """Audit 2026-11-06 CLI-12: a runtime directory without a provisioning record may be in use; it is refused, not replaced."""
+    a = make_project(tmp_path, "a")
+    wheel, digest = _fake_wheel(tmp_path)
+    house = tmp_path / "house"
+    house.mkdir()
+    stray = a.root / ".recalith" / "runtime" / identity.__version__ / "venv"
+    stray.mkdir(parents=True)
+    (stray / "keep").write_text("in use", encoding="utf-8")
+    result = _bootstrap("install", "--project", str(a.root), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", str(house))
+    assert result.returncode == 2 and "without a provisioning record" in result.stderr and (stray / "keep").exists()
+
+
+def test_bootstrap_first_forms_provision_then_run_that_form(tmp_path, monkeypatch):
+    """The pre-init forms of SYSTEM_SPEC §13.1: provision when needed, then exactly `recalith init` or `operator-token create`
+    on the provisioned interpreter, with --project, --json and the token file passed through."""
+    bootstrap = _load_bootstrap()
+    calls: list[tuple[Path, str, list[str]]] = []
+    provisioned: list[Path] = []
+    monkeypatch.setattr(bootstrap, "provision", lambda project, wheel, expected, wheelhouse: provisioned.append(project) or {"status": "provisioned", "version": "9.9.9", "artifact_sha256": "0" * 64})
+    monkeypatch.setattr(bootstrap, "run_cli", lambda project, version, argv: calls.append((project, version, argv)) or 0)
+    wheel, digest = _fake_wheel(tmp_path, "9.9.9")
+    project = tmp_path / "p"
+    project.mkdir()
+    token = tmp_path / "op.token"
+    common = ["--project", str(project), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", str(tmp_path)]
+    assert bootstrap.main(["init", *common, "--profile", "general", "--release-profile", "claude_preview", "--operator-token-file", str(token), "--json"]) == 0
+    assert bootstrap.main(["operator-token", "create", *common, "--output", str(token)]) == 0
+    assert provisioned == [project.resolve(), project.resolve()]
+    assert calls == [
+        (project.resolve(), "9.9.9", ["--json", "--operator-token-file", str(token.resolve()), "init", "--profile", "general", "--release-profile", "claude_preview"]),
+        (project.resolve(), "9.9.9", ["operator-token", "create", "--output", str(token.resolve())]),
+    ]
+    command = bootstrap.build_parser().parse_args(["init", *common, "--profile", "coding", "--release-profile", "claude_preview"])
+    assert command.operator_token_file is None and not command.json
+
+
+@WHEELHOUSE_GATE
 def test_bootstrap_provisions_pinned_runtime_offline(tmp_path):
     import hashlib
 
     wheel = Path(os.environ["RECALITH_TEST_WHEEL"])
     digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
     a = make_project(tmp_path, "a")
-    cmd = [sys.executable, str(ROOT / "bootstrap.py"), "install", "--project", str(a.root), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", os.environ["RECALITH_TEST_WHEELHOUSE"]]
-    first = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    cmd = ["install", "--project", str(a.root), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", os.environ["RECALITH_TEST_WHEELHOUSE"]]
+    first = _bootstrap(*cmd)
     assert first.returncode == 0, first.stderr
-    assert json.loads(subprocess.run(cmd, capture_output=True, text=True, timeout=600).stdout)["status"] == "already_provisioned"
+    assert json.loads(_bootstrap(*cmd).stdout)["status"] == "already_provisioned"
     lock = (a.root / ".recalith/engine.lock").read_text(encoding="utf-8")
     assert f'artifact_sha256 = "{digest}"' in lock
     py = identity.Layout(a.root).runtime_python(json.loads(first.stdout)["version"])
     probe = subprocess.run([str(py), "-I", "-c", "import recalith.contracts, sys; print(sys.prefix)"], capture_output=True, text=True)
     assert probe.returncode == 0 and str(a.root) in probe.stdout
+    # A fresh clone of the initialized project is provisioned the same way (CLI-1), and its launcher then answers.
+    clone = tmp_path / "clone"
+    tracked_clone(a.root, clone)
+    cloned = _bootstrap("install", "--project", str(clone), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", os.environ["RECALITH_TEST_WHEELHOUSE"])
+    assert cloned.returncode == 0, cloned.stderr
+    launcher = ["cmd", "/c", str(clone / ".recalith/bin/recalith.cmd")] if os.name == "nt" else ["sh", str(clone / ".recalith/bin/recalith")]
+    status = subprocess.run([*launcher, "--json", "status"], capture_output=True, text=True, timeout=120)
+    assert status.returncode == 4 and "bootstrap.py init" in json.loads(status.stdout)["message"]  # no installation yet: the message names the way in
+
+
+@WHEELHOUSE_GATE
+def test_bootstrap_init_form_initializes_an_empty_directory(tmp_path):
+    """Audit 2026-11-06 CLI-2: from release files alone, one command provisions and initializes a project (a token stands in
+    for the terminal here); the installation's own launcher then serves `status`."""
+    import hashlib
+
+    import cli_scenarios as cs
+
+    wheel = Path(os.environ["RECALITH_TEST_WHEEL"])
+    digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    project = tmp_path / "brand new"
+    project.mkdir()
+    token = tmp_path / "op.token"
+    cs.token(token)
+    common = ["--project", str(project), "--wheel", str(wheel), "--expected-digest", digest, "--wheelhouse", os.environ["RECALITH_TEST_WHEELHOUSE"]]
+    env = cs.base_env()  # an unmarked operator environment: the CLI's guard sees the bootstrap's caller
+    result = _bootstrap("init", *common, "--profile", "coding", "--release-profile", "claude_preview", "--operator-token-file", str(token), "--json", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    body = json.loads(result.stdout.strip().splitlines()[-1])
+    assert body["ok"] and body["result"]["operator_token_registered"] is True and "provisioned" in result.stderr
+    assert (project / ".recalith/local.toml").exists() and identity.load_project_config(identity.Layout(project)).domain_profile == "coding"
+    launcher = ["cmd", "/c", str(project / ".recalith/bin/recalith.cmd")] if os.name == "nt" else ["sh", str(project / ".recalith/bin/recalith")]
+    status = subprocess.run([*launcher, "--json", "status"], capture_output=True, text=True, timeout=120)
+    assert status.returncode == 8 and json.loads(status.stdout)["result"]["readiness"] == "degraded"
+    again = _bootstrap("init", *common, "--profile", "coding", "--release-profile", "claude_preview", "--operator-token-file", str(token), "--json", env=env)
+    assert again.returncode == 6 and "already_provisioned" in again.stderr  # the runtime is kept; init never resets memory
+    other = _bootstrap("init", *common, "--profile", "general", "--release-profile", "claude_preview", "--operator-token-file", str(token), "--json", env=env)
+    assert other.returncode == 6  # an existing installation is refused before the profile is compared

@@ -224,6 +224,8 @@ def form_of(args: argparse.Namespace) -> Form:
         return Form("operator_token_" + args.action, True, "pre_init" if args.action == "create" else "installed", terminal_only=True)
     if c == "doctor" and (args.probe_host or args.probe_provider):
         return Form("doctor_probe", True)
+    if c == "doctor" and args.full_integrity:
+        return Form("doctor_full_integrity", True)  # it advances the verifier's checkpoint (DATA_CONTRACTS §12; audit 2026-11-06 CLI-9)
     return Form(c)
 
 
@@ -253,6 +255,10 @@ class Output:
     def _write(self, obj: Mapping[str, Any]) -> None:
         text = json.dumps(obj, ensure_ascii=False, sort_keys=True) if self.as_json else json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2)
         _emit(self.stdout, text + "\n")
+
+    def text(self, lines: Sequence[str]) -> None:
+        """Human lines on stdout (never in the ``--json`` form, whose stdout is exactly one object)."""
+        _emit(self.stdout, "\n".join(lines) + "\n")
 
     def success(self, result: Any, *, degraded: Sequence[str] = ()) -> int:
         body: dict[str, Any] = {"ok": True, "command": self.command, "result": result}
