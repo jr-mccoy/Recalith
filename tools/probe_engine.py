@@ -77,6 +77,7 @@ ADMIN_SAMPLE_ARGS = {
     "integrate": "integrate claude", "backup": "backup --output probe-backup", "restore": "restore probe-backup --expected-digest 00", "export": "export --selection s.json --output o",
     "import": "import p --expected-digest 00", "upgrade": "upgrade --wheel w --expected-digest 00", "workspace": "workspace rebind", "project": "project fork", "worker": "worker start",
     "jobs retry": "jobs retry job_x", "operator-token": "operator-token revoke tok_x", "doctor --probe-host": "doctor --probe-host claude", "doctor --probe-provider": "doctor --probe-provider claude_cli",
+    "doctor --full-integrity": "doctor --full-integrity",  # guarded since decision 0046 (it advances the verifier's checkpoint)
 }
 # Spellings no prefix rule matches (reported gaps): the guard must still refuse them on the actual tool subprocess.
 GAP_COMMANDS = (

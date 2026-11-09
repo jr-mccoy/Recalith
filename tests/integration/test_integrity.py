@@ -528,7 +528,9 @@ def test_doctor_and_health_report_the_chain(tmp_path, full):
     assert cap.state == "degraded" and not cap.required and "revision_chain_not_verified" in cap.reason_codes
     assert cap.coverage["head_sequence"] == len(chain(p.root)) and cap.coverage["baseline"]["reason"] == "init"
     assert "revision_chain_unavailable_in_preview" not in rep.coverage_gaps
-    done = cs.cli(p.root, "--json", "doctor", "--full-integrity")
+    tok = tmp_path / "op.token"
+    cs.register(p.root, cs.token(tok))
+    done = cs.cli(p.root, "--json", "--operator-token-file", str(tok), "doctor", "--full-integrity")  # guarded since decision 0046
     checks = done.obj["result"]["checks"]["revision_chain"]
     assert checks["mode"] == "full" and checks["state"] == "verified" and checks["complete_coverage"] is True, done.stdout
     assert "revision_chain_findings" not in (done.obj.get("degraded") or [])
