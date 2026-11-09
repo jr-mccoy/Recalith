@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev15` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev16` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -64,15 +64,16 @@ The preview-to-full transition is built too (decision 0026) and is likewise not 
 
 ## 4. One-time setup (operator, from an ordinary terminal)
 
-Administrative commands are refused inside an agent's process tree, even with a terminal and a token (exit 6). Run everything below from an ordinary OS terminal you opened yourself, outside Claude Code (not an IDE terminal that inherits its marker). Each step is complete as written; `RELEASE` is the release directory (the wheel, `bootstrap.py`, `requirements.lock`, `SHA256SUMS`, one `wheelhouse-<platform>-<python tag>/` per platform and Python version; the checkout's `tools/build_release.py` and `tools/build_wheelhouse.py` build it) and `PROJECT` is the project you are installing into. Python 3.13 is shown; use the wheelhouse whose tag matches your interpreter (`cp312`, `cp313`, `cp314`).
+Administrative commands are refused inside an agent's process tree, even with a terminal and a token (exit 6). Run everything below from an ordinary OS terminal you opened yourself, outside Claude Code (not an IDE terminal that inherits its marker). Each step is complete as written; `RELEASE` is the release directory (the wheel, `bootstrap.py`, `requirements.lock`, `SHA256SUMS`, one `wheelhouse-<platform>-<python tag>/` per platform and Python version; the checkout's `tools/build_release.py` and `tools/build_wheelhouse.py` build it) and `PROJECT` is the project you are installing into. Use the wheelhouse whose tag matches the interpreter that runs `bootstrap.py` (`cp312`, `cp313`, `cp314`): the Linux steps derive it from `python3`, the Windows steps name Python 3.13 with `py -3.13`.
 
 ### Linux
 
 ```bash
-RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev15
+RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev16
 WHEEL="$RELEASE/recalith-$VERSION-py3-none-any.whl"
 DIGEST=$(grep " recalith-$VERSION-py3-none-any.whl$" "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
-HOUSE="$RELEASE/wheelhouse-linux-x86_64-cp313"
+TAG=$(python3 -c 'import sys; print("cp%d%d" % sys.version_info[:2])')   # the wheelhouse must match this python3
+HOUSE="$RELEASE/wheelhouse-linux-x86_64-$TAG"
 
 # 1. Provision the pinned runtime and initialize the project (one command; exit 0).
 python3 "$RELEASE/bootstrap.py" init --project "$PROJECT" --profile coding --release-profile claude_preview \
@@ -97,7 +98,7 @@ uv run python tools/probe_delivery.py --config probe-private/local-config.json -
 ### Native Windows (PowerShell)
 
 ```powershell
-$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev15"
+$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev16"
 $Wheel = "$Release\recalith-$Version-py3-none-any.whl"
 $Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern " recalith-$Version-py3-none-any.whl$").Line.Split(' ')[0]
 $House = "$Release\wheelhouse-win-amd64-cp313"

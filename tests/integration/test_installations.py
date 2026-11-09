@@ -426,6 +426,28 @@ def test_missing_runtime_launcher_is_explicit_and_downloads_nothing(tmp_path):
     assert [p for p in after if p not in before] == []
 
 
+@pytest.mark.skipif(os.name != "nt", reason="the cmd.exe launcher")
+@pytest.mark.parametrize("dirname", ["proj (x86)", "R&D (copy)", "a)b"])
+def test_windows_launcher_parses_under_a_path_with_cmd_metacharacters(tmp_path, dirname):
+    """Decision 0048: a ")" in the message or the expanded path ended a ( ... ) block and broke every invocation (exit 255)."""
+    base = tmp_path / dirname
+    base.mkdir()
+    a = make_project(base, "a")
+    # As OPERATIONS §4 runs it: from the project, by its relative path (cmd /c re-parses a quoted absolute path with "&").
+    result = subprocess.run(["cmd", "/c", ".recalith\\bin\\recalith.cmd", "status"], cwd=a.root, capture_output=True, text=True, timeout=30, env={"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")})
+    assert result.returncode == 4, (result.stdout, result.stderr)
+    assert "was unexpected" not in result.stderr
+    assert "capability_unavailable" in result.stderr and str(a.root) in result.stderr and result.stdout == ""
+
+
+def test_windows_launcher_has_no_parenthesized_block():
+    """Every Windows launcher line runs outside a ( ... ) block, so cmd.exe never parses a message or path as its end."""
+    for text in (identity.windows_launcher("0.1.0.dev0"), identity.windows_hook_launcher("0.1.0.dev0")):
+        for line in text.splitlines():
+            stripped = line.strip()
+            assert not stripped.endswith("(") and stripped != ")", line
+
+
 def test_bootstrap_refuses_digest_mismatch_and_missing_inputs(tmp_path):
     a = make_project(tmp_path, "a")
     wheel = tmp_path / "recalith-0.1.0.dev0-py3-none-any.whl"

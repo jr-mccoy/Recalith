@@ -2,6 +2,10 @@
 
 Engine versions of the `claude_preview` profile, newest first. Every entry names the decision record that carries the full reasoning, tests and limits (`docs/decisions/`). No version below is released; see `docs/release/claude_preview_checklist.json` for what the release waits on.
 
+## 0.1.0.dev16 (2026-11-09) — the Windows launcher parses
+
+Decision 0048. `.recalith\bin\recalith.cmd` from `0.1.0.dev14` and `0.1.0.dev15` failed on every invocation (`. was unexpected at this time.`, exit 255): the bootstrap hint added by decision 0046 put a `)` inside a parenthesized `if` block. The launcher now uses `goto` and has no block, so neither its message nor a project path such as `C:\Program Files (x86)\…` can break it. A Windows project made with those engines keeps its broken launcher; provision a new one on this engine. The release workflow and the Linux install steps choose the wheelhouse whose tag matches the `python3` that runs the bootstrap.
+
 ## 0.1.0.dev15 (2026-11-09) — public-repository hygiene
 
 Decision 0047. No engine behavior changed. Every module carries an SPDX license identifier; the source distribution holds only what builds and installs the engine; the repository gains `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, this changelog, issue and pull request templates and Dependabot; OPERATIONS states what is stored and sent, how to uninstall and what a preview store can expect to survive; workflow actions are pinned to commits with concurrency groups, and release attestation is scaffolded behind an opt-in; the design packet moved to `docs/history/packet/`; the probes name their failed checks, hint at the CA bundle on a TLS failure, record only an endpoint's scheme and a hash of its host, and scrub home directories, UNC paths and emails from reports; a live gate record pins the digests of its scenarios, oracles and overlays and refuses a dirty tree unless told otherwise.

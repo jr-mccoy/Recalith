@@ -83,7 +83,10 @@ jobs:
           set -euo pipefail
           wheel=$(ls dist-release/recalith-*.whl)
           digest=$(sha256sum "$wheel" | cut -d' ' -f1)
-          house=$(ls -d dist-release/wheelhouse-linux-*-cp313)
+          # The wheelhouse whose tag matches the interpreter the stranger runs, as OPERATIONS §4 derives it (the
+          # runner image's python3 moves between minor versions; a fixed cp313 failed once it became 3.14).
+          tag=$(python3 -c 'import sys; print("cp%d%d" % sys.version_info[:2])')
+          house=$(ls -d dist-release/wheelhouse-linux-*-"$tag")
           mkdir /tmp/walk && cd /tmp/walk
           # The stranger types this at a terminal; the runner has none, so a pseudo-terminal stands in (the guard wants one).
           printf 'import os, pty, sys\nsys.exit(os.waitstatus_to_exitcode(pty.spawn(sys.argv[1:])))\n' > /tmp/with_tty.py

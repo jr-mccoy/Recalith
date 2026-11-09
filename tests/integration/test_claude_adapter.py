@@ -517,7 +517,7 @@ def test_session_start_notice_is_brief_and_not_repeated(provisioned, tmp_path):
     assert set(obj) == {"systemMessage"}, obj  # a user notice only: never model context while delivery is uncertified
     text = obj["systemMessage"]
     assert len(text.encode("utf-8")) <= fast_claude.NOTICE_MAX_BYTES and text.startswith("Recalith:")
-    assert "inference" in text and "delivery" in text and "recalith status" in text
+    assert "inference" in text and "delivery" in text and ("recalith.cmd status" if os.name == "nt" else "recalith status") in text
     for rec in (prompt, compact, start):
         again = ccs.run_installed(root, rec["event"], payloads.prepare(rec))
         ccs.never_blocks(again)
@@ -707,17 +707,18 @@ POSIX_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook claude_code -
 WINDOWS_COMMAND = '"$CLAUDE_PROJECT_DIR"/.recalith/bin/recalith-hook.cmd claude_code --event SessionStart'
 # The launcher texts as generated before decision 0027; an existing installation's tracked launchers are these bytes.
 # Re-pinned by decision 0046: the launchers name the bootstrap form, and the POSIX hook launcher drops stderr and always exits 0 (FP-7).
+# Re-pinned by decision 0048: the .cmd launcher has no parenthesized block, which a ")" in its message or path ended early.
 LAUNCHER_SHA256 = {
     "posix_launcher": "9a3a2662d9e5449befc5c6d4d7689d0b633d172ae6d72013b4213d23f8dc4b4a",
     "posix_hook_launcher": "78667627f645202adf2002e6df43c78517abf521bd9355fd4ff5e7502f1c0355",
-    "windows_launcher": "989cc41aaf72fe63e0b931a95f8dd1c362d1ad6492d494ce2b840305adf73640",
+    "windows_launcher": "dd088060affa011ba9fb5a347dfd8315481a8ea3fafdb20a81b5cd6f4659bab4",
     "windows_hook_launcher": "58610e6813611092bd5e0f49709a3e515f73d6cdb2a7eaf4a6971e6c29b24619",
 }
 POSIX_SPELLINGS = [
     ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
     "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
     "python -m recalith.cli.main", "python3 -m recalith.cli.main",
-    ".recalith/runtime/0.1.0.dev15/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev15/venv/bin/python -I -m recalith",
+    ".recalith/runtime/0.1.0.dev16/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev16/venv/bin/python -I -m recalith",
 ]
 
 
@@ -737,7 +738,7 @@ def test_launchers_are_unchanged():
 
 
 def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
-    if identity.__version__ != "0.1.0.dev15":
+    if identity.__version__ != "0.1.0.dev16":
         pytest.skip("pinned for the development engine version")
     root = Path("/proj/root")
     assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
@@ -748,7 +749,7 @@ def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
     for want in (
         "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
         f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
-        ".recalith/runtime/0.1.0.dev15/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev15/venv/Scripts/python.exe -I -m recalith",
+        ".recalith/runtime/0.1.0.dev16/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev16/venv/Scripts/python.exe -I -m recalith",
     ):
         assert want in spellings, want
     assert len(spellings) == len(set(spellings))
