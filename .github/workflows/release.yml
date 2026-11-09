@@ -52,7 +52,7 @@ jobs:
         run: uv sync --locked --python ${{ matrix.python }}
       - name: Download the locked wheels for this platform and Python
         run: uv run --locked --with pip python tools/build_wheelhouse.py --out wheelhouses
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: recalith-wheelhouse-${{ matrix.os }}-py${{ matrix.python }}
           path: wheelhouses/
@@ -98,7 +98,7 @@ jobs:
         run: |
           cat dist-release/SHA256SUMS
           python3 -c "import json; m = json.load(open('dist-release/RELEASE_MANIFEST.json')); print(json.dumps({k: m[k] for k in ('version', 'commit', 'wheelhouses', 'problems', 'signing')}, indent=1))"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: recalith-release-unsigned
           path: dist-release/
