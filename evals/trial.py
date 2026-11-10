@@ -44,6 +44,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SMOKE = ROOT / "evals" / "scenarios" / "smoke"
+SENSITIVITY = ROOT / "evals" / "scenarios" / "sensitivity"  # decision 0049: beside the frozen 12, never part of the gate
 EVAL_PROJECT_IDS = {
     "ledgerlite": "proj_70707070-7070-4070-8070-707070707071",
     "fieldnotes": "proj_70707070-7070-4070-8070-707070707072",
@@ -77,7 +78,21 @@ class TrialError(RuntimeError):
 
 
 def scenarios() -> dict[str, dict[str, Any]]:
+    """The frozen 12 smoke scenarios of the preview gate (ACCEPTANCE_TESTS §6.1)."""
     return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SMOKE.glob("smoke-*.json"))}
+
+
+def sensitivity_scenarios() -> dict[str, dict[str, Any]]:
+    """The baseline-sensitivity set (decision 0049): run beside the 12 and reported apart; never part of the gate."""
+    return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SENSITIVITY.glob("sens-*.json"))}
+
+
+def any_scenario(sid: str) -> dict[str, Any]:
+    return {**scenarios(), **sensitivity_scenarios()}[sid]
+
+
+def overlay_dir(sid: str) -> Path:
+    return (SENSITIVITY if sid.startswith("sens-") else SMOKE) / "overlays"
 
 
 def domain(project: str) -> str:
@@ -88,12 +103,12 @@ def copy_seed(project: str, ws: Path) -> None:
     shutil.copytree(ROOT / "evals" / "projects" / project, ws, ignore=shutil.ignore_patterns(".git", "__pycache__", ".recalith"))
 
 
-def apply_overlays(ws: Path, session: dict[str, Any]) -> list[str]:
+def apply_overlays(ws: Path, session: dict[str, Any], source: Path = SMOKE / "overlays") -> list[str]:
     applied = []
     for target, ref in session.get("overlay_files", {}).items():
         dest = ws / target
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(SMOKE / "overlays" / ref[len("@file:"):], dest)
+        shutil.copyfile(source / ref[len("@file:"):], dest)
         applied.append(target)
     return applied
 
@@ -355,6 +370,8 @@ def outcomes(spec: dict[str, Any], sessions: dict[str, Any], judged: dict[str, A
     retry = checks.get("plain_retry_succeeded") if "plain_retry_succeeded" in checks else None
     return {
         "task_success": bool(judged.get("passed")), "repeated_mistakes": repeated, "detours": detours, "legitimate_retry_success": retry,
+        # decision 0049: the sensitivity oracles name the mistake session A corrected; 1 when the judged session made it again
+        **({"repeated_named_mistake": judged["metrics"]["repeated_named_mistake"]} if "repeated_named_mistake" in (judged.get("metrics") or {}) else {}),
         "foreground_tokens": sum(r.foreground_tokens_estimate for r in sessions.values()), "background_tokens": background.get("tokens", 0),
         "elapsed_seconds": round(sum(r.elapsed_seconds for r in sessions.values()), 3), "operator_interventions": 0,
     }
@@ -370,7 +387,7 @@ def run_trial(sid: str, arm: str, out_dir: Path, *, mode: str = "scripted", init
     from evals.oracles import smoke
     from evals.report import GOLD_TERMS
 
-    spec = scenarios()[sid]
+    spec = any_scenario(sid)
     if mode == "live":
         if live is None:
             raise TrialError("live_setup_missing", "a live trial needs the operator's live setup (evals/run.py --mode live)")
@@ -408,7 +425,7 @@ def run_trial(sid: str, arm: str, out_dir: Path, *, mode: str = "scripted", init
             name = session["name"]
             if index:
                 clock.advance(SESSION_GAP_SECONDS)
-            overlays = apply_overlays(ws, session)
+            overlays = apply_overlays(ws, session, overlay_dir(sid))
             if sid == "smoke-C4-cross-project-near-match" and name == "A":
                 # Session A belongs to the separate ledgerlite project with its own installation (the conflicting second project).
                 result, side = _second_project_session(spec, session, arm, base, clock, mode=mode, init_route=init_route, token_file=token_file)
@@ -608,7 +625,7 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
             if installation is not None and index:
                 # The earlier sessions' curation settles on the files they saw, as a recorded run drains before the next overlay.
                 record["gaps"].append({"before": name, **live.wait_quiescent(ws)})
-            overlays = apply_overlays(ws, session)
+            overlays = apply_overlays(ws, session, overlay_dir(sid))
             if sid == "smoke-C4-cross-project-near-match" and name == "A":
                 result, side, version = _live_second_project(spec, session, arm, base, setup, worker, owned)
                 results[name] = result

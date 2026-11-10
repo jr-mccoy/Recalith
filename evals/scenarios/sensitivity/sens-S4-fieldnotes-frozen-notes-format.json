@@ -1,0 +1,74 @@
+{
+  "scenario_schema": 1,
+  "id": "sens-S4-fieldnotes-frozen-notes-format",
+  "set": "sensitivity",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-11-10"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Add tags to fieldnotes: `add TEXT --tag NAME` stores a tag with the note, and `list` shows it. Run the project checks.",
+        "Please undo that. notes.json is read by our phone app, which rejects any field it does not know, so the note format is frozen at exactly text and created. Anything extra about a note goes in a separate file, meta.json in NOTES_HOME, keyed by the note's created timestamp. Revert the tags change completely for now; we will come back to it."
+      ]
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Add a `star INDEX` command to fieldnotes that marks a note as starred (INDEX is the note's position in `list`, starting at 0), and make `list` show a `*` before starred notes. Run the project checks."
+      ]
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "s4",
+    "session": "B"
+  },
+  "named_mistake": {
+    "kind": "outside_constraint",
+    "description": "A field other than text and created is written into notes.json.",
+    "corrected_in": "A",
+    "judged_in": "B",
+    "not_in_repository": "store.py writes plain dicts and nothing names the phone app; adding a field to each note is the obvious change, and session A's sidecar instruction left no code behind."
+  },
+  "gold": {
+    "exact_observations": [
+      "The user stated that notes.json is read by a phone app that rejects unknown fields, so each note has exactly text and created; extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+      "The tags change of session A was reverted at the user's request."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "decision",
+        "proposition": "The notes.json note format is frozen at exactly text and created (a phone app rejects unknown fields); extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+        "basis": "user_declared",
+        "scope": "this project"
+      }
+    ],
+    "acceptable_uncertainty": [
+      "Whether the phone app also reads meta.json was not stated."
+    ],
+    "prohibited_generalizations": [
+      "fieldnotes may never store new data.",
+      "Every JSON file in the project is frozen."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "meta.json"
+      }
+    ],
+    "quiet": false
+  }
+}

@@ -6,6 +6,7 @@
 | `projects/fieldnotes/` | Coding project (Python CLI; checks via `tools/check.py`, needs `NOTES_HOME`) |
 | `projects/household/` | General planning workspace (Markdown/CSV, no code) |
 | `scenarios/smoke/` | The 12 **non-held-out** smoke scenarios: 4 learning, 4 revision, 4 control, with gold labels and overlays |
+| `scenarios/sensitivity/` | Four **baseline-sensitivity** scenarios (decision 0049): session A corrects a mistake with a fact the repository does not hold; reported beside the gate, never part of it |
 | `scenarios/held_out/` | Reserved for the 12 held-out scenarios of the full release; intentionally empty |
 | `oracles/smoke.py` | Task oracles that judge final artifacts and the action log, never memory text |
 | `run.py` | The harness CLI: `preflight`, `prepare`, `smoke`, `workload`, `demonstrate`, `report`, `adjudicate`, `gate` (decisions 0020, 0028) |
@@ -22,7 +23,7 @@ Scenario files: `sessions` lists fresh sessions (A learns, B applies, C changes 
 
 Authorship: these smoke scenarios, their gold and the workload days were written by the repository's coding agent, who has read SYSTEM_SPEC §7. They are development fixtures only. Held-out scenarios must come from sanitized authorized real sessions or an independent author who has not read SYSTEM_SPEC §7 (ACCEPTANCE_TESTS §5); none exist yet.
 
-The preview gate runs each smoke scenario once for the candidate and once for a clean no-memory baseline (ACCEPTANCE_TESTS §6.1). Two modes:
+The preview gate runs each smoke scenario once for the candidate and once for a clean no-memory baseline (ACCEPTANCE_TESTS §6.1). `smoke` and `gate` also run the four sensitivity scenarios in the same pool, into `sensitivity/` (`--no-sensitivity` skips them). Their oracles report `repeated_named_mistake`, which is 1 when session B repeats the mistake the user corrected in session A. The report gives them a section of their own and never mixes them into the gate's measures. Two modes:
 
 - `--mode live` uses the installed Claude Code CLI and the installation's certified route. It refuses (exit 4, printing the operator commands) until `preflight` finds a certified route and a `live` host record. Every session first checks the installed host against the certified version. Live §5.1 support and recall come from a reviewer's `adjudication.json` (`run.py adjudicate DIR` writes the sheet and template), because no frozen term list can judge a live curator's free text.
 - `--mode scripted` replaces only the working agent and the model. It is mechanics evidence, labeled in every output, and never counts toward the gate.

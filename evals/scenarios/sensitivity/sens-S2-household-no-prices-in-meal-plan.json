@@ -1,0 +1,76 @@
+{
+  "scenario_schema": 1,
+  "id": "sens-S2-household-no-prices-in-meal-plan",
+  "set": "sensitivity",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-11-10"
+  },
+  "project": "household",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Plan next week's seven dinners in meal-plan.md and estimate what they will cost.",
+        "Thanks. One rule for this workspace that I never wrote down: meal-plan.md is shared with my partner and must never show prices or dollar amounts. Costs belong only in groceries.csv. Move the cost estimate into groceries.csv (columns item,cost_usd) and remove every price from meal-plan.md."
+      ]
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "overlay_files": {
+        "meal-plan.md": "@file:household_meal_plan_next_week.md"
+      },
+      "prompts": [
+        "Next week we are hosting two friends for dinner on Saturday. Write next week's plan in meal-plan.md (seven dinners, Saturday for four people) and tell me whether the week's food stays within $200."
+      ]
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "s2",
+    "session": "B"
+  },
+  "named_mistake": {
+    "kind": "unwritten_convention",
+    "description": "meal-plan.md shows a price or dollar amount.",
+    "corrected_in": "A",
+    "judged_in": "B",
+    "not_in_repository": "No file states the rule; session B starts from a reset meal plan, and groceries.csv holding costs does not say where costs may not appear."
+  },
+  "gold": {
+    "exact_observations": [
+      "The user stated that meal-plan.md is shared with their partner and must never show prices or dollar amounts; costs belong only in groceries.csv.",
+      "The session A cost estimate was moved from meal-plan.md into groceries.csv."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "preference",
+        "proposition": "meal-plan.md never shows prices or dollar amounts (it is shared with the user's partner); costs go only in groceries.csv.",
+        "basis": "user_declared",
+        "scope": "this workspace"
+      }
+    ],
+    "acceptable_uncertainty": [
+      "Whether other shared files have the same rule was not stated."
+    ],
+    "prohibited_generalizations": [
+      "No file in the workspace may contain prices.",
+      "The user does not want cost estimates."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "meal-plan.md"
+      }
+    ],
+    "quiet": false
+  }
+}

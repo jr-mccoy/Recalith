@@ -112,6 +112,7 @@ def load(directory: Path) -> dict[str, Any]:
     return {
         "run": json.loads(run.read_text(encoding="utf-8")) if run.exists() else {},
         "trials": read_all("trials"),
+        "sensitivity": read_all("sensitivity"),  # decision 0049: never mixed into the gate's trials
         "workload": read_all("workload"),
         "demonstrations": json.loads(demos.read_text(encoding="utf-8")) if demos.exists() else None,
         "adjudication": json.loads(labels.read_text(encoding="utf-8")) if labels.exists() else None,
@@ -164,6 +165,46 @@ def paired(trials: list[dict[str, Any]]) -> dict[str, Any]:
         "full_release_target": ">= 0.25 (Cut 2 gate; not a preview gate)",
     }
     return {"scenarios": rows, "summary": summary, "claim": "No superiority claim: a 12-scenario smoke run with one trial per arm cannot establish one (ACCEPTANCE_TESTS §6.1)."}
+
+
+# --------------------------------------------------------------------------
+# The baseline-sensitivity set (decision 0049)
+
+SENSITIVITY_IDS = tuple(sorted(p.stem for p in (Path(__file__).resolve().parent / "scenarios" / "sensitivity").glob("sens-*.json")))
+
+
+def sensitivity(trials: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Paired outcomes of the four scenarios built so the no-memory baseline can repeat a mistake (audit 2026-11-06 EVAL-2).
+
+    Session A corrects a mistake with a fact the repository does not hold; the oracle reports ``repeated_named_mistake``
+    (1 when session B made it again). Reported beside the preview gate and never part of it: ACCEPTANCE_TESTS §6.1 fixes
+    the gate at the frozen 12 smoke scenarios."""
+    if not trials:
+        return None
+    rows = []
+    for sid, arms in sorted(_by_scenario(trials).items()):
+        row: dict[str, Any] = {"scenario": sid}
+        for name in ("task_success", "repeated_named_mistake", "repeated_mistakes", "detours", "foreground_tokens", "background_tokens"):
+            row[name] = {arm: (None if arms.get(arm) is None else (arms[arm].get("outcomes") or {}).get(name)) for arm in ("candidate", "no_memory")}
+        row["errors"] = {arm: (arms.get(arm) or {}).get("error") for arm in ("candidate", "no_memory") if (arms.get(arm) or {}).get("error")}
+        row["labels"] = {arm: None if arms.get(arm) is None else ((arms[arm].get("manifest") or {}).get(arm) or {}).get("label") for arm in ("candidate", "no_memory")}
+        rows.append(row)
+    pairs = [r for r in rows if not r["errors"] and None not in r["repeated_named_mistake"].values()]
+    named_c = sum(int(r["repeated_named_mistake"]["candidate"]) for r in pairs)
+    named_b = sum(int(r["repeated_named_mistake"]["no_memory"]) for r in pairs)
+    have = {(t.get("scenario"), t.get("arm")) for t in trials}
+    return {
+        "set": "baseline_sensitivity (decision 0049)", "counts_toward_gate": False, "scenarios": rows,
+        "summary": {
+            "pairs": len(pairs),
+            "repeated_named_mistake": {"candidate": named_c, "no_memory": named_b, "relative_reduction": None if named_b == 0 else round(1 - named_c / named_b, 4)},
+            "task_success": {"candidate": sum(1 for r in pairs if r["task_success"]["candidate"]), "no_memory": sum(1 for r in pairs if r["task_success"]["no_memory"])},
+            "repeated_named_mistake_difference": paired_bootstrap([float(r["repeated_named_mistake"]["candidate"]) - float(r["repeated_named_mistake"]["no_memory"]) for r in pairs]),
+        },
+        "missing": [f"{sid}.{arm}" for sid in SENSITIVITY_IDS for arm in ("candidate", "no_memory") if (sid, arm) not in have],
+        "claim": "Not part of the preview gate (ACCEPTANCE_TESTS §6.1 fixes it at the frozen 12). Four scenarios, one trial per arm, written by the coding agent: "
+                 "this shows whether the corpus can register a repeated mistake, not that memory helps; no superiority claim.",
+    }
 
 
 # --------------------------------------------------------------------------
@@ -487,6 +528,7 @@ def build(directory: Path) -> dict[str, Any]:
         "native_memory": run.get("native_memory", {}),
         "baselines": {"run": ["candidate", "no_memory"], "not_run": {"breadcrumbs": "full release only", "notes": "full release only"}},
         "paired_outcomes": paired(trials),
+        "sensitivity": sensitivity(data["sensitivity"]),
         "quality_5_1": quality(trials, live=mode == "live", adjudication=data["adjudication"]),
         "operational_5_2": operational(workload, trials),
         "retrieval_points": retrieval_summary(trials),
@@ -648,7 +690,20 @@ def markdown(report: dict[str, Any]) -> str:
             lines.append(f"- repeated failures on relevant scenarios: candidate {s['candidate']}, baseline {s['no_memory']}, relative reduction {s['relative_reduction']} ({s['full_release_target']})")
         else:
             lines.append(f"- {name}: n={s['n']}, mean={s['mean']}, CI95={s['ci_95']}{', inconclusive' if s.get('inconclusive') else ''}")
-    lines += ["", report["paired_outcomes"]["claim"], "", "## §5.1 quality on the smoke population", "", "| Measure | Value | Numerator/denominator | Wilson 95 % | Target | Met |", "|---|---|---|---|---|---|"]
+    lines += ["", report["paired_outcomes"]["claim"]]
+    sens = report.get("sensitivity")
+    if sens is not None:
+        lines += ["", "## Baseline-sensitivity set (decision 0049; not part of the gate)", "",
+                  "| Scenario | Success C/B | Repeated named mistake C/B | Repeated mistakes C/B | Foreground tok C/B | Errors |", "|---|---|---|---|---|---|"]
+        for row in sens["scenarios"]:
+            def spair(name: str, row: dict[str, Any] = row) -> str:
+                return f"{_fmt(row[name]['candidate'])}/{_fmt(row[name]['no_memory'])}"
+            lines.append(f"| {row['scenario']} | {spair('task_success')} | {spair('repeated_named_mistake')} | {spair('repeated_mistakes')} | {spair('foreground_tokens')} | {row['errors'] or ''} |")
+        s = sens["summary"]
+        lines += ["", f"Repeated named mistakes over {s['pairs']} pair(s): candidate {s['repeated_named_mistake']['candidate']}, baseline {s['repeated_named_mistake']['no_memory']}, "
+                  f"relative reduction {s['repeated_named_mistake']['relative_reduction']}; task success candidate {s['task_success']['candidate']}, baseline {s['task_success']['no_memory']}."
+                  + (f" Missing: {', '.join(sens['missing'])}." if sens["missing"] else ""), "", sens["claim"]]
+    lines += ["", "## §5.1 quality on the smoke population", "", "| Measure | Value | Numerator/denominator | Wilson 95 % | Target | Met |", "|---|---|---|---|---|---|"]
     for name, m in report["quality_5_1"]["measures"].items():
         nd = f"{m['numerator']}/{m['denominator']}" if "numerator" in m else f"count over {m['population']}"
         lines.append(f"| {name} | {_fmt(m.get('value', m.get('count')))} | {nd} | {m.get('wilson_95')} | {m['target']} | {m['met']} |")

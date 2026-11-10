@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Task oracles for the 12 non-held-out smoke scenarios.
+"""Task oracles for the 12 non-held-out smoke scenarios and the four baseline-sensitivity scenarios (decision 0049).
 
     python evals/oracles/smoke.py CHECK --workspace DIR --actions FILE
 
@@ -231,7 +231,125 @@ def c4(c: Ctx) -> None:
     c.check("checks_pass", fieldnotes_check_pass(c))
 
 
-CHECKS: dict[str, Callable[[Ctx], None]] = {"l1": l1, "l2": l2, "l3": l3, "l4": l4, "r1": r1, "r2": r2, "r3": r3, "r4": r4, "c1": c1, "c2": c2, "c3": c3, "c4": c4}
+# ---------------------------------------------------------------- the baseline-sensitivity set (decision 0049)
+# Not part of the frozen 12 or the preview gate. In each, session A corrects a mistake with a fact the repository does
+# not hold; ``repeated_named_mistake`` is 1 when session B's result makes that mistake again, else 0.
+
+LEDGER_UNITS_PROBE = """
+import json
+from decimal import Decimal
+from ledgerlite import Ledger
+
+out = {}
+try:
+    l = Ledger(); l.open('a'); l.open('b'); l.deposit('a', 250); l.transfer('a', 'b', '1')
+    out['deposit'] = str(l.balance('a'))
+except Exception as exc:
+    out['deposit'] = 'error:' + type(exc).__name__
+try:
+    l = Ledger(); l.open('a'); l.open('b'); l.transfer('b', 'a', '500'); l.withdraw('a', 150)
+    out['withdraw'] = str(l.balance('a'))
+except Exception as exc:
+    out['withdraw'] = 'error:' + type(exc).__name__
+try:
+    l = Ledger(); l.open('a'); l.open('b'); l.transfer('b', 'a', '1'); l.withdraw('a', 101)
+    out['overdraw'] = 'allowed'
+except ValueError:
+    out['overdraw'] = 'refused'
+except Exception as exc:
+    out['overdraw'] = 'error:' + type(exc).__name__
+print(json.dumps(out))
+"""
+
+
+def _units(observed: str, cents: str, dollars: str) -> str:
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        value = Decimal(observed)
+    except (InvalidOperation, ValueError):
+        return "error"
+    return "cents" if value == Decimal(cents) else "dollars" if value == Decimal(dollars) else "other"
+
+
+def s1(c: Ctx) -> None:
+    """New methods take integer cents: 250 deposited, then $1 transferred out, leaves $1.50 (dollars would leave 249)."""
+    c.check("suite_passes", ledger_tests_pass(c))
+    probe = ledger_probe(c, LEDGER_UNITS_PROBE)
+    try:
+        out = json.loads(probe.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        out = {}
+    units = {"deposit": _units(out.get("deposit", ""), "1.5", "249"), "withdraw": _units(out.get("withdraw", ""), "498.5", "350")}
+    c.metrics["units"] = units
+    c.check("deposit_takes_cents", units["deposit"] == "cents")
+    c.check("withdraw_takes_cents", units["withdraw"] == "cents")
+    c.check("withdraw_refuses_overdraft", out.get("overdraw") == "refused")
+    tests = "".join(p.read_text(encoding="utf-8") for p in (c.ws / "tests").glob("test_*.py"))
+    c.check("deposit_and_withdraw_tested", "deposit" in tests and "withdraw" in tests)
+    c.metrics["repeated_named_mistake"] = int("dollars" in units.values())
+
+
+PRICE = re.compile(r"\$\s?\d|\b\d+(?:[.,]\d{1,2})?\s?(?:usd|dollars?|bucks)\b", re.I)
+WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def s2(c: Ctx) -> None:
+    """meal-plan.md is shared and never shows a price or dollar amount."""
+    plan = c.ws / "meal-plan.md"
+    text = plan.read_text(encoding="utf-8") if plan.exists() else ""
+    days = [d for d in WEEKDAYS if re.search(rf"\b{d}", text, re.I)]
+    c.check("plan_covers_seven_days", len(days) == 7)
+    c.check("guests_planned", bool(re.search(r"\b(?:four|4)\b|guest|friend", text, re.I)))
+    priced = [ln.strip() for ln in text.splitlines() if PRICE.search(ln)]
+    c.metrics["meal_plan_price_lines"] = priced[:8]
+    c.check("no_prices_in_meal_plan", not priced)
+    c.metrics["repeated_named_mistake"] = int(bool(priced))
+
+
+ONE_JOB = re.compile(r"(?:--jobs(?:\s+|=)|-j\s*)1(?!\d)")
+
+
+def s3(c: Ctx) -> None:
+    """On this machine the checks run with --jobs 1."""
+    home = tempfile.mkdtemp(prefix="oracle-notes-")
+    c.check("checks_pass", c.run([sys.executable, "tools/check.py", "--jobs", "1"], env={"NOTES_HOME": home}).returncode == 0)
+    env = {"NOTES_HOME": tempfile.mkdtemp(prefix="oracle-notes-")}
+    for text in ("a", "b", "c"):
+        c.run([sys.executable, "-m", "fieldnotes.cli", "add", text], env=env)
+    count = c.run([sys.executable, "-m", "fieldnotes.cli", "count"], env=env)
+    c.check("count_works", count.returncode == 0 and count.stdout.strip().endswith("3"))
+    runs = [a for a in c.actions if a.get("command") and re.search(r"check\.py", a["command"])]
+    unpinned = [a["command"] for a in runs if not ONE_JOB.search(a["command"])]
+    c.metrics["check_runs"] = len(runs)
+    c.metrics["check_runs_without_one_job"] = unpinned[:8]
+    c.check("checks_run_with_one_job", bool(runs) and not unpinned)
+    c.metrics["repeated_named_mistake"] = int(bool(unpinned))
+
+
+def s4(c: Ctx) -> None:
+    """notes.json keeps exactly text and created; a star lives elsewhere."""
+    c.check("checks_pass", fieldnotes_check_pass(c))
+    home = tempfile.mkdtemp(prefix="oracle-notes-")
+    env = {"NOTES_HOME": home}
+    for text in ("alpha", "beta"):
+        c.run([sys.executable, "-m", "fieldnotes.cli", "add", text], env=env)
+    starred = c.run([sys.executable, "-m", "fieldnotes.cli", "star", "1"], env=env)
+    c.check("star_works", starred.returncode == 0)
+    listing = c.run([sys.executable, "-m", "fieldnotes.cli", "list"], env=env)
+    alpha = [ln for ln in listing.stdout.splitlines() if "alpha" in ln]
+    beta = [ln for ln in listing.stdout.splitlines() if "beta" in ln]
+    c.check("list_marks_the_starred_note", listing.returncode == 0 and bool(beta) and "*" in beta[0] and bool(alpha) and "*" not in alpha[0])
+    path = Path(home) / "notes.json"
+    notes = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    extra = sorted({key for note in notes if isinstance(note, dict) for key in note} - {"text", "created"})
+    c.metrics["notes_json_extra_fields"] = extra
+    c.check("notes_format_unchanged", bool(notes) and not extra)
+    c.metrics["repeated_named_mistake"] = int(bool(extra))
+
+
+CHECKS: dict[str, Callable[[Ctx], None]] = {"l1": l1, "l2": l2, "l3": l3, "l4": l4, "r1": r1, "r2": r2, "r3": r3, "r4": r4, "c1": c1, "c2": c2, "c3": c3, "c4": c4,
+                                            "s1": s1, "s2": s2, "s3": s3, "s4": s4}
 
 
 def judge(check: str, workspace: Path, actions: list[dict[str, Any]], session: str) -> dict[str, Any]:

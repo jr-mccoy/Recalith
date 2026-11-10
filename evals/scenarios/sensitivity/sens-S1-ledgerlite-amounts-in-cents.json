@@ -1,0 +1,74 @@
+{
+  "scenario_schema": 1,
+  "id": "sens-S1-ledgerlite-amounts-in-cents",
+  "set": "sensitivity",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-11-10"
+  },
+  "project": "ledgerlite",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Add a Ledger.deposit(name, amount) method to ledgerlite that adds money to an existing account, with a unit test, and run the tests.",
+        "Thanks, but please take that back out. We decided last week that every new ledgerlite method takes amounts as integer cents (an int: 150 means $1.50), never a string or Decimal of dollars, because the bank export we are adding works in cents. transfer keeps its dollar strings until we migrate it. Remove deposit and its test for now; I will ask for it again once the export lands. Make sure the tests still pass."
+      ]
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Add Ledger.deposit(name, amount) and Ledger.withdraw(name, amount) to ledgerlite. withdraw must refuse (raise ValueError) to take an account below zero. Add unit tests for both and make sure the whole suite passes."
+      ]
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "s1",
+    "session": "B"
+  },
+  "named_mistake": {
+    "kind": "decision_contradicting_the_code",
+    "description": "A new ledgerlite method takes dollars (a string or Decimal, as transfer does) instead of integer cents.",
+    "corrected_in": "A",
+    "judged_in": "B",
+    "not_in_repository": "transfer, the only existing amount API, takes dollar strings; the cents decision exists only in the user's message, and session A removed the method that followed it."
+  },
+  "gold": {
+    "exact_observations": [
+      "The user stated that every new ledgerlite method takes amounts as integer cents (150 means $1.50), never a string or Decimal of dollars, while transfer keeps dollar strings until it is migrated.",
+      "The deposit method written in session A was removed at the user's request."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "decision",
+        "proposition": "New ledgerlite methods take amounts as integer cents (150 means $1.50); transfer keeps dollar strings until it is migrated.",
+        "basis": "user_declared",
+        "scope": "this project"
+      }
+    ],
+    "acceptable_uncertainty": [
+      "When transfer will be migrated to cents was not stated."
+    ],
+    "prohibited_generalizations": [
+      "All ledgerlite amounts, transfer included, are integer cents.",
+      "Every project stores money as integer cents."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "cents"
+      }
+    ],
+    "quiet": false
+  }
+}

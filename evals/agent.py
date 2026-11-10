@@ -223,6 +223,8 @@ class Session:
         self.host = host
         self.session_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"recalith-eval:{seed}:{name}"))
         self.prompt_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"recalith-eval:{seed}:{name}:prompt"))
+        self.seed = seed
+        self.prompts = 0
         self.transcript = host.transcript(self.session_id)
         self.actions: list[Action] = []
         self.delivered: list[Delivery] = []
@@ -245,6 +247,12 @@ class Session:
         self._deliver("SessionStart", {**self._common("SessionStart"), "source": "startup"}, "session_start")
 
     def prompt(self, text: str) -> None:
+        self.prompts += 1
+        if self.prompts > 1:
+            # A later prompt is its own submission, with its own prompt_id as the host gives it. Capture keys a prompt on
+            # its prompt_id and the transcript's length, and the scripted transcript stays empty, so a reused id made the
+            # second prompt an identity conflict with the first (decision 0049). The first prompt's id is unchanged.
+            self.prompt_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"recalith-eval:{self.seed}:{self.name}:prompt:{self.prompts}"))
         self._transcribe("user", text)
         payload = {**self._common("UserPromptSubmit"), "permission_mode": "default", "prompt": text, "prompt_id": self.prompt_id}
         self._deliver("UserPromptSubmit", payload, "prompt")
@@ -559,7 +567,130 @@ def c4(s: Session, step: str) -> None:
     s.say("Reported the checks.")
 
 
-POLICIES: dict[str, Callable[[Session, str], None]] = {"l1": l1, "l2": l2, "l3": l3, "l4": l4, "r1": r1, "r2": r2, "r3": r3, "r4": r4, "c1": c1, "c2": c2, "c3": c3, "c4": c4}
+# The baseline-sensitivity set (decision 0049): session A makes the obvious move and the user corrects it with a fact
+# the repository does not hold; session B makes the move again unless the corrected fact was delivered.
+
+DOLLAR_DEPOSIT = "    def deposit(self, name: str, amount: str) -> None:\n        value = Decimal(amount)\n        if value <= 0:\n            raise ValueError(\"amount must be positive\")\n        self.accounts[name] += value\n\n"
+DEPOSIT_TEST = "\n\n    def test_deposit(self):\n        ledger = Ledger()\n        ledger.open(\"a\")\n        ledger.deposit(\"a\", \"5\")\n        self.assertEqual(ledger.balance(\"a\"), 5)\n"
+
+
+def _amount_methods(cents: bool) -> tuple[str, str]:
+    if cents:
+        value = "        if not isinstance(amount, int) or amount <= 0:\n            raise ValueError(\"amount must be a positive number of cents\")\n        value = Decimal(amount) / 100\n"
+        test = "\n\n    def test_deposit_and_withdraw_in_cents(self):\n        ledger = Ledger()\n        ledger.open(\"a\")\n        ledger.deposit(\"a\", 250)\n        ledger.withdraw(\"a\", 100)\n        self.assertEqual(ledger.balance(\"a\"), Decimal(\"1.50\"))\n        with self.assertRaises(ValueError):\n            ledger.withdraw(\"a\", 151)\n"
+    else:
+        value = "        value = Decimal(amount)\n        if value <= 0:\n            raise ValueError(\"amount must be positive\")\n"
+        test = "\n\n    def test_deposit_and_withdraw(self):\n        ledger = Ledger()\n        ledger.open(\"a\")\n        ledger.deposit(\"a\", \"5\")\n        ledger.withdraw(\"a\", \"2\")\n        self.assertEqual(ledger.balance(\"a\"), 3)\n        with self.assertRaises(ValueError):\n            ledger.withdraw(\"a\", \"4\")\n"
+    methods = (f"    def deposit(self, name: str, amount) -> None:\n{value}        self.accounts[name] += value\n\n"
+               f"    def withdraw(self, name: str, amount) -> None:\n{value}        if self.accounts[name] < value:\n            raise ValueError(\"withdrawal would take the account below zero\")\n"
+               "        self.accounts[name] -= value\n\n")
+    return methods, test
+
+
+def s1(s: Session, step: str) -> None:
+    if step == "A":
+        s.read(LEDGER)
+        s.edit(LEDGER, "    def balance(", DOLLAR_DEPOSIT + "    def balance(")
+        s.edit("tests/test_ledger.py", "\n\nif __name__", DEPOSIT_TEST + "\n\nif __name__")
+        _ledger_tests(s)
+        s.say("Added deposit with a test; the suite passes.")
+        return
+    if step == "A2":  # the user's correction: take it back out
+        s.edit(LEDGER, DOLLAR_DEPOSIT, "")
+        s.edit("tests/test_ledger.py", DEPOSIT_TEST, "")
+        _ledger_tests(s)
+        s.say("Removed deposit and its test; new methods will take integer cents.")
+        return
+    s.read(LEDGER)
+    methods, test = _amount_methods(cents=s.knows("integer cents"))
+    s.edit(LEDGER, "    def balance(", methods + "    def balance(")
+    s.edit("tests/test_ledger.py", "\n\nif __name__", test + "\n\nif __name__")
+    if "Decimal" not in (s.ws / "tests/test_ledger.py").read_text(encoding="utf-8").split("class ")[0]:
+        s.edit("tests/test_ledger.py", "import unittest\n", "import unittest\nfrom decimal import Decimal\n")
+    _ledger_tests(s)
+    s.say("Added deposit and withdraw with tests.")
+
+
+DINNERS = ["Monday: lentil soup", "Tuesday: tacos", "Wednesday: pasta with greens", "Thursday: stir-fry", "Friday: homemade pizza",
+           "Saturday: roast chicken for four (two friends visiting)", "Sunday: leftovers and salad"]
+
+
+def s2(s: Session, step: str) -> None:
+    if step == "A":
+        s.read("meal-plan.md")
+        s.write("meal-plan.md", "# Meal plan\n\n" + "\n".join(f"- {d} ($14)" for d in DINNERS[:5] + ["Saturday: risotto", DINNERS[6]]) + "\n\nEstimated total: $98.\n")
+        s.say("Planned the week; about $98.")
+        return
+    if step == "A2":  # the user's correction: costs move to groceries.csv
+        s.write("groceries.csv", "item,cost_usd\nweek of dinners,98\n")
+        s.write("meal-plan.md", "# Meal plan\n\n" + "\n".join(f"- {d}" for d in DINNERS[:5] + ["Saturday: risotto", DINNERS[6]]) + "\n")
+        s.say("Moved the costs to groceries.csv; meal-plan.md shows no prices.")
+        return
+    s.read("meal-plan.md")
+    plan = "# Meal plan\n\n" + "\n".join(f"- {d}" for d in DINNERS) + "\n"
+    if s.knows("meal-plan.md never shows prices"):
+        s.write("groceries.csv", "item,cost_usd\nweekday dinners,95\nsaturday dinner for four,60\n")
+    else:  # without the rule the cost check lands in the plan the user's partner reads
+        plan += "\nEstimated food cost: $155, within the $200 limit.\n"
+    s.write("meal-plan.md", plan)
+    s.say("Wrote the plan; the week's food is about $155, within $200.")
+
+
+def s3(s: Session, step: str) -> None:
+    check = ["python", "tools/check.py"]
+    if step == "A":
+        s.bash(check, env=_notes_home(s), description="run the project checks")
+        s.say("The checks pass.")
+        return
+    if step == "A2":  # the user's correction: one job on this machine
+        s.bash([*check, "--jobs", "1"], env=_notes_home(s), description="run the project checks with one job, as the user asked")
+        s.say("The checks pass with --jobs 1.")
+        return
+    s.edit("fieldnotes/cli.py", '    if args[0] == "list":', '    if args[0] == "count":\n        print(len(store.load()))\n        return 0\n    if args[0] == "list":')
+    one_job = s.knows("--jobs 1")
+    s.bash([*check, "--jobs", "1"] if one_job else check, env=_notes_home(s), description="run the project checks")
+    s.say("Added `count`; the checks pass.")
+
+
+TAG_ADD = ('    if args[0] == "add" and len(args) == 4 and args[2] == "--tag":\n        note = store.add(args[1])\n        notes = store.load()\n        notes[-1]["tag"] = args[3]\n'
+           '        store.notes_path().write_text(json.dumps(notes, indent=2), encoding="utf-8")\n        print(f"added: {note[\'text\']}")\n        return 0\n')
+SIDECAR_STAR = ('    if args[0] == "star" and len(args) == 2:\n        created = store.load()[int(args[1])]["created"]\n        meta_path = store.notes_path().with_name("meta.json")\n'
+                '        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}\n        meta.setdefault(created, {})["starred"] = True\n'
+                '        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")\n        return 0\n')
+SIDECAR_LIST = ('        meta_path = store.notes_path().with_name("meta.json")\n        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}\n'
+                '        for note in store.load():\n            mark = "* " if meta.get(note["created"], {}).get("starred") else ""\n            print(f"{mark}{note[\'created\']}  {note[\'text\']}")\n')
+FIELD_STAR = ('    if args[0] == "star" and len(args) == 2:\n        notes = store.load()\n        notes[int(args[1])]["starred"] = True\n'
+              '        store.notes_path().write_text(json.dumps(notes, indent=2), encoding="utf-8")\n        return 0\n')
+FIELD_LIST = '        for note in store.load():\n            mark = "* " if note.get("starred") else ""\n            print(f"{mark}{note[\'created\']}  {note[\'text\']}")\n'
+PLAIN_LIST = "        for note in store.load():\n            print(f\"{note['created']}  {note['text']}\")\n"
+
+
+def s4(s: Session, step: str) -> None:
+    cli = "fieldnotes/cli.py"
+    if step == "A":
+        s.read(cli)
+        s.edit(cli, "import sys\n", "import json\nimport sys\n")
+        s.edit(cli, '    if args[0] == "add" and len(args) == 2:', TAG_ADD + '    if args[0] == "add" and len(args) == 2:')
+        _fieldnotes_checks(s)
+        s.say("Added tags.")
+        return
+    if step == "A2":  # the user's correction: revert the tags change completely
+        s.edit(cli, TAG_ADD, "")
+        s.edit(cli, "import json\nimport sys\n", "import sys\n")
+        _fieldnotes_checks(s)
+        s.say("Reverted the tags change; notes.json stays text and created.")
+        return
+    s.read(cli)
+    sidecar = s.knows("meta.json")
+    s.edit(cli, "import sys\n", "import json\nimport sys\n")
+    s.edit(cli, '    if args[0] == "list":', (SIDECAR_STAR if sidecar else FIELD_STAR) + '    if args[0] == "list":')
+    s.edit(cli, PLAIN_LIST, SIDECAR_LIST if sidecar else FIELD_LIST)
+    _fieldnotes_checks(s)
+    s.say("Added `star`.")
+
+
+POLICIES: dict[str, Callable[[Session, str], None]] = {"l1": l1, "l2": l2, "l3": l3, "l4": l4, "r1": r1, "r2": r2, "r3": r3, "r4": r4, "c1": c1, "c2": c2, "c3": c3, "c4": c4,
+                                                       "s1": s1, "s2": s2, "s3": s3, "s4": s4}
 
 
 @dataclass
@@ -576,13 +707,21 @@ class SessionResult:
 
 
 def run_scripted(check: str, name: str, prompts: list[str], ws: Path, host: HookBridge | NoHost, *, seed: str) -> SessionResult:
-    """One fresh scripted session: start, prompts, the policy's actions, stop and end."""
+    """One fresh scripted session: start, prompts, the policy's actions, stop and end.
+
+    A session with several prompts answers each before the next arrives, as a live session does: the policy's step is
+    the session name for the first prompt and ``A2``, ``A3`` … for the later ones (decision 0049)."""
     s = Session(name, ws, host, seed=seed)
     began = time.monotonic()
     s.start()
-    for text in prompts:
-        s.prompt(text)
-    POLICIES[check](s, name)
+    if len(prompts) <= 1:
+        for text in prompts:
+            s.prompt(text)
+        POLICIES[check](s, name)
+    else:
+        for index, text in enumerate(prompts):
+            s.prompt(text)
+            POLICIES[check](s, name if index == 0 else f"{name}{index + 1}")
     s.stop()
     # A foreground estimate the scripted agent would have spent: prompts, delivered context and tool output (ceil(bytes / 3)).
     spent = sum(len(p.encode("utf-8")) for p in prompts) + sum(len((d.context or "").encode("utf-8")) for d in s.delivered) + sum(len(a.output.encode("utf-8")) for a in s.actions)

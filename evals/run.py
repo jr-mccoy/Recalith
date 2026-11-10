@@ -29,7 +29,10 @@ own fresh installation and a baseline copy with none; the untouched seed must
 fail its oracle (a smoke run cannot pass vacuously).
 
 ``smoke`` runs the 12 smoke scenarios, one fresh trial per arm (candidate and
-clean no-memory baseline), and writes ``trials/*.json`` and ``run.json``.
+clean no-memory baseline), and writes ``trials/*.json`` and ``run.json``. In the
+same pool it runs the four baseline-sensitivity scenarios (decision 0049) into
+``sensitivity/*.json``: they are reported beside the gate and never count toward
+it (``--no-sensitivity`` skips them).
 ``workload`` replays the three eight-hour activity days under default budgets
 (``evals/workload.py``). ``demonstrate`` runs the scripted §6.1
 demonstrations (``evals/demos.py``). ``report`` writes ``report.json`` and
@@ -77,6 +80,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SMOKE = ROOT / "evals" / "scenarios" / "smoke"
+SENSITIVITY = ROOT / "evals" / "scenarios" / "sensitivity"
 for extra in (ROOT / "src", ROOT):
     if str(extra) not in sys.path:
         sys.path.insert(0, str(extra))
@@ -98,6 +102,11 @@ OPERATOR_STEPS = [
 
 def scenarios() -> dict[str, dict]:
     return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SMOKE.glob("smoke-*.json"))}
+
+
+def sensitivity_scenarios() -> dict[str, dict]:
+    """Decision 0049: run beside the frozen 12 and reported apart; never part of the preview gate."""
+    return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SENSITIVITY.glob("sens-*.json"))}
 
 
 # --------------------------------------------------------------------------
@@ -160,7 +169,7 @@ def prepare(sid: str, out_dir: Path) -> tuple[int, dict]:
     from recalith.contracts.config import ProjectConfig
     from recalith.core import identity
 
-    spec = scenarios().get(sid)
+    spec = {**scenarios(), **sensitivity_scenarios()}.get(sid)
     if spec is None:
         raise KeyError(sid)
     seed = ROOT / "evals" / "projects" / spec["project"]
@@ -206,6 +215,7 @@ def input_digests() -> dict:
 
     return {
         "scenarios": tree(SMOKE, "smoke-*.json"), "overlays": tree(SMOKE / "overlays", "*"), "oracles": tree(ROOT / "evals" / "oracles", "*.py"),
+        "sensitivity_scenarios": tree(SENSITIVITY, "sens-*.json"), "sensitivity_overlays": tree(SENSITIVITY / "overlays", "*"),
         "workload_days": tree(ROOT / "evals" / "workload", "*.json"), "recorded_curator": digest(ROOT / "evals" / "curator.py"), "scripted_agent": digest(ROOT / "evals" / "agent.py"),
     }
 
@@ -242,6 +252,7 @@ def authorship() -> dict:
     routes = sorted({s["authorship"]["route"] for s in specs.values()})
     return {
         "smoke": {"route": routes, "independent_of_system_spec_7": False, "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC §7; development fixtures, not held out"},
+        "sensitivity": "the four baseline-sensitivity scenarios (decision 0049), written by the same coding agent; reported beside the gate, never part of it",
         "held_out": "none (full release; intentionally empty)",
         "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions",
         "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
@@ -257,6 +268,7 @@ LIMITATIONS_SCRIPTED = [
     "Background tokens are the engine's own charged estimates (ceil(bytes/3) and output allowances); the recorded backend reports no provider usage.",
     "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC §7; no held-out or independent corpus exists.",
     "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+    "The four baseline-sensitivity scenarios (decision 0049) are reported in their own section and never count toward the gate; the same coding agent wrote them, and their named-mistake measure is one trial per arm.",
     "Each smoke store holds only a few claims, so hook views always contain every relevant claim here; at reference scale (10,000 heads) the hook's query-independent views omit prompt-specific facts (decision 0020 item 15, docs/measurements/release-gate-latency-linux.json), which this run cannot show.",
 ]
 
@@ -264,6 +276,7 @@ LIMITATIONS_SCRIPTED = [
 LIMITATIONS_LIVE = [
     "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC §7; no held-out or independent corpus exists.",
     "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+    "The four baseline-sensitivity scenarios (decision 0049) are reported in their own section and never count toward the gate; the same coding agent wrote them, and their named-mistake measure is one trial per arm.",
     "Each candidate installation's route is certified live for that installation; its host record is bound from the source project's live engine-mode certification for the same host version, model and configuration (decision 0028), not re-observed per installation.",
     "Sessions run on real time. Between sessions the harness waits until the hook-started worker owes nothing due within 20 minutes (or 45 minutes pass, or progress stalls for 5); the scenarios' two-hour gaps are not reproduced.",
     "Delivered context is read from the host's hook_response records (the hook's exact stdout as the host received it); that the model saw it is the separate canary certification, not re-checked per trial.",
@@ -341,8 +354,9 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
               keep_awake=getattr(ns, "keep_awake", None))
     trials_dir = ns.out / "trials"
     trials_dir.mkdir(parents=True, exist_ok=True)
+    sensitivity_dir = ns.out / "sensitivity"  # decision 0049: reported apart, never read as gate trials
     work = ns.out / "work"
-    chosen = ns.scenario or sorted(scenarios())
+    chosen = ns.scenario or sorted(scenarios()) + (sorted(sensitivity_scenarios()) if getattr(ns, "sensitivity", True) else [])
     halted = threading.Event()  # the installed host changed: no later trial can run on the certified version
 
     def one(job: tuple[str, str]) -> dict:
@@ -352,7 +366,9 @@ def cmd_smoke(ns: argparse.Namespace) -> int:
         record = trial.run_trial(sid, arm, work, mode=ns.mode, init_route=ns.init_route, token_file=ns.operator_token_file, native_memory=native, live=setup)
         if record.get("error") == "host_version_changed":
             halted.set()
-        (trials_dir / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
+        target = sensitivity_dir if sid.startswith("sens-") else trials_dir
+        target.mkdir(parents=True, exist_ok=True)
+        (target / f"{sid}.{arm}.json").write_text(json.dumps(record, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
         out = {"scenario": sid, "arm": arm, "success": record["outcomes"].get("task_success"), "error": record.get("error")}
         if record.get("gaps"):  # live candidates: whether the worker finished its due work before each next session
             out["gaps"] = [g.get("state") for g in record["gaps"]]
@@ -458,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--wheelhouse", type=Path, default=None, help="live: the hash-locked wheelhouse for the release bootstrap")
         p.add_argument("--slots", type=int, default=1, help="live: smoke trials and workload days run at once, each in its own installation")
         p.add_argument("--allow-dirty", dest="allow_dirty", action="store_true", help="live gate: run from a repository with uncommitted changes anyway (recorded in the run)")
+        p.add_argument("--no-sensitivity", dest="sensitivity", action="store_false", help="smoke/gate: skip the four baseline-sensitivity scenarios (decision 0049; never part of the gate)")
     rep = sub.add_parser("report")
     rep.add_argument("results", type=Path)
     adj = sub.add_parser("adjudicate", help="write the claim adjudication sheet and label template for a live run")

@@ -1,0 +1,76 @@
+{
+  "scenario_schema": 1,
+  "id": "sens-S3-fieldnotes-checks-one-job",
+  "set": "sensitivity",
+  "category": "learning",
+  "held_out": false,
+  "authorship": {
+    "route": "repository author (coding agent)",
+    "independent_of_system_spec_7": false,
+    "sanitization": "synthetic fixtures; no private data",
+    "date": "2026-11-10"
+  },
+  "project": "fieldnotes",
+  "sessions": [
+    {
+      "name": "A",
+      "fresh_session": true,
+      "overlay_files": {
+        "tools/check.py": "@file:fieldnotes_check_jobs.py"
+      },
+      "prompts": [
+        "Run the fieldnotes project checks and tell me whether they pass.",
+        "Thanks. One thing about this laptop: always run the checks with --jobs 1 here. The default parallel runner makes the disk encryption thrash and everything else on the machine stalls; it is the machine, not the code, so do not change check.py. Please run them that way now."
+      ]
+    },
+    {
+      "name": "B",
+      "fresh_session": true,
+      "overlay_files": {},
+      "prompts": [
+        "Add a `count` command to fieldnotes that prints how many notes there are, and run the project checks."
+      ]
+    }
+  ],
+  "oracle": {
+    "script": "evals/oracles/smoke.py",
+    "check": "s3",
+    "session": "B"
+  },
+  "named_mistake": {
+    "kind": "environmental_fix",
+    "description": "The project checks are run without --jobs 1.",
+    "corrected_in": "A",
+    "judged_in": "B",
+    "not_in_repository": "README and check.py document the plain command; the default works and nothing fails, so only the user's statement about the machine says to pass --jobs 1."
+  },
+  "gold": {
+    "exact_observations": [
+      "The user stated that on this laptop the fieldnotes checks must run with --jobs 1, because the default parallel runner stalls the machine, and that check.py must not be changed.",
+      "tools/check.py accepts --jobs N; its default is one process per CPU."
+    ],
+    "supported_lessons": [
+      {
+        "kind": "preference",
+        "proposition": "On this machine, run the fieldnotes checks with `--jobs 1`; the default parallel runner stalls the laptop (a machine problem, not a code problem).",
+        "basis": "user_declared",
+        "scope": "this project on this machine"
+      }
+    ],
+    "acceptable_uncertainty": [
+      "Whether two jobs would also be acceptable was not stated."
+    ],
+    "prohibited_generalizations": [
+      "The parallel test runner is broken.",
+      "Every command on this machine must run single-threaded."
+    ],
+    "expected_retrieval_points": [
+      {
+        "session": "B",
+        "purpose": "prompt",
+        "must_include": "--jobs 1"
+      }
+    ],
+    "quiet": false
+  }
+}

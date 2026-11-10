@@ -35,6 +35,7 @@ def main() -> int:
     src, dst = Path(sys.argv[1]).resolve(), Path(sys.argv[2])
     names = FILES + [f"trials/{p.name}" for p in sorted((src / "trials").glob("*.json"))]
     names += [f"workload/{p.name}" for p in sorted((src / "workload").glob("*.json"))]
+    names += [f"sensitivity/{p.name}" for p in sorted((src / "sensitivity").glob("*.json"))]  # decision 0049, reported apart
     if dst.exists():
         shutil.rmtree(dst)
     for name in names:

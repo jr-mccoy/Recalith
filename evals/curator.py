@@ -307,6 +307,34 @@ SMOKE: dict[str, list[Proposal]] = {
     "smoke-C3-household-utilities-speculation": [],
     "smoke-C4-cross-project-near-match": [],
 }
+# The baseline-sensitivity set (decision 0049): each is a user declaration made while correcting session A.
+SMOKE.update({
+    "sens-S1-ledgerlite-amounts-in-cents": [
+        Proposal(
+            "s1-decision", "decision", "New ledgerlite methods take amounts as integer cents (150 means $1.50); transfer keeps dollar strings until it is migrated.", "user_declared",
+            "ledgerlite amounts", "new_method_unit", [Match("user_message", "integer cents", quote="every new ledgerlite method takes amounts as integer cents (an int: 150 means $1.50), never a string or Decimal of dollars")],
+        ),
+    ],
+    "sens-S2-household-no-prices-in-meal-plan": [
+        Proposal(
+            "s2-preference", "preference", "meal-plan.md never shows prices or dollar amounts (it is shared with the user's partner); costs go only in groceries.csv.", "user_declared",
+            "meal plan", "shows_prices", [Match("user_message", "meal-plan.md", quote="meal-plan.md is shared with my partner and must never show prices or dollar amounts. Costs belong only in groceries.csv")],
+        ),
+    ],
+    "sens-S3-fieldnotes-checks-one-job": [
+        Proposal(
+            "s3-preference", "preference", "On this machine, run the fieldnotes checks with `--jobs 1`; the default parallel runner stalls the laptop (a machine problem, not a code problem).",
+            "user_declared", "fieldnotes checks", "jobs", [Match("user_message", "--jobs 1", quote="always run the checks with --jobs 1 here")],
+        ),
+    ],
+    "sens-S4-fieldnotes-frozen-notes-format": [
+        Proposal(
+            "s4-decision", "decision", "The notes.json note format is frozen at exactly text and created (a phone app rejects unknown fields); extra per-note data goes in meta.json in NOTES_HOME, "
+            "keyed by the note's created timestamp.", "user_declared", "fieldnotes note format", "fields",
+            [Match("user_message", "meta.json", quote="the note format is frozen at exactly text and created. Anything extra about a note goes in a separate file, meta.json in NOTES_HOME, keyed by the note's created timestamp")],
+        ),
+    ],
+})
 # C4's session A runs in the separate ledgerlite installation: its curator is L1's (the conflicting second project).
 SMOKE["smoke-C4-cross-project-near-match:ledgerlite"] = SMOKE["smoke-L1-ledgerlite-test-command"]
 

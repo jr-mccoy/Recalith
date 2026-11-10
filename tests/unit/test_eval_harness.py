@@ -203,7 +203,8 @@ def test_gate_record_pins_its_inputs_and_refuses_a_dirty_tree(monkeypatch, tmp_p
 
     inputs = run.input_digests()
     assert len(inputs["scenarios"]) == 12 and inputs["overlays"] and inputs["oracles"] and inputs["workload_days"]
-    assert all(len(d) == 64 for group in ("scenarios", "overlays", "oracles", "workload_days") for d in inputs[group].values())
+    assert len(inputs["sensitivity_scenarios"]) == 4 and inputs["sensitivity_overlays"]  # decision 0049: pinned too, kept apart
+    assert all(len(d) == 64 for group in ("scenarios", "overlays", "oracles", "workload_days", "sensitivity_scenarios", "sensitivity_overlays") for d in inputs[group].values())
     assert run.versions()["inputs"] == inputs and run.versions()["allow_dirty"] is False
     monkeypatch.setattr(run, "versions", lambda: {"tree_clean": False})
     ns = argparse.Namespace(command="gate", mode="live", init_route="operator_token", operator_token_file=tmp_path / "t", allow_dirty=False)
