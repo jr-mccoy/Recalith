@@ -1,6 +1,6 @@
 # Security policy
 
-Recalith is an experimental preview (engine `0.1.0.dev16`, not released). It runs on your machine, inside one project, and sends scrubbed excerpts of that project's activity to the model provider you configure. What it protects, what it does not, and how to report a problem are below.
+Recalith is an experimental preview (engine `0.1.0.dev17`, not released). It runs on your machine, inside one project, and sends scrubbed excerpts of that project's activity to the model provider you configure. What it protects, what it does not, and how to report a problem are below.
 
 ## Reporting a vulnerability
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-"""Claude Code capture adapter for the exact host versions 2.1.301, 2.1.305, 2.1.306, 2.1.309 and 2.1.310.
+"""Claude Code capture adapter for the exact host versions 2.1.301, 2.1.305, 2.1.306, 2.1.309, 2.1.310 and 2.1.321.
 
 Standard library only. The mapping below was established from real hook
 payloads of the installed host (``tests/fixtures/hosts/claude/2.1.301/``,
@@ -12,7 +12,9 @@ differs), and 2.1.309 on native Windows (decision 0027: the same events, field
 sets and types; values differ only by platform: Windows path separators and
 CRLF in Windows subprocess output), and 2.1.310 on the same host (decision 0029:
 the same events, field sets and types; values differ only in identifiers and
-timings). A similar event name on another version is not certification
+timings), and 2.1.321 on the same host (decision 0050: the same field sets and
+types; compaction may run a second summary subagent, and transcripts add a
+``tools-used`` record that the supplement skips). A similar event name on another version is not certification
 (DATA_CONTRACTS §2.3, SYSTEM_SPEC §9.2).
 
 Hook event → normalized role → envelope kind:
@@ -71,7 +73,7 @@ from recalith.fast.normalize import RawEvent, RecordGap
 from recalith.fast.wire import derived_id, digest_of_text
 
 ADAPTER_ID = "claude_code"
-CERTIFIED_VERSIONS = frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310"})
+CERTIFIED_VERSIONS = frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310", "2.1.321"})
 TRANSCRIPT_PARSER = "claude_code_transcript@2.1.301"
 
 ROLES = {
@@ -505,9 +507,11 @@ def context_output(hook_event: str, text: str, *, notice: str | None = None) -> 
 
 # Record types observed in 2.1.301 transcripts that carry nothing the hooks do
 # not already capture (or that hold host request blobs); they are skipped.
+# ``tools-used`` (2.1.321, decision 0050) lists the tool names a session used before a compaction summary; the hooks
+# already captured every one of those calls.
 KNOWN_TRANSCRIPT_TYPES = frozenset({
     "user", "assistant", "system", "summary", "attachment", "queue-operation", "atis-latch", "api-request-shape",
-    "api-request-blob", "api-request", "last-prompt", "cost-state",
+    "api-request-blob", "api-request", "last-prompt", "cost-state", "tools-used",
 })
 
 

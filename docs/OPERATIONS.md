@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev16` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev17` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -69,57 +69,63 @@ Administrative commands are refused inside an agent's process tree, even with a 
 ### Linux
 
 ```bash
-RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev16
+RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev17
+REPO=/path/to/Recalith            # a checkout of the repository: the probes and your probe configuration live there
 WHEEL="$RELEASE/recalith-$VERSION-py3-none-any.whl"
 DIGEST=$(grep " recalith-$VERSION-py3-none-any.whl$" "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
 TAG=$(python3 -c 'import sys; print("cp%d%d" % sys.version_info[:2])')   # the wheelhouse must match this python3
 HOUSE="$RELEASE/wheelhouse-linux-x86_64-$TAG"
+EVIDENCE="$REPO/probe-private/host-compatibility.json"   # the probes' report; probe-private/ is git-ignored
 
 # 1. Provision the pinned runtime and initialize the project (one command; exit 0).
 python3 "$RELEASE/bootstrap.py" init --project "$PROJECT" --profile coding --release-profile claude_preview \
     --wheel "$WHEEL" --expected-digest "$DIGEST" --wheelhouse "$HOUSE"
-cd "$PROJECT"
-.recalith/bin/recalith status      # exit 8: degraded, with the next command named
+"$PROJECT/.recalith/bin/recalith" status      # exit 8: degraded, with the next command named
 
-# 2. Certify the curator route (live; billed). Pick a backend below, copy its example, fill it in,
-#    export the key in THIS shell, then (from a checkout of the repository, with its own tooling):
-export ANTHROPIC_API_KEY=...        # the key name your config selects
-uv run python tools/probe_provider.py --config probe-private/local-config.json --backend anthropic_messages --route-out "$PROJECT" --output docs/host-compatibility.json
-uv run python tools/check_provider_runtime.py --config probe-private/local-config.json --backend anthropic_messages --project "$PROJECT" --output docs/host-compatibility.json
+# 2. Certify the curator route (live; billed). Pick a backend below and copy its example to
+#    $REPO/probe-private/local-config.json, then put the key in THIS shell without echoing it:
+read -rsp 'API key: ' ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY && echo   # the key name your config selects
+cd "$REPO"
+uv run python tools/probe_provider.py --config probe-private/local-config.json --backend anthropic_messages --route-out "$PROJECT" --output "$EVIDENCE"
+uv run python tools/check_provider_runtime.py --config probe-private/local-config.json --backend anthropic_messages --project "$PROJECT" --output "$EVIDENCE"
 
 # 3. Integrate Claude Code (hooks, deny rules, the hook manifest) and certify its delivery paths (live).
-.recalith/bin/recalith integrate claude
-uv run python tools/probe_delivery.py --config probe-private/local-config.json --engine-project "$PROJECT" --output docs/host-compatibility.json
+"$PROJECT/.recalith/bin/recalith" integrate claude
+uv run python tools/probe_delivery.py --config probe-private/local-config.json --engine-project "$PROJECT" --output "$EVIDENCE"
 
 # 4. Ready?
-.recalith/bin/recalith status      # exit 0 when every required capability is healthy
+"$PROJECT/.recalith/bin/recalith" status      # exit 0 when every required capability is healthy
 ```
 
 ### Native Windows (PowerShell)
 
 ```powershell
-$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev16"
+$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev17"
+$Repo = "C:\Code\Recalith"           # a checkout of the repository with its .venv: the probes and your probe configuration live there
 $Wheel = "$Release\recalith-$Version-py3-none-any.whl"
 $Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern " recalith-$Version-py3-none-any.whl$").Line.Split(' ')[0]
 $House = "$Release\wheelhouse-win-amd64-cp313"
+$Evidence = "$Repo\probe-private\host-compatibility.json"   # the probes' report; probe-private\ is git-ignored
+$Launcher = "$Project\.recalith\bin\recalith.cmd"
 
 # 1. Provision and initialize (exit 0).
 py -3.13 "$Release\bootstrap.py" init --project $Project --profile coding --release-profile claude_preview `
     --wheel $Wheel --expected-digest $Digest --wheelhouse $House
-cd $Project
-.recalith\bin\recalith.cmd status    # exit 8
+& $Launcher status    # exit 8
 
-# 2. Certify the route (export the key in THIS window; from the repository checkout, with its interpreter):
-$env:ANTHROPIC_API_KEY = "..."
-.\.venv\Scripts\python.exe tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --route-out $Project --output docs\host-compatibility.json
-.\.venv\Scripts\python.exe tools\check_provider_runtime.py --config probe-private\local-config.json --backend anthropic_messages --project $Project --output docs\host-compatibility.json
+# 2. Certify the route. Copy a backend's example to $Repo\probe-private\local-config.json, then put the key in THIS window
+#    without echoing it or saving it in the command history:
+$env:ANTHROPIC_API_KEY = [Net.NetworkCredential]::new('', (Read-Host -AsSecureString 'API key')).Password
+cd $Repo
+.\.venv\Scripts\python.exe tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --route-out $Project --output $Evidence
+.\.venv\Scripts\python.exe tools\check_provider_runtime.py --config probe-private\local-config.json --backend anthropic_messages --project $Project --output $Evidence
 
 # 3. Integrate and certify delivery.
-.recalith\bin\recalith.cmd integrate claude
-.\.venv\Scripts\python.exe tools\probe_delivery.py --config probe-private\local-config.json --engine-project $Project --output docs\host-compatibility.json
+& $Launcher integrate claude
+.\.venv\Scripts\python.exe tools\probe_delivery.py --config probe-private\local-config.json --engine-project $Project --output $Evidence
 
 # 4. Ready?
-.recalith\bin\recalith.cmd status    # exit 0
+& $Launcher status    # exit 0, or 8 with only recovery degraded while a hook-started worker runs (decision 0027 item 8)
 ```
 
 The probe configuration file is documented in [docs/probes/LOCAL_CONFIG.md](probes/LOCAL_CONFIG.md); `probe-private/` is git-ignored and holds names, paths and switches, never key values. The live gate (§6) is a separate, optional step.
@@ -180,9 +186,10 @@ The preview's live smoke gate (ACCEPTANCE_TESTS §6.1) **passed** on its tenth r
 Run it from an ordinary terminal that you opened yourself, with the selected key exported there. The `--source-project` is the project whose route and host record are certified (its `provider.json` and `host.json`). The run provisions each candidate installation with your own tools: init with the pre-init token, the release bootstrap with the certified project's wheel, a live route certification of its own, and `integrate claude`. Each installation's host record is then bound from the certified project's live record. The results directory holds every report the run writes; keep it short on Windows.
 
 ```powershell
+# From the repository checkout, with §4's variables still set in this window and the tree committed (a dirty tree is refused):
 & .venv\Scripts\python.exe evals\run.py gate --mode live `
     --config probe-private\local-config.json --operator-token-file C:\path\to\eval-token.json `
-    --source-project C:\Code\rl-pilot12 --wheel dist\recalith-0.1.0.dev10-py3-none-any.whl --wheelhouse wheelhouse `
+    --source-project $Project --evidence $Evidence --wheel $Wheel --wheelhouse $House `
     --out C:\Code\rl-gate --slots 6
 ```
 

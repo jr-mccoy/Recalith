@@ -107,7 +107,7 @@ class AdapterLineage:
 # count as two roots on every current host (audit 2026-11-06 CAP-4, decision 0044).
 ADAPTER_LINEAGE: dict[str, AdapterLineage] = {
     "claude_code": AdapterLineage(
-        versions=frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310"}),
+        versions=frozenset({"2.1.301", "2.1.305", "2.1.306", "2.1.309", "2.1.310", "2.1.321"}),
         artifact_tools=frozenset({"Read"}),
         forwarding_tools=frozenset({"Agent", "Task"}),
         agent_extension_key="agent_id",

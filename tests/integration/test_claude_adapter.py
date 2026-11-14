@@ -718,7 +718,7 @@ POSIX_SPELLINGS = [
     ".recalith/bin/recalith", "./.recalith/bin/recalith", "/proj/root/.recalith/bin/recalith", "recalith",
     "python -m recalith", "python3 -m recalith", "python -I -m recalith", "python3 -I -m recalith",
     "python -m recalith.cli.main", "python3 -m recalith.cli.main",
-    ".recalith/runtime/0.1.0.dev16/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev16/venv/bin/python -I -m recalith",
+    ".recalith/runtime/0.1.0.dev17/venv/bin/python -I -m recalith", "/proj/root/.recalith/runtime/0.1.0.dev17/venv/bin/python -I -m recalith",
 ]
 
 
@@ -738,7 +738,7 @@ def test_launchers_are_unchanged():
 
 
 def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
-    if identity.__version__ != "0.1.0.dev16":
+    if identity.__version__ != "0.1.0.dev17":
         pytest.skip("pinned for the development engine version")
     root = Path("/proj/root")
     assert integration.spellings(root, windows=False) == POSIX_SPELLINGS
@@ -749,7 +749,7 @@ def test_posix_deny_spellings_are_unchanged_and_windows_adds_the_cmd_launcher():
     for want in (
         "recalith.cmd", ".recalith/bin/recalith.cmd", "./.recalith/bin/recalith.cmd", ".recalith\\bin\\recalith.cmd", ".\\.recalith\\bin\\recalith.cmd",
         f"{win.as_posix()}/.recalith/bin/recalith.cmd", f"{native}\\.recalith\\bin\\recalith.cmd",
-        ".recalith/runtime/0.1.0.dev16/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev16/venv/Scripts/python.exe -I -m recalith",
+        ".recalith/runtime/0.1.0.dev17/venv/Scripts/python.exe -I -m recalith", f"{win.as_posix()}/.recalith/runtime/0.1.0.dev17/venv/Scripts/python.exe -I -m recalith",
     ):
         assert want in spellings, want
     assert len(spellings) == len(set(spellings))
@@ -1038,6 +1038,52 @@ def test_reviewed_2_1_310_fixtures_are_sanitized():
         assert "recalith-probe-placeholder" not in text and "/c/Users" not in text, path.name
     manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["mode"] == "request_capture" and manifest["platform"]["os"] == "windows" and manifest["host_version"] == "2.1.310"
+    assert manifest["owned_hook_cleanup"]["unrelated_preserved"] is True
+
+
+@pytest.mark.parametrize("scenario", ["lifecycle", "subagent", "denied", "secret_and_resume"])
+def test_reviewed_2_1_321_fixtures_map_like_2_1_310(tmp_path, scenario):
+    """The 2.1.321 review (decision 0050): the same host and scenarios as 2.1.310, mapped identically, except that
+    compaction in the lifecycle scenario ran a second summary subagent (one more SubagentStop, the same shape)."""
+    assert "2.1.321" in claude_capture.CERTIFIED_VERSIONS
+    new, old = _mapped(tmp_path, "2.1.321", scenario), _mapped(tmp_path, "2.1.310", scenario)
+    if scenario == "lifecycle":
+        stops = [row for row in new if row[0] == "SubagentStop"]
+        assert len(stops) == 2 and stops[0] == stops[1]
+        new.remove(stops[1])
+    assert (sorted(new) == sorted(old)) if scenario == "subagent" else (new == old)
+
+
+def test_reviewed_2_1_321_transcripts_parse_like_2_1_310():
+    counts = {}
+    for version in ("2.1.310", "2.1.321"):
+        parse = claude_capture.transcript_line_parser("inst_11111111-1111-4111-8111-111111111111", host_version=version)
+        base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / version
+        per = {}
+        for path in sorted(base.glob("*.transcript.jsonl")):
+            key = path.name.split(".")[0] + (".subagent" if ".agent-" in path.name else "")
+            per[key] = sum(len(parse(json.loads(line), line)) for line in path.read_text(encoding="utf-8").splitlines())
+        counts[version] = per
+    assert counts["2.1.321"] == counts["2.1.310"] and sum(counts["2.1.321"].values()) >= 3
+
+
+def test_a_tools_used_record_is_skipped_not_a_gap():
+    """2.1.321 transcripts hold ``tools-used`` records (the fixtures keep only their skeleton): a real one maps to nothing."""
+    parse = claude_capture.transcript_line_parser("inst_11111111-1111-4111-8111-111111111111", host_version="2.1.321")
+    record = {"type": "tools-used", "sessionId": "f814753f-0638-418a-b939-ae79342db024", "tools": ["Bash", "Read"]}
+    assert parse(record, json.dumps(record)) == []
+    with pytest.raises(claude_capture.UnsupportedRecord):
+        parse({"type": "never-seen-record", "sessionId": "x"}, "{}")
+
+
+def test_reviewed_2_1_321_fixtures_are_sanitized():
+    base = cf.ROOT / "tests" / "fixtures" / "hosts" / "claude" / "2.1.321"
+    for path in base.iterdir():
+        text = path.read_text(encoding="utf-8")
+        assert not re.search(r"(?<![A-Za-z])[A-Za-z]:(\\\\|\\|/)", text), path.name
+        assert "recalith-probe-placeholder" not in text and "/c/Users" not in text, path.name
+    manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["mode"] == "request_capture" and manifest["platform"]["os"] == "windows" and manifest["host_version"] == "2.1.321"
     assert manifest["owned_hook_cleanup"]["unrelated_preserved"] is True
 
 

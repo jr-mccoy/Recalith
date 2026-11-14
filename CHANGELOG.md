@@ -2,6 +2,10 @@
 
 Engine versions of the `claude_preview` profile, newest first. Every entry names the decision record that carries the full reasoning, tests and limits (`docs/decisions/`). No version below is released; see `docs/release/claude_preview_checklist.json` for what the release waits on.
 
+## 0.1.0.dev17 (2026-11-14) — Claude Code 2.1.321
+
+Decision 0050. Claude Code 2.1.321 is capture-certified after a review against 2.1.310: the same hook fields and types. Compaction may run a second summary subagent, and transcripts add a `tools-used` record that the transcript supplement now skips instead of reporting as a gap. Its live delivery certification is the next fresh pilot's.
+
 ## 0.1.0.dev16 (2026-11-09) — the Windows launcher parses
 
 Decision 0048. `.recalith\bin\recalith.cmd` from `0.1.0.dev14` and `0.1.0.dev15` failed on every invocation (`. was unexpected at this time.`, exit 255): the bootstrap hint added by decision 0046 put a `)` inside a parenthesized `if` block. The launcher now uses `goto` and has no block, so neither its message nor a project path such as `C:\Program Files (x86)\…` can break it. A Windows project made with those engines keeps its broken launcher; provision a new one on this engine. The runtime dependency pydantic is 2.14.3 (pydantic-core 2.50.4); the build backend is hatchling 1.33.0 and the test runner pytest 9.2.0; the workflows use the current majors of checkout, upload-artifact, download-artifact, setup-uv and attest-build-provenance (Node 24). The release workflow and the Linux install steps choose the wheelhouse whose tag matches the `python3` that runs the bootstrap.
