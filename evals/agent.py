@@ -790,9 +790,18 @@ class LiveClaudeAgent:
         elapsed = time.monotonic() - began
         extra = {"usage_reported": bool(results), "cost_usd": round(cost, 6), "runs": runs, "result_subtypes": [m.get("subtype") for m in results],
                  "hook_failures": [h for h in hook_records(stream) if h.get("exit_code") not in (0, None)][:8],
+                 "permission_denials": permission_denials(stream)[:8],
                  # a session that outlasted its own timeouts was not running: the machine slept under it
                  "suspended": elapsed > len(runs) * self.timeout_seconds + live.SUSPEND_SLACK_SECONDS or any(r["seconds"] > self.timeout_seconds + live.SUSPEND_SLACK_SECONDS for r in runs)}
         return SessionResult(name, session_id, actions_from_stream(stream, session=name), deliveries_from_stream(stream), elapsed, reply, tokens, extra=extra)
+
+
+def permission_denials(stream: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The host's ``permission_denied`` records: which tool call it refused and the reason's type and code, without the
+    refusal text. The refused call stays in the action log as an error result."""
+    return [{"tool_name": m.get("tool_name"), "tool_use_id": m.get("tool_use_id"), "decision_reason_type": m.get("decision_reason_type"),
+             "decision_reason_code": m.get("decision_reason_code")}
+            for m in stream if m.get("type") == "system" and m.get("subtype") == "permission_denied"]
 
 
 def hook_records(stream: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -833,7 +842,10 @@ def actions_from_stream(stream: list[dict[str, Any]], *, session: str) -> list[A
     uses: dict[str, dict[str, Any]] = {}
     out: list[Action] = []
     for message in stream:
-        content = (message.get("message") or {}).get("content")
+        # Assistant and user records carry a message object. The host's ``permission_denied`` system record carries its
+        # refusal as plain text under the same key (the eleventh gate: the host refused one Bash call in R3).
+        body = message.get("message")
+        content = body.get("content") if isinstance(body, dict) else None
         if not isinstance(content, list):
             continue
         for block in content:

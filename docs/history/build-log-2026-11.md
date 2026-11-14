@@ -785,4 +785,25 @@ The installed host had updated itself to 2.1.321, which the engine did not certi
 - **Review against 2.1.310:** every hook payload has the same field set and types. The lifecycle scenario has one more `SubagentStop`, a second compaction-summary subagent with an identical shape. Transcripts add `tools-used` (now a known, skipped type; it was an `unsupported_record_type` gap) and an `isMeta` user reminder (user records are never mapped). The adapter maps everything else identically, and transcripts parse to the same counts. No private data in the fixtures.
 - **Change:** 2.1.321 joins `CERTIFIED_VERSIONS` and the lineage version set; `tools-used` joins the known transcript types; engine `0.1.0.dev17`.
 - **Checks (native Windows 11, Python 3.13.15):** the adapter, hook-path smoke, capture-only, lineage, live-eval, delivery-probe and installation suites → 248 passed, 29 skipped.
-- **Next action:** the owner's Phase 5 run on `0.1.0.dev17`: OPERATIONS §4 on native Windows (fresh pilot `C:\Codel-pilot13`; its delivery probe is 2.1.321's live delivery certification), then the eleventh gate into `C:\Codel-gate11`.
+- **Next action:** the owner's Phase 5 run on `0.1.0.dev17`: OPERATIONS §4 on native Windows (fresh pilot `C:\Code\rl-pilot13`; its delivery probe is 2.1.321's live delivery certification), then the eleventh gate into `C:\Code\rl-gate11`.
+
+### 2026-11-14 — The OPERATIONS §4 walkthrough on `0.1.0.dev17`; the eleventh gate's first attempt stopped (decision 0028 item 32)
+
+- **Walkthrough (native Windows, the owner, from a release directory of `0.1.0.dev17` built at `23978e6`; pilot `C:\Code\rl-pilot13`):**
+  - `bootstrap.py init` → exit 0; `status` → exit 8, degraded with the next command named.
+  - `probe_provider.py` → certified, exit 0; `check_provider_runtime.py` → certified, exit 0.
+  - `integrate claude` → exit 0 (capture certified 2.1.321, 475 deny rules).
+  - `probe_delivery.py --engine-project` → `required_paths_healthy`, live run, host record `live`, exit 0. All four paths healthy, each with 3/3 positives and 3/3 negatives. **This is Claude Code 2.1.321's live delivery certification.**
+  - `status` → `ready`, exit 0; the repository tree clean.
+- **Where the page failed:**
+  - Long single command lines were cut when pasted into the terminal. Shorter lines that set variables first worked.
+  - The private probe configuration's `expected_version` still named 2.1.310, so the delivery probe stopped with `host_version_mismatch` until it named 2.1.321. OPERATIONS now says to set every `expected_version` field to what `claude --version` prints, in §4 step 2 and where §6 turns updates back on.
+- **The eleventh gate's first attempt** (`evals/run.py gate --mode live … --slots 6` into `C:\Code\rl-gate11`) ran every smoke and sensitivity trial except R3's candidate, then exited 1 with a traceback.
+  - In R3's session B the host refused one Bash call: its `rm` safety check could not parse a heredoc. The stream's `permission_denied` record carries the refusal as a text `message`, and the action-log parser read it as an object.
+  - The 2.1.310 and 2.1.319 executables build the same record, so the host had not changed. No earlier gate's agent had been refused.
+  - No report was written, so the attempt is not a gate record. No process was left running.
+  - Fix: decision 0028 item 32. The parser reads content only from a message object, each session lists the host's refusals, and an unexpected harness exception becomes that trial's `harness_exception` error, which leaves the gate incomplete instead of ending the run.
+- **Decision 0050 corrected:** `tools-used` is written between model requests, not before a compaction summary. It appears in 60 of the attempt's 64 transcripts, every one with more than one model request, and there was no compaction anywhere. Skipping it is unchanged. The comment in `claude_capture.py` is corrected with the next engine version, so the source stays the `0.1.0.dev17` wheel's.
+- **Fixed in this log:** the previous checkpoint's two paths had a carriage return in place of `\r` (`C:\Code\rl-…`).
+- **Checks (native Windows 11, Python 3.13.15):** `test_evaluation.py`, `test_sensitivity_trials.py`, `test_eval_harness.py`, `test_live_eval.py` and `test_sensitivity_scenarios.py` → 83 passed. Nothing in `src/` changed, so the release directory built at `23978e6` is still the engine under test.
+- **Next action:** the owner reruns the eleventh gate from the committed tree into a new directory, on the same pilot and release.

@@ -83,7 +83,8 @@ python3 "$RELEASE/bootstrap.py" init --project "$PROJECT" --profile coding --rel
 "$PROJECT/.recalith/bin/recalith" status      # exit 8: degraded, with the next command named
 
 # 2. Certify the curator route (live; billed). Pick a backend below and copy its example to
-#    $REPO/probe-private/local-config.json, then put the key in THIS shell without echoing it:
+#    $REPO/probe-private/local-config.json. Set every expected_version field to what `claude --version` prints
+#    (the probes refuse any other: host_version_mismatch). Then put the key in THIS shell without echoing it:
 read -rsp 'API key: ' ANTHROPIC_API_KEY && export ANTHROPIC_API_KEY && echo   # the key name your config selects
 cd "$REPO"
 uv run python tools/probe_provider.py --config probe-private/local-config.json --backend anthropic_messages --route-out "$PROJECT" --output "$EVIDENCE"
@@ -113,8 +114,9 @@ py -3.13 "$Release\bootstrap.py" init --project $Project --profile coding --rele
     --wheel $Wheel --expected-digest $Digest --wheelhouse $House
 & $Launcher status    # exit 8
 
-# 2. Certify the route. Copy a backend's example to $Repo\probe-private\local-config.json, then put the key in THIS window
-#    without echoing it or saving it in the command history:
+# 2. Certify the route. Copy a backend's example to $Repo\probe-private\local-config.json and set every expected_version
+#    field to what `claude --version` prints (the probes refuse any other: host_version_mismatch). Then put the key
+#    in THIS window without echoing it or saving it in the command history:
 $env:ANTHROPIC_API_KEY = [Net.NetworkCredential]::new('', (Read-Host -AsSecureString 'API key')).Password
 cd $Repo
 .\.venv\Scripts\python.exe tools\probe_provider.py --config probe-private\local-config.json --backend anthropic_messages --route-out $Project --output $Evidence
@@ -201,7 +203,7 @@ Before you start it:
 
 - **Keep the host at the certified version for the whole run.** The trial sessions already run with `DISABLE_AUTOUPDATER=1` (the delivery section's `nonsecret_env`), but your own interactive Claude Code sessions update the shared installation. Turn their background updates off too, from before the certification until the gate ends:
   - **Off:** add `"env": { "DISABLE_AUTOUPDATER": "1" }` to `%USERPROFILE%\.claude\settings.json`, next to the other top-level keys. Running sessions pick up the saved change. `claude doctor` then reports auto-updates as disabled. Manual `claude update` still works, so don't run it either.
-  - **On again:** delete the `DISABLE_AUTOUPDATER` entry, and the `env` block if it is then empty. The next session start updates as usual. A new version then needs its own capture review and live certification before another gate (§4 step 3).
+  - **On again:** delete the `DISABLE_AUTOUPDATER` entry, and the `env` block if it is then empty. The next session start updates as usual. A new version then needs its own capture review and live certification before another gate (§4 step 3). Set every `expected_version` field in your probe configuration to the new version first, or the delivery probe stops with `host_version_mismatch`.
   - The harness checks `claude --version` against the certified version before every session. On a change it schedules no further trial and writes the report of what ran (exit 8).
 - **Keep the machine awake and on power.** The run asks Windows not to idle-sleep while it lasts (macOS: `caffeinate -i`), but a lid close or an explicit sleep still suspends it. A session or wait that ran across a suspension is recorded as `suspended`, and the gate fails on it.
 

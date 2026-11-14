@@ -79,6 +79,29 @@ def test_actions_pair_tool_uses_with_results():
     assert actions[2].path == "C:\\w\\README.md"
 
 
+# The host's refusal record: its keys as the 2.1.310, 2.1.319 and 2.1.321 executables build it, ``message`` plain text.
+# The reason's type and code values here are illustrative. The eleventh gate stopped on this record in R3 when the host
+# refused one Bash call; the tool result's text is the one it printed.
+DENIED_STREAM = [
+    {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "cat > groceries.csv <<'EOF'\nitem,cost_usd\nEOF"}}]}},
+    {"type": "system", "subtype": "permission_denied", "tool_name": "Bash", "tool_use_id": "toolu_9", "agent_id": None, "decision_reason_type": "other",
+     "decision_reason_code": "rm_check_unparseable", "decision_reason": "the shell may read it differently",
+     "message": "This command could not be checked for dangerous rm operations: the shell may read it differently than it was parsed. This requires explicit approval."},
+    {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "toolu_9", "is_error": True,
+                                              "content": "This command could not be checked for dangerous rm operations: the shell may read it differently than it was parsed. This requires explicit approval."}]},
+     "tool_use_result": "Error: This command could not be checked"},
+]
+
+
+def test_a_refused_tool_call_is_logged_and_its_text_message_skipped():
+    from evals import agent
+
+    actions = agent.actions_from_stream(DENIED_STREAM, session="B")
+    assert [(a.tool, a.exit_code, a.tool_use_id) for a in actions] == [("Bash", 1, "toolu_9")]  # the refused call, as an error result
+    assert agent.permission_denials(DENIED_STREAM) == [{"tool_name": "Bash", "tool_use_id": "toolu_9", "decision_reason_type": "other", "decision_reason_code": "rm_check_unparseable"}]
+    assert agent.actions_from_stream([{"type": "system", "message": ["not", "an", "object"]}, {"type": "user", "message": None}], session="B") == []
+
+
 def test_the_live_agent_runs_the_certified_session_shape():
     from evals import agent, live
 
@@ -684,6 +707,27 @@ def test_a_failed_provisioning_is_recorded_never_dropped(tmp_path, monkeypatch):
     with pytest.raises(trial.TrialError) as missing:
         trial.run_trial("smoke-L1-ledgerlite-test-command", "candidate", tmp_path / "w2", mode="live")
     assert missing.value.code == "live_setup_missing"
+
+
+def test_a_harness_defect_is_the_trials_error_never_the_runs_end(tmp_path, monkeypatch):
+    """The eleventh gate: a parsing defect in one trial raised through the pool and ended the run, losing the other
+    trials' workload and demonstrations. It is now that trial's recorded error, which leaves the gate incomplete."""
+    from evals import report, trial
+
+    calls: dict = {}
+    fake_live(monkeypatch, calls)
+
+    class Broken(FakeLiveAgent):
+        def run_session(self, name, prompts, ws, home, *, env):
+            if name == "B":
+                return "a str".get("content")  # the defect's shape: AttributeError
+            return super().run_session(name, prompts, ws, home, env=env)
+
+    record = trial.run_trial("smoke-L1-ledgerlite-test-command", "candidate", tmp_path / "work", mode="live", live=Setup(tmp_path), agent_factory=Broken)
+    assert record["error"] == "harness_exception" and record["error_detail"].startswith("AttributeError at test_live_eval.py:")
+    assert [s["name"] for s in record["sessions"]] == ["A"] and record["outcomes"]["task_success"] is False
+    assert len(calls["stopped"]) == 1 and record["manifest"]["candidate"]["agent"]["live"] is True  # the worker still stopped
+    assert "smoke-L1-ledgerlite-test-command.candidate:harness_exception" in report.completeness([record], [], {})["trial_errors"]
 
 
 def test_live_setup_refuses_missing_or_uncertified_inputs(tmp_path):

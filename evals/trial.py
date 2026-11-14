@@ -39,6 +39,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -661,9 +662,14 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
         record["second_project"] = side or None
         record["hook_replies"] = sum(len(r.deliveries) for r in results.values())
         record["manifest"] = {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record)}
-    except (TrialError, live.LiveError) as exc:
-        record["error"] = exc.code
-        record["error_detail"] = exc.detail
+    except Exception as exc:  # noqa: BLE001 - a harness defect is this trial's error (the gate is then incomplete), never the run's end
+        known = isinstance(exc, (TrialError, live.LiveError))
+        record["error"] = exc.code if known else "harness_exception"
+        if known:
+            record["error_detail"] = exc.detail
+        else:
+            where = traceback.extract_tb(exc.__traceback__)[-1]
+            record["error_detail"] = f"{type(exc).__name__} at {Path(where.filename).name}:{where.lineno}: {exc}"[:400]
         if isinstance(exc, live.LiveError) and exc.steps:
             record["provisioning_steps"] = exc.steps
         record.setdefault("outcomes", {"task_success": False, "repeated_mistakes": None, "detours": None, "legitimate_retry_success": None, "foreground_tokens": None, "background_tokens": None, "elapsed_seconds": None, "operator_interventions": 0})
