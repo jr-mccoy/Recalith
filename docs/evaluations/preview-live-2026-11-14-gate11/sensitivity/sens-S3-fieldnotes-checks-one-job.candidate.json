@@ -1,0 +1,1015 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 4,
+   "extract_claims": 4,
+   "review_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 407360,
+  "estimated_output_tokens": 28554,
+  "jobs_by_state": {
+   "cancelled": 2,
+   "completed": 12
+  },
+  "model_calls": 12,
+  "tokens": 435914,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_03d454ab-a856-4909-9da1-988dc787b20a",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The fieldnotes `count` subcommand prints the number of notes in the store.",
+   "review": {
+    "objections": [
+     "Cited edits show the count code only; store.load() contents are not shown.",
+     "No cited evidence shows the count output or that it matches stored notes."
+    ],
+    "verdict": "revise"
+   },
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_6c1764e2-8b9d-4c5b-9e36-024c2b204c48",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The project checks in tools/check.py include a line-length rule of at most 100 characters.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_b30cb33b-6fba-4348-a4cc-4221893167b2",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "Do not change check.py to address the default parallel runner; the user says the problem is the machine, not the code.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_d34dc5f4-96ac-4b08-a988-cac67868e935",
+   "freshness": "current",
+   "kind": "failure_lesson",
+   "proposition": "Running `python tools/check.py --jobs 1` without NOTES_HOME set in the environment fails with KeyError: 'NOTES_HOME'.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "corroborated"
+  },
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_e505c347-1d35-44b5-a341-ee338c523177",
+   "freshness": "current",
+   "kind": "preference",
+   "proposition": "Always run the checks with --jobs 1 on this laptop.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "requeue",
+     "reason": "read_set_changed"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The session only ran the checks and reported a pass. The tool call's exit code is null and it has no parsed assertions, so no observed claim can be made. The assistant's remarks are not user declarations, and the user's own words are only the request to run the checks. The existing user-declared claims already cover the --jobs 1 and check.py statements.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_revise"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The durable project knowledge in this session (line-length rule, NOTES_HOME failure lesson, --jobs 1 preference, and no-change decision for check.py) is already recorded as active or candidate claims. The count command change is session-specific task state, not durable project knowledge.",
+   "operations": [],
+   "purpose": "extract_claims"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     39,
+     30,
+     38
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 21,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 344.2,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     72,
+     61,
+     74
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 24,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 606.3,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether two jobs would also be acceptable was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that on this laptop the fieldnotes checks must run with --jobs 1, because the default parallel runner stalls the machine, and that check.py must not be changed.",
+   "tools/check.py accepts --jobs N; its default is one process per CPU."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "--jobs 1",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "The parallel test runner is broken.",
+   "Every command on this machine must run single-threaded."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "On this machine, run the fieldnotes checks with `--jobs 1`; the default parallel runner stalls the laptop (a machine problem, not a code problem).",
+    "scope": "this project on this machine"
+   }
+  ]
+ },
+ "hook_replies": 24,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-14T17:15:29.122603Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-14T17:21:38.895389Z",
+   "events": 26,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev17-py3-none-any.whl",
+  "wheel_sha256": "e6234948dacd4a09923c190c25b593ebb0745bec581baa99917fbe87eae1decb"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 9.0,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 16.9,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_ac420a11-b565-4e42-9d13-ee503fa4d4fc",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_024ec3fa-e1bd-4009-89d9-46490ba177dc"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s3",
+  "checks": {
+   "checks_pass": true,
+   "checks_run_with_one_job": true,
+   "count_works": true
+  },
+  "metrics": {
+   "check_runs": 2,
+   "check_runs_without_one_job": [],
+   "repeated_named_mistake": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 435914,
+  "detours": 1,
+  "elapsed_seconds": 47.781,
+  "foreground_cost_usd": 0.155416,
+  "foreground_tokens": 334652,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 4,
+    "replies_parsed": 4,
+    "reported_input_tokens": 144889,
+    "reported_output_tokens": 9091,
+    "visible_output_estimate": 2485
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 4,
+    "replies_parsed": 4,
+    "reported_input_tokens": 144601,
+    "reported_output_tokens": 11407,
+    "visible_output_estimate": 2267
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 22877,
+    "reported_output_tokens": 3481,
+    "visible_output_estimate": 852
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 94993,
+    "reported_output_tokens": 4575,
+    "visible_output_estimate": 1039
+   }
+  },
+  "job_errors": {
+   "build_episode:reevaluation_requeued": 1,
+   "update_task:coalesced": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Preference: Always run the checks with --jobs 1 on this laptop."
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Decision: Do not change check.py to address the default parallel runner; the user says the problem is the machine, not the code."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "--jobs 1",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [
+  {
+   "caution_delivered": false,
+   "failure": "python tools/check.py --jobs 1",
+   "next_pre_action_state": "emitted"
+  }
+ ],
+ "scenario": "sens-S3-fieldnotes-checks-one-job",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "pwd; ls -la; find . -maxdepth 3 -iname \"*fieldnotes*\" -not -path \"*/node_modules/*\" | head",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md .gitignore; find .claude .recalith fieldnotes tests tools -type f | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat tools/check.py; ls fieldnotes tests tools",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "python tools/check.py; echo \"exit=$?\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "grep -rn \"NOTES_HOME\" --include=*.py --include=*.md --include=*.toml --include=*.json fieldnotes tests tools README.md .claude 2>/dev/null",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "NOTES_HOME=\"$(mktemp -d)\" python tools/check.py; echo \"exit=$?\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "NOTES_HOME=\"$(mktemp -d)\" python tools/check.py --jobs 1; echo \"exit=$?\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.091212,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 18.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 6.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_9315e9411046624bd06b179b8fe795a2a286ba17629e057d4d6394da7018649f\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_9c8cf13ca412586a1ce775b511876e51a2e37016bdfe16c33cee11bc768ee28c",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_ff4a36f6604f4e79bf82b341b5e102081444f725130efae071ca95a0b2307f4c",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_33fe81358c7a5d50a94aed4fcb0715d59677230fc1fad977b6301de1b5c8875c",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Run the fieldnotes project checks and tell me whether they pass.. Objective: Run the fieldnotes project checks and tell me whether they pass..\n  why: task_continuity \u2014 bound to the current task\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_74b56dd3-722e-4fd8-9b47-9eed5e4a09f6 r6\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_47b895b94f5ce7c50f41351dc3dd8413b1e654825b65a4fc1ef56ce5166b7d3c\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b2b50d83a641718083eb8831e6d002578afb90ee89bc060ed5b2ed16d14b4b2f",
+     "degradations": [],
+     "items": 3,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 25.548,
+   "foreground_tokens": 166775,
+   "host_session_id": "af46bd7d-df20-4d34-8652-75ac282c350c",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [
+    "tools/check.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "The checks pass with `--jobs 1`. The one unit test ran and passed, the line-length rule found no violations, and the exit code was 0. As before, I set `NOTES_HOME` to a fresh temp directory, because `check.py` crashes without it.\n\nI'll use `--jobs 1` for the checks on this machine from now on, and I haven't touched `check.py`.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": "python tools/check.py --jobs 1",
+     "exit_code": 1,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py --jobs 1; echo exit=$?; NOTES_HOME=\"$NOTES_HOME\" python -m fieldnotes.cli count; NOTES_HOME=\"$NOTES_HOME\" python -m fieldnotes.cli add hi >/dev/null; NOTES_HOME=\"$NOTES_HOME\" python -m fieldnotes.cli count",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.064204,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 22.2,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Preference: Always run the checks with --jobs 1 on this laptop.\n  why: lexical_match \u2014 matches checks, fieldnotes, project, count\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_e505c347-1d35-44b5-a341-ee338c523177 r2; evt_426e6b1ad6c6d00c71aa27a4d0de064facb49b15dc73689b2dea6cb0411580bf\n- [context] Decision: Do not change check.py to address the default parallel runner; the user says the problem is the machine, not the code.\n  why: lexical_match \u2014 matches fieldnotes\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_b30cb33b-6fba-4348-a4cc-4221893167b2 r2; evt_426e6b1ad6c6d00c71aa27a4d0de064facb49b15dc73689b2dea6cb0411580bf",
+     "degradations": [],
+     "items": 2,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6675053167b5ce99792039ae5b6e54ec57c78830eb6d9f5f9df42b41f0263a55",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_0f9935dff13c7bbbbd35834920d6e60002a80a0d245ff9d3c21de3e3f2b1fcd9\n- [context] Recent observation (not a durable lesson): Read tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_20eb694dd792a5500ef8b32b63246a8f1a4fb296bec68dd6b45760cbb4d8a2d4\n- [context] Recent observation (not a durable lesson): Read fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_c6ff9e007355efdb5f86ac04054bc44cca2a973e4e99e4c838d4e31da56289a8",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash `python tools/check.py --jobs 1`: failure; exit 1\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_01ddfb06aef35ec9246f73e5c2d464cb713d13d39a8c5c8a0f034e949dfdcdbc\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_433ab21caa1f6756c0a11c7a16f47900a18d2648312bb2466f9b580ffc76b33e\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_730ed0e44c5b33be45aa9a8575c01adc6c8579fa9ceb8a19b7f3dd936184f083",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 22.234,
+   "foreground_tokens": 167877,
+   "host_session_id": "150c2767-29ee-4557-b48c-1cd6127ccd5a",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added a `count` command, and the project checks pass.\n\n- **Change:** `fieldnotes/cli.py` now handles `count` by printing `len(store.load())`. I also added `count` to the usage messages.\n- **Checks:** `python tools/check.py --jobs 1` exits 0. The one existing test passes and there are no line-length violations. I used `--jobs 1` per your saved preference, and I didn't change `check.py`.\n- **`NOTES_HOME`:** `check.py` needs `NOTES_HOME` set and fails with a `KeyError` otherwise. I pointed it at a throwaway temp directory for the run.\n- **Manual check:** `count` printed `0` on an empty store and `1` after one `add`.\n- **Tests:** I didn't add a unit test for `count`. The existing tests only cover the store.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "S3/c/w"
+}

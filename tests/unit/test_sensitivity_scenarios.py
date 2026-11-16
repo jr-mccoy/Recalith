@@ -199,5 +199,23 @@ def test_a_price_is_any_dollar_amount_and_nothing_else(line, priced):
     assert bool(smoke.PRICE.search(line)) is priced
 
 
+TABLE = "| Day | Dinner | Serves |\n|---|---|---|\n" + "".join(
+    f"| {d} | {meal} | {n} |\n" for d, meal, n in [("Mon", "soup", 2), ("Tue", "tacos", 2), ("Wed", "pasta", 2), ("Thu", "stir-fry", 2),
+                                                   ("Fri", "pizza", 2), ("Sat", "roast with two friends", 4), ("Sun", "salad", 2)])
+
+
+@pytest.mark.parametrize("plan, seven", [
+    (TABLE, True),  # the eleventh gate: both arms wrote this shape and the full names alone failed it
+    ("\n".join(f"- {d}: dinner" for d in ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")), True),
+    ("- Mondays: soup\n- Tues: tacos\n- Wed: pasta\n- Thurs: stir-fry\n- Fri: pizza\n- Sat: roast\n- Sun: salad", True),
+    (TABLE.replace("| Sun |", "| Day 7 |"), False),
+    ("Sunflower salad, a saturated sauce, monthly fried rice, a wedding cake, a thumb of ginger", False),
+])
+def test_a_plan_covers_the_week_by_full_or_short_day_names(tmp_path, plan, seven):
+    ws = materialize(tmp_path / "ws", "sens-S2-household-no-prices-in-meal-plan")
+    (ws / "meal-plan.md").write_text("# Meal plan\n\n" + plan + "\n", encoding="utf-8")
+    assert smoke.judge("s2", ws, [], "B")["checks"]["plan_covers_seven_days"] is seven
+
+
 def test_sensitivity_ids_never_match_the_gates_glob():
     assert all(not re.match(r"smoke-", sid) for sid in SCENARIOS)

@@ -1,0 +1,900 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 4,
+   "extract_claims": 3,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 406423,
+  "estimated_output_tokens": 21711,
+  "jobs_by_state": {
+   "cancelled": 2,
+   "completed": 10
+  },
+  "model_calls": 10,
+  "tokens": 428134,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_2de459e9-6d11-4064-b1ea-02d64d542343",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "New ledgerlite methods take amounts as integer cents (an int: 150 means $1.50), never a string or Decimal of dollars, because the bank export works in cents.",
+   "review": {
+    "objections": [
+     "The example '150 means $1.50' is not in the cited evidence; the evidence only says integer cents."
+    ],
+    "verdict": "revise"
+   },
+   "revision": 2,
+   "status": "candidate",
+   "strength": "weak"
+  },
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_cfdf5601-7c7b-4e21-98f3-46783ec279f8",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "transfer keeps its dollar strings until the team migrates it.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "requeue",
+     "reason": "read_set_changed"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The session only recorded a one-off feature request and its test run, with no standing user rule, decision, preference, or reusable project fact that a later session needs. The test output is an unparsed piped Bash call, so it does not support a durable observed claim.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_revise"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    },
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task",
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "The events show a one-time feature implementation. The user's cents and overdraft requirements are already captured as the existing candidate claim claim_2de459e9 and the dollar-string decision claim_cfdf5601. The session's tool results do not support a new observed or user_declared claim with valid quote digests.",
+   "operations": [],
+   "purpose": "extract_claims"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     35,
+     33,
+     41
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 18,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 350.4,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     62,
+     58,
+     69
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 15,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 335.5,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "When transfer will be migrated to cents was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that every new ledgerlite method takes amounts as integer cents (150 means $1.50), never a string or Decimal of dollars, while transfer keeps dollar strings until it is migrated.",
+   "The deposit method written in session A was removed at the user's request."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "cents",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All ledgerlite amounts, transfer included, are integer cents.",
+   "Every project stores money as integer cents."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "New ledgerlite methods take amounts as integer cents (150 means $1.50); transfer keeps dollar strings until it is migrated.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 23,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-14T17:13:59.349154Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-14T17:20:10.970221Z",
+   "events": 31,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev17-py3-none-any.whl",
+  "wheel_sha256": "e6234948dacd4a09923c190c25b593ebb0745bec581baa99917fbe87eae1decb"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 9.1,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.0,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_6b8d9f09-98e1-40de-bb02-3dcd65a98036",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_2e946105-2cb4-4d09-80e1-9760f6fd0a8f"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s1",
+  "checks": {
+   "deposit_and_withdraw_tested": true,
+   "deposit_takes_cents": true,
+   "suite_passes": true,
+   "withdraw_refuses_overdraft": true,
+   "withdraw_takes_cents": true
+  },
+  "metrics": {
+   "repeated_named_mistake": 0,
+   "units": {
+    "deposit": "cents",
+    "withdraw": "cents"
+   }
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 428134,
+  "detours": 0,
+  "elapsed_seconds": 41.793,
+  "foreground_cost_usd": 0.178226,
+  "foreground_tokens": 260920,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 0,
+  "task_success": true
+ },
+ "project": "ledgerlite",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 4,
+    "replies_parsed": 4,
+    "reported_input_tokens": 169938,
+    "reported_output_tokens": 7363,
+    "visible_output_estimate": 2217
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 3,
+    "replies_parsed": 3,
+    "reported_input_tokens": 128194,
+    "reported_output_tokens": 6577,
+    "visible_output_estimate": 784
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 5965,
+    "reported_output_tokens": 1815,
+    "visible_output_estimate": 358
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 102326,
+    "reported_output_tokens": 5956,
+    "visible_output_estimate": 1582
+   }
+  },
+  "job_errors": {
+   "build_episode:reevaluation_requeued": 1,
+   "update_task:coalesced": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Decision: transfer keeps its dollar strings until the team migrates it."
+    }
+   ],
+   "satisfied": false,
+   "spec": {
+    "must_include": "cents",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "sens-S1-ledgerlite-amounts-in-cents",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/c/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/c/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20; grep -n deposit -r src tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.111341,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 8.0,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_26e267af823848403bd31c1520034cbdeed96cacbb696f0cbfa291f1c46c42b2\n- [context] Recent observation (not a durable lesson): Read tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_3ef0d704954986768fa759630de8088579d06c4567dd12842695b71d8dd0e53a\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e82d253f040b5467ce197b51bf03bc4cd39892c056d75340227de935a8c95cee",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Add a Ledger.deposit(name, amount) method to ledgerlite that adds money to an e\u2026. Objective: Add a Ledger.deposit(name, amount) method to ledgerlite that adds money to an existing account, with a unit test, and run the tests..\n  why: task_continuity \u2014 bound to the current task\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_8aad9f48-045f-4982-a1a4-ceb78c37d8be r5\n- [context] Episode (settled): Add a Ledger.deposit(name, amount) method to ledgerlite that adds money to an e\u2026. Outcome: 7 actions (7 success); last result: Bash (unparsed command): success; causes not assessed.\n  why: task_continuity \u2014 bound to the current task\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_05e8253d-39e2-4278-80a0-f241dbef2ef1 r1\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_26175813b8650b908d31775096d5dd96687cc35537671c969b18d897785adfad\n- [context] Recent observation (not a durable lesson): Edit tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_a65f1b428667bca60639697919f5c7df7e5737f61d859d989cf218338f567052",
+     "degradations": [],
+     "items": 4,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    }
+   ],
+   "elapsed_seconds": 21.13,
+   "foreground_tokens": 139781,
+   "host_session_id": "2cf35874-6f19-4e05-b8f1-db90ca30fedc",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I removed `deposit` and both of its tests. A grep for `deposit` in `src` and `tests` finds nothing, and the 2 original tests pass.\n\nWhen you ask for it again, I'll write it with integer cents (`amount: int`) and reject non-positive amounts. `transfer` stays on dollar strings.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/c/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.066885,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 20.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Ledger.deposit request withdrawn at user request; remaining ledgerlite tests pass. Objective: Add a Ledger.deposit(name, amount) method to ledgerlite that adds money to an existing account, with a unit test, and run the tests.. Next: Wait for the user to re-request Ledger.deposit once the bank export lands; if it is requested, take amount as integer cents..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_8aad9f48-045f-4982-a1a4-ceb78c37d8be r9\n- [context] Episode (settled): Add Ledger.deposit with unit tests; unittest run passes 4 tests. Outcome: Added Ledger.deposit(name, amount) to src/ledgerlite/__init__.py and two deposit tests to tests/test_ledger.py. The unittest run reported 4 tests, all passing. All 7 actions succeeded, with no failed or interrupted steps..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_05e8253d-39e2-4278-80a0-f241dbef2ef1 r2\n- [context] Episode (settled): Removed Ledger.deposit and its tests at user request; remaining tests pass. Outcome: The deposit method and its two tests were removed at the user's request, and the edits to src/ledgerlite/__init__.py and tests/test_ledger.py succeeded. The unittest run then reported 2 tests (test_rejects_non_positive_amount and test_transfer_preserves_total) passing. No step failed.. Unresolved: Deposit is to be requested again once the bank export lands; per the user, new ledgerlite methods take amounts as int [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_8b15c1ed-1b9c-4501-a658-27c507168934 r2",
+     "degradations": [],
+     "items": 3,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Decision: transfer keeps its dollar strings until the team migrates it.\n  why: lexical_match \u2014 matches ledgerlite, amount\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_cfdf5601-7c7b-4e21-98f3-46783ec279f8 r2; evt_0ff97374ac5cbb67cc7e2c5a35df629eabf370e8120f96437a5682a97fcb4ec5",
+     "degradations": [],
+     "items": 1,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_069ae98e1b8c2972e61555bd3ee3929ea155ae45d808c9fb8b8b5b89a0eb83ce\n- [context] Recent observation (not a durable lesson): Read tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_326d5b02216a953330b3d41977737b39faa40185b70a0978814e9cedaa130d56\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_3d391a7192828c842bd6ddcb84f5879915abf519399c9b57aa3277c54f26bf1c",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit src/ledgerlite/__init__.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e5814b246b6c1f426a34f7b8736dd70e6d0fae674adc74efecdbaf66625f22d5",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_106c91434b596028ce2489118ce7e1f1ed45fd0bfd1355248d16db5e0f8dfe86\n- [context] Recent observation (not a durable lesson): Edit tests/test_ledger.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_f79d1d1958f4c28be68242b32c2db8725cf14e76d41ea5a5b2d041d42f0f613f",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 20.663,
+   "foreground_tokens": 121139,
+   "host_session_id": "f48f2bca-2194-4a2c-a22b-3a760b8e2385",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I added `Ledger.deposit(name, amount)` and `Ledger.withdraw(name, amount)` to ledgerlite, with tests for both. The full suite passes: 7 tests, the 2 existing ones plus 5 new ones.\n\n- **Amounts:** both methods take integer cents, as the project notes say new methods should. Balances are still stored as Decimal dollars, and `transfer` keeps its dollar strings. For example, `deposit(\"cash\", 1250)` gives a balance of `12.50`.\n- **`deposit`:** raises `ValueError` for an amount of zero or less, and `TypeError` for a non-integer such as `\"12.50\"` or a bool.\n- **`withdraw`:** raises `ValueError` if it would take the account below zero, and the balance is left unchanged. Withdrawing the exact balance is allowed. It validates the amount the same way as `deposit`.\n- **Tests:** they cover a successful deposit, bad deposit amounts, withdrawing down to exactly zero, an overdraft attempt, and a non-positive withdrawal. They are in `tests/test_ledger.py`.\n\nThe code is in `src/ledgerlite/__init__.py`.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "S1/c/w"
+}

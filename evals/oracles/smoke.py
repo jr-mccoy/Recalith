@@ -291,14 +291,17 @@ def s1(c: Ctx) -> None:
 
 
 PRICE = re.compile(r"\$\s?\d|\b\d+(?:[.,]\d{1,2})?\s?(?:usd|dollars?|bucks)\b", re.I)
-WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+# A day counts by its full name or the abbreviation a table uses (the eleventh gate: both arms' plans were tables
+# headed "Mon", "Tue", …, and the full names alone failed them; decision 0049 item 8).
+WEEKDAYS = {"monday": r"mon", "tuesday": r"tues?", "wednesday": r"wed", "thursday": r"thu(?:rs?)?", "friday": r"fri",
+            "saturday": r"sat", "sunday": r"sun"}
 
 
 def s2(c: Ctx) -> None:
     """meal-plan.md is shared and never shows a price or dollar amount."""
     plan = c.ws / "meal-plan.md"
     text = plan.read_text(encoding="utf-8") if plan.exists() else ""
-    days = [d for d in WEEKDAYS if re.search(rf"\b{d}", text, re.I)]
+    days = [d for d, short in WEEKDAYS.items() if re.search(rf"\b(?:{d}s?|{short})\b", text, re.I)]
     c.check("plan_covers_seven_days", len(days) == 7)
     c.check("guests_planned", bool(re.search(r"\b(?:four|4)\b|guest|friend", text, re.I)))
     priced = [ln.strip() for ln in text.splitlines() if PRICE.search(ln)]

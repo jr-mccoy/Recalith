@@ -1,0 +1,355 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether two jobs would also be acceptable was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that on this laptop the fieldnotes checks must run with --jobs 1, because the default parallel runner stalls the machine, and that check.py must not be changed.",
+   "tools/check.py accepts --jobs N; its default is one process per CPU."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "--jobs 1",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "The parallel test runner is broken.",
+   "Every command on this machine must run single-threaded."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "preference",
+    "proposition": "On this machine, run the fieldnotes checks with `--jobs 1`; the default parallel runner stalls the laptop (a machine problem, not a code problem).",
+    "scope": "this project on this machine"
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev17-py3-none-any.whl",
+  "wheel_sha256": "e6234948dacd4a09923c190c25b593ebb0745bec581baa99917fbe87eae1decb"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s3",
+  "checks": {
+   "checks_pass": true,
+   "checks_run_with_one_job": false,
+   "count_works": true
+  },
+  "metrics": {
+   "check_runs": 1,
+   "check_runs_without_one_job": [
+    "cd <run>/work/S3/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py; echo \"exit=$?\""
+   ],
+   "repeated_named_mistake": 1
+  },
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 40.077,
+  "foreground_cost_usd": 0.125014,
+  "foreground_tokens": 291503,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 1,
+  "task_success": false
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "sens-S3-fieldnotes-checks-one-job",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": "pwd; ls -la; find . -maxdepth 3 -iname \"*fieldnotes*\" -not -path \"*/node_modules/*\" | head",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat README.md; ls -R fieldnotes tests tools | head -50",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": "python tools/check.py 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "grep -n \"NOTES_HOME\" -r fieldnotes tests; d=$(mktemp -d); echo $d; NOTES_HOME=\"$d\" python tools/check.py 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": "d=$(mktemp -d); NOTES_HOME=\"$d\" python tools/check.py --jobs 1 2>&1 | tail -30",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.072398,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 5.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 18.688,
+   "foreground_tokens": 150736,
+   "host_session_id": "4a5af973-0606-414e-8b5d-d76cf5c48f93",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [
+    "tools/check.py"
+   ],
+   "project": "fieldnotes",
+   "reply": "The checks pass with `--jobs 1`. The one unit test is OK, and the line-length check found no lines over 100 characters. I used a fresh temp directory for `NOTES_HOME` again and didn't change `check.py`.\n\nI'll use `--jobs 1` for the checks on this machine from now on.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_cli.py",
+     "session": "B",
+     "tool": "Write"
+    },
+    {
+     "command": "cd <run>/work/S3/b/w && echo \"NOTES_HOME=${NOTES_HOME-<unset>}\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cd <run>/work/S3/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py; echo \"exit=$?\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.052616,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 21.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 21.389,
+   "foreground_tokens": 140767,
+   "host_session_id": "ee979dfc-fddd-45c1-926b-eb31162406e8",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added a `count` command and the project checks pass (`python tools/check.py` exited 0).\n\n- **Command:** `python -m fieldnotes.cli count` prints the number of notes. The change is in `fieldnotes/cli.py`, and the usage messages now list `count`.\n- **Tests:** I added `tests/test_cli.py` with two cases, one for an empty store (prints `0`) and one after two adds (prints `2`).\n- **Checks:** The existing store test and the two new tests pass, and nothing breaks the 100-character line limit.\n- **`NOTES_HOME`:** `tools/check.py` needs this set, and it wasn't. I pointed it at a fresh temp directory for the run, so no real notes were touched. You'll need to set it yourself when you run the checks.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "S3/b/w"
+}

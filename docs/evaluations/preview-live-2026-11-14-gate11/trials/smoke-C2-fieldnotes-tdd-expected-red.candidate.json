@@ -1,0 +1,900 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 2,
+   "extract_claims": 2,
+   "review_claims": 1,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 294302,
+  "estimated_output_tokens": 18659,
+  "jobs_by_state": {
+   "completed": 8
+  },
+  "model_calls": 7,
+  "tokens": 312961,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "control",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_1b760cfa-87be-4b3b-b3b4-ebd64a2a766f",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The fieldnotes store delete function removes the note at a 1-based index and raises IndexError when the index is out of range.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_2ff693d4-034b-43bf-91bf-8fd65fe6f697",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The project's checks are run with `python tools/check.py`.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_6bbbd218-d413-48f9-ae9e-9994c9d91520",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The fieldnotes store module keeps notes in a JSON file.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_c1c6d93a-e34b-472b-9150-2a3d039e07d2",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The fieldnotes CLI usage text lists `delete INDEX` alongside `add TEXT` and `list`.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim",
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim",
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "This session added a count subcommand and its tests. The durable project facts it touched (JSON note storage, the check command, delete index behavior) already have active claims. The new facts available here (count's behavior, NOTES_HOME use by tools/check.py) describe workspace file behavior but have no exact workspace path in the events' action.paths to declare as dependencies, so they are not ",
+   "operations": [],
+   "purpose": "extract_claims"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     40,
+     40,
+     44
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 18,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 354.3,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     61,
+     61,
+     68
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 14,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 332.7,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [],
+  "exact_observations": [
+   "An intentionally failing test was run before the implementation existed, then passed."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "The delete test fails.",
+   "Do not run the unit tests."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 23,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-14T16:48:32.423578Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-14T16:55:03.882589Z",
+   "events": 36,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev17-py3-none-any.whl",
+  "wheel_sha256": "e6234948dacd4a09923c190c25b593ebb0745bec581baa99917fbe87eae1decb"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 10.9,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 17.5,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.7,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.6,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_d48a942d-77cb-41df-8bd9-4ace29e2f031",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_b64bc473-e037-449d-b570-a9c1639d82ed"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c2",
+  "checks": {
+   "checks_pass": true,
+   "count_works": true,
+   "delete_works": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 312961,
+  "detours": 0,
+  "elapsed_seconds": 57.717,
+  "foreground_cost_usd": 0.151408,
+  "foreground_tokens": 322351,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 89843,
+    "reported_output_tokens": 5178,
+    "visible_output_estimate": 1528
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 99677,
+    "reported_output_tokens": 6636,
+    "visible_output_estimate": 1102
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 1,
+    "replies_parsed": 1,
+    "reported_input_tokens": 14490,
+    "reported_output_tokens": 2017,
+    "visible_output_estimate": 643
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 90292,
+    "reported_output_tokens": 4828,
+    "visible_output_estimate": 1148
+   }
+  },
+  "job_errors": {}
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: The project's checks are run with `python tools/check.py`."
+    },
+    {
+     "advice": "context",
+     "freshness": "needs_revalidation",
+     "text": "Fact: The fieldnotes store module keeps notes in a JSON file."
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: The fieldnotes CLI usage text lists `delete INDEX` alongside `add TEXT` and `list`."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "smoke-C2-fieldnotes-tdd-expected-red",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "NOTES_HOME=\"$(mktemp -d)\" python tools/check.py 2>&1 | tail -40",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "NOTES_HOME=\"$(mktemp -d)\" python tools/check.py 2>&1 | tail -20; echo \"exit=${PIPESTATUS[0]}\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.090385,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 37.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_07360b4195a196d2804e7586019f056f1997f266c6d7624841cb6d2b9d6276fb\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b109ff35b4228ff449501fd7ef7e99ca2f85dbd9e03e4866ae42e9f629f2789a\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_dd8e5c6beed7eb6fe78f1a9a72141c4f712d2142b3f4561de75db5c23c4b2742",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_62fbff0f51b58371949236b78bc197251976a9bedafadadadff8051ec62fb91c\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_7be5c505c7ad4326907bdd912d860ccfdc369c655fcd5a9aa3c0b567291c9b10\n- [context] Recent observation (not a durable lesson): Edit tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_c8eb1bae22c78ccba7b4aa89d54b22eceaeafad345723a52144f37bff166328d",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_acaa30e653835041dc40c6893a3fa4c175ca4f620ee90e296e80c32933b22f56\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_b9da0c04dd04e1a4c2a1db67b939636ddfa9a47d1315842fbc054bb601a25380",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_8b71a157f33dd7b8cd28bd83ba8a64ce1ee6a6787812fc5a00a068d9ea7202a9\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_d3ac1855203ba4cb35bb7745665d78bfbae8fd95896f4114ec1c475602564892",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 37.126,
+   "foreground_tokens": 175786,
+   "host_session_id": "4ed0ddc7-847e-4cf6-8704-f9a9ed619787",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`fieldnotes delete INDEX` now works, and `python tools/check.py` passes: 5 tests, the line-length check, exit 0.\n\n**Red:** before the implementation, the two store tests failed with `AttributeError: module 'fieldnotes.store' has no attribute 'delete'`. The CLI delete test failed with `2 != 0`, because `delete` was an unknown command. The bad-index CLI test already passed at that point, but only because unknown commands return 2.\n\n**Green:**\n- **`fieldnotes/store.py`:** `delete(index)` removes and returns the note at a 1-based index. It raises `IndexError` for an out-of-range index, including 0 and negatives, and leaves the file untouched in that case.\n- **`fieldnotes/cli.py`:** `delete INDEX` prints `deleted: <text>` and returns 0. A non-integer or out-of-range index prints an error to stderr and returns 1. I also pulled the usage string into a `USAGE` constant that now mentions `delete`.\n- **`tests/test_store.py`:** added the store and CLI tests, with delete behaviour covered at both levels.\n\nI used 1-based indices, but `list` doesn't print indices, so users can't see which number to pass. Numbering the `list` output would fix that, but it changes the existing output format, so I left it alone. Do you want me to add the numbering?",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": "ls -R fieldnotes tests tools; cat fieldnotes/__init__.py tools/check.py; ls",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat fieldnotes/cli.py fieldnotes/store.py tests/test_store.py README.md",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "python - <<'EOF'\nimport re\np='tests/test_store.py'\ns=open(p,encoding='utf-8').read()\ns=s.replace('''if __name__ == \"__main__\":''','''class CliCountTests(unittest.TestCase):\n    def setUp(self):\n        self.tmp = tempfile.TemporaryDirectory()\n        self.addCleanup(self.tmp.cleanup)\n        os.environ[\"NOTES_HOME\"] = self.tmp.name\n\n    def run_count(self):\n        with contextlib.redirect_stdout(io.StringIO()) as out:\n            code = cli.main([\"count\"])\n        return code, out.getvalue().strip()\n\n    def test_count_empty(self):\n        self.assertEqual(self.run_count(), (0, \"0\"))\n\n    def test_count_prints_number_of_notes(self):\n        store.add(\"a\")\n        store.add(\"b\")\n        self.assertEqual(self.run_count(), (0, \"2\"))\n\n\nif __name__ == \"__main__\":''')\nopen(p,'w',encoding='utf-8').write(s)\nEOF\nexport NOTES_HOME=$(mktemp -d); python tools/check.py 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "python - <<'EOF'\np='fieldnotes/cli.py'\ns=open(p,encoding='utf-8').read()\ns=s.replace('| delete INDEX\"','| delete INDEX | count\"')\ns=s.replace('''    if args[0] == \"delete\" and''','''    if args[0] == \"count\" and len(args) == 1:\n        print(len(store.load()))\n        return 0\n    if args[0] == \"delete\" and''')\nopen(p,'w',encoding='utf-8').write(s)\nEOF\nexport NOTES_HOME=$(mktemp -d); python tools/check.py 2>&1 | tail -8; echo exit=${PIPESTATUS[0]}",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.061023,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 20.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: TDD: add fieldnotes delete INDEX command. Objective: Using TDD: first write a failing unit test for a `delete INDEX` command, run it and show me it fails, then implement the command and make the checks pass.. Next: Await the user's decision on numbering the list output so delete indices are visible..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_54ebc1e5-acc7-4a39-b179-c9fa5db9509f r13\n- [context] Episode (settled): TDD: add fieldnotes delete INDEX command. Outcome: Added `fieldnotes delete INDEX` test-first. The first run of the project checks failed: `F.EE` with errors in test_delete_out_of_range_raises_and_keeps_notes and related delete tests, before `store.delete` and the CLI command existed. Likely cause (inferred): the new delete tests ran before the i [\u2026]. Unresolved: Whether to number the `list` output so users can see which index to pass to `delete`. Not done, because it changes th [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_38dd77fc-8436-4b77-94a3-a7a5209c8402 r2",
+     "degradations": [],
+     "items": 2,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: The project's checks are run with `python tools/check.py`.\n  why: lexical_match \u2014 matches project, checks, command\n  applies: true \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: depends on file README.md\n  sources: claim_2ff693d4-034b-43bf-91bf-8fd65fe6f697 r2; evt_dd8e5c6beed7eb6fe78f1a9a72141c4f712d2142b3f4561de75db5c23c4b2742\n- [context] Fact: The fieldnotes store module keeps notes in a JSON file.\n  why: lexical_match \u2014 matches notes; dependency_false; freshness_needs_revalidation\n  applies: true \u00b7 freshness: needs_revalidation \u00b7 basis: inferred\n  conditions: depends on file fieldnotes/store.py\n  sources: claim_6bbbd218-d413-48f9-ae9e-9994c9d91520 r2; evt_3985bba26d2bb63f1317e9bbbcdc0f4d2103e5787bdbef86f5b7b54bc16a530b\n- [context] Fact: The fieldnotes CLI usage text lists `delete INDEX` alongside `add TEXT` and `list`.\n  why: lexical_match \u2014 matches add\n  applies: true \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: depends on file fieldnotes/cli.py\n  sources: claim_c1c6d93a-e34b-472b-9150-2a3d039e07d2 r2; evt_d3ac1855203ba4cb35bb7745665d78bfbae8fd95896f4114ec1c475602564892",
+     "degradations": [],
+     "items": 3,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_96de552884ee55a0d5dcbf4d2d69082badd972717ff5d58336cae29f52e55244",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash `cat fieldnotes/cli.py fieldnotes/store.py tests/test_store.py README.md`: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_a31c8e623839736eb482ea36d40049ac0a2b556753daa6d2ea49d303ac74f8c8\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_c30b3a63608c4437dbd82c79df606c4364600cdc2086ddc3444f95756defcbde",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_8a076a882511172c6d1827dfb3e027ad044702c6f1ce57f8b763a460c00a1f1e",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 20.591,
+   "foreground_tokens": 146565,
+   "host_session_id": "782b5bb9-bc14-4f9a-ae6f-c9938b454915",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added a `count` command that prints the number of notes. `python tools/check.py` now passes: 7 tests, no line-length violations, exit 0.\n\n- **Command:** `fieldnotes count` is in `fieldnotes/cli.py`, and the usage text now lists it. With no notes it prints `0`.\n- **Tests:** I added `CliCountTests` to `tests/test_store.py`, covering an empty store and a store with two notes.\n- **Failing first:** I ran the new tests before implementing the command. Both failed with exit code 2 and empty output, then passed once `count` was in place.\n- **`NOTES_HOME`:** `tools/check.py` needs `NOTES_HOME` set, so I pointed it at a temporary directory for these runs.\n\nThe memory notes mention an unresolved question about numbering the `list` output so the indices for `delete` are visible. I left `list` unchanged.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "C2/c/w"
+}

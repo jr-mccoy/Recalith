@@ -807,3 +807,58 @@ The installed host had updated itself to 2.1.321, which the engine did not certi
 - **Fixed in this log:** the previous checkpoint's two paths had a carriage return in place of `\r` (`C:\Code\rl-…`).
 - **Checks (native Windows 11, Python 3.13.15):** `test_evaluation.py`, `test_sensitivity_trials.py`, `test_eval_harness.py`, `test_live_eval.py` and `test_sensitivity_scenarios.py` → 83 passed. Nothing in `src/` changed, so the release directory built at `23978e6` is still the engine under test.
 - **Next action:** the owner reruns the eleventh gate from the committed tree into a new directory, on the same pilot and release.
+
+### 2026-11-15 — The eleventh live gate (the owner's rerun): complete and clean; failed on useful recall by the owner's labels
+
+- **The run.** The owner reran `evals/run.py gate --mode live … --slots 6` into `C:\Code\rl-gate11b` from an ordinary window. It ran on repository `b7063b9` with a clean tree, the `0.1.0.dev17` release built at `23978e6`, the pilot `C:\Code\rl-pilot13` and Claude Code 2.1.321, from 16:48Z to 17:45Z on 2026-11-14 (57 minutes, with the sensitivity set). The run exited 8.
+- **Complete:**
+  - all 32 trials (24 smoke and 8 sensitivity) ran with no error, no contaminated arm and no suspension, and the host stayed at 2.1.321;
+  - the host refused no tool call this time;
+  - all three workload days ran at once (34, 38 and 28 calls), with no pool hit and no call at its output cap;
+  - **all five demonstrations were shown.** In forgetting and restore the forget purged 19 records, and nothing holding the limit was delivered or found in the store after the forget or after the restore;
+  - **cost:** foreground $1.71 over 48 sessions, background 191 model calls and 4,282,674 ledger tokens.
+- **Every measure that needs no labels is met:**
+  - incorrect confident guidance 0 of 12;
+  - conflict preservation 1/1 (R4);
+  - legitimate retries discouraged 0/2;
+  - irrelevant caution 0/3;
+  - routine human maintenance 0.
+- **Retrieval points:** 10/12, the same two misses as the ninth and tenth gates (L1 at B's session start, by design; R3 at C's prompt, decision 0036's stated limit).
+- **Outcomes, candidate/baseline:** the candidate succeeded in 12 of 12 and the baseline in 10 (L3 and R2 failed). Task success +0.17, 95 % interval 0 to 0.42, inconclusive. No superiority claim.
+- **The baseline-sensitivity set (decision 0049; not part of the gate).**
+  - The baseline repeated the named mistake in 4 of 4 and the candidate in 1 of 4 (S4). Task success: candidate 2, baseline 0.
+  - **S2's day check was wrong.** `plan_covers_seven_days` matched full day names only, and both arms failed it.
+    - The baseline's plan was a table with rows "| Mon |" to "| Sun |", as its kept price lines show.
+    - The candidate's reply describes its plan as "Mon 11/16 to Sun 11/22"; its file was not kept.
+    - The check now also accepts short names (decision 0049 item 8). This record keeps its score. The candidate's other two S2 checks passed, and the baseline's plan shows prices, so it fails either way.
+  - **S4: the user's frozen-format rule was never extracted.** After session A, the extraction returned no operation. It treated the user's request as "a task objective, not a durable preference or decision", and its user_declared rule "cannot be cited with the exact locator and SHA-256 digest required". Session B added a field to `notes.json`. This is recorded for the engine.
+- **Labels.** The method was the same as for the ninth and tenth gates:
+  - the suggestions were drafted in `adjudication.suggested.json` with `labels-to-review.md`;
+  - a packet without them (`review-packet.md`, untracked) went to an outside model with `review-prompt.md`;
+  - its answer is kept as `outside-review.json`, without the model's name.
+  - The two reviews agree on 31 of 33 items, including R2 #0 and L1 #1 as `evidence_absent`: in both, the failing command was never run.
+- **The owner decided the two differences, both as the outside review had them:**
+  - **L1 #0: `missed`** (this session's draft: recalled).
+    - `claim_0ecd8d0b` held the passing command (`PYTHONPATH=src … -m unittest discover -s tests -v`). It was admitted at revision 2 and delivered at B's prompt, and B used it on the first try (4 tests OK).
+    - B's edits to the claim's two dependency files, adding `close()` and its two tests, sent the claim to revalidation. The revision reworded it as a past event: "before the close() method and its two tests were added". The review returned `revise` ("Cited event does not show close() or its two tests were absent when the run occurred"; "piped through tail, so exit status is not captured").
+    - The claim ended a weak candidate (revision 6), and no admitted claim held the command at the end.
+    - The ninth gate's R1 #0 counted a demoted revision as recalled because an overlay had changed the file that lesson described. Here the command still worked.
+  - **C1 `claim_02d6decf`: `unsupported`** (draft: supported). The exact error text came from tool output that was not kept, and the `| tail` pipeline's exit 0 does not show the failure. This matches the owner's tenth-gate call on L4 `claim_893d18a9`.
+- **Recorded by the owner** with `tools/live_gate/label_gate.py`. The reviewer route is "the owner: two model reviews (the coding agent, an outside model), adopted where they agreed; L1 #0 and claim_02d6decf decided by the owner", not independent of SYSTEM_SPEC §7. The same labels on a scratch copy first gave the same result.
+- **The report:** exit 8, `failed`, reason `quality_targets_unmet:useful_recall`.
+
+  | Measure | Result | Target |
+  |---|---|---|
+  | supported precision | 24/25 (0.96; Wilson 95 % 0.80–0.99) | ≥ 0.95 — met |
+  | useful recall | 5/6 (0.83; Wilson 95 % 0.44–0.97) | ≥ 0.85 — **not met** |
+  | failed-approach recall | 1/1 (Wilson 95 % 0.21–1.0) | ≥ 0.90 — met |
+
+- **The engine finding that failed it: a recheck demotes a procedure that still works.**
+  - The agent's own ordinary edits to the files a test command depends on put the command up for revalidation.
+  - The revision then dated it as history instead of keeping it as a current procedure, and the stricter review rejected the dated wording, so the lesson left admitted memory.
+  - The same command also names the installation's runtime interpreter (`.recalith/runtime/0.1.0.dev17/venv/Scripts/python.exe`), which changes with every engine version. L1's candidate agent ran that interpreter after reading `.recalith/project.toml`.
+  - Both are for the next engine change.
+- **The checklist:** unchanged. `smoke_quality_gates` stays `passed` on the tenth gate, and the verdict stays `blocked` on Linux live, signing and the go-ahead. `FULL_RELEASE_AVAILABLE` is unchanged.
+- **The sanitized record** is [`docs/evaluations/preview-live-2026-11-14-gate11/`](../evaluations/preview-live-2026-11-14-gate11/report.md), with the suggestions, the recorded `adjudication.json`, the outside review and the regenerated report: 44 files. A scan by count found 0 user names, drive paths, keys, email addresses or model identifiers.
+- **Checks (native Windows 11, Python 3.13.15):** `test_sensitivity_scenarios.py` with `test_smoke_scenarios.py` → 76 passed (5 new cases for the day check: the gate's table shape, full names, plurals and short forms, a missing day, and words that only begin like a day). The whole `tests/unit` → 535 passed, 39 skipped. Nothing in `src/` changed.
+- **Next action:** an engine fix so that revalidation keeps a procedure that still works current after ordinary edits to its dependency files, and does not record the installation's runtime interpreter in a command. Then a new release and the twelfth gate.
