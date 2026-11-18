@@ -233,6 +233,101 @@ def test_revision_with_retry_condition_is_reviewed_then_current(p):
     assert final["status"] == "active" and final["freshness"] == "current"
 
 
+RUN_FACT = "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root ran 2 tests with an OK result."
+AS_HISTORY = RUN_FACT[:-1] + ", before the close() method and its two tests were added."
+
+
+def guidance_revised_then(p, verdict: str, objections=("Cited event does not show close() or its two tests were absent when the run occurred.",)):
+    """The eleventh live gate's L1 (decision 0051): an admitted fact with a file dependency; an ordinary edit of the file;
+    revalidation rewords the fact as history; the reworded revision's own review returns ``verdict``."""
+    fact = cs.fact(p, RUN_FACT, subject="ledgerlite tests", predicate="run_command", dependencies=[{"kind": "file", "key": cs.DEP, "fingerprint": None, "record": None}])
+    admitted = cs.head(p, fact)
+    edit = cs.write(p, "edit")
+    (job,) = cs.jobs_of(p, claim_id=fact, states=("pending",))
+    _request, result = cs.run_revalidation(p, job.job_id, lambda r: [OP("hist", "revise_claim", {"claim_ref": cs.ref(p, fact), "proposition": AS_HISTORY}, target=cs.ref(p, fact), evidence=[cs.link(edit, relation="context")])])
+    assert decisions(result) == [("candidate_only", "revision_pending_review")]
+    revised = cs.head(p, fact)
+    assert (revised["status"], revised["strength"], revised["proposition"]) == ("candidate", "weak", AS_HISTORY)
+    (review_job,) = adm.review_jobs(p, fact, states=("pending",))
+
+    def decide(request):
+        batch, ref = request.review_batch, request.review_batch.candidate_refs[0]
+        body = next(c for c in request.claims if c.claim_id == ref.id).model_dump(mode="json")
+        cited = adm.support_ids(batch, body)[:1] if verdict == "supported" else []
+        return [adm.assess(batch, ref, verdict, local_ref="v", objections=list(objections), evidence_ids=cited)]
+
+    _request, reviewed = adm.run_review(p, review_job.job_id, decide)
+    return fact, admitted, revised, reviewed
+
+
+@pytest.mark.parametrize("verdict, outcome", [("revise", "review_revise"), ("reject", "review_rejected")])
+def test_a_revision_of_guidance_that_fails_its_review_restores_the_guidance(p, verdict, outcome):
+    """Decision 0051: the reviewed guidance a revision replaced comes back when the revision's own review does not
+    support it, labeled needs_revalidation (no caution), with its next review a full period away."""
+    fact, admitted, revised, reviewed = guidance_revised_then(p, verdict)
+    assert decisions(reviewed) == [("apply", outcome)]
+    head = cs.head(p, fact)
+    assert (head["status"], head["proposition"], head["freshness"]) == ("active", RUN_FACT, "needs_revalidation")
+    assert head["strength"] == admitted["strength"] == "supported"
+    assert head["supports"] == admitted["supports"] and head["dependencies"] == admitted["dependencies"]
+    assert head["review_assessment"] == admitted["review_assessment"]  # the review that admitted this content
+    assert head["review_due_at"] > later(29 * 86400)  # not due now: the failed revision does not loop
+    assert cs.advice(p, fact).advice == "context"  # delivered with its freshness label, never as caution
+    # History keeps the reworded revision and the verdict on it.
+    with p.view() as v:
+        failed = records.body(v, "claim", fact, head["revision"] - 1)
+    assert failed["proposition"] == AS_HISTORY and failed["review_assessment"]["verdict"] == verdict
+    assert failed["status"] == ("archived" if verdict == "reject" else "candidate")
+    assert head["revision"] == revised["revision"] + 2
+    assert cs.jobs_of(p, claim_id=fact, states=("pending",)) == []  # nothing re-queued: no revalidation loop
+
+
+def test_a_failure_lesson_whose_retry_revision_fails_review_returns_without_caution(p):
+    """Decision 0051 (the ninth gate's R1): after a later success, a retry-condition revision that its review does not
+    support gives the lesson back as context only; a restore is not the reviewed retry condition caution needs."""
+    lesson = cs.lesson(p)
+    admitted = cs.head(p, lesson)
+    assert cs.advice(p, lesson).advice == "caution"
+    ok = cs.success(p, "fixed")
+    (job,) = cs.jobs_of(p, claim_id=lesson, states=("pending",))
+    retry = {"text": "A rerun passes once the fixture provides the value.", "evidence": [cs.link(ok)], "basis": "inferred"}
+    cs.run_revalidation(p, job.job_id, lambda r: [OP("rev", "revise_claim", {"claim_ref": cs.ref(p, lesson), "retry_conditions": [retry]}, target=cs.ref(p, lesson))])
+    (review_job,) = adm.review_jobs(p, lesson, states=("pending",))
+    _r, reviewed = adm.run_review(p, review_job.job_id, lambda r: [adm.assess(r.review_batch, r.review_batch.candidate_refs[0], "revise", local_ref="v", objections=["The success does not show why the rerun passed."])])
+    assert decisions(reviewed) == [("apply", "review_revise")]
+    head = cs.head(p, lesson)
+    assert (head["status"], head["freshness"], head["failure"]["retry_conditions"]) == ("active", "needs_revalidation", [])
+    assert head["supports"] == admitted["supports"] and [l["ref"]["id"] for l in head["context"]] == [ok["id"]]  # the counter-observation stays
+    assert cs.advice(p, lesson).advice == "context"
+    assert {(r["reason"], r["state"]) for r in cs.rechecks(p, lesson)} == {("later_success", "cleared")}
+
+
+def test_a_revision_of_guidance_left_unreviewed_at_the_retry_limit_restores_the_guidance(p):
+    """Decision 0051: a revision whose review never returns a verdict (capacity, past the bounded retries) is not
+    reviewed at all, so the guidance it replaced comes back, audited as a deterministic restore."""
+    from recalith.controller import review
+
+    fact, admitted, _revised, reviewed = guidance_revised_then(p, "reject", objections=(review.CAPACITY,))
+    for _ in range(review.REVIEW_RETRY_LIMIT):
+        assert cs.head(p, fact)["status"] == "candidate"
+        (retry,) = adm.review_jobs(p, fact, states=("pending",))
+        adm.run_review(p, retry.job_id, lambda r: [adm.assess(r.review_batch, r.review_batch.candidate_refs[0], "reject", local_ref="v", objections=[review.CAPACITY])])
+    assert adm.outcomes(p, fact)[-1] == ("deferred", "review_retry_limit")
+    head = cs.head(p, fact)
+    assert (head["status"], head["proposition"], head["freshness"]) == ("active", RUN_FACT, "needs_revalidation")
+    assert head["review_assessment"] == admitted["review_assessment"]
+    assert p.count("SELECT COUNT(*) FROM operations WHERE kind = 'restore_guidance'") == 1
+    assert adm.review_jobs(p, fact, states=("pending",)) == []
+
+
+def test_a_supported_revision_of_guidance_replaces_it(p):
+    """Decision 0051 leaves the supported path as it was: the reviewed revision becomes the guidance."""
+    fact, _admitted, _revised, reviewed = guidance_revised_then(p, "supported", objections=())
+    assert decisions(reviewed) == [("apply", "review_supported")]
+    head = cs.head(p, fact)
+    assert (head["status"], head["proposition"]) == ("active", AS_HISTORY)
+
+
 def test_keep_settles_only_what_the_result_read(p):
     """§7.3: pending revalidation clears only through a result whose read set holds the observation and current revision."""
     lesson = cs.lesson(p)
@@ -778,20 +873,27 @@ def test_source_conflict_suspends_dependent_guidance(p):
 
 
 def test_revalidate_prompt_is_versioned_package_data():
-    """Decisions 0012, 0032 and 0039: revalidate@1, @2 and @3 are the shipped revalidate_v1.md, _v2.md and _v3.md, pinned by
-    golden digests."""
+    """Decisions 0012, 0032, 0039 and 0051: revalidate@1 to @4 are the shipped revalidate_v1.md to _v4.md, pinned by golden
+    digests."""
     from importlib import resources
 
     text = (resources.files("recalith.prompts") / "revalidate_v1.md").read_text(encoding="utf-8")
     assert prompts.INSTRUCTIONS["revalidate@1"].startswith(text.strip().splitlines()[0])
     assert prompts.prompt_digest("revalidate@1") == GOLDEN_REVALIDATE  # still served to jobs that pinned it
     assert prompts.prompt_digest("revalidate@2") == GOLDEN_REVALIDATE_2
-    assert prompts.CURRENT["revalidate"] == "revalidate@3" and prompts.prompt_digest("revalidate@3") == GOLDEN_REVALIDATE_3
+    assert prompts.prompt_digest("revalidate@3") == GOLDEN_REVALIDATE_3
+    assert prompts.CURRENT["revalidate"] == "revalidate@4" and prompts.prompt_digest("revalidate@4") == GOLDEN_REVALIDATE_4
     assert "its contradicts links" in prompts.INSTRUCTIONS["revalidate@2"] and "contradicts links" not in prompts.INSTRUCTIONS["revalidate@1"]
     v2, v3 = prompts.INSTRUCTIONS["revalidate@2"], prompts.INSTRUCTIONS["revalidate@3"]
     assert v3.startswith(v2.removesuffix(" " + prompts._COMMON)) and "a revise_claim payload has no evidence or supersedes" in v3 and "payload.path" in v3
+    # @4 is @3 plus exactly one paragraph, before the rule on declared decisions (decision 0051).
+    v4, anchor = prompts.INSTRUCTIONS["revalidate@4"], "Never retire a user's declared decision or preference:"
+    added = v4.split(anchor)[0].removeprefix(v3.split(anchor)[0])
+    assert v4 == v3.replace(anchor, added + anchor) and added.startswith("A changed dependency is a reason to look again") and added.endswith("\n")
+    assert "Never reword a current fact or procedure into history" in added and "A failure lesson's failure stays true as history" in added
 
 
 GOLDEN_REVALIDATE = "46204936095a76e2179f33ad934d929132305d05777f904a4955cbb33457a525"
 GOLDEN_REVALIDATE_2 = "73da3f915be8ddd7cd0c309a12421b2efae951ced93baecdce8976bfb188a815"
 GOLDEN_REVALIDATE_3 = "72e6c6bda1986edd9e5a183c8c965693578c49c6f3b90d2d8ddfc0802e36a5fe"
+GOLDEN_REVALIDATE_4 = "a05b9db7a149057fb1e7bc75fcc433026517035c1ebd73b855fb44ea701407b9"

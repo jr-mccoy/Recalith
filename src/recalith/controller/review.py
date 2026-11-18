@@ -269,6 +269,7 @@ def schedule(txn: Any, ctx: InstallationContext, queued: Sequence[Queued], *, or
     batches, deferred = partition(txn, ctx, [c for _q, c in claims])
     for claim in deferred:
         record_outcome(txn, claim_id=claim.claim_id, revision=claim.revision, batch_id=None, review_job_id=None, outcome="deferred", reason="review_input_oversized", now=now, key="deferred")
+        _restore(txn, ctx, claim.claim_id, reason="review_input_oversized", now=now)
     by_id = {c.claim_id: q for q, c in claims}
     created: list[str] = []
     for index, batch in enumerate(batches):
@@ -423,9 +424,19 @@ def _retry_unjudged(txn: Any, ctx: InstallationContext, scope: ReviewScope, *, n
         (count,) = txn.execute(f"SELECT COUNT(*) FROM review_outcomes WHERE claim_id = ? AND outcome IN ({marks})", (ref.id, *RETRYABLE_OUTCOMES)).fetchone()  # noqa: S608
         if count > REVIEW_RETRY_LIMIT:
             record_outcome(txn, claim_id=ref.id, revision=claim.revision, batch_id=scope.batch.batch_id, review_job_id=job_id, outcome="deferred", reason="review_retry_limit", now=now, key="retry_limit")
+            _restore(txn, ctx, ref.id, reason="review_retry_limit", now=now)
             continue
         queued = Queued(ref=records.ref_of(claim), claim_kind=claim.kind, basis=claim.basis, origin=origin or "extracted")
         schedule(txn, ctx, [queued], origin_job_id=origin_job_id, submission_id=None, now=now, retry_of=job_id)
+
+
+def _restore(txn: Any, ctx: InstallationContext, claim_id: str, *, reason: str, now: str) -> None:
+    """A revision of guidance that will not be reviewed gives the guidance back (decision 0051)."""
+    from recalith.controller import revalidate  # deferred: revalidate's restore builds on admission
+
+    owed = revalidate.restore_unreviewed(txn, ctx, claim_id, reason=reason, now=now)
+    if owed:
+        revalidate.enqueue(txn, owed, now=now)
 
 
 def outcomes(view: Any, claim_id: str) -> list[dict[str, Any]]:

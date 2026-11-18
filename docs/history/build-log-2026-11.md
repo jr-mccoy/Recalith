@@ -862,3 +862,25 @@ The installed host had updated itself to 2.1.321, which the engine did not certi
 - **The sanitized record** is [`docs/evaluations/preview-live-2026-11-14-gate11/`](../evaluations/preview-live-2026-11-14-gate11/report.md), with the suggestions, the recorded `adjudication.json`, the outside review and the regenerated report: 44 files. A scan by count found 0 user names, drive paths, keys, email addresses or model identifiers.
 - **Checks (native Windows 11, Python 3.13.15):** `test_sensitivity_scenarios.py` with `test_smoke_scenarios.py` → 76 passed (5 new cases for the day check: the gate's table shape, full names, plurals and short forms, a missing day, and words that only begin like a day). The whole `tests/unit` → 535 passed, 39 skipped. Nothing in `src/` changed.
 - **Next action:** an engine fix so that revalidation keeps a procedure that still works current after ordinary edits to its dependency files, and does not record the installation's runtime interpreter in a command. Then a new release and the twelfth gate.
+
+### 2026-11-18 — A failed revision gives the guidance back (`0.1.0.dev18`, decision 0051)
+
+The eleventh gate failed on useful recall because of one claim, L1's working test command.
+- **What happened:** an ordinary edit of the claim's dependency files sent it to revalidation. Revalidation reworded it as history, and the reworded revision's review returned `revise`.
+- **Why it was lost:** a `revise_claim` revision is a candidate that replaces the head, and decision 0011's verdict effects then leave it a candidate (on `revise`) or archive it (on a substantive `reject`). The admitted content the revision replaced was lost with it. The ninth gate's R1 lost a failure lesson the same way.
+
+- **Reproduced first:** `test_a_revision_of_guidance_that_fails_its_review_restores_the_guidance` follows L1's sequence: an admitted fact with a file dependency, an ordinary write of the file, revalidation rewording it as history, and the revision's review. Before the fix it failed on both verdicts. `revise` left the reworded candidate, and `reject` archived the claim.
+- **The fix (`controller/revalidate.py`, `apply.py`, `review.py`):** when a revision of live guidance is not supported, the guidance it replaced is restored. That covers:
+  - a `revise` verdict or a substantive `reject`;
+  - a revision deferred unreviewed (oversized, or past the retry limit).
+  - **What comes back:** the guidance revision's status, content and admitting review, as the next revision.
+  - **How it is labeled:** `needs_revalidation`, so context and never caution; its next review a full period away, so no loop; strength from lineage, behind the activation gate.
+  - **History:** the failed revision and its verdict stay in history.
+  - **Unchanged:** a supported revision still replaces the guidance, and a candidate that was never guidance keeps decision 0011's effects.
+- **`revalidate@4`:** `@3` plus one paragraph. A changed dependency is a reason to look, not evidence against a claim. Keep a fact or procedure that still holds after the change, revise only a detail that changed, and never reword current guidance into history. A failure lesson's failure stays true as history. New revalidation jobs pin it.
+- **Also:** the `tools-used` comment in `claude_capture.py` now says the record is written between model requests (decision 0050's correction). DATA_CONTRACTS §5 and §8 name the restore. The engine is `0.1.0.dev18`.
+- **Not changed (decision 0051, "Found, not changed"):**
+  - **L1's remembered command named Recalith's own runtime interpreter.** It stays usable in the preview: old runtimes are never deleted, and in-place upgrade is not available. Restating such a command without the path would invite the review's exactness objections.
+  - **S4's unextracted user rule** is about extraction, which this change does not touch.
+- **Checks (native Windows 11, Python 3.13.15; `--basetemp=C:/t/<one letter>`, because a longer base put three evaluation tests' transcript paths over 260 characters):** `test_consolidation.py` (6 new: both failed verdicts, R1's failure lesson, the retry limit, the supported path; the `revalidate@4` golden digest), `test_claim_admission.py`, `test_requests.py`, `test_claude_adapter.py`, `test_operations.py`, `test_retrieval.py`, `test_evaluation.py`, `test_sensitivity_trials.py`, `test_eval_harness.py` and `test_live_eval.py` → 317 passed, 3 skipped (platform). `test_worker.py`, `test_forgetting.py`, `test_retention.py` and `test_delivery.py` → 245 passed, 2 skipped (platform). `ruff --select F,E9,B` clean; `tools/release_checklist.py` → no problems, verdict `blocked`.
+- **Next action:** the coding agent builds the `0.1.0.dev18` release directory from the committed tree; the owner provisions a fresh pilot from it (OPERATIONS §4, native Windows) and runs the twelfth gate.

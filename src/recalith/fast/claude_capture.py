@@ -507,8 +507,8 @@ def context_output(hook_event: str, text: str, *, notice: str | None = None) -> 
 
 # Record types observed in 2.1.301 transcripts that carry nothing the hooks do
 # not already capture (or that hold host request blobs); they are skipped.
-# ``tools-used`` (2.1.321, decision 0050) lists the tool names a session used before a compaction summary; the hooks
-# already captured every one of those calls.
+# ``tools-used`` (2.1.321, decision 0050) lists the tool names a session has used so far, written between model
+# requests; the hooks already captured every one of those calls.
 KNOWN_TRANSCRIPT_TYPES = frozenset({
     "user", "assistant", "system", "summary", "attachment", "queue-operation", "atis-latch", "api-request-shape",
     "api-request-blob", "api-request", "last-prompt", "cost-state", "tools-used",

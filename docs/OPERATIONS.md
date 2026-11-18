@@ -1,6 +1,6 @@
 # Operating a Recalith installation (Claude autonomous preview)
 
-Engine `0.1.0.dev17` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
+Engine `0.1.0.dev18` · release profile `claude_preview` · status: **live smoke gate passed on native Windows (2026-11-04, on `0.1.0.dev10`; to be re-run on the fixed engine, [audit](audits/2026-11-06-memory-system-audit.md))**; not released · platforms: Windows certified, Linux pending, macOS not certified ([decision 0041](decisions/0041-preview-platforms-windows-and-linux.md)) · license: GPL-3.0-only ([decision 0042](decisions/0042-gpl-3-license.md)).
 
 This guide is for the person who owns one project's installation. Every project has its own complete installation under `.recalith/` (engine pin, configuration, worker, store, evidence, jobs, budgets). Nothing is shared between projects, and there is no global registry or daemon. The normative behavior is in [SYSTEM_SPEC](SYSTEM_SPEC.md) and [DATA_CONTRACTS](DATA_CONTRACTS.md); this guide tells you which parts run by themselves, which run in a fallback, and which do not exist in this build.
 
@@ -69,7 +69,7 @@ Administrative commands are refused inside an agent's process tree, even with a 
 ### Linux
 
 ```bash
-RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev17
+RELEASE=/path/to/recalith-release; PROJECT=/path/to/your/project; VERSION=0.1.0.dev18
 REPO=/path/to/Recalith            # a checkout of the repository: the probes and your probe configuration live there
 WHEEL="$RELEASE/recalith-$VERSION-py3-none-any.whl"
 DIGEST=$(grep " recalith-$VERSION-py3-none-any.whl$" "$RELEASE/SHA256SUMS" | cut -d' ' -f1)
@@ -101,7 +101,7 @@ uv run python tools/probe_delivery.py --config probe-private/local-config.json -
 ### Native Windows (PowerShell)
 
 ```powershell
-$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev17"
+$Release = "C:\Code\recalith-release"; $Project = "C:\Code\project"; $Version = "0.1.0.dev18"
 $Repo = "C:\Code\Recalith"           # a checkout of the repository with its .venv: the probes and your probe configuration live there
 $Wheel = "$Release\recalith-$Version-py3-none-any.whl"
 $Digest = (Select-String -Path "$Release\SHA256SUMS" -Pattern " recalith-$Version-py3-none-any.whl$").Line.Split(' ')[0]

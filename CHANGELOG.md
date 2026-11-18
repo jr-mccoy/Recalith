@@ -2,6 +2,10 @@
 
 Engine versions of the `claude_preview` profile, newest first. Every entry names the decision record that carries the full reasoning, tests and limits (`docs/decisions/`). No version below is released; see `docs/release/claude_preview_checklist.json` for what the release waits on.
 
+## 0.1.0.dev18 (2026-11-18) — a failed revision gives the guidance back
+
+Decision 0051. The eleventh live gate failed on useful recall because of one claim, the working test command. An ordinary edit of the files it depends on sent it to revalidation, which reworded it as history, and the review rejected the rewording. Under the old rules the claim was then left a weak candidate. A revision of live guidance that its review does not support (`revise`, a substantive `reject`), or that is never reviewed (too large, or past its retries), now restores the guidance it replaced. The claim keeps its content and admitting review, labeled `needs_revalidation` (context, never caution), with its next review a full period away. A supported revision still replaces the guidance. Revalidation pins `revalidate@4`, which keeps a fact or procedure that still holds after a change and never rewords it into history.
+
 ## 0.1.0.dev17 (2026-11-14) — Claude Code 2.1.321
 
 Decision 0050. Claude Code 2.1.321 is capture-certified after a review against 2.1.310: the same hook fields and types. Compaction may run a second summary subagent, and transcripts add a `tools-used` record that the transcript supplement now skips instead of reporting as a gap. Its live delivery certification is the next fresh pilot's.

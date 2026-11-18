@@ -562,6 +562,8 @@ def _assess_claim(run: _Run, op: ProposedOperation, typed: AssessClaimPayload, c
     elif typed.verdict == "reject" and not capacity:
         data["status"] = "archived"  # not admitted; archiving asserts no falsity
         revalidate.withdraw_supersessions(run.txn, typed.candidate_ref.id, now=run.now)
+    # A revision of guidance that this review does not support gives the guidance it replaced back (decision 0051).
+    replaced = None if typed.verdict == "supported" or capacity else revalidate.revised_guidance(run.txn, typed.candidate_ref.id, revision)
     applied = []
     for target_id, target_revision in targets:
         head = records.head(run.txn, "claim", target_id)
@@ -573,6 +575,9 @@ def _assess_claim(run: _Run, op: ProposedOperation, typed: AssessClaimPayload, c
             run.revalidate_claims.update({target_id, typed.candidate_ref.id})
     _strength(run, data)
     ref = _write_claim_revision(run, revision, data, change)
+    if replaced is not None and (back := revalidate.restored(run.txn, replaced, data, now=run.now)) is not None:
+        deferred = revalidate.apply_deferred(run.txn, typed.candidate_ref.id, back, now=run.now)
+        ref = _write_claim_revision(run, ref.revision, back, change)
     for target_id in applied:
         # The explicit replacement and its target's supersession commit together, with the activation.
         t_rev, t_data = _head_body(run.txn, "claim", target_id)

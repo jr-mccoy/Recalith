@@ -325,6 +325,81 @@ def promote_deferred(txn: Txn, rows: Sequence[dict[str, Any]], *, revision: int,
 
 
 # --------------------------------------------------------------------------
+# A revision of guidance that its review does not support (decision 0051)
+
+# What a revision may change, and the review that admitted it: these come back from the guidance it replaced. Its
+# kind, basis, context, contradictions and relations stay as the head has them.
+RESTORED = ("status", "proposition", "proposition_key", "scope", "conditions", "dependencies", "supports", "failure", "procedure", "review_assessment",
+            "review_class", "last_supported_at", "evidence_availability", "effective_from", "effective_until", "model_provenance")
+RESTORE_REF = "@restore"
+RESTORE_KIND = "restore_guidance"
+
+
+def revised_guidance(q: Any, claim_id: str, revision: int) -> dict[str, Any] | None:
+    """The live guidance that the unreviewed revisions at and before ``revision`` replaced, or None.
+
+    Only ``revise_claim`` turns guidance into a candidate (its altered content is reviewed again), so walking back
+    over candidate revisions to an ``active`` or ``disputed`` one finds the reviewed content it replaced. A claim that
+    was a candidate from its first revision, one retired meanwhile, or one whose earlier body is no longer available
+    has none.
+    """
+    while revision >= 1:
+        body = records.body(q, "claim", claim_id, revision)
+        if body is None:
+            return None
+        if body["status"] in GUIDANCE:
+            return body
+        if body["status"] != "candidate":
+            return None
+        revision -= 1
+    return None
+
+
+def restored(q: Any, guidance: Mapping[str, Any], head: Mapping[str, Any], *, now: str) -> dict[str, Any] | None:
+    """The replaced guidance as the head's next revision, or None when it may not be guidance now.
+
+    Its reviewed content and status come back labeled ``needs_revalidation``: the change that prompted the revision is
+    still unexamined, so it is context, never caution. Its next review is a full period away, so a revision that
+    keeps failing its review cannot loop; rechecks recorded while it was a candidate are folded in (the caller
+    promotes them). It must pass the activation gate a supported review would apply.
+    """
+    from recalith.controller import admission  # deferred: admission builds on this module
+
+    data = dict(head)
+    data["revision"] = head["revision"] + 1
+    data["recorded_at"] = now
+    for name in RESTORED:
+        data[name] = guidance.get(name)
+    data["freshness"] = "needs_revalidation"
+    data["review_due_at"] = format_utc(policy.review_due(parse_utc(now), data["review_class"]))
+    if admission.activation_refusal(q, data) is not None:
+        return None
+    data["strength"] = admission.assign_strength(q, data)
+    if data.get("contradicts") and data["strength"] == "corroborated":
+        data["strength"] = "supported"  # corroboration requires no unresolved contradiction
+    return data
+
+
+def restore_unreviewed(txn: Txn, ctx: InstallationContext, claim_id: str, *, reason: str, now: str) -> list[str]:
+    """A candidate revision of guidance that will not be reviewed (oversized, or past its retry limit) gives the
+    guidance back, as one audited deterministic revision; returns the claims that now owe a revalidation."""
+    head = records.head(txn, "claim", claim_id)
+    if head is None or head[1] != "candidate":
+        return []
+    body = records.body(txn, "claim", claim_id, head[0])
+    guidance = revised_guidance(txn, claim_id, head[0])
+    data = None if body is None or guidance is None else restored(txn, guidance, body, now=now)
+    if data is None:
+        return []
+    deferred = apply_deferred(txn, claim_id, data, now=now)
+    ref = records.write_claim(txn, ClaimRevision.model_validate_json(json.dumps(data)))
+    _audit(txn, ctx, scope=f"{claim_id}:{head[0]}", kind=RESTORE_KIND, local_ref=RESTORE_REF, inputs={"claim_id": claim_id, "reason": reason, "restored_revision": guidance["revision"]},
+           changed=[{"ref": ref.model_dump(mode="json"), "before": head[0]}], causal_root=None, now=now)
+    txn.mutated(serving_relevant=True)
+    return promote_deferred(txn, deferred, revision=ref.revision, now=now)
+
+
+# --------------------------------------------------------------------------
 # Revalidation jobs
 
 
