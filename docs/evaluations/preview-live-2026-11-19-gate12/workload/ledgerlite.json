@@ -1,0 +1,798 @@
+{
+ "authorship": "synthetic representative day from seeded templates (evals/workload.py), coding agent; not a recorded real session",
+ "budget": {
+  "backlog": {
+   "jobs": 0,
+   "kinds": [],
+   "oldest_age_seconds": 0.0
+  },
+  "exhausted_at": null,
+  "exhausted_at_hours": null,
+  "pools_hit": [],
+  "priority_inversions": 0,
+  "wait_seconds": {
+   "correction_declaration_review": [
+    1.0
+   ],
+   "ordinary": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    2.0,
+    4.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0,
+    0.0,
+    0.0,
+    2.0,
+    3.0
+   ],
+   "ordinary_review": [
+    1.0
+   ]
+  }
+ },
+ "budgets": "default (ProjectConfig defaults; UTC day never reset)",
+ "curation": {
+  "admitted_claims": 3,
+  "calls": 34,
+  "calls_by_purpose": {
+   "build_episode": 8,
+   "extract_claims": 18,
+   "review_claims": 2,
+   "update_task": 6
+  },
+  "calls_per_admitted_claim": 11.333,
+  "calls_per_settled_episode": 4.857,
+  "estimated_tokens_by_purpose": {
+   "build_episode": 172108,
+   "extract_claims": 347636,
+   "review_claims": 9155,
+   "update_task": 105131
+  },
+  "processing": {
+   "note": "real provider call durations; queue wait is on the virtual clock",
+   "real_seconds": {
+    "max": 16.703,
+    "n": 34,
+    "p50": 6.977,
+    "p95": 13.848
+   }
+  },
+  "proposals": [
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     },
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim",
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     },
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim",
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The events show no user declaration. The new runs are session-specific tool results, and the durable bare-run failure is already recorded in claim_a56fcacc. The 'Ran 4 tests' run does not contradict the existing 'Ran 9 tests' claim, which is an existential statement about one recorded run.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable content is already covered by existing claims. The new results are one failing and one passing test run, and the user's statement is a task objective rather than a project rule, decision or preference.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session edited one file body and ran the suite with PYTHONPATH=src (2 tests, OK). No durable user declaration, decision, preference, or failure lesson was stated, and the test run is already covered by existing claims.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     },
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task",
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "This session only shows repeated runs of the PYTHONPATH=src unittest command, an Edit to src/ledgerlite/money.py, and a task objective. None of the events state a durable project fact, decision or preference, and the existing claims already cover the recorded run results. The boundary is left pending.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Narrative fields are unchanged: the title is already set, the plan, constraints and open questions are empty, and the last run's 3-test OK does not clearly show the non-positive rejection was implemented, so completion is not supported yet.",
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session implemented a task-scoped change with transient test failures; no user-declared rule, decision, or stable project condition was stated, and the failure details are superseded by the later run and not durable project knowledge.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's events show a failing and then a passing unittest run and edits to src/ledgerlite/money.py. The passing run has no exact argv or exit code, and the user's only statement is the task objective. Nothing durable and cleanly citable was stated, so no claim is proposed.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session shows only a task objective to add money.py and tests. It has one failing test run that a later Edit and passing run overtook, and no user declaration of a rule, decision, preference or stable project fact. The failure is transient and the observed-result mappings do not apply, so no durable claim is supported.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's events show an in-progress refactor: one Bash test run exited 1 with an AssertionError in test_transfer, and the session then read files and made an edit. The events don't establish a cause or a durable project fact, and the existing claims already cover the unit test commands.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The only new durable-looking result is one Bash test run that exited 1 mid-refactor. Its argv is unparsed, so no exact observed claim can be worded, and the cause of the failure is not shown. The user's objective is only available through a task field whose source event is not in allowed_evidence_refs, so it cannot be cited.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The episode records a task objective and test runs for an in-progress refactor, but no durable project rule, decision, preference or procedure was stated. The test failures were resolved within the session, and the cause is only inferred. The 'Ran 5 tests' result does not contradict the existing 'recorded run' claim.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's events are tool reads and edits plus one failing test run whose command was not parsed. They record an in-progress refactor state, not a durable project fact, and the only user objective is not among the allowed evidence refs. The existing run claims already cover the stored test results.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable content is the task objective and a single failed-then-passing test run, which is already covered by existing claims or is task-scoped. The failure cause is inferred, and the recorded exit status has no exact argv, so no new project-level claim is well supported.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "propose_claim",
+      "outcome": "candidate_only",
+      "reason": "candidate_pending_review"
+     }
+    ],
+    "operations": [
+     "propose_claim"
+    ],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "assess_claim",
+      "outcome": "apply",
+      "reason": "review_supported"
+     }
+    ],
+    "operations": [
+     "assess_claim"
+    ],
+    "purpose": "review_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The events show only a session start, a failing bare unittest run already covered by an existing claim, a PYTHONPATH=src run already covered by an existing claim, and session end. The user's only stated intent is the task objective, which is task state rather than durable project knowledge.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "update_task",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "update_task"
+    ],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's durable project facts (Decimal amounts, the PYTHONPATH=src test run and bare unittest failure) are already recorded as claims. The session's other content is a one-off task objective and a test-first edit cycle with no user-stated lasting rule, and its failed run is a stub-implementation test failure, not a general lesson.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session's events show only a transient, in-progress task (adding Ledger.report()), one failing and one passing unittest run, and an Edit. None records a durable project rule, decision, preference or stable project condition, and the user's objective is task-specific rather than a project-wide statement.",
+    "operations": [],
+    "purpose": "extract_claims"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [
+     {
+      "kind": "revise_episode",
+      "outcome": "apply",
+      "reason": "admitted"
+     }
+    ],
+    "operations": [
+     "revise_episode"
+    ],
+    "purpose": "build_episode"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "Title already matches the user-declared objective, and no plan, constraints, open questions or next action are evidenced. The task is not marked completed, and the pending session boundary is left pending.",
+    "operations": [],
+    "purpose": "update_task"
+   },
+   {
+    "applied": true,
+    "body_retained": true,
+    "decisions": [],
+    "no_op_reason": "The session was a single task edit and one test run; the user's message states a task objective, not a durable rule, decision or preference. The recorded run shows 4 tests where the existing claim records a different run of 9, which does not contradict that earlier recorded result, and the event lacks assertions for an observed claim.",
+    "operations": [],
+    "purpose": "extract_claims"
+   }
+  ],
+  "provider_outcomes": {
+   "by_purpose": {
+    "build_episode": {
+     "at_output_cap": 0,
+     "calls": 8,
+     "replies_parsed": 8,
+     "reported_input_tokens": 265043,
+     "reported_output_tokens": 15799,
+     "visible_output_estimate": 4758
+    },
+    "extract_claims": {
+     "at_output_cap": 0,
+     "calls": 18,
+     "replies_parsed": 18,
+     "reported_input_tokens": 518450,
+     "reported_output_tokens": 22537,
+     "visible_output_estimate": 2628
+    },
+    "review_claims": {
+     "at_output_cap": 0,
+     "calls": 2,
+     "replies_parsed": 2,
+     "reported_input_tokens": 12737,
+     "reported_output_tokens": 2253,
+     "visible_output_estimate": 486
+    },
+    "update_task": {
+     "at_output_cap": 0,
+     "calls": 6,
+     "replies_parsed": 6,
+     "reported_input_tokens": 161981,
+     "reported_output_tokens": 8960,
+     "visible_output_estimate": 2213
+    }
+   },
+   "job_errors": {
+    "update_task:coalesced": 1
+   }
+  },
+  "queue_wait_seconds": {
+   "max": 4.0,
+   "n": 34,
+   "p50": 0.0,
+   "p95": 3.0
+  },
+  "settled_episodes": 7
+ },
+ "deliveries": {
+  "S1": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S2": [
+   "session_start:emitted",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S3": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S4": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:none"
+  ],
+  "S5": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "compact_restore:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none",
+   "pre_action:none"
+  ],
+  "S6": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ],
+  "S7": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S8": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted",
+   "pre_action:emitted",
+   "pre_action:emitted"
+  ],
+  "S9": [
+   "session_start:none",
+   "prompt:emitted",
+   "pre_action:none",
+   "pre_action:emitted"
+  ]
+ },
+ "episodes": {
+  "settled": 7
+ },
+ "events": 107,
+ "harness_real_seconds": 305.18,
+ "horizon": {
+  "checks": 9,
+  "examples": [],
+  "violations": 0
+ },
+ "kind": "workload_day",
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator": "the installation's certified route (production supervisor, isolation recheck passed); scheduling on the day's virtual clock (ACCEPTANCE_TESTS \u00a75.2)",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host": "recorded timeline replayed in process through the real stdlib hook path (no host session)",
+  "host_version": "2.1.321",
+  "provisioning": {
+   "host": false,
+   "route": "operator_token",
+   "steps": [
+    {
+     "exit": 0,
+     "seconds": 0.5,
+     "step": "init"
+    },
+    {
+     "exit": 0,
+     "seconds": 18.2,
+     "step": "route"
+    }
+   ]
+  },
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev18-py3-none-any.whl",
+  "wheel_sha256": "19752286ce850f2c52d5a3f70767b55d8f90f556c28e91dae84b327c18c871b2"
+ },
+ "mode": "live",
+ "project": "ledgerlite",
+ "same_session_learning": {
+  "count": 11,
+  "observations": [
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 43.0,
+    "mentions_failure": true,
+    "session": "S1",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 38.0,
+    "mentions_failure": true,
+    "session": "S2",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 48.0,
+    "mentions_failure": false,
+    "session": "S2",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 55.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 49.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 47.0,
+    "mentions_failure": false,
+    "session": "S4",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 9.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 34.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": false,
+    "interval_s": 26.0,
+    "mentions_failure": false,
+    "session": "S5",
+    "state": "none"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 12.0,
+    "mentions_failure": true,
+    "session": "S7",
+    "state": "emitted"
+   },
+   {
+    "degraded": [],
+    "delivered": true,
+    "interval_s": 27.0,
+    "mentions_failure": false,
+    "session": "S8",
+    "state": "emitted"
+   }
+  ],
+  "pre_action_vs_prompt": "pre-action path measured; prompt fallback not exercised (pre-action enabled)"
+ },
+ "start": "2026-11-21T08:00:00.000000Z",
+ "strength": {
+  "day_end": {
+   "supported:inferred": 2,
+   "supported:user_declared": 1
+  },
+  "first_admission": {
+   "supported:inferred": 2,
+   "supported:user_declared": 1
+  }
+ },
+ "tasks": {
+  "boundaries": {
+   "pending": 9
+  },
+  "boundary_note": "boundary gold is not labeled in the synthetic days",
+  "boundary_precision": null,
+  "boundary_recall": null,
+  "confirmed": 0,
+  "created": 9,
+  "gold": 7,
+  "link_reversals": 0,
+  "nonredirected": 9,
+  "placeholders": 0,
+  "provisional": 197
+ }
+}

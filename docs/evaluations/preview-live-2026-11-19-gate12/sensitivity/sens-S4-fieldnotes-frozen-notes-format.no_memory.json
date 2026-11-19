@@ -1,0 +1,416 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether the phone app also reads meta.json was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that notes.json is read by a phone app that rejects unknown fields, so each note has exactly text and created; extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+   "The tags change of session A was reverted at the user's request."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "meta.json",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "fieldnotes may never store new data.",
+   "Every JSON file in the project is frozen."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "The notes.json note format is frozen at exactly text and created (a phone app rejects unknown fields); extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev18-py3-none-any.whl",
+  "wheel_sha256": "19752286ce850f2c52d5a3f70767b55d8f90f556c28e91dae84b327c18c871b2"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s4",
+  "checks": {
+   "checks_pass": true,
+   "list_marks_the_starred_note": true,
+   "notes_format_unchanged": false,
+   "star_works": true
+  },
+  "metrics": {
+   "notes_json_extra_fields": [
+    "starred"
+   ],
+   "repeated_named_mistake": 1
+  },
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 44.485,
+  "foreground_cost_usd": 0.163836,
+  "foreground_tokens": 222167,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 1,
+  "task_success": false
+ },
+ "project": "fieldnotes",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "sens-S4-fieldnotes-frozen-notes-format",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S4/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py && python -m fieldnotes.cli add hello --tag work && python -m fieldnotes.cli list",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "rm -rf \"<temp>"; cd <run>/work/S4/b/w && export NOTES_HOME=\"$(mktemp -d)\" && python tools/check.py; rm -rf \"$NOTES_HOME\"",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.115778,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 15.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 10.7,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 26.588,
+   "foreground_tokens": 143927,
+   "host_session_id": "1995d15c-325d-4eda-a026-6d3280c91bae",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I've reverted the tags change in `store.py`, `cli.py` and `tests/test_store.py`. The code is back to the original, where a note is exactly `text` and `created`. `python tools/check.py` passes again, with the original 1 test.\n\nThe tagged note I wrote during my manual test went into a temporary `NOTES_HOME` directory, never a real notes file. I've deleted that directory.\n\nWhen we come back to tags, I'll keep them in `meta.json` in `NOTES_HOME`, keyed by each note's `created` timestamp, and leave `notes.json` alone.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S4/b/w && NOTES_HOME=$(mktemp -d) python tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.048058,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 17.9,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 17.897,
+   "foreground_tokens": 78240,
+   "host_session_id": "ce33548f-2ed0-4aea-80c6-c990a5c05d60",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "I added `star INDEX` and made `list` put a `*` before starred notes. `python tools/check.py` passes: both unit tests and the line-length rule.\n\n- **Starring:** `star INDEX` sets `\"starred\": true` on that note, using the same 0-based positions that `list` shows, and prints `starred: <text>`. A non-numeric or out-of-range index prints an error and exits with code 1. The logic is `store.star()` in `fieldnotes/store.py`.\n- **Listing:** `list` now prints `*2026-\u2026  text` for starred notes. Unstarred notes print as before.\n- **CLI cleanup:** I moved the usage string into one `USAGE` constant in `fieldnotes/cli.py` so it mentions `star`.\n- **Tests:** I added `test_star` in `tests/test_store.py`, covering starring a note and the out-of-range case.\n\n`tools/check.py` requires `NOTES_HOME` to be set, so I ran it with a temporary directory. I didn't run the `star` command from the command line, and the `list` output and the CLI error path have no tests of their own.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "S4/b/w"
+}

@@ -1,0 +1,348 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "learning",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "When transfer will be migrated to cents was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that every new ledgerlite method takes amounts as integer cents (150 means $1.50), never a string or Decimal of dollars, while transfer keeps dollar strings until it is migrated.",
+   "The deposit method written in session A was removed at the user's request."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "cents",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "All ledgerlite amounts, transfer included, are integer cents.",
+   "Every project stores money as integer cents."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "New ledgerlite methods take amounts as integer cents (150 means $1.50); transfer keeps dollar strings until it is migrated.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev18-py3-none-any.whl",
+  "wheel_sha256": "19752286ce850f2c52d5a3f70767b55d8f90f556c28e91dae84b327c18c871b2"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s1",
+  "checks": {
+   "deposit_and_withdraw_tested": true,
+   "deposit_takes_cents": false,
+   "suite_passes": true,
+   "withdraw_refuses_overdraft": true,
+   "withdraw_takes_cents": false
+  },
+  "metrics": {
+   "repeated_named_mistake": 1,
+   "units": {
+    "deposit": "dollars",
+    "withdraw": "dollars"
+   }
+  },
+  "passed": false,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 36.567,
+  "foreground_cost_usd": 0.126333,
+  "foreground_tokens": 191018,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 1,
+  "task_success": false
+ },
+ "project": "ledgerlite",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "sens-S1-ledgerlite-amounts-in-cents",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/b/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -15",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/b/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -10; grep -rn deposit src tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.083384,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 7.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 20.203,
+   "foreground_tokens": 115747,
+   "host_session_id": "47a45107-84bd-4c05-b1b4-610dc546b410",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I removed `deposit` and its two tests, so both files are back to how they were before I added them. The 2 original tests pass, and a search for \"deposit\" in `src` and `tests` finds nothing.\n\nWhen you ask for `deposit` again, I'll take the amount as an integer number of cents, per the new convention.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "src/ledgerlite/__init__.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_ledger.py",
+     "session": "B",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S1/b/w && PYTHONPATH=src python -m unittest discover -s tests -v 2>&1 | tail -20",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.042949,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 16.4,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 16.364,
+   "foreground_tokens": 75271,
+   "host_session_id": "34e869c6-da90-44b6-a826-804070183a44",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "ledgerlite",
+   "reply": "I added `Ledger.deposit(name, amount)` and `Ledger.withdraw(name, amount)` in `src/ledgerlite/__init__.py`, and the full suite passes (7 tests: 2 existing, 5 new).\n\n- **`deposit`:** it raises `ValueError` if the amount isn't positive. Otherwise it adds the amount to the account.\n- **`withdraw`:** it raises `ValueError` if the amount isn't positive, or if the withdrawal would take the account below zero. A failed withdrawal leaves the balance unchanged. Withdrawing the exact balance is allowed.\n- **Amount types:** both methods take a `str`, `int` or `Decimal`, and pass it through `Decimal(...)`. I avoided floats because they lose precision.\n- **Tests:** the new tests in `tests/test_ledger.py` cover these cases:\n  - deposit increases the balance;\n  - deposit rejects a zero or negative amount;\n  - withdraw decreases the balance, including down to exactly zero;\n  - withdraw refuses an overdraft;\n  - withdraw rejects a zero or negative amount.\n\nThe existing `transfer` can still take a source account below zero. You didn't ask me to change it, so I left it alone. If you want the same no-overdraft rule there, it's a small change.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "S1/b/w"
+}

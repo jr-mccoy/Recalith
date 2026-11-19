@@ -638,7 +638,11 @@ def completeness(trials: list[dict[str, Any]], workload: list[dict[str, Any]], d
             if s.get("suspended"):
                 suspended.append(f"{t['scenario']}.{t['arm']}:session {s.get('name')}")
         suspended += [f"{t['scenario']}.{t['arm']}:wait before {g.get('before')}" for g in t.get("gaps") or [] if g.get("suspended_s")]
-    return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "unsettled_gaps": unsettled, "workload_days_run": len(ran),
+    # Reported, never gating: an instruction file a session wrote was removed before any later session could load it.
+    reverted = [f"{t['scenario']}.{t['arm']}:after {r.get('after')}:{','.join(r.get('removed') or [])}" for t in trials
+                for r in ((((t.get("manifest") or {}).get(t.get("arm")) or {}).get("instruction_writes") or {}).get("reverted") or [])]
+    return {"smoke_trials_missing": len(missing), "missing": missing[:24], "trial_errors": errors, "contaminated_arms": contaminated, "instruction_writes_reverted": reverted,
+            "unsettled_gaps": unsettled, "workload_days_run": len(ran),
             "workload_days_not_run": [d.get("project") for d in days if d not in ran], "demonstrations_unmet": unmet, "host_version_mismatches": hosts, "suspended": suspended,
             "complete": not missing and not errors and not contaminated and not unsettled and len(ran) >= WORKLOAD_DAYS and not unmet and not hosts and not suspended}
 
@@ -691,6 +695,9 @@ def markdown(report: dict[str, Any]) -> str:
         else:
             lines.append(f"- {name}: n={s['n']}, mean={s['mean']}, CI95={s['ci_95']}{', inconclusive' if s.get('inconclusive') else ''}")
     lines += ["", report["paired_outcomes"]["claim"]]
+    if (report.get("completeness") or {}).get("instruction_writes_reverted"):
+        lines += ["", "Instruction files a session wrote, removed before any later session could load them (decision 0028 item 33; not a gate reason): "
+                  + "; ".join(report["completeness"]["instruction_writes_reverted"]) + "."]
     sens = report.get("sensitivity")
     if sens is not None:
         lines += ["", "## Baseline-sensitivity set (decision 0049; not part of the gate)", "",

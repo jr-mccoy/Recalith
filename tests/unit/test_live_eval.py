@@ -869,6 +869,65 @@ def test_neither_arm_may_write_an_instruction_file(tmp_path):
     assert baselines.home_rule(Path(where)) == rule  # Windows paths are matched in /c/... form
     record = baselines.manifest("no_memory", mode="live", ws=tmp_path / "ws", home=home, native_memory={"state": "disabled"}, installation=None, agent={})
     assert record["instruction_writes"]["denied"][:4] == deny[:4] and str(tmp_path) not in json.dumps(record["instruction_writes"])  # no machine path
+    assert record["instruction_writes"]["reverted"] == []
+
+
+class InstructionWritingAgent(FakeLiveAgent):
+    """Synthetic: in session A it writes the user's note to CLAUDE.md, as the twelfth gate's R4 candidate did with
+    ``printf ... > CLAUDE.md`` (a shell redirection the deny rules did not refuse), and in B it records what it loaded."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.found: dict[str, list[str]] = {}
+
+    def run_session(self, name, prompts, ws, home, *, env):
+        from evals import baselines
+
+        self.found[name] = sorted(baselines.present_instruction_files(ws, home))
+        if name == "A":
+            (ws / "CLAUDE.md").write_text("- Notes are stored in `notes.json` under `NOTES_HOME`.\n", encoding="utf-8")
+            (home / ".claude" / "CLAUDE.md").write_text("- Remember the user's note.\n", encoding="utf-8")
+        return super().run_session(name, prompts, ws, home, env=env)
+
+
+@pytest.mark.parametrize("arm", ["candidate", "no_memory"])
+def test_an_instruction_file_a_session_writes_never_reaches_the_next_session(tmp_path, monkeypatch, arm):
+    """Decision 0028 item 33: in the twelfth gate the R4 candidate answered "Remember for this project" with a shell
+    redirection into CLAUDE.md, which the item-19 deny rules did not refuse; session C loaded it and the arm was
+    contaminated. The harness now removes, after each session and in both arms, any instruction file the trial did not
+    start with, records the removal, and keeps the detector for anything else."""
+    from evals import trial
+
+    fake_live(monkeypatch, {})
+    fake = InstructionWritingAgent()
+    record = trial.run_trial("smoke-L1-ledgerlite-test-command", arm, tmp_path / "work", mode="live", native_memory={"state": "disabled"}, live=Setup(tmp_path), agent_factory=lambda: fake)
+    assert "error" not in record, record.get("error_detail")
+    assert fake.found == {"A": [], "B": []}  # session B started with neither file
+    manifest = record["manifest"][arm]
+    assert manifest["label"] == arm and manifest["contamination"] == [] and manifest["inherited_instructions"] == []
+    assert manifest["instruction_writes"]["reverted"] == [{"after": "A", "removed": ["workspace:CLAUDE.md", "home:.claude/CLAUDE.md"]}]
+    assert str(tmp_path) not in json.dumps(manifest["instruction_writes"])  # labels, never machine paths
+    from evals import report
+
+    done = report.completeness([record], [], None)
+    assert done["instruction_writes_reverted"] == [f"smoke-L1-ledgerlite-test-command.{arm}:after A:workspace:CLAUDE.md,home:.claude/CLAUDE.md"]
+    assert done["contaminated_arms"] == []
+
+
+def test_an_instruction_file_the_arm_began_with_is_never_reverted(tmp_path):
+    """Only a session's writes are removed: a file present when the sessions began is left for the detector to label."""
+    from evals import baselines
+
+    ws, home = tmp_path / "ws", tmp_path / "h"
+    ws.mkdir()
+    baselines.prepare_home(home)
+    (ws / "AGENTS.md").write_text("Seeded.\n", encoding="utf-8")
+    started = baselines.present_instruction_files(ws, home)
+    (ws / "CLAUDE.local.md").write_text("Written by a session.\n", encoding="utf-8")
+    (ws / "CLAUDE.md").mkdir()  # not a plain file: left in place, and the detector still sees it
+    assert baselines.revert_instruction_writes(ws, home, started) == ["workspace:CLAUDE.local.md"]
+    assert (ws / "AGENTS.md").exists() and not (ws / "CLAUDE.local.md").exists()
+    assert baselines.inherited_instructions(ws, home) == ["workspace:AGENTS.md", "workspace:CLAUDE.md"]
 
 
 def test_live_workload_days_need_the_live_setup(tmp_path):

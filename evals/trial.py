@@ -612,6 +612,7 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
     installation: dict[str, Any] | None = None
     side: dict[str, Any] = {}
     agent_record = {"kind": "claude_code", "live": True, "model": "<agent-model>", "invocation": [*live.SESSION_FLAGS, "--permission-mode", "acceptEdits", "--allowedTools", *live.AGENT_TOOLS]}
+    reverted: list[dict[str, Any]] = []
     try:
         live.check_host(setup, worker)  # before provisioning spends the route certification's calls
         if arm == "candidate":
@@ -619,6 +620,8 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
             owned.append(ws)
             ctx = context(ws)
             installation.update(installation_id=ctx.installation_id, project_id=ctx.project_id)
+        # Taken after provisioning: only a session's writes are reverted, never an instruction file the arm began with.
+        started_with = baselines.present_instruction_files(ws, home)
         results: dict[str, Any] = {}
         ran: set[str] = set()
         for index, session in enumerate(spec["sessions"]):
@@ -641,6 +644,8 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
             results[name] = result
             ran.add(result.session_id)
             record["sessions"].append(_live_session_log(name, spec["project"], result, overlays, version))
+            if removed := baselines.revert_instruction_writes(ws, home, started_with):  # decision 0028 item 33
+                reverted.append({"after": name, "removed": removed})
             if name == spec["oracle"]["session"]:
                 break
         if installation is not None:
@@ -661,7 +666,8 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
         record["same_session_learning"] = [x for r in results.values() for x in same_session_learning(r)] if installation is not None else []
         record["second_project"] = side or None
         record["hook_replies"] = sum(len(r.deliveries) for r in results.values())
-        record["manifest"] = {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record)}
+        record["manifest"] = {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record,
+                                                      reverted=reverted)}
     except Exception as exc:  # noqa: BLE001 - a harness defect is this trial's error (the gate is then incomplete), never the run's end
         known = isinstance(exc, (TrialError, live.LiveError))
         record["error"] = exc.code if known else "harness_exception"
@@ -673,7 +679,8 @@ def run_live_trial(sid: str, arm: str, out_dir: Path, *, spec: dict[str, Any], s
         if isinstance(exc, live.LiveError) and exc.steps:
             record["provisioning_steps"] = exc.steps
         record.setdefault("outcomes", {"task_success": False, "repeated_mistakes": None, "detours": None, "legitimate_retry_success": None, "foreground_tokens": None, "background_tokens": None, "elapsed_seconds": None, "operator_interventions": 0})
-        record.setdefault("manifest", {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record)})
+        record.setdefault("manifest", {arm: baselines.manifest(arm, mode="live", ws=ws, home=home, native_memory=native_memory, installation=installation, agent=agent_record,
+                                                               reverted=reverted)})
     finally:
         record["worker_stop"] = [live.stop_worker(root, setup) for root in owned]
     return record

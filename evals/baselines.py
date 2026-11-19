@@ -49,8 +49,9 @@ DISABLE_SETTINGS = {"autoMemoryEnabled": False}
 DISABLE_ENV = {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
 INSTRUCTION_FILES = ("CLAUDE.md", "CLAUDE.local.md", "AGENTS.md", ".claude/CLAUDE.md")
 # Neither arm's working agent may write an instruction file (decision 0028 item 19): one it writes is a memory channel
-# outside both arms, which session C then loads. ``Edit`` rules also cover Write, MultiEdit, NotebookEdit and shell
-# redirections; bare patterns match at any depth below the working directory. The private home is added absolutely.
+# outside both arms, which session C then loads. ``Edit`` rules also cover Write, MultiEdit, NotebookEdit and most shell
+# redirections (not every one: item 33, which removes a session's writes); bare patterns match at any depth below the
+# working directory. The private home is added absolutely.
 INSTRUCTION_DENY = ("Edit(**/CLAUDE.md)", "Edit(**/CLAUDE.local.md)", "Edit(**/AGENTS.md)", "Edit(.claude/**)")
 PLACEHOLDER_KEY = "placeholder" + "-request-capture-" + "not-a-credential"
 
@@ -94,6 +95,30 @@ def inherited_instructions(ws: Path, home: Path) -> list[str]:
     if memory.is_dir():
         found += [f"home:native_memory:{p.parent.parent.name[:24]}" for p in memory.glob("*/memory/MEMORY.md")]
     return sorted(found)
+
+
+def instruction_files(ws: Path, home: Path) -> dict[str, Path]:
+    """Each instruction file the working agent would load, by the label :func:`inherited_instructions` gives it."""
+    return {f"{label}:{name}": base / name for base, label in ((ws, "workspace"), (home, "home")) for name in INSTRUCTION_FILES}
+
+
+def present_instruction_files(ws: Path, home: Path) -> set[str]:
+    return {label for label, path in instruction_files(ws, home).items() if path.exists()}
+
+
+def revert_instruction_writes(ws: Path, home: Path, started_with: set[str]) -> list[str]:
+    """Remove the instruction files a session left that the trial did not start with (decision 0028 item 33).
+
+    The deny rules (item 19) do not cover every way to write one: in the twelfth gate a shell redirection inside a
+    multi-line command wrote ``CLAUDE.md`` unrefused. Removed after each session, a file the agent wrote never
+    reaches a later session in either arm. The labels removed go in the trial record; anything not removed (another
+    customization path, or an instruction file that is not a plain file) is still the detector's to label."""
+    removed = []
+    for label, path in instruction_files(ws, home).items():
+        if label not in started_with and path.is_file():
+            path.unlink()
+            removed.append(label)
+    return removed
 
 
 def retrieval_services(ws: Path, home: Path) -> list[str]:
@@ -169,7 +194,8 @@ def observe_native_memory(executable: str | None, *, timeout: float = 90.0, sess
     return out
 
 
-def manifest(arm: str, *, mode: str, ws: Path, home: Path, native_memory: dict[str, Any], installation: dict[str, Any] | None, agent: dict[str, Any]) -> dict[str, Any]:
+def manifest(arm: str, *, mode: str, ws: Path, home: Path, native_memory: dict[str, Any], installation: dict[str, Any] | None, agent: dict[str, Any],
+             reverted: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """The trial manifest's arm section; ``label`` is ``no_memory`` only for a verified clean baseline."""
     instructions = inherited_instructions(ws, home)
     services = retrieval_services(ws, home)
@@ -196,5 +222,6 @@ def manifest(arm: str, *, mode: str, ws: Path, home: Path, native_memory: dict[s
     return {
         "arm": arm, "label": label, "contamination": reasons, "native_memory": effective, "inherited_instructions": instructions,
         "retrieval_services": services, "recalith_installation": installation, "agent": agent, "memory_maintenance_instructions": [],
-        "instruction_writes": {"denied": [*INSTRUCTION_DENY, "the private home's .claude/**"], "where": "the private home's settings, both arms (decision 0028 item 19)"},
+        "instruction_writes": {"denied": [*INSTRUCTION_DENY, "the private home's .claude/**"], "where": "the private home's settings, both arms (decision 0028 item 19)",
+                               "reverted": list(reverted or []), "reverted_when": "after each live session, both arms (decision 0028 item 33)"},
     }
