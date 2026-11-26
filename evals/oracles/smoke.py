@@ -21,6 +21,7 @@ import csv
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -144,12 +145,63 @@ def l4(c: Ctx) -> None:
     c.check("transfer_accepts_decimal", probe.stdout.strip() == "2")
 
 
+SEPARATORS = frozenset({";", ";;", "&", "&&", "|", "||", "|&", "(", ")", "\n"})
+# Commands whose ``NAME=value`` arguments assign (bash, cmd's ``set``); prefixes after which a command still starts.
+ASSIGNING = frozenset({"export", "env", "set", "declare", "typeset", "local", "readonly"})
+PREFIXES = frozenset({"time", "nice", "nohup", "sudo", "command", "exec", "if", "then", "elif", "else", "while", "until", "do", "!", "{"})
+SHELLS = frozenset({"bash", "sh", "zsh", "dash", "ksh", "cmd", "powershell", "pwsh"})
+ASSIGNMENT = re.compile(r"^(\$env:)?[A-Za-z_]\w*=", re.IGNORECASE)
+
+
+def _shell_words(command: str) -> list[str]:
+    """Quote-aware words of a shell command, with ``;``, ``&``, ``|``, parentheses and newlines as their own words."""
+    lex = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t\r", True, ""
+    return list(lex)
+
+
+def _assigned(word: str, name: str) -> str | None:
+    """The value ``word`` gives ``name`` (``NAME=v``, PowerShell's ``$env:NAME=v``), or None when it assigns no value."""
+    if word[:5].lower() == "$env:" and word[5:].split("=", 1)[0].lower() == name.lower():
+        word = name + word[5 + len(name):]
+    return word[len(name) + 1:] if word.startswith(name + "=") else None
+
+
 def sets_variable(command: str, name: str) -> bool:
     """True when a shell command gives ``name`` a non-empty value (``NAME=v``, ``export NAME=v``, ``env NAME=v``).
 
-    Naming the variable to clear it (``env -u NAME``, ``unset NAME``, ``NAME=``) is a plain run, not a set one.
-    """
-    return any(m.group(1) not in ("", '""', "''") for m in re.finditer(rf"(?<![\w$-]){re.escape(name)}=(\S*)", command))
+    Naming the variable to clear it (``env -u NAME``, ``unset NAME``, ``NAME=``) is a plain run, not a set one. So is
+    text that only mentions it: an assignment is a word where a command starts (or an argument of ``export``, ``env``,
+    ``set`` and the like, or inside ``bash -c``), never another command's argument. The thirteenth live gate's R2
+    candidate ran ``…; echo "PYTHONPATH=[$PYTHONPATH]"`` to show the variable was empty (decision 0028 item 34).
+    A command the tokenizer cannot read (an unclosed quote) falls back to any ``NAME=value`` anywhere."""
+    try:
+        words = _shell_words(command)
+    except ValueError:
+        return any(m.group(1) not in ("", '""', "''") for m in re.finditer(rf"(?<![\w$-]){re.escape(name)}=(\S*)", command))
+    state = "start"
+    for i, word in enumerate(words):
+        if word in SEPARATORS:
+            state = "start"
+            continue
+        if state == "nested":  # the command string of ``bash -c`` and the like
+            if sets_variable(word, name):
+                return True
+            state = "args"
+            continue
+        value = _assigned(word, name)
+        if word[:5].lower() == "$env:" and word[5:].lower() == name.lower() and i + 1 < len(words) and words[i + 1].startswith("="):
+            value = words[i + 1][1:] or (words[i + 2] if i + 2 < len(words) and words[i + 2] not in SEPARATORS else "")  # ``$env:NAME = "v"``
+        if state in ("start", "assigning") and value:
+            return True
+        if state == "start":
+            if value is not None or ASSIGNMENT.match(word):
+                continue  # an assignment prefix (this variable cleared, or another one): the command has not started yet
+            base = word.replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
+            state = "start" if base in PREFIXES else "assigning" if base in ASSIGNING else "shell" if base in SHELLS else "args"
+        elif state == "shell" and (word.lower() in ("/c", "-command") or (word.startswith("-") and word[1:].isalpha() and word[1:].endswith("c"))):
+            state = "nested"
+    return False
 
 
 def r1(c: Ctx) -> None:

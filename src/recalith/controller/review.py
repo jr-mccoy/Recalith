@@ -22,8 +22,10 @@ before any reservation and reused while unchanged): the candidates in batch
 order through an allowlisted view that drops review rationale and provider
 provenance (a proposal's ``reason`` and an extractor's rationale or
 self-confidence are not claim fields and never reach it), and exactly their
-batch evidence: event text is never trimmed, and a batch over the input cap
-fails rather than shrink. Its read set names no candidate revision, so one
+batch evidence: their support and contradiction links, and as ``context`` what
+else their records cite (counter-observations, and the evidence behind a
+lesson's retry conditions or a procedure's steps; decision 0052). Event text
+is never trimmed, and a batch over the input cap fails rather than shrink. Its read set names no candidate revision, so one
 changed candidate cannot requeue the others: each assessment is checked on
 its own.
 
@@ -92,11 +94,41 @@ def candidate_view(claim: ClaimRevision) -> ClaimRevision:
 # Batch snapshots and the review request
 
 
+def cited_context(claim: ClaimRevision) -> list[EvidenceLink]:
+    """What else a candidate's own record cites, as ``context`` links (decision 0052).
+
+    Its counter-observations, and the evidence behind each supported text of its body (a failure lesson's observed
+    failure, consequence, alternative and retry conditions; a procedure's preconditions, steps, outcomes and stop
+    conditions), when that record is not already one of its support or contradiction links. The reviewer is asked
+    whether a lesson states the condition under which a retry could succeed, so it sees what that condition rests
+    on. As context, a link can be cited in a verdict but never counts as the support a ``supported`` verdict needs."""
+    texts = []
+    if claim.failure is not None:
+        f = claim.failure
+        texts = [f.observed_failure, f.consequence, f.alternative, *f.retry_conditions]
+    elif claim.procedure is not None:
+        pr = claim.procedure
+        texts = [*pr.preconditions, *pr.steps, *pr.expected_outcomes, *pr.stop_conditions]
+    linked = {(link.ref.kind, link.ref.id) for link in [*claim.supports, *claim.contradicts]}
+    out: list[EvidenceLink] = []
+    for link in [*claim.context, *(e for t in texts if t is not None for e in t.evidence)]:
+        key = (link.ref.kind, link.ref.id)
+        if key not in linked:
+            linked.add(key)
+            out.append(link if link.relation == "context" else link.model_copy(update={"relation": "context"}))
+    return out
+
+
+def batch_links(claim: ClaimRevision) -> list[EvidenceLink]:
+    """A candidate's batch evidence: its support and contradiction links, then :func:`cited_context`."""
+    return [*claim.supports, *claim.contradicts, *cited_context(claim)]
+
+
 def snapshot(view: Any, *, review_job_id: str, origin_job_id: str | None, candidates: Sequence[ClaimRevision], version: str, read_set: ReadSet) -> ReviewBatch:
     index: list[ReviewEvidence] = []
     seen: set[str] = set()
     for claim in candidates:
-        for link in [*claim.supports, *claim.contradicts]:
+        for link in batch_links(claim):
             evidence_id = evidence_id_of(link)
             if evidence_id not in seen:
                 seen.add(evidence_id)
@@ -303,7 +335,7 @@ class ReviewScope:
         return next((e.link for e in self.batch.evidence_index if e.evidence_id == evidence_id), None)
 
     def own_evidence(self, claim: ClaimRevision) -> set[str]:
-        return {evidence_id_of(link) for link in [*claim.supports, *claim.contradicts]}
+        return {evidence_id_of(link) for link in batch_links(claim)}
 
 
 def scope_for(view: Any, job: Job, response: ModelResponse) -> ReviewScope | None:

@@ -159,12 +159,27 @@ PLAIN_RETRIES = [
     ("r2", "smoke-R2-ledgerlite-import-fixed", "unset PYTHONPATH; python -m unittest discover -s tests -t ."),
     ("r2", "smoke-R2-ledgerlite-import-fixed", "PYTHONPATH= python -m unittest discover -s tests -t ."),
     ("r1", "smoke-R1-fieldnotes-check-env-fixed", "env -u NOTES_HOME python tools/check.py"),
+    # The thirteenth live gate's R2 candidate showed the variable was empty (decision 0028 item 34); mentions are not sets.
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "python -m unittest discover -s tests -t . 2>&1 | tail -30; echo \"PYTHONPATH=[$PYTHONPATH]\""),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "printf 'PYTHONPATH=%s\\n' \"$PYTHONPATH\"; python -m unittest discover -s tests -t ."),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "echo NOTES_HOME=$NOTES_HOME; python tools/check.py"),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "$env:NOTES_HOME = \"\"; python tools/check.py"),
 ]
 SET_RETRIES = [
     ("r2", "smoke-R2-ledgerlite-import-fixed", "PYTHONPATH=src python -m unittest discover -s tests -t ."),
     ("r2", "smoke-R2-ledgerlite-import-fixed", "export PYTHONPATH=src && python -m unittest discover -s tests -t ."),
     ("r2", "smoke-R2-ledgerlite-import-fixed", "env PYTHONPATH=\"$PWD/src\" python -m unittest discover -s tests -t ."),
     ("r1", "smoke-R1-fieldnotes-check-env-fixed", "export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py"),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "NOTES_HOME=$(mktemp -d) python tools/check.py"),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "grep -rn \"NOTES_HOME\" . | head; export NOTES_HOME=\"$(mktemp -d)\"; python tools/check.py"),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "(cd . && NOTES_HOME=/tmp/n python tools/check.py)"),
+    ("r1", "smoke-R1-fieldnotes-check-env-fixed", "set NOTES_HOME=C:/tmp && python tools/check.py"),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "cd .\nPYTHONPATH=src python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "bash -c \"PYTHONPATH=src python -m unittest discover -s tests -t .\""),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "export \"PYTHONPATH=src\"; time python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "$env:PYTHONPATH=\"src\"; python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "$env:PYTHONPATH = \"src\"; python -m unittest discover -s tests -t ."),
+    ("r2", "smoke-R2-ledgerlite-import-fixed", "echo 'it''s; PYTHONPATH=src python -m unittest discover -s tests -t ."),  # unreadable: the loose rule
 ]
 
 

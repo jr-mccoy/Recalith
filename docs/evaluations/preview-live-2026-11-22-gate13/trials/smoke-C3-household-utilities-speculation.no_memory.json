@@ -1,0 +1,225 @@
+{
+ "arm": "no_memory",
+ "authorship": {
+  "date": "2026-10-15",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "model_calls": 0,
+  "tokens": 0
+ },
+ "category": "control",
+ "claims": [],
+ "curator_calls": [],
+ "gaps": [],
+ "gold": {
+  "acceptable_uncertainty": [
+   "The cause of the September increase is unknown."
+  ],
+  "exact_observations": [
+   "utilities-log.csv shows electricity 88, 93, 131 USD for July-September."
+  ],
+  "expected_retrieval_points": [
+   {
+    "max_caution_items": 0,
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "Any admitted causal explanation for the September increase."
+  ],
+  "quiet": true,
+  "supported_lessons": []
+ },
+ "hook_replies": 0,
+ "horizon_checks": [],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev18-py3-none-any.whl",
+  "wheel_sha256": "19752286ce850f2c52d5a3f70767b55d8f90f556c28e91dae84b327c18c871b2"
+ },
+ "manifest": {
+  "no_memory": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "no_memory",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "reverted": [],
+    "reverted_when": "after each live session, both arms (decision 0028 item 33)",
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "no_memory",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": null,
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "c3",
+  "checks": {
+   "plan_exists": true,
+   "plan_has_estimate": true
+  },
+  "metrics": {},
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 0,
+  "detours": 0,
+  "elapsed_seconds": 32.569,
+  "foreground_cost_usd": 0.078121,
+  "foreground_tokens": 72011,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "task_success": true
+ },
+ "project": "household",
+ "retrieval_points": [],
+ "same_session_learning": [],
+ "scenario": "smoke-C3-household-utilities-speculation",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [],
+   "agent": {
+    "cost_usd": 0.050991,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 13.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 13.488,
+   "foreground_tokens": 18042,
+   "host_session_id": "5261c65f-45f3-470a-9e08-5918a48ee87a",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "household",
+   "reply": "Here are some possible reasons, roughly from most to least likely. I haven't looked at the file, so these are only hypotheses.\n\n**Usage changes**\n- **Late-summer heat:** Air conditioning often runs hardest in September, especially in a heat wave or when August was mild.\n- **Billing period length:** A cycle with more days, for example 33 days instead of 29, shows higher usage with no change in daily habits.\n- **More time at home:** Kids back in school, remote work, or guests staying over all add load.\n- **New appliances or devices:** A new fridge, a dehumidifier, an EV charger, a space heater, a pool pump or a window AC unit.\n- **Cooking and laundry:** More cooking, laundry or dishwasher cycles as routines resume after summer travel.\n\n**Rate and billing changes**\n- **Rate increase:** The utility may have raised rates or changed tiers, time-of-use windows or seasonal pricing.\n- **Fees and surcharges:** Fuel adjustments, new riders or a fixed-charge change can raise the bill without any change in kWh.\n- **Estimated reads:** An estimated bill may have undercounted earlier and then caught up in September.\n- **Lost credits:** Solar credits, a promotional rate or a rebate may have ended.\n\n**Equipment problems**\n- **Failing or inefficient equipment:** A dirty AC filter, a low refrigerant charge, a failing water heater element or an aging fridge compressor.\n- **Something left running:** A forgotten space heater, a sump pump, a second fridge or a heated garage.\n- **Meter or billing error:** Rare, but worth ruling out if the jump is large and nothing else explains it.\n\n**Data quirks in the CSV**\n- **Unit mismatch:** The data could be mixing dollars and kWh, or entries might be duplicated.\n- **Date misalignment:** A billing period might be labelled by its end date, so \"September\" may really be mostly August.\n- **Comparison baseline:** \"Up\" might be relative to an unusually low August, for example if you were away on vacation.\n\nWhen you want to check, these are the quickest tests:\n1. Compare kWh and dollars separately. If kWh is flat but dollars rose, the cause is rates.\n2. Normalize by days in the billing period.\n3. Compare against September of last year, not only August.\n\nI can dig into the file if you'd like.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-log.csv",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "utilities-plan.md",
+     "session": "B",
+     "tool": "Write"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.02713,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 19.1,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [],
+   "elapsed_seconds": 19.081,
+   "foreground_tokens": 53969,
+   "host_session_id": "c7658802-9bc5-4daa-aa19-f2c8671aba1f",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "household",
+   "reply": "I wrote `utilities-plan.md` with a December 2026 budget estimate of **$218**, within a plausible range of $200\u2013$235.\n\n| Category | Estimate |\n|---|---|\n| Electricity | $115 |\n| Water | $43 |\n| Internet | $60 |\n\n- **Electricity:** the three-month average is $104, but September jumped to $131, so I picked a figure between the two.\n- **Water and internet:** water has stayed between $41 and $44, and internet has been $60 every month.\n- **Data gap:** the log has only July to September, with nothing for October or November. It also has no winter data, so December heating could push electricity above $131. The file notes this. Adding the missing months would make the estimate more reliable.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [],
+ "workspace": "C3/b/w"
+}

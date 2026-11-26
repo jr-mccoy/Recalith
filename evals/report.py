@@ -638,6 +638,8 @@ def completeness(trials: list[dict[str, Any]], workload: list[dict[str, Any]], d
             if s.get("suspended"):
                 suspended.append(f"{t['scenario']}.{t['arm']}:session {s.get('name')}")
         suspended += [f"{t['scenario']}.{t['arm']}:wait before {g.get('before')}" for g in t.get("gaps") or [] if g.get("suspended_s")]
+    # So did a live demonstration's own sessions and waits (decision 0028 item 34).
+    suspended += [f"demonstration {n}:{s}" for n in DEMONSTRATIONS for s in (shown.get(n) or {}).get("suspended") or []]
     # Reported, never gating: an instruction file a session wrote was removed before any later session could load it.
     reverted = [f"{t['scenario']}.{t['arm']}:after {r.get('after')}:{','.join(r.get('removed') or [])}" for t in trials
                 for r in ((((t.get("manifest") or {}).get(t.get("arm")) or {}).get("instruction_writes") or {}).get("reverted") or [])]

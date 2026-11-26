@@ -2,6 +2,10 @@
 
 Engine versions of the `claude_preview` profile, newest first. Every entry names the decision record that carries the full reasoning, tests and limits (`docs/decisions/`). No version below is released; see `docs/release/claude_preview_checklist.json` for what the release waits on.
 
+## 0.1.0.dev19 (2026-11-26) — a review sees what a lesson's own text cites
+
+Decision 0052. In the thirteenth live gate, a failure lesson's retry condition cited the run that later passed. A success is no support for a failure, so the review batch, which held only support and contradiction links, left that run out, and the reviewer returned `revise` because it could not check the condition. The lesson stayed a candidate, so the later success never sent it to revalidation. The batch now also carries, as context, what a candidate's record cites: its counter-observations and the evidence behind a lesson's observed failure, consequence, alternative and retry conditions, or a procedure's steps. A context link may be cited in a verdict, but it is never the support a `supported` verdict needs. The prompt, contracts and store are unchanged.
+
 ## 0.1.0.dev18 (2026-11-18) — a failed revision gives the guidance back
 
 Decision 0051. The eleventh live gate failed on useful recall because of one claim, the working test command. An ordinary edit of the files it depends on sent it to revalidation, which reworded it as history, and the review rejected the rewording. Under the old rules the claim was then left a weak candidate. A revision of live guidance that its review does not support (`revise`, a substantive `reject`), or that is never reviewed (too large, or past its retries), now restores the guidance it replaced. The claim keeps its content and admitting review, labeled `needs_revalidation` (context, never caution), with its next review a full period away. A supported revision still replaces the guidance. Revalidation pins `revalidate@4`, which keeps a fact or procedure that still holds after a change and never rewords it into history.

@@ -787,6 +787,44 @@ def test_supported_verdict_needs_valid_primary_support(p):
     assert adm.head(p, echo_id)["status"] == "candidate" and adm.outcomes(p, echo_id) == [("refused", "no_primary_support")]
 
 
+def test_a_lessons_retry_evidence_is_in_its_review_batch_as_context(p):
+    """Decision 0052 (the thirteenth live gate's R1): a failure lesson's retry condition cited the later successful
+    run, which is no support of the failure, and the review batch held only support and contradiction links, so the
+    reviewer could not check the condition ("Retry evidence ... is not in this batch's evidence index") and returned
+    revise. The batch now carries what the candidate's own text cites, as context: shown, citable, never the support
+    a supported verdict needs."""
+    fail = fail_mid(p)
+    success = p.event("tool_finished", call="toolu_probe_0004")
+    retry = {"text": "test_mid passes once its fixture exists.", "evidence": [adm.link(success)], "basis": "inferred"}
+    claim_id = adm.created_claim(adm.extract(p, [OP("l", "propose_claim", adm.lesson("test_mid fails without its fixture.", retry_conditions=[retry]), evidence=[adm.link(fail)])]))
+    body = adm.head(p, claim_id)
+    assert [link["ref"]["id"] for link in body["supports"]] == [fail["id"]]
+    (job,) = adm.review_jobs(p, claim_id)
+    seen: dict[str, object] = {}
+
+    def context_only(request):
+        batch = request.review_batch
+        context = [e for e in batch.evidence_index if e.link.relation == "context"]
+        seen.update(events={e.event_id for e in request.events}, context=[e.link.ref.id for e in context], allowed={r.id for r in request.allowed_evidence_refs})
+        return [adm.assess(batch, batch.candidate_refs[0], "supported", local_ref="a", evidence_ids=[context[0].evidence_id])]
+
+    _r, refused = adm.run_review(p, job.job_id, context_only)
+    assert seen["context"] == [success["id"]] and {fail["id"], success["id"]} <= seen["events"] and success["id"] in seen["allowed"]
+    assert decisions(refused) == [("reject", "supported_requires_support_evidence")] and adm.head(p, claim_id)["status"] == "candidate"
+    with db.open_store(p.ctx) as store, store.transaction() as txn:
+        again, _ = jobs.enqueue(txn, kind="review_claims", input_refs=[osc.head_ref(p.root, "claim", claim_id)], now=utc_now(), prompt_version=prompts.CURRENT["review_claims"], review_candidates=[jobs.ReviewCandidate(claim_id, "extracted", "failure_lesson")], idempotency=digest_of(new_id("job")))
+
+    def with_support(request):
+        batch = request.review_batch
+        ids = adm.support_ids(batch, body) + [e.evidence_id for e in batch.evidence_index if e.link.relation == "context"]
+        return [adm.assess(batch, batch.candidate_refs[0], "supported", local_ref="b", evidence_ids=ids)]
+
+    _r, admitted = adm.run_review(p, again, with_support)
+    assert decisions(admitted) == [("apply", "review_supported")] and adm.head(p, claim_id)["status"] == "active"
+    # The lesson's own record is unchanged: the success is still no support of the failure.
+    assert [link["ref"]["id"] for link in adm.head(p, claim_id)["supports"]] == [fail["id"]]
+
+
 def test_candidate_only_degradation_without_review(p):
     """No certified route: review jobs wait visibly, candidates stay weak, and review_candidates refuses without side effects."""
     fail = fail_mid(p)

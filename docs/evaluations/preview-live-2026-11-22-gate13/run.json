@@ -1,0 +1,153 @@
+{
+ "authorship": {
+  "held_out": "none (full release; intentionally empty)",
+  "recorded_proposals": "evals/curator.py, authored by the coding agent; not a model",
+  "sensitivity": "the four baseline-sensitivity scenarios (decision 0049), written by the same coding agent; reported beside the gate, never part of it",
+  "smoke": {
+   "independent_of_system_spec_7": false,
+   "note": "the 12 smoke scenarios were written by the repository's coding agent, who has read SYSTEM_SPEC \u00a77; development fixtures, not held out",
+   "route": [
+    "repository author (coding agent)"
+   ]
+  },
+  "workload_days": "synthetic representative days authored by the coding agent (evals/workload/days); not recorded real sessions"
+ },
+ "blockers": [],
+ "init_route": "operator_token",
+ "keep_awake": "SetThreadExecutionState(ES_CONTINUOUS|ES_SYSTEM_REQUIRED)",
+ "limitations": [
+  "Smoke scenarios, gold labels and workload days were authored by the coding agent, who has read SYSTEM_SPEC \u00a77; no held-out or independent corpus exists.",
+  "One trial per arm and 12 scenarios: intervals are wide and inconclusive by construction; no superiority claim is made.",
+  "The four baseline-sensitivity scenarios (decision 0049) are reported in their own section and never count toward the gate; the same coding agent wrote them, and their named-mistake measure is one trial per arm.",
+  "Each candidate installation's route is certified live for that installation; its host record is bound from the source project's live engine-mode certification for the same host version, model and configuration (decision 0028), not re-observed per installation.",
+  "Sessions run on real time. Between sessions the harness waits until the hook-started worker owes nothing due within 20 minutes (or 45 minutes pass, or progress stalls for 5); the scenarios' two-hour gaps are not reproduced.",
+  "Delivered context is read from the host's hook_response records (the hook's exact stdout as the host received it); that the model saw it is the separate canary certification, not re-checked per trial.",
+  "Workload days replay synthetic recorded timelines in process through the real stdlib hook path (no host session); scheduling runs on the day's virtual clock while every curator call is real.",
+  "Background tokens come from the budget ledger (provider-reported where the call reported usage); foreground cost is the host's own reported session cost.",
+  "On native Windows a hook-started worker runs inside the venv redirector's job (decision 0027 item 8): recovery is degraded while it runs."
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev18-py3-none-any.whl",
+  "wheel_sha256": "19752286ce850f2c52d5a3f70767b55d8f90f556c28e91dae84b327c18c871b2"
+ },
+ "mode": "live",
+ "native_memory": {
+  "configuration": "the live trials' own session flags, disposable HOME and environment",
+  "installed_host_observation": {
+   "configuration": {
+    "env": [
+     "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+    ],
+    "session_args": "the live trials' session flags",
+    "settings": {
+     "autoMemoryEnabled": false
+    }
+   },
+   "control": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": true
+   },
+   "disabled": {
+    "exit": 0,
+    "message_requests": 1,
+    "sentinel_seen": false
+   },
+   "host_version": "2.1.321 (Claude Code)",
+   "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+   "state": "disabled"
+  }
+ },
+ "operator_action": null,
+ "preflight": {
+  "delivery": {
+   "host_version": "2.1.321",
+   "reasons": [],
+   "state": "certified"
+  },
+  "exit": 0,
+  "inference": {
+   "reasons": [],
+   "state": "certified"
+  }
+ },
+ "profile": "claude_preview",
+ "run_schema": 1,
+ "started_at": "2026-11-22T16:54:49Z",
+ "versions": {
+  "allow_dirty": false,
+  "certified_capture_versions": [
+   "2.1.301",
+   "2.1.305",
+   "2.1.306",
+   "2.1.309",
+   "2.1.310",
+   "2.1.321"
+  ],
+  "commit": "7dc68d3fcddd4adc2c9946933649edaf2ba3e021",
+  "engine": "0.1.0.dev18",
+  "inputs": {
+   "oracles": {
+    "evals/oracles/__init__.py": "1ca86d254ffd5a82dd797a1adde945256b5f6162d69af4b41fe2c9e3bcf66170",
+    "evals/oracles/smoke.py": "61dba5097b7b7775c69d7ae32e8869c09a88c56746c8129aa11ae172531d03cd"
+   },
+   "overlays": {
+    "evals/scenarios/smoke/overlays/fieldnotes_check_default_home.py": "f0d5358e316c54ed711a1d823b25005e0c4e397ad5b7bd95b1ce6deb673a9834",
+    "evals/scenarios/smoke/overlays/fieldnotes_store_jsonl.py": "a8f7de820597d7876d48c1ebe28c3cefd786272e81b605e6285dda115f520afa",
+    "evals/scenarios/smoke/overlays/ledgerlite_readme_typo.md": "3122301a17fb3963d92a5e1d671780e332d835c6a8b9db292706c027d3da6ebd",
+    "evals/scenarios/smoke/overlays/ledgerlite_tests_init.py": "9a18dee89eb8357038b5af329467d086a2ec0c22b51ed721232ba4dfa526fe13"
+   },
+   "recorded_curator": "377201c115b6050b35e1981692c524e37fa81594a97178f5092429684baa39f2",
+   "scenarios": {
+    "evals/scenarios/smoke/smoke-C1-ledgerlite-routine-typo.json": "b52bf3d286098a9deffeebb3ec75345061b82dc7d5efe98282247cf80e4e9c79",
+    "evals/scenarios/smoke/smoke-C2-fieldnotes-tdd-expected-red.json": "dcceeeee183e599b20c308d544720f4ebcf1be319cba466eb81362fdf990847f",
+    "evals/scenarios/smoke/smoke-C3-household-utilities-speculation.json": "9ef57aedb0e6a019b96885766e801331e0d6641b0f729a8aadf43c970cc50c77",
+    "evals/scenarios/smoke/smoke-C4-cross-project-near-match.json": "b5581a217f7f7f19c06331dd3236271ae3a29884447e6818477bfbd291ee7613",
+    "evals/scenarios/smoke/smoke-L1-ledgerlite-test-command.json": "38dd1104695a3f5ee94ccc6f26df902665b256406e9894bb568b319b119a20f9",
+    "evals/scenarios/smoke/smoke-L2-fieldnotes-iso-dates.json": "1f2014466e8cef72c8ff0b7cf23c417a0d85d650dc66c14fc33122995b476d88",
+    "evals/scenarios/smoke/smoke-L3-household-grocery-budget.json": "c043dd76d215c3cca093421b5c94e1de10a594b6c1a6c13547efe1e5ef6121bf",
+    "evals/scenarios/smoke/smoke-L4-ledgerlite-resume-refactor.json": "7e02049980670e66a31eca5dd5bb4c7ea9accffac92019c9ae11be3e31d32655",
+    "evals/scenarios/smoke/smoke-R1-fieldnotes-check-env-fixed.json": "230e096b7f4112b6e8dbf7ddf35177a5f21080357ee23c078f5ee20b423fb01c",
+    "evals/scenarios/smoke/smoke-R2-ledgerlite-import-fixed.json": "0101125197bfa2075ab6a92a0f9a93be426a6681286b35758cf8549b370883dd",
+    "evals/scenarios/smoke/smoke-R3-household-budget-correction.json": "5a1130dee2838b609bced574e45b78a89c1c5908027035ae6c91341a464878e7",
+    "evals/scenarios/smoke/smoke-R4-fieldnotes-storage-conflict.json": "d32b42b3e0a702f36ef0a26b74d207dc843eeec347fcfcb94d53436439f0388d"
+   },
+   "scripted_agent": "cfbb1192704ee8c0150b91446ab5749d4ed42e4a8daea73eab9b74fbf6eb780b",
+   "sensitivity_overlays": {
+    "evals/scenarios/sensitivity/overlays/fieldnotes_check_jobs.py": "2d8d3756e25dacceb5fce81b2aaca5684e608ea03d5f6b2c3bccd284eeb3420e",
+    "evals/scenarios/sensitivity/overlays/household_meal_plan_next_week.md": "a00410e07080203a74b8a3f5c8ad180e6ac5ef648c4721d3cb10e8dfc5a422fe"
+   },
+   "sensitivity_scenarios": {
+    "evals/scenarios/sensitivity/sens-S1-ledgerlite-amounts-in-cents.json": "52f6345fd81cc180c6ce33220e155a979bb6ce6dc78697fdac760f0b693c4c25",
+    "evals/scenarios/sensitivity/sens-S2-household-no-prices-in-meal-plan.json": "782eba1db7761fd993220e6202031930f6ce3bb5f4ab9a141713c7c458e4edfd",
+    "evals/scenarios/sensitivity/sens-S3-fieldnotes-checks-one-job.json": "c3febdb851e686112d30a74febe3712d4590b11b8c562a56af008314b46ec2b3",
+    "evals/scenarios/sensitivity/sens-S4-fieldnotes-frozen-notes-format.json": "c2a5961037610ac8a3c10deb59339caeb0bf2307b254223b094118332fb61489"
+   },
+   "workload_days": {
+    "evals/workload/days/fieldnotes.json": "17dbdef0be4e606f5e8929e9142d467352514f30e1ceb4a2fab00e0426cb3d93",
+    "evals/workload/days/household.json": "bfc4216746f30869394c8547af3bece4a73698824270cbff001bf333e7125122",
+    "evals/workload/days/ledgerlite.json": "c597a60438c2ab7feebe9ce438cf277f5d6a1199d6315efd4c669e8914851de9"
+   }
+  },
+  "installed_host": "2.1.321 (Claude Code)",
+  "platform": "Windows 11 AMD64",
+  "prompts": {
+   "build_episode": "build_episode@2",
+   "extract_claims": "extract_claims@7",
+   "revalidate": "revalidate@4",
+   "review_claims": "review_claims@2",
+   "update_task": "update_task@2"
+  },
+  "python": "3.13.15",
+  "schema": 12,
+  "scripted_payload_format": "Claude Code 2.1.305 (reviewed fixtures)",
+  "sqlite": "3.50.4",
+  "tree_clean": true
+ }
+}

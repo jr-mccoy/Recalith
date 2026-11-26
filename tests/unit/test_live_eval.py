@@ -616,6 +616,25 @@ def test_completeness_requires_the_certified_host_and_no_suspension():
     assert any(r.startswith("host_version_mismatches:") for r in reasons) and any(r.startswith("suspended:") for r in reasons)
 
 
+def test_a_demonstration_that_slept_fails_the_gate_as_suspended():
+    """Decision 0028 item 34: the thirteenth gate's isolation wait slept 77 minutes and hit its deadline before the
+    worker ran again; the demonstration failed and the gate gave no reason but the unmet demonstration."""
+    from evals import agent, demos, report
+
+    awake, slept = agent.SessionResult("D", "s", [], [], 1.0, "", 0, extra={"suspended": False}), agent.SessionResult("R", "s", [], [], 1.0, "", 0, extra={"suspended": True})
+    assert demos.suspensions({"D": awake}, {"after session D": {"state": "quiet", "suspended_s": 0.0}}) == []
+    assert demos.suspensions({"R": slept}, {"after session R": {"state": "deadline", "suspended_s": 4642.7}}) == ["session R", "wait after session R"]
+    trials = [{"scenario": sid, "arm": arm, "mode": "live", "live": {"host_version": "2.1.321"}, "manifest": {arm: {"label": arm}},
+               "sessions": [{"name": "A", "host_version": "2.1.321"}]} for sid in report.SMOKE_IDS for arm in ("candidate", "no_memory")]
+    days = [{"kind": "workload_day", "project": p, "budget": {}} for p in ("ledgerlite", "fieldnotes", "household")]
+    demos_record = {"demonstrations": {n: {"demonstrated": True} for n in report.DEMONSTRATIONS}}
+    demos_record["demonstrations"]["isolation"] = {"demonstrated": False, "suspended": ["wait after session R"]}
+    done = report.completeness(trials, days, demos_record)
+    assert done["suspended"] == ["demonstration isolation:wait after session R"] and done["demonstrations_unmet"] == ["isolation"] and done["complete"] is False
+    reasons = report.gate({"mode": "live", "quality_5_1": {"measures": {}}, "completeness": done}, {})["reasons"]
+    assert "suspended:demonstration isolation:wait after session R" in reasons
+
+
 def test_the_report_reads_live_records(tmp_path, monkeypatch):
     """Live-shaped trial records (labeled fakes) and a failed live workload day go through the real report."""
     from evals import report, trial

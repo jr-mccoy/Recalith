@@ -335,6 +335,14 @@ def _cli(ws: Path, setup: Any, *args: str, guarded: bool = True) -> dict[str, An
     return body.get("result") or {}
 
 
+def suspensions(sessions: dict[str, Any], waits: dict[str, Any] | None = None) -> list[str]:
+    """What of a live demonstration ran across a suspension of the machine: a session's own check (``extra``), a wait's
+    ``suspended_s``. The gate fails on it, as on a trial's (decision 0028 item 34: the thirteenth gate's isolation wait
+    slept 77 minutes, hit its deadline before the worker ran again, and the demonstration failed with no reason given)."""
+    out = [f"session {name}" for name, result in sessions.items() if (getattr(result, "extra", None) or {}).get("suspended")]
+    return out + [f"wait {name}" for name, gap in (waits or {}).items() if (gap or {}).get("suspended_s")]
+
+
 def _live_session(ws: Path, home: Path, setup: Any, name: str, prompt: str, agent_factory: Any = None) -> Any:
     from evals import agent, baselines, live
 
@@ -386,6 +394,7 @@ def forgetting_and_restore_live(trials_dir: Path, work: Path, setup: Any, *, age
     out["after_restore"] = {**resurfaced(again.deliveries, "600", before), "actions": _actions(again)}
     out["delivered_after_restore"] = bool(out["after_restore"]["resurfaced"])
     out["stopped_after"] = live.stop_worker(ws, setup)
+    out["suspended"] = suspensions({"D": after, "E": again})
     out["demonstrated"] = (out["backup_before"]["store_hits_before"] > 0 and out["store_hits_after_forget"] == 0 and not out["delivered_after_forget"]
                            and bool(restored.get("source_contains_suppressed")) and out["store_hits_after_restore"] == 0 and not out["delivered_after_restore"])
     return out
@@ -418,6 +427,7 @@ def isolation_live(trials_dir: Path, work: Path, setup: Any, *, agent_factory: A
         "scenario": sid, "installations": {"ledgerlite": a.installation_id, "fieldnotes": b.installation_id, "distinct": a.installation_id != b.installation_id and a.project_id != b.project_id},
         "ledgerlite_active_claims": [c["proposition"] for c in ledger_claims.values()], "fieldnotes_active_claims": [c["proposition"] for c in fieldnotes_claims.values()],
         "cross_record_ids": leaked, "cross_text_in_search": text_leaks, "fieldnotes_session_b_delivered": delivered_b, "reverse_session": {"actions": len(reverse.actions), "gap": gap}, "worker_stop": stops,
+        "suspended": suspensions({"R": reverse}, {"after session R": gap}),
         "task_success": rec["outcomes"]["task_success"], "cross_project_leak_commands": (rec.get("oracle") or {}).get("metrics", {}).get("cross_project_leak_commands"),
         "demonstrated": bool(ledger_claims) and bool(fieldnotes_claims) and not leaked and not text_leaks and not any("PYTHONPATH" in t for t in delivered_b)
                         and a.installation_id != b.installation_id and bool(rec["outcomes"]["task_success"]),

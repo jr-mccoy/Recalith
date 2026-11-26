@@ -895,3 +895,31 @@ The owner provisioned `rl-pilot14` from the `0.1.0.dev18` release directory (OPE
 - **Decision 0051 held where it was tested.** L1's dependency change sent its test command to revalidation; `revalidate@4` kept it ("Keep the claim as needs_revalidation until the test command is run again"), and it ended active. No revision failed its review, so the restore path did not run live.
 - **Checks (native Windows 11, Python 3.13.15, `--basetemp=C:/t/<letter>`):** `test_live_eval.py` (3 new: a session's instruction files never reach the next session, in both arms; a file the arm began with is never removed), `test_eval_harness.py`, `test_sensitivity_scenarios.py`, `test_evaluation.py` and `test_sensitivity_trials.py` → 91 passed. `ruff --select F,E9,B` clean on `evals/` and the test file. Nothing in `src/`; the engine stays `0.1.0.dev18`.
 - **Next action:** the owner runs the thirteenth gate from the same pilot and release (the gate command only).
+
+### 2026-11-26 — The thirteenth live gate (failed on two demonstrations); a review sees what a lesson's text cites (`0.1.0.dev19`, decision 0052; decision 0028 item 34)
+
+The owner ran the gate from `rl-pilot14` and the `0.1.0.dev18` release (Claude Code 2.1.321, native Windows, 6 slots), exit 8. CI was green on every platform for `7dc68d3` first. The trials, sensitivity set and workload days took 49 minutes (2026-11-22). The machine then slept during the demonstrations, and the record was written on 2026-11-23. [Record](../evaluations/preview-live-2026-11-22-gate13/report.md), sanitized, every scan 0.
+
+- **Result: failed** on `demonstrations_unmet:changed_condition_revision,isolation` and 21 unlabeled claims. Every trial ran without error or contamination, and all three workload days ran within budget.
+  - Measures that need no labels, all met: conflict preservation 1/1, incorrect confident guidance 0, legitimate retry discouraged 0/2, irrelevant caution 0/3, routine human maintenance 0.
+  - Expected retrieval points 10/12 (L1's and R3's long-standing misses).
+  - Sensitivity: repeated named mistakes, candidate 1 and baseline 4; task success, candidate 3 and baseline 0.
+  - Fresh-session reuse, forgetting and restore, and zero interventions were shown.
+  - L3's candidate wrote a grocery list that does not parse (item 24).
+- **Isolation: the machine slept.** The wait after the reverse session R recorded `suspended_s` 4642.7 (about 77 minutes) and state `deadline`. Two jobs were due, but the wait counts real time, so it ended before the worker ran again. Fieldnotes held no admitted claim. The gate's suspension check read only the trials, so no reason was given beyond the unmet demonstration. **Harness (item 34):** the live forgetting and isolation demonstrations record their own sleeping sessions and waits, and the gate fails on them as `suspended:demonstration …`.
+- **Changed-condition revision: R1's lesson was reviewed without its retry evidence.**
+  - The extraction cited the passing run as the retry condition's evidence. That run is no support for a failure, and the review batch held only support and contradiction links. The reviewer returned `revise` ("Retry evidence … is not in this batch's evidence index"), and the lesson stayed a candidate.
+  - Session C's plain success was a deferred recheck on that candidate, so no revalidation ran.
+  - R1's admitted fact was delivered `needs_revalidation` at C, but never revalidated. The overlay is an outside edit that C did not read (a recorded limit).
+  - **Engine (decision 0052, `0.1.0.dev19`):** the review batch carries, as context, a candidate's counter-observations and the evidence behind a lesson's text fields or a procedure's steps. That evidence can never be the support of a supported verdict.
+- **R2's plain retry was misread.** The candidate's `…; echo "PYTHONPATH=[$PYTHONPATH]"` counted as setting the variable, so the task failed. **Harness (item 34):** the rule reads where a variable is assigned (quote-aware words at command position, `export`/`env`/`set` arguments, `bash -c`, PowerShell's `$env:`). An unreadable command falls back to the old rule.
+- **Checks (native Windows 11, Python 3.13.15, `--basetemp=C:/t/<letter>`, three suites in parallel):**
+  - New tests:
+    - `test_a_lessons_retry_evidence_is_in_its_review_batch_as_context`. It fails before the fix: the batch had no context entry.
+    - Fourteen new plain-retry forms in `test_smoke_scenarios.py`. On the old rule, the gate's command and two other mentions read as sets, and `$env:NAME = "v"` read as plain.
+    - `test_a_demonstration_that_slept_fails_the_gate_as_suspended`.
+  - `tests/unit` and `tests/platform`: 676 passed, 46 skipped.
+  - The first half of `tests/integration`: 501 passed, 17 skipped.
+  - The second half: 414 passed, 17 skipped, 1 failed. The failure was `test_bounded_live_dependency_check`, whose 50 ms window ran under the load of the other two suites. It passes alone, and `test_retrieval.py` passes alone (42 passed). Neither the test nor `fast/context.py` was touched.
+  - `generate_schemas.py --check` and `generate_hook_wire.py --check` exit 0. `release_checklist.py`: `problems: []`, verdict `blocked`. `ruff --select F,E9,B` is clean on the changed files.
+- **Next action:** build the `0.1.0.dev19` release directory. The owner provisions a fresh pilot (`rl-pilot15`, OPERATIONS §4) and runs the fourteenth gate, with the machine plugged in and the lid open.
