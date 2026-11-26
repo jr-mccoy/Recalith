@@ -1,0 +1,951 @@
+{
+ "arm": "candidate",
+ "authorship": {
+  "date": "2026-11-10",
+  "independent_of_system_spec_7": false,
+  "route": "repository author (coding agent)",
+  "sanitization": "synthetic fixtures; no private data"
+ },
+ "background": {
+  "calls_by_purpose": {
+   "build_episode": 4,
+   "extract_claims": 3,
+   "review_claims": 2,
+   "update_task": 2
+  },
+  "estimated_input_tokens": 411293,
+  "estimated_output_tokens": 21801,
+  "jobs_by_state": {
+   "cancelled": 2,
+   "completed": 11
+  },
+  "model_calls": 11,
+  "tokens": 433094,
+  "usage_source": "the budget ledger: provider-reported usage where the call reported it, else the engine's charged estimate"
+ },
+ "category": "learning",
+ "claims": [
+  {
+   "basis": "inferred",
+   "claim_id": "claim_1e0ecb36-a24a-4681-8380-f2ca9e7a639c",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "tools/check.py reads NOTES_HOME from the environment with os.environ[\"NOTES_HOME\"].",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "user_declared",
+   "claim_id": "claim_33ba41ed-0de2-4f8e-ad18-079ff4b26f41",
+   "freshness": "current",
+   "kind": "decision",
+   "proposition": "The fieldnotes note format is frozen at exactly text and created in notes.json. Anything extra about a note goes in a separate file, meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  },
+  {
+   "basis": "inferred",
+   "claim_id": "claim_5fd9598a-abb7-4771-beb4-86661585344c",
+   "freshness": "current",
+   "kind": "fact",
+   "proposition": "The fieldnotes project's README says to run the project checks with `python tools/check.py`.",
+   "review": {
+    "objections": [],
+    "verdict": "supported"
+   },
+   "revision": 2,
+   "status": "active",
+   "strength": "supported"
+  }
+ ],
+ "curator_calls": [
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "requeue",
+     "reason": "read_set_changed"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    },
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim",
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    },
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim",
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "propose_claim",
+     "outcome": "candidate_only",
+     "reason": "candidate_pending_review"
+    }
+   ],
+   "operations": [
+    "propose_claim"
+   ],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "assess_claim",
+     "outcome": "apply",
+     "reason": "review_supported"
+    }
+   ],
+   "operations": [
+    "assess_claim"
+   ],
+   "purpose": "review_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "revise_episode",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "revise_episode"
+   ],
+   "purpose": "build_episode"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [],
+   "no_op_reason": "Durable facts from this episode are already recorded as active claims: the notes format and meta.json location, tools/check.py reading NOTES_HOME, and the README's check command. The rest is task-specific implementation detail or a compound tool call without a clean observed label.",
+   "operations": [],
+   "purpose": "extract_claims"
+  },
+  {
+   "applied": true,
+   "body_retained": true,
+   "decisions": [
+    {
+     "kind": "update_task",
+     "outcome": "apply",
+     "reason": "admitted"
+    }
+   ],
+   "operations": [
+    "update_task"
+   ],
+   "purpose": "update_task"
+  }
+ ],
+ "gaps": [
+  {
+   "before": "B",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     52,
+     46,
+     56
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 16,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 340.8,
+   "worker_seen": true
+  },
+  {
+   "before": "measurement",
+   "last": {
+    "due_jobs": 0,
+    "due_kinds": [],
+    "leased": 0,
+    "next_due_in_s": null,
+    "pending_triggers": 0,
+    "progress": [
+     69,
+     64,
+     77
+    ],
+    "quiet": true,
+    "spool_ready": 0,
+    "waiting_reasons": []
+   },
+   "polls": 12,
+   "state": "quiet",
+   "suspended_s": 0.0,
+   "waited_s": 323.6,
+   "worker_seen": true
+  }
+ ],
+ "gold": {
+  "acceptable_uncertainty": [
+   "Whether the phone app also reads meta.json was not stated."
+  ],
+  "exact_observations": [
+   "The user stated that notes.json is read by a phone app that rejects unknown fields, so each note has exactly text and created; extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+   "The tags change of session A was reverted at the user's request."
+  ],
+  "expected_retrieval_points": [
+   {
+    "must_include": "meta.json",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  ],
+  "prohibited_generalizations": [
+   "fieldnotes may never store new data.",
+   "Every JSON file in the project is frozen."
+  ],
+  "quiet": false,
+  "supported_lessons": [
+   {
+    "basis": "user_declared",
+    "kind": "decision",
+    "proposition": "The notes.json note format is frozen at exactly text and created (a phone app rejects unknown fields); extra per-note data goes in meta.json in NOTES_HOME, keyed by the note's created timestamp.",
+    "scope": "this project"
+   }
+  ]
+ },
+ "hook_replies": 24,
+ "horizon_checks": [
+  {
+   "before": "A",
+   "checked_at": "2026-11-26T20:00:50.146577Z",
+   "events": 0,
+   "host_sessions": 0
+  },
+  {
+   "before": "B",
+   "checked_at": "2026-11-26T20:07:03.829301Z",
+   "events": 40,
+   "host_sessions": 1
+  }
+ ],
+ "live": {
+  "agent_model": "<agent-model>",
+  "backend": "anthropic_messages",
+  "curator_model": "<curator-model>",
+  "delivery_record": "bound from the certified project's live engine-mode record (decision 0028)",
+  "host_version": "2.1.321",
+  "route": "certified per installation by tools/probe_provider.py --route-out",
+  "wheel": "recalith-0.1.0.dev19-py3-none-any.whl",
+  "wheel_sha256": "73eff35f68db6d287c506e876fc8c450b1a87f5fe446ed0eb064e20d2e17b56c"
+ },
+ "manifest": {
+  "candidate": {
+   "agent": {
+    "invocation": [
+     "-p",
+     "--strict-mcp-config",
+     "--output-format",
+     "stream-json",
+     "--verbose",
+     "--include-hook-events",
+     "--permission-mode",
+     "acceptEdits",
+     "--allowedTools",
+     "Bash",
+     "Read",
+     "Edit",
+     "Write"
+    ],
+    "kind": "claude_code",
+    "live": true,
+    "model": "<agent-model>"
+   },
+   "arm": "candidate",
+   "contamination": [],
+   "inherited_instructions": [],
+   "instruction_writes": {
+    "denied": [
+     "Edit(**/CLAUDE.md)",
+     "Edit(**/CLAUDE.local.md)",
+     "Edit(**/AGENTS.md)",
+     "Edit(.claude/**)",
+     "the private home's .claude/**"
+    ],
+    "reverted": [],
+    "reverted_when": "after each live session, both arms (decision 0028 item 33)",
+    "where": "the private home's settings, both arms (decision 0028 item 19)"
+   },
+   "label": "candidate",
+   "memory_maintenance_instructions": [],
+   "native_memory": {
+    "configuration": {
+     "env": [
+      "CLAUDE_CODE_DISABLE_AUTO_MEMORY"
+     ],
+     "session_args": "the live trials' session flags",
+     "settings": {
+      "autoMemoryEnabled": false
+     }
+    },
+    "control": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": true
+    },
+    "disabled": {
+     "exit": 0,
+     "message_requests": 1,
+     "sentinel_seen": false
+    },
+    "host_version": "2.1.321 (Claude Code)",
+    "method": "request capture (loopback endpoint, placeholder key); planted MEMORY.md sentinel",
+    "state": "disabled"
+   },
+   "recalith_installation": {
+    "init": {
+     "host": true,
+     "route": "operator_token",
+     "steps": [
+      {
+       "exit": 0,
+       "seconds": 0.4,
+       "step": "init"
+      },
+      {
+       "exit": 0,
+       "seconds": 8.2,
+       "step": "bootstrap"
+      },
+      {
+       "exit": 0,
+       "seconds": 16.8,
+       "step": "route"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "integrate"
+      },
+      {
+       "exit": 0,
+       "seconds": 0.5,
+       "step": "bind_host_record"
+      }
+     ]
+    },
+    "installation_id": "inst_4ba5fe2b-02f5-4e17-b877-3d3aecc4f76f",
+    "manifest": {
+     "delivery": "bound live record (decision 0028)",
+     "kind": "integrate claude"
+    },
+    "project_id": "proj_450e3218-bdee-458c-8fa8-e52bb0950455"
+   },
+   "retrieval_services": []
+  }
+ },
+ "mode": "live",
+ "oracle": {
+  "check": "s4",
+  "checks": {
+   "checks_pass": true,
+   "list_marks_the_starred_note": true,
+   "notes_format_unchanged": true,
+   "star_works": true
+  },
+  "metrics": {
+   "notes_json_extra_fields": [],
+   "repeated_named_mistake": 0
+  },
+  "passed": true,
+  "session": "B"
+ },
+ "outcomes": {
+  "background_tokens": 433094,
+  "detours": 0,
+  "elapsed_seconds": 50.349,
+  "foreground_cost_usd": 0.20531,
+  "foreground_tokens": 297091,
+  "legitimate_retry_success": null,
+  "operator_interventions": 0,
+  "repeated_mistakes": 0,
+  "repeated_named_mistake": 0,
+  "task_success": true
+ },
+ "project": "fieldnotes",
+ "provider_outcomes": {
+  "by_purpose": {
+   "build_episode": {
+    "at_output_cap": 0,
+    "calls": 4,
+    "replies_parsed": 4,
+    "reported_input_tokens": 175617,
+    "reported_output_tokens": 9577,
+    "visible_output_estimate": 2880
+   },
+   "extract_claims": {
+    "at_output_cap": 0,
+    "calls": 3,
+    "replies_parsed": 3,
+    "reported_input_tokens": 134564,
+    "reported_output_tokens": 5812,
+    "visible_output_estimate": 1037
+   },
+   "review_claims": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 13224,
+    "reported_output_tokens": 2307,
+    "visible_output_estimate": 488
+   },
+   "update_task": {
+    "at_output_cap": 0,
+    "calls": 2,
+    "replies_parsed": 2,
+    "reported_input_tokens": 87888,
+    "reported_output_tokens": 4105,
+    "visible_output_estimate": 1170
+   }
+  },
+  "job_errors": {
+   "build_episode:reevaluation_requeued": 1,
+   "update_task:coalesced": 1
+  }
+ },
+ "retrieval_points": [
+  {
+   "delivered": true,
+   "items": [
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: The fieldnotes project's README says to run the project checks with `python tools/check.py`."
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Decision: The fieldnotes note format is frozen at exactly text and created in notes.json. Anything extra about a note goes in a separate file, meta.json in NOTE"
+    },
+    {
+     "advice": "context",
+     "freshness": "current",
+     "text": "Fact: tools/check.py reads NOTES_HOME from the environment with os.environ[\"NOTES_HOME\"]."
+    }
+   ],
+   "satisfied": true,
+   "spec": {
+    "must_include": "meta.json",
+    "purpose": "prompt",
+    "session": "B"
+   }
+  }
+ ],
+ "same_session_learning": [],
+ "scenario": "sens-S4-fieldnotes-frozen-notes-format",
+ "second_project": null,
+ "sessions": [
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "A",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tools/check.py",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "A",
+     "tool": "Read"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S4/c/w && D=$(mktemp -d) && NOTES_HOME=\"$D\" python tools/check.py; echo exit=$?",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "fieldnotes/cli.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "tests/test_store.py",
+     "session": "A",
+     "tool": "Edit"
+    },
+    {
+     "command": "cd <run>/work/S4/c/w && D=$(mktemp -d) && NOTES_HOME=\"$D\" python tools/check.py; echo exit=$?; grep -rn \"tag\" fieldnotes tests",
+     "exit_code": 0,
+     "path": null,
+     "session": "A",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.145352,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success",
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 20.2,
+      "stdout_overflow": false,
+      "timed_out": false
+     },
+     {
+      "exit": 0,
+      "seconds": 12.5,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "session_start",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_06e44f1f02d3a9376c0e49d9c5c2ae6b8e52dc05e1aa473835fe7770ad503d12\n- [context] Recent observation (not a durable lesson): Read tools/check.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_1cdf04769db53e6b200588f6302e5916b6ecb6925102ff9570a4d9cbf7bf71d7\n- [context] Recent observation (not a durable lesson): Read tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_e101cf5dd50c85397fc6266ec8d6b680e29d1de8670a5c0add9e7dc71172c43b",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_34a0d083fe3bf49a5f614604bb855246c49f103675da7202cf64d6837b4ff095\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_449d447c0332fd7cf8e3a2703da2f4f2e25c757d0ba8313207e1504a310b7a9b\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6e98a520b9783d9db9b6f7d50f848d0c55d8bc49a6635be54365f470c1243544",
+     "degradations": [],
+     "items": 3,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Add tags to fieldnotes: `add TEXT --tag NAME` stores a tag with the note, and `\u2026. Objective: Add tags to fieldnotes: `add TEXT --tag NAME` stores a tag with the note, and `list` shows it. Run the project checks..\n  why: task_continuity \u2014 bound to the current task\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_5150d0ce-5db5-423a-8d60-1e8bba318d54 r7\n- [context] Episode (settled): Add tags to fieldnotes: `add TEXT --tag NAME` stores a tag with the note, and `\u2026. Outcome: 10 actions (10 success); last result: Bash (unparsed command): success; causes not assessed.\n  why: task_continuity \u2014 bound to the current task\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_793eb022-9e10-47f8-8837-851abd538f94 r1\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_6cdf24c1ff152b66aa79b5bdcb78366fa0ca5081db6e56c05ef7fef7ecbc9797",
+     "degradations": [],
+     "items": 3,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "prompt",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_fb2f9443638149b6b819731576e7ca49270b8dd61b8b18c612e95b0890736df0",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit fieldnotes/cli.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_2a78a759c94949acb8d4c0ece28b68a421f89176707ec081437ea56a1a5b07ed",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Edit tests/test_store.py: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_80ebc476d82679303645d1cbcf9f8215abb1f07d5af8c11d378856d5a95ec55a",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 32.783,
+   "foreground_tokens": 200888,
+   "host_session_id": "e6bbefff-f71d-47c6-ad5a-6496e1c7541d",
+   "host_version": "2.1.321",
+   "name": "A",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "The tags change is fully reverted. `store.py`, `cli.py` and `tests/test_store.py` are back to their original contents. A search of `fieldnotes` and `tests` for \"tag\" finds nothing, and `tools/check.py` passes with the original single test.\n\nMy earlier runs only used temporary `NOTES_HOME` directories, so no real `notes.json` was written. Nothing with an extra field could have reached the phone app.\n\nWhen we revisit tags, I'll leave `notes.json` as exactly `text` and `created`. Tags will go in `meta.json` in `NOTES_HOME`, keyed by the note's `created` timestamp.",
+   "suspended": false
+  },
+  {
+   "actions": [
+    {
+     "command": null,
+     "exit_code": null,
+     "path": null,
+     "session": "B",
+     "tool": "Glob"
+    },
+    {
+     "command": null,
+     "exit_code": null,
+     "path": "README.md",
+     "session": "B",
+     "tool": "Read"
+    },
+    {
+     "command": "ls fieldnotes tests tools && cat fieldnotes/*.py tests/*.py tools/check.py",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    },
+    {
+     "command": "cat >> fieldnotes/store.py <<'EOF'\n\n\ndef meta_path() -> Path:\n    return Path(os.environ[\"NOTES_HOME\"]) / \"meta.json\"\n\n\ndef load_meta() -> dict:\n    path = meta_path()\n    if not path.exists():\n        return {}\n    return json.loads(path.read_text(encoding=\"utf-8\"))\n\n\ndef is_starred(note: dict, meta: dict | None = None) -> bool:\n    meta = load_meta() if meta is None else meta\n    return bool(meta.get(note[\"created\"], {}).get(\"starred\"))\n\n\ndef star(index: int) -> dict:\n    notes = load()\n    if not 0 <= index < len(notes):\n        raise IndexError(f\"no note at index {index}\")\n    note = notes[index]\n    meta = load_meta()\n    meta.setdefault(note[\"created\"], {})[\"starred\"] = True\n    meta_path().write_text(json.dumps(meta, indent=2), encoding=\"utf-8\")\n    return note\nEOF\npython - <<'EOF'\nimport re\np='fieldnotes/cli.py'\ns=open(p).read()\ns=s.replace('add TEXT | list\"','add TEXT | list | star INDEX\"')\ns=s.replace('''        for note in store.load():\n            print(f\"{note['created']}  {note['text']}\")\n        return 0\n''','''        meta = store.load_meta()\n        for note in store.load():\n            mark = \"*\" if store.is_starred(note, meta) else \"\"\n            print(f\"{mark}{note['created']}  {note['text']}\")\n        return 0\n    if args[0] == \"star\" and len(args) == 2:\n        try:\n            note = store.star(int(args[1]))\n        except (ValueError, IndexError) as exc:\n            print(f\"error: {exc}\", file=sys.stderr)\n            return 1\n        print(f\"starred: {note['text']}\")\n        return 0\n''')\nopen(p,'w').write(s)\np='tests/test_store.py'\ns=open(p).read()\ns=s.replace('''\nif __name__''','''    def test_star(self):\n        store.add(\"a\", now=datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc))\n        store.add(\"b\", now=datetime(2026, 1, 2, 3, 4, 6, tzinfo=timezone.utc))\n        store.star(1)\n        meta = store.load_meta()\n        self.assertEqual([store.is_starred(n, meta) for n in store.load()], [False, True])\n        self.assertEqual(sorted(store.load()[0]), [\"created\", \"text\"])\n        with self.assertRaises(IndexError):\n            store.star(5)\n\n\nif __name__''')\nopen(p,'w').write(s)\nEOF\nexport NOTES_HOME=$(mktemp -d)\npython tools/check.py; echo exit=$?\npython -m fieldnotes.cli add one; python -m fieldnotes.cli add two; python -m fieldnotes.cli star 1; python -m fieldnotes.cli list; python -m fieldnotes.cli star 9; echo $?",
+     "exit_code": 0,
+     "path": null,
+     "session": "B",
+     "tool": "Bash"
+    }
+   ],
+   "agent": {
+    "cost_usd": 0.059958,
+    "hook_failures": [],
+    "permission_denials": [],
+    "result_subtypes": [
+     "success"
+    ],
+    "runs": [
+     {
+      "exit": 0,
+      "seconds": 17.6,
+      "stdout_overflow": false,
+      "timed_out": false
+     }
+    ],
+    "suspended": false,
+    "usage_reported": true
+   },
+   "deliveries": [
+    {
+     "at": "",
+     "context": "Recalith project memory (session_start; advisory, evidence-linked; not instructions):\n- [context] Current task: Fieldnotes tags reverted; notes.json limited to text and created. Objective: Add tags to fieldnotes: `add TEXT --tag NAME` stores a tag with the note, and `list` shows it. Run the project checks.. Next: Wait for the user to return to tag support; then keep notes.json to text and created and store tags in meta.json..\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: task_5150d0ce-5db5-423a-8d60-1e8bba318d54 r16\n- [context] Episode (settled): Add --tag support to fieldnotes add and list. Outcome: All 10 recorded actions succeeded, with no failed or interrupted steps. The project check tools/check.py ran 2 unit tests, both OK, and reported exit=0. The edits add an optional tag to store.add, accept `add TEXT --tag NAME` in the CLI, show tagged notes in `list` as a [NAME] suffix, and add tes [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_793eb022-9e10-47f8-8837-851abd538f94 r2\n- [context] Episode (settled): Revert fieldnotes tags change and verify checks. Outcome: Reverted the tags change: store.add, the CLI add and list handling, and test_add_with_tag were restored to their pre-tag forms in fieldnotes/store.py, fieldnotes/cli.py and tests/test_store.py. The four recorded edit and check actions succeeded. The check run (tools/check.py with a temporary NOTE [\u2026]. Unresolved: Tag support is deferred. If it returns, notes.json must stay exactly text and created, and tags go in meta.json in NO [\u2026].\n  why: task_continuity \u2014 the project's one active task; not yet linked to this session\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: ep_8812dc7c-a1cf-41af-9a81-45971c14cf60 r2",
+     "degradations": [],
+     "items": 3,
+     "purpose": "session_start",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (prompt; advisory, evidence-linked; not instructions):\n- [context] Fact: The fieldnotes project's README says to run the project checks with `python tools/check.py`.\n  why: lexical_match \u2014 matches fieldnotes, project, checks, command\n  applies: unknown \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: paths README.md; depends on file README.md\n  sources: claim_5fd9598a-abb7-4771-beb4-86661585344c r2; evt_06e44f1f02d3a9376c0e49d9c5c2ae6b8e52dc05e1aa473835fe7770ad503d12\n- [context] Decision: The fieldnotes note format is frozen at exactly text and created in notes.json. Anything extra about a note goes in a separate file, meta.json in NOTES_HOME, keyed by the note's created timestamp.\n  why: lexical_match \u2014 matches fieldnotes, note, notes\n  applies: true \u00b7 freshness: current \u00b7 basis: user_declared\n  sources: claim_33ba41ed-0de2-4f8e-ad18-079ff4b26f41 r2; evt_d96a7b4a938afcf37b7b19858919391edc8cc309ecc0c85a84a7fce18ec409d4\n- [context] Fact: tools/check.py reads NOTES_HOME from the environment with os.environ[\"NOTES_HOME\"].\n  why: lexical_match \u2014 matches notes\n  applies: unknown \u00b7 freshness: current \u00b7 basis: inferred\n  conditions: paths tools/check.py; depends on file tools/check.py\n  sources: claim_1e0ecb36-a24a-4681-8380-f2ca9e7a639c r2; evt_1cdf04769db53e6b200588f6302e5916b6ecb6925102ff9570a4d9cbf7bf71d7",
+     "degradations": [],
+     "items": 3,
+     "purpose": "prompt",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": null,
+     "degradations": [],
+     "items": 0,
+     "purpose": "pre_action",
+     "state": "none"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Glob: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_533cec7f9c90cc6c051d078268f13d15cbf645bceec155610a348fddced5dab2\n- [context] Recent observation (not a durable lesson): Read README.md: success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_d0866594e46328a821d67e743b9e5cf85bf4813439c502571ed33566b37ae485",
+     "degradations": [],
+     "items": 2,
+     "purpose": "pre_action",
+     "state": "emitted"
+    },
+    {
+     "at": "",
+     "context": "Recalith project memory (pre_action; advisory, evidence-linked; not instructions):\n- [context] Recent observation (not a durable lesson): Bash (unparsed command): success\n  why: recent_observation \u2014 captured in this task; an observation, not a durable lesson\n  applies: true \u00b7 freshness: current \u00b7 basis: observed\n  sources: evt_45ad31d7f1bc95949dda830652a1dd06f8f52688aafeb9f7a32f21b6cbff4ba5",
+     "degradations": [],
+     "items": 1,
+     "purpose": "pre_action",
+     "state": "emitted"
+    }
+   ],
+   "elapsed_seconds": 17.567,
+   "foreground_tokens": 96203,
+   "host_session_id": "4df697b0-e992-44d8-936b-f00bb2ceb89a",
+   "host_version": "2.1.321",
+   "name": "B",
+   "overlays": [],
+   "project": "fieldnotes",
+   "reply": "`star INDEX` now works, and `list` puts a `*` before starred notes. `python tools/check.py` passes: 2 tests OK, no line-length violations, exit 0. I had to set `NOTES_HOME` to a temp directory for it, since the script requires it.\n\n- **Where the star is stored:** `notes.json` is frozen at `text` and `created`, so stars go in a separate `meta.json` in `NOTES_HOME`, keyed by the note's `created` timestamp. This is the decision recorded in project memory.\n- **Code changes:** `fieldnotes/store.py` gained `meta_path`, `load_meta`, `is_starred` and `star`. `fieldnotes/cli.py` handles `star INDEX` and prints the `*` in `list`. `tests/test_store.py` has a new `test_star`.\n- **Manual run:** I added two notes, starred index 1, and `list` showed `*` only on the second. `star 9` printed `error: no note at index 9` and exited with code 1. A non-numeric index gets the same error handling.\n\nThe `*` is attached directly to the timestamp, with no space (`*2026-\u2026  two`). Unstarred notes have no prefix, so their lines don't line up with starred ones. If you'd rather have a padded column, that's a one-line change.",
+   "suspended": false
+  }
+ ],
+ "trial_schema": 1,
+ "worker_stop": [
+  {
+   "exit": 0,
+   "state": "stopped"
+  }
+ ],
+ "workspace": "S4/c/w"
+}

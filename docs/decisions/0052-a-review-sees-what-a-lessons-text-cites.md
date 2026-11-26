@@ -51,3 +51,4 @@ DATA_CONTRACTS §6.2's `ReviewBatch` paragraph now says what the evidence index 
     - a `supported` verdict that cites only that entry is refused (`supported_requires_support_evidence`);
     - a verdict that cites the support link as well is admitted;
     - the lesson's support links are unchanged.
+- **Live:** the fourteenth gate (2026-11-26, [record](../evaluations/preview-live-2026-11-26-gate14/report.md)) showed the changed-condition revision again. R1's failure lesson was reviewed supported after session A. C's plain success sent it to revalidation, which revised it (revision 8, reviewed supported). The gate passed.

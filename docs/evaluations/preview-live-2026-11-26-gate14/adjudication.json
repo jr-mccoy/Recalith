@@ -1,0 +1,210 @@
+{
+ "adjudication_schema": 1,
+ "claims": {
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_b17afbfe-e0de-4dba-82e0-2b8072df77a6": {
+   "label": "supported",
+   "proposition": "README.md says to run the project checks with `python tools/check.py`.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Fixture README.md: \"Run the project checks with `python tools/check.py`.\" Sessions A and B both read README.md."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_4b466d12-98e9-4bf1-aa86-c6ebb625f829": {
+   "label": "supported",
+   "proposition": "Running `python -m unittest discover -s tests` from the project root, without PYTHONPATH=src, ends with FAILED (errors=1).",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "Session A's fifth action ran this command first (`python -m unittest discover -s tests 2>&1 | tail -5`), before the PYTHONPATH=src form. A's reply: without PYTHONPATH=src it \"fails with an import error for `ledgerlite`\". The tail hid the exit. On a copy of the fixture with Python 3.13.15 (the gate's), the command prints \"Ran 1 test\" and \"FAILED (errors=1)\" and exits 1. The tenth gate's equivalent (claim_f08e22cb) was recorded supported. Judgment call that decides the gate: the exact text is not in the retained record, and by the rule the owner applied to the eleventh gate's C1 claim_02d6decf it would be unsupported, giving support 13/14 (0.93), under 0.95. The difference here: the agent's own reply names the failure and its cause; the eleventh gate's reply said only that the run \"failed on the discovery flags\"."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_5d6e25d8-7616-4946-a618-14be18e1d37e": {
+   "label": "supported",
+   "proposition": "Running `PYTHONPATH=src python -m unittest discover -s tests -v` from the project root reports Ran 2 tests and OK.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "The second half of the same action in session A. A's reply: both tests pass (test_transfer_preserves_total, test_rejects_non_positive_amount). Session B's run of the same command passed 3 tests after B added one."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_22f94647-1da9-4b85-b098-ca9241994b53": {
+   "label": "supported",
+   "proposition": "Reading the code, tools/check.py gets NOTES_HOME from the environment as os.environ[\"NOTES_HOME\"] and sets no default for it.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Fixture tools/check.py: `notes_home = os.environ[\"NOTES_HOME\"]`, with no default. Session B read tools/check.py. No overlay changed check.py in L2."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_f9814586-108a-4779-8178-5fd039f68b16": {
+   "label": "supported",
+   "proposition": "Every date fieldnotes prints must be ISO-8601 (YYYY-MM-DD...). Never use locale formats like 'Jan 2' or '02/01/2026'.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "The user's decision in session A, word for word. It is scoped to fieldnotes, not to every project (the prohibited generalization)."
+  },
+  "smoke-L3-household-grocery-budget:claim_f6f1eacb-d07c-4e0c-9b8b-4a7e393ec522": {
+   "label": "supported",
+   "proposition": "For household planning, keep the grocery budget under $600 per month, and flag anything that would push it over.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "The user's words in session A: \"keep the grocery budget under $600 per month, and flag anything that would push it over\". It is scoped to household planning and to groceries, not to every category."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_da546917-32e1-4479-bb1f-77e2ef90554e": {
+   "label": "supported",
+   "proposition": "Running `python tools/check.py` without NOTES_HOME set fails with KeyError: 'NOTES_HOME'.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "Session A's first run, `python tools/check.py`, exited 1. A's reply: check.py \"reads os.environ[\"NOTES_HOME\"] and crashed with a KeyError when it wasn't set\". The fixture check.py raises exactly KeyError: 'NOTES_HOME'. Before C the overlay gave check.py a default, so C's plain run passed. A later change in the trial leaves the label supported (decision 0028 item 31). The claim ended at revision 8: after C, revalidation revised it, the review returned supported, and the proposition stayed the same."
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_4a9335ef-b3a3-407d-b995-861fa8cea2b9": {
+   "label": "supported",
+   "proposition": "Running `python -m unittest discover -s tests -t .` in this project, where tests/ has no __init__.py, fails with \"ImportError: Start directory is not importable\".",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Session A's first run, before any tests/__init__.py existed: `python -m unittest discover -s tests -t . 2>&1 | tail -40`. A's reply: \"tests/ had no __init__.py, so unittest refused to use it as the start directory\". The tail hid the exit. On a copy of the fixture with Python 3.13.15 the command raises \"ImportError: Start directory is not importable: <path>\" and exits 1. The tenth gate's equivalent was recorded supported. Judgment call that decides the gate: the exact text is not in the retained record, and by the rule the owner applied to the eleventh gate's C1 claim_02d6decf it would be unsupported, giving support 13/14 (0.93), under 0.95. The difference here: the agent's own reply names the failure and its cause; the eleventh gate's reply said only that the run \"failed on the discovery flags\"."
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_8f06e725-c2c7-4177-8f6c-538618007533": {
+   "label": "supported",
+   "proposition": "Running `python -m unittest discover -s tests -t .` with a tests/__init__.py file present reports \"Ran 2 tests\" and \"OK\".",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Session A wrote a tests/__init__.py that puts src/ on sys.path and reran the same command. A's reply: both tests run and pass. In session C, with the overlay's tests/__init__.py (also a sys.path insert), the same command ran 2 tests OK. Judgment call: the claim leaves out that the file puts src/ on sys.path; an empty one would not pass, as A's reply says. The tenth and eleventh gates' equivalent claims were recorded supported, reading the condition as the file A wrote."
+  },
+  "smoke-R3-household-budget-correction:claim_3012eeb7-e5d0-479d-a253-eb20b1967802": {
+   "label": "supported",
+   "proposition": "The grocery budget is now $700 per month.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "The user's correction in session C: \"the grocery budget is now $700 per month, not $600\"."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_2b48a7c2-37a4-4b23-904a-9eaf9976d89a": {
+   "label": "supported",
+   "proposition": "Running `python -I -m fieldnotes.cli list` from the project directory fails with ModuleNotFoundError: No module named 'fieldnotes'.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Session A's first two runs used `python -I -m fieldnotes.cli list`, the second with PYTHONPATH=\"$PWD\". A's reply: \"-I also ignores PYTHONPATH and the module couldn't be found\", so A reran without -I. `; echo` hid the exit. On a copy of the fixture with Python 3.13.15, both forms print \"Error while finding module specification for 'fieldnotes.cli' (ModuleNotFoundError: No module named 'fieldnotes')\" and exit 1. The episode delivered at C's start says the same (\"failed with ModuleNotFoundError for 'fieldnotes' (exit=1)\"); it is a summary, not primary evidence. Judgment call that decides the gate: the exact text is not in the retained record, and by the rule the owner applied to the eleventh gate's C1 claim_02d6decf it would be unsupported, giving support 13/14 (0.93), under 0.95. The difference here: the agent's own reply names the failure and its cause; the eleventh gate's reply said only that the run \"failed on the discovery flags\"."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_49d45926-b648-41b3-9732-c518bba00f54": {
+   "label": "supported",
+   "proposition": "With NOTES_HOME set to an empty directory, `python -m fieldnotes.cli list` prints no output and exits with code 0.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Session A's third run, with NOTES_HOME set to an empty temp directory. A's reply shows no output and exit=0. It stays true after C's overlay, because load() returns [] when notes.jsonl is missing."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_895b6c81-f310-4c39-a389-62157da98f99": {
+   "label": "supported",
+   "proposition": "tools/count_notes.py prints the number of stored notes.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "unsupported",
+   "why": "Session C wrote tools/count_notes.py. Its test printed 0, then 2 after two adds (C's reply). The oracle's counts_current_storage check passed."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_94fe218f-74dd-412b-8053-5aa21a9e01e7": {
+   "label": "supported",
+   "proposition": "Notes are stored in notes.jsonl under NOTES_HOME, one JSON object per line.",
+   "status": "active",
+   "strength": "supported",
+   "suggested": "supported",
+   "term_match": "supported",
+   "why": "The overlay's fieldnotes/store.py (written before C): notes_path() is NOTES_HOME/notes.jsonl, and add() appends one json.dumps line. C read store.py, and C's test created notes.jsonl (C's reply)."
+  }
+ },
+ "instructions": "Label each claim supported|unsupported against the trial's evidence when it was admitted (scope included: a prohibited generalization is unsupported; a later change in the trial that made it out of date is scored by the freshness, conflict, recall and guidance measures, not here: decision 0028 item 31), and each gold lesson recalled|missed|evidence_absent (evidence_absent: the trial's sessions never produced the lesson's evidence). Add each reviewer as {\"route\": ..., \"independent_of_system_spec_7\": true|false}. Save as adjudication.json; the term_match fields are suggestions, never labels.",
+ "labeled_from": "adjudication.suggested.json, adopted by the reviewer",
+ "lessons": {
+  "smoke-L1-ledgerlite-test-command#0": {
+   "kind": "procedure",
+   "label": "recalled",
+   "lesson": "Run the ledgerlite tests with `PYTHONPATH=src python -m unittest discover -s tests` from the project root.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_5d6e25d8 holds the passing command (`PYTHONPATH=src python -m unittest discover -s tests -v`, 2 tests OK). It is active (revision 2) and was delivered at B's prompt, and B used it on the first try (3 tests OK). It is worded as one recorded run, not as a procedure; the tenth gate's equivalent was recorded recalled. It was not delivered at B's session start, the retrieval point's known miss, as in the ninth to eleventh gates. Judgment call: missed gives useful recall 6/7 (0.857), still met."
+  },
+  "smoke-L1-ledgerlite-test-command#1": {
+   "kind": "failure_lesson",
+   "label": "recalled",
+   "lesson": "Without PYTHONPATH=src the src-layout package is not importable from tests; plain discovery fails or runs nothing.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "This time session A ran plain discovery without PYTHONPATH=src (`python -m unittest discover -s tests`) before the PYTHONPATH=src form. Its reply says that command fails with an import error for ledgerlite. claim_4b466d12 holds the failure; it is active and was delivered at B's prompt, as the tenth gate's claim_f08e22cb was. evidence_absent is not open, since the failing run happened. Judgment call: missed gives failed-approach recall 1/2."
+  },
+  "smoke-L2-fieldnotes-iso-dates#0": {
+   "kind": "decision",
+   "label": "recalled",
+   "lesson": "All dates printed by fieldnotes use ISO-8601; locale formats are not allowed.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_f9814586, the user's decision, is active and was delivered at B's prompt. B's export kept ISO-8601 (the oracle's export_dates_iso8601 check passed)."
+  },
+  "smoke-L3-household-grocery-budget#0": {
+   "kind": "preference",
+   "label": "recalled",
+   "lesson": "Grocery spending stays under $600 per month; plans that exceed it are flagged.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_f6f1eacb, the user's $600 limit with the flag rule, is active and was delivered at B's prompt. B flagged its first draft ($666.50) and trimmed it to $563.50."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed#0": {
+   "kind": "failure_lesson",
+   "label": "recalled",
+   "lesson": "tools/check.py fails with KeyError unless NOTES_HOME is set.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_da546917, the KeyError failure lesson, is active. It was delivered at C's prompt as needs_revalidation with applies unknown (no caution), and C's plain retry passed. After C it was revalidated (revision 8, reviewed supported). Judgment call: missed gives failed-approach recall 1/2."
+  },
+  "smoke-R2-ledgerlite-import-fixed#0": {
+   "kind": "failure_lesson",
+   "label": "evidence_absent",
+   "lesson": "Plain discovery fails to import ledgerlite without PYTHONPATH=src.",
+   "suggested": "evidence_absent",
+   "term_match": "missed",
+   "why": "As in the fourth to eighth, tenth and eleventh gates: session A's plain discovery stopped on the start directory (no tests/__init__.py). A then wrote a tests/__init__.py that puts src/ on sys.path, and the original command passed. ModuleNotFoundError for ledgerlite was never observed; A's reply says the import \"would have failed next\", from reading the layout. The owner recorded the tenth and eleventh gates' R2 #0 evidence_absent. Judgment call: missed gives failed-approach recall 2/3."
+  },
+  "smoke-R3-household-budget-correction#0": {
+   "kind": "preference",
+   "label": "recalled",
+   "lesson": "Grocery budget is $700 per month.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_3012eeb7, the user's $700 correction, is active, and it superseded the $600 preference (claim_4ba42f96). C's plan used $700 (the oracle's no_stale_600_limit check passed)."
+  },
+  "smoke-R4-fieldnotes-storage-conflict#0": {
+   "kind": "fact",
+   "label": "recalled",
+   "lesson": "Notes are stored in notes.json under NOTES_HOME.",
+   "suggested": "recalled",
+   "term_match": "recalled",
+   "why": "claim_6a352b75, the user_declared notes.json fact, was admitted after A and delivered at C's prompt as needs_revalidation (the conflict measure is met, 1/1). After C, a reviewed replacement superseded it: claim_94fe218f, notes.jsonl, from the overlay's store.py. The ninth to eleventh gates had it disputed instead. Judgment call: the overlay changed the file the lesson describes, so the supersession is the correct update, as the ninth gate's R1 #0 was counted. Missed gives useful recall 6/7 (0.857), still met."
+  }
+ },
+ "note": "Suggestions only: every label is null, so the report counts none. A reviewer copies a suggestion into label to adopt it, adds themselves under reviewers, and saves the file as adjudication.json.",
+ "reviewers": [
+  {
+   "independent_of_system_spec_7": false,
+   "route": "the owner: two model reviews (the coding agent, an outside model), adopted where they agreed; R2 #0 decided by the owner"
+  }
+ ],
+ "suggested_by": {
+  "independent_of_system_spec_7": false,
+  "route": "coding agent (model), drafted for a reviewer; not a reviewer label"
+ }
+}

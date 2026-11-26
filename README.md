@@ -11,10 +11,10 @@ Each project has its own complete installation under `.recalith/`, with its own 
 
 ## Status: experimental preview, not released
 
-- **Engine:** `0.1.0.dev19`, release profile `claude_preview`. It fixes the first five phases of a [pre-publication audit](docs/audits/2026-11-06-memory-system-audit.md) (credentials escaping the scrubber, lost large messages, a worker that could spin, starve work or die silently, retrieval that lost applicable guidance in a large store, an install path nobody could follow from the documents, and a repository that did not yet read as a public project); the live gate below ran on `0.1.0.dev10` and is re-run on the fixed engine before any release.
+- **Engine:** `0.1.0.dev19`, release profile `claude_preview`. It fixes the first five phases of a [pre-publication audit](docs/audits/2026-11-06-memory-system-audit.md) (credentials escaping the scrubber, lost large messages, a worker that could spin, starve work or die silently, retrieval that lost applicable guidance in a large store, an install path nobody could follow from the documents, and a repository that did not yet read as a public project); the live gate below passed on this engine, as it had on `0.1.0.dev10` before the audit.
 - **Tests:** the deterministic suites run in CI on Linux (Python 3.12–3.14), macOS and Windows (Python 3.13). One macOS timing test fails intermittently (see BUILD_PROGRESS).
-- **The live preview gate passed** on native Windows on 2026-11-04 (its tenth run). That is 12 scripted scenarios, each run with Recalith and with a clean no-memory baseline, plus three eight-hour workload days. With reviewer labels:
-  - 21 of 22 saved facts were supported by their evidence;
+- **The live preview gate passed** on native Windows on 2026-11-26 (its fourteenth run, on `0.1.0.dev19`; the tenth, on 2026-11-04, passed on `0.1.0.dev10`). That is 12 scripted scenarios, each run with Recalith and with a clean no-memory baseline, plus three eight-hour workload days. With reviewer labels:
+  - 14 of 14 saved facts were supported by their evidence;
   - 7 of 7 reusable lessons were learned, and 2 of 2 lessons from failed approaches;
   - there was no wrong advice given with confidence;
   - forgetting, restore and project isolation were all demonstrated.

@@ -923,3 +923,44 @@ The owner ran the gate from `rl-pilot14` and the `0.1.0.dev18` release (Claude C
   - The second half: 414 passed, 17 skipped, 1 failed. The failure was `test_bounded_live_dependency_check`, whose 50 ms window ran under the load of the other two suites. It passes alone, and `test_retrieval.py` passes alone (42 passed). Neither the test nor `fast/context.py` was touched.
   - `generate_schemas.py --check` and `generate_hook_wire.py --check` exit 0. `release_checklist.py`: `problems: []`, verdict `blocked`. `ruff --select F,E9,B` is clean on the changed files.
 - **Next action:** build the `0.1.0.dev19` release directory. The owner provisions a fresh pilot (`rl-pilot15`, OPERATIONS §4) and runs the fourteenth gate, with the machine plugged in and the lid open.
+
+### 2026-11-26 — The fourteenth live gate: passed on `0.1.0.dev19` with the owner's labels (fix plan 5.2 done)
+
+The owner provisioned the fresh pilot `rl-pilot15` from the `0.1.0.dev19` release (OPERATIONS §4; inference and delivery certified, Claude Code 2.1.321) and ran the gate into `C:\Code\rl-gate14` (repository `e311bc7`, clean tree, native Windows, 6 slots). It ran from 19:33Z to 20:33Z (60 minutes with the sensitivity set and the demonstrations) and exited 8, waiting only on labels. [Record](../evaluations/preview-live-2026-11-26-gate14/report.md), sanitized: 44 files, every scan 0.
+
+- **Complete and clean:**
+  - all 32 trials (24 smoke and 8 sensitivity) ran with no error, no contaminated arm and no suspension, and the host stayed at 2.1.321;
+  - all three workload days ran at once (33, 39 and 28 calls), with no pool hit and no call at its output cap;
+  - **all five demonstrations were shown**, including the two the thirteenth gate missed:
+    - the changed-condition revision: R1's failure lesson was reviewed supported after A, and C's plain success sent it to revalidation (revision 8, reviewed supported);
+    - isolation: the wait after the reverse session settled quietly in 607 seconds, with no suspension;
+    - in forgetting and restore, the forget purged 15 records, and nothing holding the limit was delivered or found in the store after the forget or after the restore;
+  - **cost:** foreground $1.76 over 48 sessions; background 189 model calls and 4,325,051 ledger tokens.
+- **Every measure that needs no labels is met:** incorrect confident guidance 0 of 12, conflict preservation 1/1 (R4), legitimate retries discouraged 0/2, irrelevant caution 0/3, routine human maintenance 0. Retrieval points 10/12, the same two misses as the ninth to eleventh gates (L1 at B's session start; R3 at C's prompt, decision 0036's stated limit).
+- **Outcomes:** both arms succeeded in 12 of 12 (task success +0, inconclusive). No superiority claim.
+- **The baseline-sensitivity set (decision 0049; not part of the gate):** the baseline repeated the named mistake in 4 of 4 and the candidate in 1 of 4 (relative reduction 0.75); task success, candidate 3 and baseline 0.
+  - **S3: the user's `--jobs 1` rule was never extracted.** The user said it in session A's second prompt. Two extractions declined it: first because the user's words were "not in allowed_evidence_refs", then "a user_declared claim needs a SHA-256 quote digest that cannot be computed reliably here" (`extract_claims@7` asks for the quoted text's SHA-256). Session B ran the checks without `--jobs 1`. This is the eleventh gate's S4 finding again, and is recorded for the engine.
+- **Labels.** As for the ninth to eleventh gates:
+  - this session drafted the suggestions (`adjudication.suggested.json`, with `labels-to-review.md`);
+  - a packet without them (`review-packet.md`, untracked) went to an outside model with `review-prompt.md`, and its answer is kept as `outside-review.json`, without the model's name;
+  - the deciding calls were set out first: with 14 claims, any one unsupported gives 13/14 (0.93, under 0.95).
+  - **Three claims rest on error text the record did not keep,** the kind the owner ruled unsupported for the eleventh gate's C1 claim_02d6decf: L1's "FAILED (errors=1)", R2's "Start directory is not importable" and R4's `python -I` "No module named 'fieldnotes'". Here each agent's own reply names the failure and its cause, where the eleventh gate's said only that the run "failed on the discovery flags". Each command was rerun on a copy of its fixture with Python 3.13.15, the gate's interpreter, and printed exactly the claimed text.
+  - **The two reviews agree on 21 of 22 items,** all 14 claims supported among them.
+  - **The owner decided the one difference as this session drafted it.** R2 #0 is `evidence_absent` (the outside review: `recalled`, a close call that it called evidence_absent on a strict reading). The trial's failure was unittest refusing the start directory; the ledgerlite import failure and the `PYTHONPATH=src` fix were never observed. This is as the owner recorded R2 #0 for the tenth and eleventh gates.
+- **Recorded by the owner** with `tools/live_gate/label_gate.py`. The reviewer route is "the owner: two model reviews (the coding agent, an outside model), adopted where they agreed; R2 #0 decided by the owner", not independent of SYSTEM_SPEC §7. The same labels on a scratch copy first gave the same result.
+- **The report:** exit 0, **`passed_smoke`**, no reasons.
+
+  | Measure | Result | Target |
+  |---|---|---|
+  | supported precision | 14/14 (1.0; Wilson 95 % 0.78–1.0) | ≥ 0.95 — met |
+  | useful recall | 7/7 (1.0; Wilson 95 % 0.65–1.0) | ≥ 0.85 — met |
+  | failed-approach recall | 2/2 (Wilson 95 % 0.34–1.0) | ≥ 0.90 — met |
+
+  It is the second live pass and the first on the engine with the audit's fixes, so fix plan item 5.2 is done. Like the tenth, it has one trial per arm, gold written by the coding agent (not held out) and labels not independent of SYSTEM_SPEC §7. One unsupported claim would have failed it.
+- **Recorded for a later engine change; none of these affects the result:**
+  - **R1's lesson was kept as current after the file changed.** C's plain success sent it to revalidation, which revised it with the same proposition. A second revalidation found "tools/check.py still reads NOTES_HOME". The overlay is an outside edit that C did not read, so the store never saw the new default (decision 0052's recorded limit). The lesson ended active and current at revision 8.
+  - **R4's declared notes.json fact was superseded,** not disputed as in the ninth to eleventh gates. After C, an extraction proposed the notes.jsonl fact from the overlay's `store.py` together with the status change, and the review supported it. SYSTEM_SPEC §7.2 allows an inferred replacement after review. Its protection against automatic invalidation covers declared decisions and preferences, not facts. The conflict was labeled at C's prompt (the measure is met).
+- **The checklist:** `smoke_quality_gates` is `passed` again, on the fourteenth gate, and the verdict stays `blocked` on the Linux live run, signing and the go-ahead (`release_checklist.py`: `problems: []`). `FULL_RELEASE_AVAILABLE` is unchanged. README, OPERATIONS §6, the CHANGELOG, decision 0052 and the fix plan record the pass.
+- **CI on `e311bc7`:** the `main` run passed on every platform. The branch run's Windows job failed 2 of 1,587 tests, both deadline-bound in `test_prompt_lookup.py`, on a runner that took 78 minutes. The same commit passed on `main`'s Windows job, and the file passes here (14 passed in 18 s). dev19 did not touch the lookup.
+- **Checks (native Windows 11, Python 3.13.15):** `test_prompt_lookup.py` → 14 passed. Nothing in `src/`, `tests/` or `evals/` changed.
+- **Next action:** the owner's fix plan 5.3. On a native Linux machine, follow OPERATIONS §4, then run the provider probe, the runtime check, `integrate claude` and the engine-mode delivery probe (decision 0041; no Linux gate). Then 5.4, the publication decisions. Keep `0.1.0.dev19` as the engine under release; any engine change that touches capture, the worker, retrieval or delivery needs the gate again.

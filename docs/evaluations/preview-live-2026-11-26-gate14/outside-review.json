@@ -1,0 +1,96 @@
+{
+ "claims": {
+  "smoke-C2-fieldnotes-tdd-expected-red:claim_b17afbfe-e0de-4dba-82e0-2b8072df77a6": {
+   "label": "supported",
+   "reason": "The fixture README.md contains the sentence 'Run the project checks with `python tools/check.py`', and the agent read README.md in session A. The claim is a plain statement of the file's content and matches neither prohibited generalization."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_4b466d12-98e9-4bf1-aa86-c6ebb625f829": {
+   "label": "supported",
+   "reason": "Session A ran this command without PYTHONPATH, and the agent reported it fails with an import error for ledgerlite. The literal 'FAILED (errors=1)' cannot be verified because the output was not kept and the exit code is masked by the pipe, but it is what unittest prints when the fixture's single test module fails to import."
+  },
+  "smoke-L1-ledgerlite-test-command:claim_5d6e25d8-7616-4946-a618-14be18e1d37e": {
+   "label": "supported",
+   "reason": "Session A ran exactly this command, the agent reported both tests passing, and the fixture has exactly two tests. Session B later added a third test, but that is staleness and does not change the label under the owner's rule."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_22f94647-1da9-4b85-b098-ca9241994b53": {
+   "label": "supported",
+   "reason": "The fixture tools/check.py reads `os.environ[\"NOTES_HOME\"]` with no default, and the agent read that file in session B. The claim is limited to what the code says."
+  },
+  "smoke-L2-fieldnotes-iso-dates:claim_f9814586-108a-4779-8178-5fd039f68b16": {
+   "label": "supported",
+   "reason": "This is the user's session A declaration almost word for word. It is scoped to dates fieldnotes prints and does not extend to other projects."
+  },
+  "smoke-L3-household-grocery-budget:claim_f6f1eacb-d07c-4e0c-9b8b-4a7e393ec522": {
+   "label": "supported",
+   "reason": "It restates the user's session A instruction (groceries under $600 per month, flag anything that would push it over). It covers the grocery budget only, not all categories."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed:claim_da546917-32e1-4479-bb1f-77e2ef90554e": {
+   "label": "supported",
+   "reason": "In session A the plain run exited 1, the original check.py reads os.environ[\"NOTES_HOME\"] with no default, the agent reported the KeyError, and the run passed once NOTES_HOME was set. The KeyError text itself is not in the packet. The overlay before session C made the claim stale, which stays supported under the owner's rule, and the claim is limited to this command."
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_4a9335ef-b3a3-407d-b995-861fa8cea2b9": {
+   "label": "supported",
+   "reason": "The fixture has no tests/__init__.py, session A ran this command first, and the agent reported that unittest refused tests/ as the start directory. The quoted error text cannot be verified because the output was not kept and the exit code is masked by the pipe, but it is the message unittest gives for a non-package start directory with `-t .`."
+  },
+  "smoke-R2-ledgerlite-import-fixed:claim_8f06e725-c2c7-4177-8f6c-538618007533": {
+   "label": "supported",
+   "reason": "Close call. In session A the agent created tests/__init__.py and reran the command, reporting both tests passing, and session C and the oracle agree; as a record of those runs it holds, though the output strings were not kept. It is close because the claim omits that the file must put src/ on sys.path: an empty __init__.py would not be enough, so as a general rule it would overreach."
+  },
+  "smoke-R3-household-budget-correction:claim_3012eeb7-e5d0-479d-a253-eb20b1967802": {
+   "label": "supported",
+   "reason": "The user's session C prompt says 'the grocery budget is now $700 per month, not $600'. The claim restates that and nothing more."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_2b48a7c2-37a4-4b23-904a-9eaf9976d89a": {
+   "label": "supported",
+   "reason": "Session A ran this `-I` command with no cd, the agent said the module could not be found under `-I`, and the episode summary records ModuleNotFoundError for 'fieldnotes'. The error text is not in the packet and the exit code is masked by the trailing commands, but isolated mode leaving the working directory off sys.path explains it."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_49d45926-b648-41b3-9732-c518bba00f54": {
+   "label": "supported",
+   "reason": "Session A's third run used an empty temp NOTES_HOME, and the agent reported no output and exit=0. That matches the code: load() returns [] when the file is missing, so `list` prints nothing and returns 0."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_895b6c81-f310-4c39-a389-62157da98f99": {
+   "label": "supported",
+   "reason": "In session C the agent wrote the script and reported it printing 0, then 2 after two notes were added, and the oracle confirms script_exists and counts_current_storage. The script's source is not in the packet, so this rests on the reported test and the oracle."
+  },
+  "smoke-R4-fieldnotes-storage-conflict:claim_94fe218f-74dd-412b-8053-5aa21a9e01e7": {
+   "label": "supported",
+   "reason": "The store.py overlaid before session C uses NOTES_HOME/notes.jsonl and writes one json.dumps line per note; the agent read it and reported that the test created that file. The claim describes the current code only; whether it should have superseded the user's declared fact is a revision question, not a support question."
+  }
+ },
+ "lessons": {
+  "smoke-L1-ledgerlite-test-command#0": {
+   "label": "recalled",
+   "reason": "Active claim_5d6e25d8 holds the working command (`PYTHONPATH=src python -m unittest discover -s tests -v` from the project root, 2 tests OK), and it was delivered to session B, which used it first time. It is typed as a fact, not a procedure, and adds `-v`, but the content is the lesson."
+  },
+  "smoke-L1-ledgerlite-test-command#1": {
+   "label": "recalled",
+   "reason": "Active claim_4b466d12 holds that plain discovery without PYTHONPATH=src fails, and it was delivered to session B. It is close because the claim is typed as a fact, does not name the cause (the src-layout package not being importable), and has no retry condition; I counted the failure and its PYTHONPATH condition as the core of the lesson."
+  },
+  "smoke-L2-fieldnotes-iso-dates#0": {
+   "label": "recalled",
+   "reason": "Active user-declared claim_f9814586 states the ISO-8601 decision and the ban on locale formats for this project. It was delivered at session B's prompt, and its status did not change during the trial."
+  },
+  "smoke-L3-household-grocery-budget#0": {
+   "label": "recalled",
+   "reason": "Active user-declared claim_f6f1eacb holds both the under-$600 limit and the flagging rule, and it was delivered at session B's prompt. It is typed as a decision where the gold says preference, which does not change the content."
+  },
+  "smoke-R1-fieldnotes-check-env-fixed#0": {
+   "label": "recalled",
+   "reason": "Claim_da546917, a failure lesson, holds that tools/check.py fails with KeyError unless NOTES_HOME is set, with a dependency on that file. After the overlay it was delivered in session C as needs_revalidation and it is still active at the end; I treated that freshness change as revision handling, not as loss of the lesson."
+  },
+  "smoke-R2-ledgerlite-import-fixed#0": {
+   "label": "recalled",
+   "reason": "Close call. Active claim_4a9335ef holds that the plain discovery command fails with an ImportError while tests/ has no __init__.py, which is the session A failure and the same dependency the gold names. It is close because the observed error was 'Start directory is not importable', not a failed import of ledgerlite, and neither that failure nor a PYTHONPATH=src remedy was ever observed in this trial (the agent only predicted it); on a strict reading of the wording this would be evidence_absent."
+  },
+  "smoke-R3-household-budget-correction#0": {
+   "label": "recalled",
+   "reason": "Active user-declared claim_3012eeb7 holds the $700 monthly grocery budget. The earlier $600 claim_4ba42f96 was still delivered as current at session C's prompt, before the correction was processed, and is superseded at the end; I treated that as the supersession the gold expects."
+  },
+  "smoke-R4-fieldnotes-storage-conflict#0": {
+   "label": "recalled",
+   "reason": "Close call. User-declared claim_6a352b75 held the notes.json fact after session A and was delivered at session C's prompt marked needs_revalidation, so the lesson was learned and carried forward. By the end it is superseded by the inferred claim_94fe218f, where the gold expected the conflict to stay surfaced; I treated that as a revision outcome scored elsewhere, but if recall is judged on end-state memory alone this would be missed."
+  }
+ },
+ "read_system_spec_7": false,
+ "reviewer": "an outside model"
+}
